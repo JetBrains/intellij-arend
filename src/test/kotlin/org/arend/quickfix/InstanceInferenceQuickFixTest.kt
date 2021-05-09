@@ -134,7 +134,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
       \func func => field          
     """)
 
-    fun testAddInstanceArgument1() = typedQuickFixTest("Make", """
+    fun testAddInstanceArgument1() = typedQuickFixTest("Add", """
        \class M \where {
          \class X (A : \Type0) {
            | B : A -> Nat
@@ -158,5 +158,24 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        \class D {
          \func f {x : M.X Nat} (t : M.T) => M.B 1
        }   
+    """)
+
+    fun testAddInstanceArgument2() = typedQuickFixTest("Add", """
+       \class C (A : \Type)
+         | foo : A -> A
+  
+       \func test {A : \Type} (a : A) => foo{-caret-} a 
+    """, """
+       \class C (A : \Type)
+         | foo : A -> A
+  
+       \func test {A : \Type} {c : C A} (a : A) => foo a 
+    """)
+
+    fun testNoInstanceQuickFixes() = checkNoQuickFixes("", """
+       \class C (A : \Type)
+         | foo : A -> A
+         
+       \func test => foo{-caret-}
     """)
 }

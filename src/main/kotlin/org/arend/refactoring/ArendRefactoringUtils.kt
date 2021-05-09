@@ -479,8 +479,7 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
     return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
 }
 
-fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this")): String {
-    val anchor = definition.nameIdentifier
+fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this"), anchor: PsiElement? = definition.nameIdentifier): String {
     val thisVarName = StringRenamer().generateFreshName(variable, getAllBindings(definition).map { VariableImpl(it) }.toList())
 
     val thisTele: PsiElement = when (definition) {
@@ -729,6 +728,11 @@ fun needParentheses(deletedPsi: ArendCompositeElement?, deletedRange: TextRange,
 
     // otherwise we need parentheses
     return true
+}
+
+fun argNeedsParentheses(it : Concrete.Expression): Boolean {
+    val prec = it.accept(ConcretePrecVisitor, null)
+    return prec <= APP_PREC
 }
 
 private const val MAX_PREC = 100
