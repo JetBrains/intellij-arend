@@ -303,7 +303,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\data d (a : {-caret-})",
                     "\\class C (A : {-caret-})",
                     //"\\class C | cons (x : {-caret-})", //TODO: Better parser recovery is needed to fix this; otherwise can't distinguish this from `test completion in resulting type`
-                    "\\func foo => \\let (x : {-caret-}) \\in ")
+                    "\\func foo => \\let x : {-caret-} \\in ")
 
     fun `test only new & universes in application expression or after new expr`() =
             checkKeywordCompletionVariants(DATA_UNIVERSE_KW + NEW_KW_LIST + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
