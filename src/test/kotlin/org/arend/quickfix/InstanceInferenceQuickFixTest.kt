@@ -244,4 +244,28 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        \data D {B : \Type} {A : C} {E : \Type} (a : A)
          | cons (x : f {A} (foo a))       
     """)
+
+    fun testAddLocalInstance() = typedQuickFixTest("Add", """
+       \class C
+         | foo : Nat
+         
+       \func test => foo{-caret-}
+    """, """
+       \class C
+         | foo : Nat
+         
+       \func test {c : C} => foo
+    """)
+
+    fun testAddLocalInstance2() = typedQuickFixTest("Add", """
+       \class C (B : \Type) (\classifying A : \Type)
+         | foo : A -> B
+         
+       \func test (x : Nat) => foo{-caret-} x 
+    """, """
+       \class C (B : \Type) (\classifying A : \Type)
+         | foo : A -> B
+         
+       \func test {c : C { | A => Nat }} (x : Nat) => foo x 
+    """)
 }

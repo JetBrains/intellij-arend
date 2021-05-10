@@ -39,14 +39,15 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val ambientDefinition = (cause.element as? PsiElement)?.ancestor<ArendDefinition>()
         val missingClassInstance = (error.classRef.data as? SmartPsiElementPointer<*>)?.element
-        if (ambientDefinition is PsiConcreteReferable && missingClassInstance is ArendDefClass) {
+        val implementedClass = error.classRef.typechecked
+        if (ambientDefinition is PsiConcreteReferable && missingClassInstance is ArendDefClass && implementedClass is ClassDefinition) {
             val psiFactory = ArendPsiFactory(project)
             val className = ResolveReferenceAction.getTargetName(missingClassInstance, ambientDefinition).let { if (it.isNullOrEmpty()) missingClassInstance.defIdentifier?.textRepresentation() else it }
             val ppConfig = object : PrettyPrinterConfig { override fun getDefinitionRenamer(): DefinitionRenamer = PsiLocatedRenamer(ambientDefinition) }
             val classifyingTypeExpr = this.error.classifyingExpression?.let{ ToAbstractVisitor.convert(it, ppConfig) }
-            val classCall = className + (classifyingTypeExpr?.let {
-               if (argNeedsParentheses(it)) " ($it)" else " $it"
-            } ?: "")
+            val classifyingField = implementedClass.classifyingField
+            val fCallOk = classifyingField == null || implementedClass.fields.filter { it.referable.isExplicitField && !implementedClass.isImplemented(it) }.let{ it.isNotEmpty() && it[0] == classifyingField }
+            val classCall = if (fCallOk) className + (classifyingTypeExpr?.let { if (argNeedsParentheses(it)) " ($it)" else " $it" } ?: "") else "$className { | ${classifyingField!!.name} => $classifyingTypeExpr }"
             val ambientDefTypechecked = (error.definition as DataLocatedReferable).typechecked
             val l  = when (ambientDefinition) {
                 is ArendFunctionalDefinition -> ambientDefinition.nameTeleList.map { tele -> Pair(tele, tele.identifierOrUnknownList.size) }
@@ -56,7 +57,7 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
             var anchor : PsiElement? = ambientDefinition.nameIdentifier
             if (ambientDefTypechecked != null && l != null) {
                 val parameters = DependentLink.Helper.toList(ambientDefTypechecked.parameters)
-                var parameterIndex = this.error.classifyingExpression.findFreeBindings().map { parameters.indexOf(it) }.fold(-1) { acc, p -> max(acc, p) }
+                var parameterIndex = this.error.classifyingExpression?.findFreeBindings()?.map { parameters.indexOf(it) }?.fold(-1) { acc, p -> max(acc, p) } ?: -1
                 val iterator = l.iterator()
                 do {
                     if (parameterIndex >= 0) {
