@@ -7,14 +7,13 @@ import org.arend.psi.ArendExpr
 import org.arend.psi.ArendLetClause
 import org.arend.psi.ArendNameTele
 import org.arend.psi.ArendNewExpr
-import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ReferableExtractVisitor
 
 
 abstract class ArendLetClauseImplMixin(node: ASTNode) : ArendCompositeElementImpl(node), ArendLetClause {
     override fun getReferable() = defIdentifier
 
-    override fun getPattern(): Abstract.LetClausePattern? = letClausePattern
+    override fun getPattern() = atomPattern
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 
