@@ -56,8 +56,7 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
             return if (docComment != null) LocalSearchScope(arrayOf(function, docComment)) else LocalSearchScope(function)
         }
 
-        if (parent is ArendLetClausePattern ||
-            parent is ArendLetClause ||
+        if (parent is ArendLetClause ||
             (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
             pParent is ArendNameTele ||
             parent is ArendAtomPatternOrPrefix && pParent != null ||
@@ -119,7 +118,6 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
             }
             is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.expr
             is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
-            is ArendLetClausePattern -> parent.typeAnnotation?.expr
             is ArendPatternImplMixin -> parent.expr
             is ArendAsPattern -> parent.expr
             else -> null
@@ -128,7 +126,6 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
     override val psiElementType: PsiElement?
         get() {
             return when (val parent = parent) {
-                is ArendLetClausePattern -> parent.typeAnnotation?.expr
                 is ArendLetClause -> parent.typeAnnotation?.expr
                 is ArendIdentifierOrUnknown -> {
                     when (val pParent = parent.parent) {
