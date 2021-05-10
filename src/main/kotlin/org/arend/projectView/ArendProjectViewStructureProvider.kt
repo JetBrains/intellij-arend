@@ -30,10 +30,7 @@ class ArendProjectViewStructureProvider : TreeStructureProvider {
         if (library == null || library.config.additionalModulesSet.isEmpty()) {
             return children
         }
-        return mutableListOf<AbstractTreeNode<*>>().apply {
-            addAll(children)
-            add(ArendMetasNode(parent.project, library, settings))
-        }
+        return mutableListOf(ArendMetasNode(parent.project, library, settings), *children.toTypedArray())
     }
 
     private fun findArendLibrary(parent: NamedLibraryElementNode): ArendRawLibrary? {
