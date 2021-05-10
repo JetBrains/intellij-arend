@@ -1,13 +1,17 @@
 package org.arend.typechecking
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
+import com.intellij.testFramework.TestModeFlags
 import com.intellij.util.containers.MultiMap
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
@@ -66,6 +70,7 @@ import org.arend.util.Range
 import org.arend.util.Version
 import org.arend.util.refreshLibrariesDirectory
 import org.arend.yaml.YAMLFileListener
+import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
 
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener {
@@ -86,6 +91,16 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             } else {
                 super.showIncorrectLanguageVersionError(libraryName, range)
             }
+        }
+
+        override fun getRegisteredLibrary(libraryName: String?): Library? {
+            if (ApplicationManager.getApplication().isUnitTestMode) {
+                val lib = LibraryManagerTestingOptions.getRegisteredLibrary(libraryName)
+                if (lib != null) {
+                    return lib
+                }
+            }
+            return super.getRegisteredLibrary(libraryName)
         }
     }
 
@@ -402,5 +417,21 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             def.checkTCReferableName()
         }
         updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET, !isExternalUpdate)
+    }
+
+    class LibraryManagerTestingOptions {
+        companion object {
+            private val stdLib: Key<Library?> = Key.create("AREND_TEST_STD_LIBRARY")
+
+            @TestOnly
+            fun setStdLibrary(lib: Library, disposable: Disposable) {
+                TestModeFlags.set(stdLib, lib, disposable)
+            }
+
+            @TestOnly
+            internal fun getRegisteredLibrary(libraryName: String?): Library? {
+                return if (libraryName == AREND_LIB) TestModeFlags.get(stdLib) else null
+            }
+        }
     }
 }
