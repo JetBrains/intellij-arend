@@ -45,7 +45,7 @@ class ArendProjectViewTest : ArendTestBase() {
                 | PsiDirectory: src
                 | -External Libraries
                 |  -Library: arend-lib
-                |   -ext.ard
+                |   -ext
                 |    Meta.ard
                 |    Function.Meta.ard
                 |    Paths.Meta.ard

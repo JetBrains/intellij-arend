@@ -46,9 +46,9 @@ class ArendProjectViewStructureProvider : TreeStructureProvider {
 
 private class ArendMetasNode(project: Project?,
                              val library: ArendRawLibrary,
-                             settings: ViewSettings?) : ProjectViewNode<String>(project, "meta", settings) {
+                             settings: ViewSettings?) : ProjectViewNode<String>(project, "ext", settings) {
     override fun update(presentation: PresentationData) {
-        presentation.presentableText = "ext.ard"
+        presentation.presentableText = "ext"
         presentation.setIcon(AllIcons.Modules.GeneratedFolder)
     }
 
