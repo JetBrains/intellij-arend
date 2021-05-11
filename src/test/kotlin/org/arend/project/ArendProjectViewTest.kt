@@ -25,7 +25,7 @@ class ArendProjectViewTest : ArendTestBase() {
     }
 
     fun `test arend-lib metas`() {
-        withIdeaArendLib {
+        withStdLib {
             doTest("""
                 |-Project
                 | PsiDirectory: src

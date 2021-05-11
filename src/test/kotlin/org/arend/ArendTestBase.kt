@@ -242,16 +242,16 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         ArendTypechecking.create(project).typecheckModules(targetFiles, null)
     }
 
-    protected fun withIdeaArendLib(test: () -> Unit) {
+    protected fun withStdLib(test: () -> Unit) {
         try {
-            createIdeaArendLibrary()
+            createStdLib()
             test()
         } finally {
-            removeIdeaArendLibrary()
+            removeStdLib()
         }
     }
 
-    private fun createIdeaArendLibrary() {
+    private fun createStdLib() {
         val libRoot = LocalFileSystem.getInstance().findFileByPath("${ArendTestCase.testResourcesPath}/org/arend")!!
         val arendLibConfig = project.findExternalLibrary(libRoot, AREND_LIB)
                 ?: throw IllegalStateException("Cannot find arend-lib")
@@ -282,7 +282,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         }
     }
 
-    private fun removeIdeaArendLibrary() {
+    private fun removeStdLib() {
         runWriteAction {
             val projectTable = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
             val arendLib = projectTable.getLibraryByName(AREND_LIB) ?: return@runWriteAction
