@@ -170,12 +170,6 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
             if (config.sourcesDir.isNotEmpty()) config.sourcesDirFile?.let {
                 libModel.addRoot(it, OrderRootType.SOURCES)
             }
-            config.binariesDirFile?.let {
-                libModel.addRoot(it, OrderRootType.CLASSES)
-            }
-            config.extensionDirFile?.let {
-                libModel.addRoot(it, OrderRootType.CLASSES)
-            }
         }
     }
 }
