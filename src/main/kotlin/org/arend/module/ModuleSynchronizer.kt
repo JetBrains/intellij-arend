@@ -167,8 +167,8 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
             config.root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let {
                 libModel.addRoot(it, ArendConfigOrderRootType)
             }
-            if (config.sourcesDir.isNotEmpty()) config.sourcesDirFile?.let {
-                libModel.addRoot(it, OrderRootType.SOURCES)
+            if (config.sourcesDir.isNotEmpty()) {
+                config.sourcesDirFile?.let { libModel.addRoot(it, OrderRootType.SOURCES) }
             }
         }
     }
