@@ -53,7 +53,10 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
     fun addGeneratedModule(modulePath: ModulePath, scope: Scope) {
         val builder = StringBuilder()
         scopeToText(scope, "", builder)
-        val file = PsiFileFactory.getInstance(config.project).createFileFromText(modulePath.lastName + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: return
+        val fileName = modulePath.toString() + FileUtils.EXTENSION
+        val file = PsiFileFactory.getInstance(config.project)
+                .createFileFromText(fileName, ArendLanguage.INSTANCE, builder.toString())
+                as? ArendFile ?: return
         file.virtualFile.isWritable = false
         file.generatedModuleLocation = ModuleLocation(this, ModuleLocation.LocationKind.GENERATED, modulePath)
         fillGroup(file, scope)

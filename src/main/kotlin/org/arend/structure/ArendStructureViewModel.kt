@@ -32,7 +32,8 @@ class ArendStructureViewModel(editor: Editor?, file: ArendFile)
         is ArendDefData,
         is ArendDefInstance,
         is ArendDefModule,
-        is ArendDefFunction -> false
+        is ArendDefFunction,
+        is ArendDefMeta -> false
         is FieldReferable,
         is ArendClassImplement,
         is ArendConstructor -> true

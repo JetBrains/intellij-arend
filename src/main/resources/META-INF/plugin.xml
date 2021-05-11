@@ -20,6 +20,7 @@
         <projectOpenProcessor implementation="org.arend.project.ArendProjectOpenProcessor"/>
         <projectImportBuilder implementation="org.arend.project.ArendProjectImportBuilder"/>
         <additionalLibraryRootsProvider implementation="org.arend.project.ArendPreludeLibraryRootProvider"/>
+        <treeStructureProvider implementation="org.arend.projectView.ArendProjectViewStructureProvider"/>
 
         <!-- Module -->
 
@@ -336,6 +337,8 @@
 
         <!-- Search everywhere contributor-->
         <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
+
+        <editorTabColorProvider implementation="org.arend.editor.ArendEditorTabColorProvider"/>
     </extensions>
 
     <actions>

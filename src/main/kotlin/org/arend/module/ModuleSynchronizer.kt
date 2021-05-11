@@ -15,6 +15,7 @@ import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.*
@@ -79,22 +80,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                                 library = tableModel.createLibrary(pair.second)
 
                                 val libModel = library.modifiableModel
-                                if (libModel is LibraryEx.ModifiableModelEx) {
-                                    libModel.kind = ArendLibraryKind
-                                }
-
-                                externalLibrary.root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let {
-                                    libModel.addRoot(it, ArendConfigOrderRootType)
-                                }
-                                if (externalLibrary.sourcesDir.isNotEmpty()) externalLibrary.sourcesDirFile?.let {
-                                    libModel.addRoot(it, OrderRootType.SOURCES)
-                                }
-                                externalLibrary.binariesDirFile?.let {
-                                    libModel.addRoot(it, OrderRootType.CLASSES)
-                                }
-                                externalLibrary.extensionDirFile?.let {
-                                    libModel.addRoot(it, OrderRootType.CLASSES)
-                                }
+                                setupFromConfig(libModel, externalLibrary)
                                 actions.add {
                                     libModel.commit()
                                     tableModel.commit()
@@ -171,6 +157,24 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                     }
                 }
                 index++
+            }
+        }
+
+        fun setupFromConfig(libModel: Library.ModifiableModel, config: ExternalLibraryConfig) {
+            if (libModel is LibraryEx.ModifiableModelEx) {
+                libModel.kind = ArendLibraryKind
+            }
+            config.root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let {
+                libModel.addRoot(it, ArendConfigOrderRootType)
+            }
+            if (config.sourcesDir.isNotEmpty()) config.sourcesDirFile?.let {
+                libModel.addRoot(it, OrderRootType.SOURCES)
+            }
+            config.binariesDirFile?.let {
+                libModel.addRoot(it, OrderRootType.CLASSES)
+            }
+            config.extensionDirFile?.let {
+                libModel.addRoot(it, OrderRootType.CLASSES)
             }
         }
     }
