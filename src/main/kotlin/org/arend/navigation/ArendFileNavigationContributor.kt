@@ -7,7 +7,7 @@ import com.intellij.openapi.project.Project
 import org.arend.module.ArendPreludeLibrary
 import org.arend.typechecking.TypeCheckingService
 
-class ArendPreludeFileNavigationContributor : ChooseByNameContributor {
+class ArendFileNavigationContributor : ChooseByNameContributor {
     override fun getNames(project: Project?, includeNonProjectItems: Boolean): Array<String> =
         arrayOf(ArendPreludeLibrary.PRELUDE_FILE_NAME)
 
