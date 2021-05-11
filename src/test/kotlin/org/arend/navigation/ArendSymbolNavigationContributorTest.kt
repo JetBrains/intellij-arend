@@ -16,6 +16,15 @@ class ArendSymbolNavigationContributorTest : ArendTestBase() {
         assertSameElements(getByName(contributor, "+"), "+")
     }
 
+    fun `test contains arend-lib metas`() {
+        withStdLib {
+            val contributor = ArendSymbolNavigationContributor()
+            assertSameElements(getByName(contributor, "rewrite"), "rewrite")
+            assertSameElements(getByName(contributor, "$"), "$")
+            assertSameElements(getByName(contributor, "using"), "using")
+        }
+    }
+
     private fun getByName(contributor: ArendSymbolNavigationContributor, name: String): List<String> =
         contributor.getItemsByName(name, name, project, true).map { it.name!! }
 }
