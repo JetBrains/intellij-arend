@@ -34,4 +34,65 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
         
         \func lol => {-caret-}inProp
     """)
+
+    fun testSingleItemInWhere() = simpleQuickFixTest("Replace", """
+       \module Long \where {
+         \func name => 1
+       }
+
+       \func foo => 0 \where
+           \func bar => Long.name{-caret-}
+    """, """
+       \module Long \where {
+         \func name => 1
+       }
+
+       \func foo => 0 \where {
+         \open Long (name)
+       
+         \func bar => name{-caret-}
+       }
+    """)
+
+    fun testVisibleElement() = simpleQuickFixTest("Replace", """
+       \module Long \where {
+         \func name => 1
+       }
+
+       \open Long
+
+       \func foo => 0 \where {
+         \func bar => Long.name{-caret-}
+       }
+    """, """
+       \module Long \where {
+         \func name => 1
+       }
+
+       \open Long
+
+       \func foo => 0 \where {
+         \func bar => name
+       } 
+    """)
+
+    fun testMultipleElements() = simpleQuickFixTest("Replace", """
+       \module Long \where {
+         \func name => 1
+       }
+
+       \func foo => 0 \where {
+         \func bar => (Long.name{-caret-}, Long.name)
+       }
+    """, """
+       \module Long \where {
+         \func name => 1
+       }
+
+       \func foo => 0 \where {
+         \open Long (name)
+       
+         \func bar => (name{-caret-}, name)
+       }
+    """)
 }

@@ -299,11 +299,12 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
     val mySourceContainer = enclosingDefinition?.parentGroup
     val scope = enclosingDefinition?.scope
     val shortName = openedName.last()
-    if ((scope != null && scope.resolveName(shortName).let{ it == null || it == elementReferable } || !softMode) && mySourceContainer != null) {
+    if (scope != null && scope.resolveName(shortName) == elementReferable) return true
+    if ((scope != null && scope.resolveName(shortName) == null || !softMode) && mySourceContainer != null) {
         val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
             ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
-            ?: if (mySourceContainer.statements.isNotEmpty()) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
-                getAnchorInAssociatedModule(psiFactory, mySourceContainer)?.let{RelativePosition(PositionKind.AFTER_ANCHOR, it)}
+            ?: if (mySourceContainer is ArendFile || mySourceContainer.statements.size > 1) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
+                getAnchorInAssociatedModule(psiFactory, mySourceContainer, headPosition = true)?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it) }
 
         if (anchor != null) {
             val targetContainer = elementReferable.parentGroup
@@ -456,7 +457,9 @@ fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass: ArendDefClass) {
     }
 }
 
-fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: ArendGroup): PsiElement? {
+fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: ArendGroup, headPosition: Boolean = false): PsiElement? {
+    if (myTargetContainer !is ArendDefModule && myTargetContainer !is ArendDefinition) return null
+
     val oldWhereImpl = myTargetContainer.where
     val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
         val localAnchor = myTargetContainer.lastChild
@@ -476,7 +479,7 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
         }
     }
 
-    return actualWhereImpl.statementList.lastOrNull() ?: actualWhereImpl.lbrace
+    return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
 }
 
 fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this"), anchor: PsiElement? = definition.nameIdentifier): String {
