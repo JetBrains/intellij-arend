@@ -294,13 +294,16 @@ fun addStatCmd(factory: ArendPsiFactory,
     return insertedStatement
 }
 
-fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: ArendGroup, softMode: Boolean = true): Boolean {
+fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: ArendGroup, instanceMode: Boolean = false): Boolean {
     val enclosingDefinition = positionInFile.ancestor<ArendDefinition>()
-    val mySourceContainer = enclosingDefinition?.parentGroup
     val scope = enclosingDefinition?.scope
     val shortName = openedName.last()
     if (scope != null && scope.resolveName(shortName) == elementReferable) return true
-    if ((scope != null && scope.resolveName(shortName) == null || !softMode) && mySourceContainer != null) {
+
+    // Find uppermost level container
+    val mySourceContainer =  if (!instanceMode) enclosingDefinition?.containingFile as? ArendGroup else enclosingDefinition?.parentGroup
+
+    if ((scope != null && scope.resolveName(shortName) == null || instanceMode) && mySourceContainer != null) {
         val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
             ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
             ?: if (mySourceContainer is ArendFile || mySourceContainer.statements.size > 1) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
@@ -311,16 +314,26 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
             if (openedName.size > 1 && targetContainer != null) {
                 val containingFile = positionInFile.containingFile as? ArendFile
                 val openPrefix = (if (containingFile != null) {
-                    val data = calculateReferenceName(LocationData(targetContainer), containingFile, positionInFile)
+                    val data = calculateReferenceName(LocationData(targetContainer), containingFile, mySourceContainer)
                     data?.first?.execute()
                     if (data != null) LongName(data.second).toString() else null
                 } else null) ?: LongName(openedName.subList(0, openedName.size - 1)).toString()
-                return addIdToUsing(enclosingDefinition.parent, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+                return addIdToUsing(mySourceContainer, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
             }
 
         }
     }
     return false
+}
+
+fun findUppermostAdmissibleContainer(initialContainer: ArendGroup?, name: String): ArendGroup? {
+    var mySourceContainer : ArendGroup? = initialContainer
+    while (mySourceContainer != null && mySourceContainer !is ArendFile) {
+        val parentContainer = mySourceContainer.parentGroup
+        if (parentContainer != null && parentContainer.scope.resolveName(name) == null)
+            mySourceContainer = parentContainer else break
+    }
+    return mySourceContainer
 }
 
 fun addIdToUsing(groupMember: PsiElement?,

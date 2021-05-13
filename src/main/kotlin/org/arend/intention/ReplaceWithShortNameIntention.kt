@@ -2,12 +2,9 @@ package org.arend.intention
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
 import com.intellij.psi.util.descendantsOfType
-import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendLongName
 import org.arend.psi.ArendRefIdentifier
-import org.arend.psi.ancestor
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.RenameReferenceAction
@@ -20,7 +17,7 @@ class ReplaceWithShortNameIntention: SelfTargetingIntention<ArendLongName>(Arend
     override fun applyTo(element: ArendLongName, project: Project, editor: Editor) {
         val currentRefIdentifier = element.refIdentifierList.last()
         val target = currentRefIdentifier.resolve
-        val containingGroup = (element as? PsiElement)?.ancestor<ArendDefinition>()?.parentGroup
+        val containingGroup = element.containingFile
         if (target is ArendGroup && containingGroup != null)
             containingGroup.descendantsOfType<ArendLongName>().map { it.refIdentifierList.last() }
                 .filter { it.resolve == target && Companion.isApplicableTo(it) }.forEach {

@@ -19,19 +19,15 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.definition.FunctionDefinition
-import org.arend.ext.module.LongName
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.*
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.resolving.DataLocatedReferable
-import org.arend.term.NamespaceCommand
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
-import java.util.Collections.singletonList
 
 class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>):
     IntentionAction {
@@ -101,7 +97,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                             val openedName: List<String> = importData.second
                             importData.first?.execute()
                             if (openedName.size > 1 && elementReferable is ArendGroup)
-                                psiModified = psiModified || doAddIdToOpen(psiFactory, openedName, longName, elementReferable, softMode = false)
+                                psiModified = psiModified || doAddIdToOpen(psiFactory, openedName, longName, elementReferable, instanceMode = true)
                         }
                     }
 
