@@ -95,4 +95,36 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
          \func bar => (name{-caret-}, name)
        }
     """)
+
+    fun testObstructedScopes() = simpleQuickFixTest("Replace", """
+       \module M \where {
+         \func foo => 1
+       }
+       
+       \module N \where {
+         \func bar => M.{-caret-}foo
+         
+         \module Z \where {
+           \func foo => 2
+           
+           \func bar => M.foo Nat.+ foo
+         }
+       }
+    """, """
+       \module M \where {
+         \func foo => 1
+       }
+
+       \module N \where {
+         \open M (foo)
+
+         \func bar => foo
+
+         \module Z \where {
+           \func foo => 2
+
+           \func bar => M.foo Nat.+ foo
+         }
+       } 
+    """)
 }
