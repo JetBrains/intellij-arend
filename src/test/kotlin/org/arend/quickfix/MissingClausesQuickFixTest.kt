@@ -712,6 +712,14 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         | 1 => {?}
     """)
 
+    fun `test Fin2`() = typedQuickFixTest("Implement", """
+       \func foo{-caret-} (x : Fin 2) : Nat 
+    """, """
+       \func foo (x : Fin 2) : Nat
+         | 0 => {?}
+         | 1 => {?}
+    """)
+
     private fun addMeta(useClauses: Boolean) {
         addGeneratedModules {
             declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {

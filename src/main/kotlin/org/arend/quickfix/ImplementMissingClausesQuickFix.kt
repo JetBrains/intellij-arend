@@ -10,6 +10,8 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.definition.Definition
 import org.arend.core.expr.DefCallExpression
+import org.arend.core.expr.SmallIntegerExpression
+import org.arend.core.pattern.ConstructorExpressionPattern
 import org.arend.ext.core.body.CorePattern
 import org.arend.ext.core.context.CoreBinding
 import org.arend.ext.core.context.CoreParameter
@@ -269,12 +271,15 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
         fun getIntegralNumber(pattern: CorePattern): Int? {
             val definition = pattern.constructor
-            val isSuc = definition == Prelude.SUC || definition == Prelude.FIN_SUC
+            val isSuc = definition == Prelude.SUC
+            val isFinSuc = definition == Prelude.FIN_SUC
             val isPos = definition == Prelude.POS
             val isNeg = definition == Prelude.NEG
-            if (isSuc || isPos || isNeg) {
-                val number = getIntegralNumber(pattern.subPatterns.firstOrNull() ?: return null)
-                if (isSuc && number != null) return number + 1
+            val firstArgument = (pattern as? ConstructorExpressionPattern)?.dataTypeArguments?.firstOrNull()
+            if (isSuc || isFinSuc || isPos || isNeg) {
+                val number = if (isFinSuc && (firstArgument as? SmallIntegerExpression)?.isOne == true) 0 else
+                    getIntegralNumber(pattern.subPatterns.firstOrNull() ?: return null)
+                if ((isSuc || isFinSuc) && number != null) return number + 1
                 if (isPos && number != null) return number
                 if (isNeg && number != null && number != 0) return -number
                 return null
