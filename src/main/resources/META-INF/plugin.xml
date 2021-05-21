@@ -208,6 +208,16 @@
             <category>Arend</category>
         </intentionAction>
 
+        <intentionAction>
+            <className>org.arend.intention.AddClarifyingParensIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.RemoveClarifyingParensIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
         <!-- <highlightRangeExtension implementation="org.arend.annotation.ArendHighlightRangeExtension"/> -->
 
         <daemon.changeLocalityDetector implementation="org.arend.highlight.ArendChangeLocalityDetector"/>

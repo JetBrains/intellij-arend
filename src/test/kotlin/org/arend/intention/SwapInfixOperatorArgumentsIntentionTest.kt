@@ -96,4 +96,24 @@ class SwapInfixOperatorArgumentsIntentionTest : QuickFixTestBase() {
       \func op {a b : Nat} (c d : Nat): Nat => 0
       \func f => 3 {-caret-}`op` {1} {2} 0
     """)
+
+    fun `test data`() = doTest("""
+      \data \infixr 5 And (A B : \Type)
+        | \infixr 5 && A B
+      \func f : Nat And{-caret-} Int => 0 && 1
+    """, """
+      \data \infixr 5 And (A B : \Type)
+        | \infixr 5 && A B
+      \func f : Int And{-caret-} Nat => 0 && 1
+    """)
+
+    fun `test data constructor`() = doTest("""
+      \data \infixr 5 And (A B : \Type)
+        | \infixr 5 && A B
+      \func f : Nat And Int => 0 &&{-caret-} 1
+    """, """
+      \data \infixr 5 And (A B : \Type)
+        | \infixr 5 && A B
+      \func f : Nat And Int => 1 &&{-caret-} 0
+    """)
 }
