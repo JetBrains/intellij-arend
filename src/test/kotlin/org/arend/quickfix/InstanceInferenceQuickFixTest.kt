@@ -2,7 +2,7 @@ package org.arend.quickfix
 
 class InstanceInferenceQuickFixTest: QuickFixTestBase() {
 
-    fun testBasic() = typedQuickFixTest("Import", """
+    fun testBasic() = typedQuickFixTest("Add instance import", """
        \class M \where {
          \class X (A : \Type0) {
            | B : A -> Nat
@@ -26,7 +26,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        \func f (t : M.T) => M.B 0 
     """)
 
-    fun testBasic2() = typedQuickFixTest("Import", """
+    fun testBasic2() = typedQuickFixTest("Add instance import", """
        \open M ()
        
        \class M \where {
@@ -52,7 +52,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        \func f (t : M.T) => M.B 0 
     """)
 
-    fun testBasic3() = typedQuickFixTest("Import", """
+    fun testBasic3() = typedQuickFixTest("Add instance import", """
        \class M \where {
          \class X (A : \Type0) {
            | B : A -> Nat
@@ -80,7 +80,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        }
     """)
 
-    fun testBasic4() = typedQuickFixTest("Import", """
+    fun testBasic4() = typedQuickFixTest("Add instance import", """
        --! A.ard
        \import Main
        
@@ -108,7 +108,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        \func f (t : T) => B 1
     """)
 
-    fun testBasic5() = typedQuickFixTest("Import", """
+    fun testBasic5() = typedQuickFixTest("Add instance import", """
        \open C
        \class C
          | field : Nat
@@ -134,7 +134,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
       \func func => field          
     """)
 
-    fun testAddInstanceArgument1() = typedQuickFixTest("Add", """
+    fun testAddInstanceArgument1() = typedQuickFixTest("Add local instance", """
        \class M \where {
          \class X (A : \Type0) {
            | B : A -> Nat
@@ -160,7 +160,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        }   
     """)
 
-    fun testAddInstanceArgument2() = typedQuickFixTest("Add", """
+    fun testAddInstanceArgument2() = typedQuickFixTest("Add local instance", """
        \class C (A : \Type)
          | foo : A -> A
   
@@ -245,7 +245,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
          | cons (x : f {A} (foo a))       
     """)
 
-    fun testAddLocalInstance() = typedQuickFixTest("Add", """
+    fun testAddLocalInstance() = typedQuickFixTest("Add local instance", """
        \class C
          | foo : Nat
          
@@ -257,7 +257,7 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
        \func test {c : C} => foo
     """)
 
-    fun testAddLocalInstance2() = typedQuickFixTest("Add", """
+    fun testAddLocalInstance2() = typedQuickFixTest("Add local instance", """
        \class C (B : \Type) (\classifying A : \Type)
          | foo : A -> B
          

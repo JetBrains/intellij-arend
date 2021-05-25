@@ -33,7 +33,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
     IntentionAction {
     override fun startInWriteAction(): Boolean = false
 
-    override fun getText(): String = "Import instance"
+    override fun getText(): String = "Add instance import"
 
     override fun getFamilyName(): String = "arend.instance"
 
