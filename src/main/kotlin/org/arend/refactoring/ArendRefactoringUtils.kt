@@ -176,7 +176,7 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
 
 class RenameReferenceAction constructor(private val element: ArendReferenceElement,
                                         private val newName: List<String>,
-                                        private val target: ArendGroup? = null,
+                                        private val target: PsiLocatedReferable? = null,
                                         private val useOpen : Boolean = service<ArendSettings>().autoImportWriteOpenCommands) {
     override fun toString(): String = "Rename " + element.text + " to " + LongName(newName).toString()
 
@@ -294,7 +294,7 @@ fun addStatCmd(factory: ArendPsiFactory,
     return insertedStatement
 }
 
-fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: ArendGroup, instanceMode: Boolean = false): Boolean {
+fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: PsiLocatedReferable, instanceMode: Boolean = false): Boolean {
     val enclosingDefinition = positionInFile.ancestor<ArendDefinition>()
     val scope = enclosingDefinition?.scope
     val shortName = openedName.last()
@@ -310,7 +310,10 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
                 getAnchorInAssociatedModule(psiFactory, mySourceContainer, headPosition = true)?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it) }
 
         if (anchor != null) {
-            val targetContainer = elementReferable.parentGroup
+            val targetContainer = when (elementReferable) {
+                is ArendGroup -> elementReferable.parentGroup
+                else -> elementReferable.typecheckable.let { if (it is ArendGroup) it.parentGroup else it }
+            }
             if (openedName.size > 1 && targetContainer != null) {
                 val containingFile = positionInFile.containingFile as? ArendFile
                 val openPrefix = (if (containingFile != null) {
@@ -324,16 +327,6 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
         }
     }
     return false
-}
-
-fun findUppermostAdmissibleContainer(initialContainer: ArendGroup?, name: String): ArendGroup? {
-    var mySourceContainer : ArendGroup? = initialContainer
-    while (mySourceContainer != null && mySourceContainer !is ArendFile) {
-        val parentContainer = mySourceContainer.parentGroup
-        if (parentContainer != null && parentContainer.scope.resolveName(name) == null)
-            mySourceContainer = parentContainer else break
-    }
-    return mySourceContainer
 }
 
 fun addIdToUsing(groupMember: PsiElement?,

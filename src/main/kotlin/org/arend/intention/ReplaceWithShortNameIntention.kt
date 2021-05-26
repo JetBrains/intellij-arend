@@ -6,7 +6,6 @@ import com.intellij.psi.util.descendantsOfType
 import org.arend.psi.ArendLongName
 import org.arend.psi.ArendRefIdentifier
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.impl.ArendGroup
 import org.arend.refactoring.RenameReferenceAction
 
 class ReplaceWithShortNameIntention: SelfTargetingIntention<ArendLongName>(ArendLongName::class.java, "Replace with short name") {
@@ -18,7 +17,7 @@ class ReplaceWithShortNameIntention: SelfTargetingIntention<ArendLongName>(Arend
         val currentRefIdentifier = element.refIdentifierList.last()
         val target = currentRefIdentifier.resolve
         val containingGroup = element.containingFile
-        if (target is ArendGroup && containingGroup != null)
+        if (target is PsiLocatedReferable && containingGroup != null)
             containingGroup.descendantsOfType<ArendLongName>().map { it.refIdentifierList.last() }
                 .filter { it.resolve == target && Companion.isApplicableTo(it) }.forEach {
                 RenameReferenceAction(it, element.longName, target, true).execute(if (it == currentRefIdentifier) editor else null)
@@ -27,6 +26,6 @@ class ReplaceWithShortNameIntention: SelfTargetingIntention<ArendLongName>(Arend
 
     companion object {
        fun isApplicableTo(l : ArendRefIdentifier) =
-           l.resolve is ArendGroup && (l.parent as ArendLongName).scope.resolveName(l.text).let { it == null || it == l.resolve }
+           l.resolve is PsiLocatedReferable && (l.parent as ArendLongName).scope.resolveName(l.text).let { it == null || it == l.resolve }
     }
 }

@@ -126,4 +126,28 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
          }
        } 
     """)
+
+    fun testInPatterns() = simpleQuickFixTest("Replace", """
+       \module M \where {
+         \data \infixl 2 union (A B : \Type)
+           | inj1 (a : A)
+           | inj2 (b : B)
+       }
+
+       \func bar (A B : \Type) (u : M.union A B) : Nat \elim u
+         | M.inj1{-caret-} a => 1
+         | M.inj2 b => 2 
+    """, """
+       \open M (inj1) 
+        
+       \module M \where {
+         \data \infixl 2 union (A B : \Type)
+           | inj1 (a : A)
+           | inj2 (b : B)
+       }
+
+       \func bar (A B : \Type) (u : M.union A B) : Nat \elim u
+         | inj1 a => 1
+         | M.inj2 b => 2 
+    """)
 }
