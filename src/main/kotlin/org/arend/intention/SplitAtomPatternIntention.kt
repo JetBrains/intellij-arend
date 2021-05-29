@@ -89,15 +89,23 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val (patternOwner, indexList) = locatePattern(element) ?: return null
             val ownerParent = (patternOwner as PsiElement).parent
             var abstractPatterns: List<Abstract.Pattern>? = null
+            var coClauseName: String? = null
 
             var clauseIndex = -1
-            if (patternOwner is ArendClause && ownerParent is ArendFunctionClauses) {
-                val body = ownerParent.parent
+            if (patternOwner is ArendClause) {
+                val body = ownerParent.ancestor<ArendFunctionBody>()
                 val func = body?.parent
-                if (body is ArendFunctionBody && func is ArendFunctionalDefinition) {
-                    abstractPatterns = patternOwner.patterns
-                    definition = func as? TCDefinition
+                abstractPatterns = patternOwner.patterns
+
+                if (ownerParent is ArendFunctionClauses)
                     clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
+                else if (ownerParent is ArendCoClauseBody) {
+                    coClauseName = ownerParent.ancestor<ArendCoClause>()?.longName?.referenceName
+                    clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
+                }
+
+                if (body is ArendFunctionBody && func is ArendFunctionalDefinition) {
+                    definition = func as? TCDefinition
                 }
             }
             if (patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
@@ -108,10 +116,17 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             if (definition != null && clauseIndex != -1) {
-                val typeCheckedDefinition = definition.tcReferable?.typechecked
+                var typeCheckedDefinition = definition.tcReferable?.typechecked
                 if (typeCheckedDefinition is FunctionDefinition && definition is Abstract.ParametersHolder && definition is Abstract.EliminatedExpressionsHolder && abstractPatterns != null) {
-                    val elimBody = (typeCheckedDefinition.actualBody as? IntervalElim)?.otherwise
-                            ?: (typeCheckedDefinition.actualBody as? ElimBody) ?: return null
+                    if (coClauseName != null) {
+                      val classCallExpression = typeCheckedDefinition.resultType as? ClassCallExpression
+                      val expr = classCallExpression?.implementations?.firstOrNull { it.key.name == coClauseName }?.value
+                      typeCheckedDefinition = ((expr as? LamExpression)?.body as? FunCallExpression)?.definition ?: typeCheckedDefinition
+                    }
+
+                    val elimBody = (((typeCheckedDefinition as? FunctionDefinition)?.actualBody as? IntervalElim)?.otherwise
+                            ?: ((typeCheckedDefinition as? FunctionDefinition)?.actualBody as? ElimBody) ?: return null)
+
                     val patterns = elimBody.clauses.getOrNull(clauseIndex)?.patterns?.let { Pattern.toExpressionPatterns(it, typeCheckedDefinition.parameters) }
                             ?: return null
 
