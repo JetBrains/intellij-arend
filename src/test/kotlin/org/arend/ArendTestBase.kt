@@ -1,11 +1,13 @@
 package org.arend
 
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.ModifiableRootModel
+import com.intellij.openapi.roots.ModuleRootModificationUtil
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -18,17 +20,23 @@ import com.intellij.util.ThrowableRunnable
 import com.maddyhome.idea.vim.VimPlugin
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.DefinitionContributor
+import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
+import org.arend.ext.reference.Precedence
 import org.arend.extImpl.DefinitionContributorImpl
+import org.arend.module.AREND_LIB
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
+import org.arend.module.ModuleSynchronizer
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.scopeprovider.SimpleModuleScopeProvider
 import org.arend.psi.parentOfType
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import org.arend.util.findExternalLibrary
 import org.intellij.lang.annotations.Language
 
 abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
@@ -115,7 +123,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         myFixture.checkResult(replaceCaretMarker(after))
     }
 
-    protected fun findTestDataFile(path: String): VirtualFile =
+    private fun findTestDataFile(path: String): VirtualFile =
             LocalFileSystem.getInstance().findFileByPath("$testDataPath/$path")!!
 
     protected open class ArendProjectDescriptorBase : LightProjectDescriptor() {
@@ -232,5 +240,56 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         val configService = ArendModuleConfigService.getInstance(myFixture.module)
         val targetFiles = fileNames.map { configService!!.findArendFile(it, withAdditional = false, withTests = false) }
         ArendTypechecking.create(project).typecheckModules(targetFiles, null)
+    }
+
+    protected fun withStdLib(test: () -> Unit) {
+        try {
+            createStdLib()
+            test()
+        } finally {
+            removeStdLib()
+        }
+    }
+
+    private fun createStdLib() {
+        val libRoot = LocalFileSystem.getInstance().findFileByPath("${ArendTestCase.testResourcesPath}/org/arend")!!
+        val arendLibConfig = project.findExternalLibrary(libRoot, AREND_LIB)
+                ?: throw IllegalStateException("Cannot find arend-lib")
+        setupLibraryManager(arendLibConfig)
+        setupProjectModel(arendLibConfig)
+    }
+
+    private fun setupLibraryManager(config: ExternalLibraryConfig) {
+        val arendLib = ArendRawLibrary(config)
+        addGeneratedModules(arendLib) {
+            declare(ModulePath("Meta"), LongName("using"), "", Precedence.DEFAULT, null)
+            declare(ModulePath("Function", "Meta"), LongName("$"), "", Precedence.DEFAULT, null)
+            declare(ModulePath("Paths", "Meta"), LongName("rewrite"), "", Precedence.DEFAULT, null)
+        }
+        TypeCheckingService.LibraryManagerTestingOptions.setStdLibrary(arendLib, testRootDisposable)
+    }
+
+    private fun setupProjectModel(config: ExternalLibraryConfig) {
+        runWriteAction {
+            val projectModel = LibraryTablesRegistrar.getInstance().getLibraryTable(project).modifiableModel
+            val ideaLib = projectModel.createLibrary(AREND_LIB)
+            projectModel.commit()
+            ideaLib.modifiableModel.apply {
+                ModuleSynchronizer.setupFromConfig(this, config)
+                commit()
+            }
+            ModuleRootModificationUtil.updateModel(module) { it.addLibraryEntry(ideaLib) }
+        }
+    }
+
+    private fun removeStdLib() {
+        runWriteAction {
+            val projectTable = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
+            val arendLib = projectTable.getLibraryByName(AREND_LIB) ?: return@runWriteAction
+            ModuleRootModificationUtil.updateModel(module) { model ->
+                model.findLibraryOrderEntry(arendLib)?.let { model.removeOrderEntry(it) }
+            }
+            projectTable.removeLibrary(arendLib)
+        }
     }
 }

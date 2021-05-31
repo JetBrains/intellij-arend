@@ -37,7 +37,7 @@ class ArendLibraryType : LibraryType<DummyLibraryProperties>(ArendLibraryKind) {
 
     override fun createNewLibrary(parentComponent: JComponent, contextDirectory: VirtualFile?, project: Project): NewLibraryConfiguration? {
         val file = FileChooser.chooseFile(ArendLibraryChooserDescriptor(chooseYamlConfig = true, chooseZipLibrary = true, chooseLibraryDirectory = true).apply {
-            title = "Choose library"
+            title = "Choose Library"
             description = "Select an Arend library"
         }, project, null) ?: return null
 
@@ -50,17 +50,8 @@ class ArendLibraryType : LibraryType<DummyLibraryProperties>(ArendLibraryKind) {
         return object : NewLibraryConfiguration(libName, this, kind.createDefaultProperties()) {
             override fun addRoots(editor: LibraryEditor) {
                 editor.addRoot(configFile, ArendConfigOrderRootType)
-                val srcDir = if (library.sourcesDir.isNotEmpty()) library.sourcesDirFile else null
-                if (srcDir != null) {
-                    editor.addRoot(srcDir, OrderRootType.SOURCES)
-                }
-                val binDir = library.binariesDirFile
-                if (binDir != null) {
-                    editor.addRoot(binDir, OrderRootType.CLASSES)
-                }
-                val extDir = library.extensionDirFile
-                if (extDir != null) {
-                    editor.addRoot(extDir, OrderRootType.CLASSES)
+                if (library.sourcesDir.isNotEmpty()) {
+                    library.sourcesDirFile?.let { editor.addRoot(it, OrderRootType.SOURCES) }
                 }
             }
         }

@@ -93,14 +93,14 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
 
-        override fun getRegisteredLibrary(libraryName: String?): Library? {
+        override fun getRegisteredLibraries(): MutableCollection<out Library> {
             if (ApplicationManager.getApplication().isUnitTestMode) {
-                val lib = LibraryManagerTestingOptions.getRegisteredLibrary(libraryName)
-                if (lib != null) {
-                    return lib
+                val libs = LibraryManagerTestingOptions.getRegisteredLibraries()
+                if (libs != null) {
+                    return libs
                 }
             }
-            return super.getRegisteredLibrary(libraryName)
+            return super.getRegisteredLibraries()
         }
     }
 
@@ -429,8 +429,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
 
             @TestOnly
-            internal fun getRegisteredLibrary(libraryName: String?): Library? {
-                return if (libraryName == AREND_LIB) TestModeFlags.get(stdLib) else null
+            internal fun getRegisteredLibraries(): MutableList<Library>? {
+                return TestModeFlags.get(stdLib)?.let { mutableListOf(it) }
             }
         }
     }

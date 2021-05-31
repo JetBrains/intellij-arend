@@ -2,17 +2,14 @@ package org.arend.navigation
 
 import com.intellij.navigation.GotoClassContributor
 import com.intellij.navigation.NavigationItem
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.stubs.StubIndexKey
-import org.arend.core.definition.Definition
 import org.arend.naming.reference.Referable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.fullName
-import org.arend.typechecking.TypeCheckingService
 
 abstract class ArendNavigationContributorBase<T> protected constructor(
         private val indexKey: StubIndexKey<String, T>,
@@ -22,7 +19,7 @@ abstract class ArendNavigationContributorBase<T> protected constructor(
     override fun getNames(project: Project?, includeNonProjectItems: Boolean): Array<String> {
         project ?: return emptyArray()
         return StubIndex.getInstance().getAllKeys(indexKey, project).toTypedArray() +
-                getPreludeDefinitions().map { it.name }
+                getGeneratedItems(project).keys
     }
 
     override fun getItemsByName(
@@ -32,18 +29,13 @@ abstract class ArendNavigationContributorBase<T> protected constructor(
             includeNonProjectItems: Boolean
     ): Array<NavigationItem> {
         if (project == null || name == null) return emptyArray()
-        val service = project.service<TypeCheckingService>()
-        val preludeItems = getPreludeDefinitions().asSequence()
-            .filter { it.name == name }
-            .mapNotNull { service.getDefinitionPsiReferable(it) }
-            .toList()
         val scope = if (includeNonProjectItems) {
             GlobalSearchScope.allScope(project)
         } else {
             GlobalSearchScope.projectScope(project)
         }
         val items = StubIndex.getElements(indexKey, name, project, scope, clazz).toTypedArray<NavigationItem>()
-        return items + preludeItems
+        return items + getGeneratedItems(project).getOrDefault(name, emptyList())
     }
 
     override fun getQualifiedName(item: NavigationItem?): String? =
@@ -55,5 +47,5 @@ abstract class ArendNavigationContributorBase<T> protected constructor(
 
     override fun getQualifiedNameSeparator(): String = "."
 
-    protected abstract fun getPreludeDefinitions() : List<Definition>
+    protected abstract fun getGeneratedItems(project: Project?): Map<String, List<PsiLocatedReferable>>
 }
