@@ -3,5 +3,5 @@
 }
 
 \module M2 \where {
-  \func f2 => M.f
+  \func f2 => <spot>M.f</spot>
 }

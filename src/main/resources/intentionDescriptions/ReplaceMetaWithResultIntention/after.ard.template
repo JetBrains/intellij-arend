@@ -1,0 +1,2 @@
+\func +-comm-fin (m n : Nat) (f : Fin (m + n)) : Fin (n + m) =>
+  <spot>transportInv Fin +-comm f</spot>

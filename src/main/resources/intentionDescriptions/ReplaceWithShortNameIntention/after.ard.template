@@ -3,7 +3,7 @@
 }
 
 \module M2 \where {
-  \open M (f)
+  <spot>\open M (f)</spot>
 
-  \func f2 => f
+  \func f2 => <spot>f</spot>
 }
