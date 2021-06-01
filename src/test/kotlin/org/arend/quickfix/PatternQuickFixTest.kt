@@ -1,8 +1,17 @@
 package org.arend.quickfix
 
+import org.arend.util.ArendBundle
+
 
 class PatternQuickFixTest : QuickFixTestBase() {
-    fun `test too many patterns`() = simpleQuickFixTest("Remove",
+    private val removePattern = ArendBundle.message("arend.pattern.remove")
+    private val removeAsPattern = ArendBundle.message("arend.pattern.removeAs")
+    private val removeClause = ArendBundle.message("arend.clause.removeRedundant")
+    private val removeClauseRHS = ArendBundle.message("arend.clause.removeRedundantRHS")
+    private val makeExplicit = ArendBundle.message("arend.pattern.makeExplicit")
+    private val replaceWithConstructors = ArendBundle.message("arend.pattern.replaceWithConstructors")
+    
+    fun `test too many patterns`() = simpleQuickFixTest(removePattern,
         """
             \func test (x y : Nat) : Nat
               | _, _, _, _{-caret-} => 0
@@ -12,7 +21,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, _ => 0
         """)
 
-    fun `test too many patterns no whitespaces`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns no whitespaces`() = simpleQuickFixTest(removePattern,
         """
             \func test (x y : Nat) : Nat
               | _, _, {-caret-}_, {_}=> 0
@@ -22,7 +31,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, _ => 0
         """)
 
-    fun `test too many implicit patterns`() = simpleQuickFixTest("Remove",
+    fun `test too many implicit patterns`() = simpleQuickFixTest(removePattern,
         """
             \func test (x y : Nat) : Nat
               | _, _, {-caret-}{_}, _ => 0
@@ -32,7 +41,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, _ => 0
         """)
 
-    fun `test too many patterns elim`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns elim`() = simpleQuickFixTest(removePattern,
         """
             \func test (x y : Nat) : Nat \elim x
               | _, {-caret-}_ => 0
@@ -42,7 +51,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _ => 0
         """)
 
-    fun `test too many patterns no vars`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns no vars`() = simpleQuickFixTest(removePattern,
         """
             \func test : Nat
               | _, 0 => 3
@@ -53,7 +62,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
             \func test : Nat
         """)
 
-    fun `test too many patterns no vars with braces`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns no vars with braces`() = simpleQuickFixTest(removePattern,
         """
             \func test : Nat \with {
               | {-caret-}_, _ => 0
@@ -63,7 +72,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
             \func test : Nat
         """)
 
-    fun `test too many patterns no vars constructor elim`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns no vars constructor elim`() = simpleQuickFixTest(removePattern,
         """
             \data D
               | con1
@@ -77,7 +86,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | con2
         """)
 
-    fun `test too many patterns data no vars`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns data no vars`() = simpleQuickFixTest(removePattern,
         """
             \data D \with
               | {-caret-}_ => con
@@ -87,7 +96,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
             \data D
         """)
 
-    fun `test too many patterns constructor`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns constructor`() = simpleQuickFixTest(removePattern,
         """
             \data D | con Nat
             \func test (d : D) : Nat
@@ -99,7 +108,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | con _ => 0
         """)
 
-    fun `test too many patterns no vars constructor`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns no vars constructor`() = simpleQuickFixTest(removePattern,
         """
             \data D | con
             \func test (d : D) (x : Nat) : Nat
@@ -111,7 +120,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | con, _ => 0
         """)
 
-    fun `test too many patterns implicit`() = simpleQuickFixTest("Remove",
+    fun `test too many patterns implicit`() = simpleQuickFixTest(removePattern,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | _, _, _{-caret-} => 0
@@ -122,13 +131,13 @@ class PatternQuickFixTest : QuickFixTestBase() {
         """)
 
 
-    fun `test elim implicit ok`() = checkNoQuickFixes("Remove",
+    fun `test elim implicit ok`() = checkNoQuickFixes(removePattern,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
               | _, _, _{-caret-} => 0
         """)
 
-    fun `test remove implicit`() = simpleQuickFixTest("Remove",
+    fun `test remove implicit`() = simpleQuickFixTest(removePattern,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | {-caret-}{_}, _, _ => 0
@@ -138,7 +147,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, _ => 0
         """)
 
-    fun `test make explicit`() = simpleQuickFixTest("Make pattern explicit",
+    fun `test make explicit`() = simpleQuickFixTest(makeExplicit,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | {-caret-}{_}, {_}, _ => 0
@@ -148,7 +157,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, {_}, _ => 0
         """)
 
-    fun `test make explicit complex`() = simpleQuickFixTest("Make pattern explicit",
+    fun `test make explicit complex`() = simpleQuickFixTest(makeExplicit,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | {-caret-}{suc _}, {_}, _ => 0
@@ -158,7 +167,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | suc _, {_}, _ => 0
         """)
 
-    fun `test make explicit id`() = simpleQuickFixTest("Make pattern explicit",
+    fun `test make explicit id`() = simpleQuickFixTest(makeExplicit,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | {-caret-}{zero}, {_}, _ => 0
@@ -168,7 +177,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | zero, {_}, _ => 0
         """)
 
-    fun `test make explicit in constructor`() = simpleQuickFixTest("Make pattern explicit",
+    fun `test make explicit in constructor`() = simpleQuickFixTest(makeExplicit,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | suc {-caret-}{_}, {_}, _ => 0
@@ -178,7 +187,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | suc _, {_}, _ => 0
         """)
 
-    fun `test make explicit complex in constructor`() = simpleQuickFixTest("Make pattern explicit",
+    fun `test make explicit complex in constructor`() = simpleQuickFixTest(makeExplicit,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | suc {-caret-}{suc _}, {_}, _ => 0
@@ -188,7 +197,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | suc (suc _), {_}, _ => 0
         """)
 
-    fun `test make explicit id in constructor`() = simpleQuickFixTest("Make pattern explicit",
+    fun `test make explicit id in constructor`() = simpleQuickFixTest(makeExplicit,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | suc {-caret-}{zero}, {_}, _ => 0
@@ -204,8 +213,8 @@ class PatternQuickFixTest : QuickFixTestBase() {
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat
                   | {-caret-}{_} => 0
             """)
-        checkNoQuickFixes("Remove")
-        checkQuickFix("Make pattern explicit",
+        checkNoQuickFixes(removePattern)
+        checkQuickFix(makeExplicit,
             """
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat
                   | _ => 0
@@ -218,8 +227,8 @@ class PatternQuickFixTest : QuickFixTestBase() {
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
                   | _, {-caret-}{_}, _ => 0
             """)
-        // checkNoQuickFixes("Remove") // Not implemented yet
-        checkQuickFix("Make pattern explicit",
+        // checkNoQuickFixes(remove) // Not implemented yet
+        checkQuickFix(makeExplicit,
             """
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
                   | _, _, _ => 0
@@ -234,8 +243,8 @@ class PatternQuickFixTest : QuickFixTestBase() {
                   | 2, 3, {-caret-}{4} => 2
                   | _, {_}, _ => 0
             """)
-        // checkNoQuickFixes("Remove") // Not implemented yet
-        checkQuickFix("Make pattern explicit",
+        // checkNoQuickFixes(remove) // Not implemented yet
+        checkQuickFix(makeExplicit,
             """
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
                   | 0, 1, 2 => 1
@@ -244,7 +253,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
             """)
     }
 
-    fun `test removal of as pattern`() = typedQuickFixTest("Remove",
+    fun `test removal of as pattern`() = typedQuickFixTest(removeAsPattern,
             """
                \data Empty
 
@@ -258,7 +267,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | (), zero, zero => {?} 
             """)
 
-    fun `test removal of as pattern and surrounding parentheses` () = typedQuickFixTest("Remove",
+    fun `test removal of as pattern and surrounding parentheses` () = typedQuickFixTest(removeAsPattern,
             """
                \data Empty 
                 
@@ -277,7 +286,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | con () (suc n) => 0 
             """)
 
-    fun `test removing redundant pattern`() = typedQuickFixTest("Remove",
+    fun `test removing redundant pattern`() = typedQuickFixTest(removePattern,
             """
                \data Empty
 
@@ -291,7 +300,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | () \as x, _, zero => {?} 
             """)
 
-    fun `test removing redundant pattern implicit`() = typedQuickFixTest("Remove",
+    fun `test removing redundant pattern implicit`() = typedQuickFixTest(removePattern,
             """
                \data Empty
 
@@ -304,7 +313,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | () \as x, _, {_} => {?} 
             """)
 
-    fun `test removing pattern inside constructor pattern`() = typedQuickFixTest("Remove",
+    fun `test removing pattern inside constructor pattern`() = typedQuickFixTest(removePattern,
             """
                \data Empty
                 
@@ -323,7 +332,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | con (() \as x) _ => 0  
             """)
 
-    fun `test removing pattern right hand side`() = typedQuickFixTest("Remove",
+    fun `test removing pattern right hand side`() = typedQuickFixTest(removeClauseRHS,
             """
                \data Empty
 
@@ -337,7 +346,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | () \as x, zero, zero
             """)
 
-    fun `test removing redundant clause` () = typedQuickFixTest("Remove",
+    fun `test removing redundant clause` () = typedQuickFixTest(removeClause,
             """
                \func foo (n : Nat) : Nat
                  | zero => 0
@@ -349,7 +358,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | suc _ => 1 
             """)
 
-    fun `test removing pattern right hand side on arrow with empty goal`() = typedQuickFixTest("Remove",
+    fun `test removing pattern right hand side on arrow with empty goal`() = typedQuickFixTest(removeClauseRHS,
             """
                \data Empty
 
@@ -363,7 +372,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | () \as x, zero, zero
             """)
 
-    fun `test quickfix for unexpected empty pattern error`() = typedQuickFixTest("Replace",
+    fun `test quickfix for unexpected empty pattern error`() = typedQuickFixTest(replaceWithConstructors,
             """
                \func test (x : Nat) : Nat
                  | (){-caret-} => 0 
@@ -373,7 +382,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
                  | suc n => 0 
             """)
 
-    fun `test quickfix for unexpected empty pattern error with empty clause body`() = typedQuickFixTest("Replace",
+    fun `test quickfix for unexpected empty pattern error with empty clause body`() = typedQuickFixTest(replaceWithConstructors,
             """
                \func test (x : Nat) : Nat
                  | (){-caret-}

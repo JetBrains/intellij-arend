@@ -7,8 +7,17 @@ import org.arend.ext.reference.Precedence
 import org.arend.refactoring.ImportFileAction
 import org.arend.refactoring.doAddIdToUsing
 import org.arend.refactoring.doRemoveRefFromStatCmd
+import org.arend.util.ArendBundle
+import org.intellij.lang.annotations.Language
 
 class ResolveRefQuickFixTest : QuickFixTestBase() {
+    private val fixName = ArendBundle.message("arend.import.fix")
+
+    private fun simpleImportFixTest(@Language("Arend") contents: String, @Language("Arend") resultingContent: String) =
+        simpleQuickFixTest(fixName, contents, resultingContent)
+
+    private fun checkNoImport(@Language("Arend") contents: String) = checkNoQuickFixes(fixName, contents)
+
     private val fileA =
         """
             --! A.ard

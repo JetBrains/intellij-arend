@@ -15,16 +15,17 @@ import org.arend.psi.ArendNsUsing
 import org.arend.psi.ArendStatCmd
 import org.arend.refactoring.doAddIdToUsing
 import org.arend.refactoring.doRemoveRefFromStatCmd
+import org.arend.util.ArendBundle
 
 class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<PsiElement>,
                                   private val referable: Referable?) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getFamilyName(): String = "arend.import"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = causeRef.element != null
 
-    override fun getText(): String = "Rename import"
+    override fun getText(): String = ArendBundle.message("arend.import.rename")
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         when (val cause = causeRef.element) {

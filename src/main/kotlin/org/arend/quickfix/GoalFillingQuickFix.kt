@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.arend.psi.ArendGoal
 import org.arend.refactoring.replaceExprSmart
+import org.arend.util.ArendBundle
 
 class GoalFillingQuickFix(private val element: ArendGoal) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
@@ -15,9 +16,9 @@ class GoalFillingQuickFix(private val element: ArendGoal) : IntentionAction {
 
     override fun startInWriteAction() = true
 
-    override fun getFamilyName() = "arend.goal"
+    override fun getFamilyName() = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = element.isValid
 
-    override fun getText() = "Fill goal"
+    override fun getText() = ArendBundle.message("arend.expression.fillGoal")
 }

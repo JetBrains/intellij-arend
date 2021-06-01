@@ -8,9 +8,13 @@ import org.arend.ext.reference.Precedence
 import org.arend.ext.typechecking.ContextData
 import org.arend.ext.typechecking.MetaResolver
 import org.arend.extImpl.ConcreteFactoryImpl
-import org.arend.prelude.Prelude
+import org.arend.util.ArendBundle
 
 class MissingClausesQuickFixTest: QuickFixTestBase() {
+    private val fixName = ArendBundle.message("arend.clause.implement")
+    
+    private fun doTest(contents: String, result: String) = simpleQuickFixTest(fixName, contents, result)
+    
     private val listDefinition =
         """
         \data List (A : \Type)
@@ -50,7 +54,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     private val pairDefinition = "\\record Pair (A B : \\Type) | fst : A | snd : B"
 
-    fun testBasicPattern() = typedQuickFixTest("Implement",
+    fun testBasicPattern() = typedQuickFixTest(fixName,
         """
         $listDefinition
     
@@ -68,7 +72,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         }
         """)
 
-    fun testBasicElim() = typedQuickFixTest("Implement",
+    fun testBasicElim() = typedQuickFixTest(fixName,
         """
         $listDefinition
     
@@ -84,7 +88,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | :: x (:: x1 l) => {?}
         """)
 
-    fun testImplicitPattern() = typedQuickFixTest("Implement",
+    fun testImplicitPattern() = typedQuickFixTest(fixName,
         """
         --! Main.ard
         \$listDefinition2
@@ -101,7 +105,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | :: (:: l) => {?}
         """)
 
-    fun testImplicitPattern2() = typedQuickFixTest("Implement",
+    fun testImplicitPattern2() = typedQuickFixTest(fixName,
             """
         --! Main.ard
         \$listDefinition3
@@ -118,7 +122,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | {A}, {:: {x} {::}} => {?}
         """)
 
-    fun testBasicTwoPatterns() = typedQuickFixTest("Implement",
+    fun testBasicTwoPatterns() = typedQuickFixTest(fixName,
         """
         --! Main.ard 
         \$listDefinition
@@ -134,7 +138,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | nil, :: x l2 => {?} 
         """)
 
-    fun testMixedTwoPatterns() = typedQuickFixTest("Implement",
+    fun testMixedTwoPatterns() = typedQuickFixTest(fixName,
         """
         --! Main.ard
         \$fooDefinition        
@@ -158,7 +162,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | foo2 {zero2} (suc2 zero2), {foo2 {zero2} (suc2 (suc2 a))} => {?}    
         """)
 
-    fun testElim() = typedQuickFixTest("Implement",
+    fun testElim() = typedQuickFixTest(fixName,
         """
         --! Main.ard
         \$orDefinition
@@ -173,7 +177,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | inr b => {?}
         """)
 
-    fun testCase() = typedQuickFixTest("Implement",
+    fun testCase() = typedQuickFixTest(fixName,
         """
         --! Main.ard
         \$orDefinition
@@ -190,7 +194,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         }
         """)
 
-    fun testCaseWithoutBraces() = typedQuickFixTest("Implement",
+    fun testCaseWithoutBraces() = typedQuickFixTest(fixName,
             """
                \func test (n : Nat) : Nat => \case n{-caret-} \with 
             """, """
@@ -200,7 +204,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                }
             """)
 
-    fun testCaseWithoutWith() = typedQuickFixTest("Implement",
+    fun testCaseWithoutWith() = typedQuickFixTest(fixName,
             """
                \func foo : Nat => \case 0{-caret-}
             """, """
@@ -210,7 +214,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                } 
             """)
 
-    fun testResolveReference() = typedQuickFixTest("Implement",
+    fun testResolveReference() = typedQuickFixTest(fixName,
         """
         --! Logic.ard 
         \data || (A B : \Type)
@@ -235,7 +239,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | ||.byLeft x, byRight b => {?} 
         """)
 
-    fun testNaturalNumbers() = typedQuickFixTest("Implement",
+    fun testNaturalNumbers() = typedQuickFixTest(fixName,
         """
         --! Main.ard    
         \func plus{-caret-} (a b : Nat) : Nat
@@ -249,7 +253,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | 0, suc (suc (suc b)) => {?}    
         """)
 
-    fun testIntegralNumbers() = typedQuickFixTest("Implement",
+    fun testIntegralNumbers() = typedQuickFixTest(fixName,
         """
         \func{-caret-} abs (a : Int) : Int
           | -3 => 3
@@ -268,7 +272,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | neg (suc (suc (suc (suc n)))) => {?}    
         """)
 
-    fun testEmpty1() = typedQuickFixTest("Implement",
+    fun testEmpty1() = typedQuickFixTest(fixName,
             """
                 \func foo{-caret-} (x : Nat) : Nat
             """, """
@@ -277,7 +281,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                   | suc x => {?}
             """)
 
-    fun testEmpty2() = typedQuickFixTest("Implement",
+    fun testEmpty2() = typedQuickFixTest(fixName,
             """
                 \func foo (x : Nat) : Nat => \case x {-caret-}\with {  }
             """, """
@@ -287,7 +291,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                 }
             """)
 
-    fun testEmpty3() = typedQuickFixTest("Implement",
+    fun testEmpty3() = typedQuickFixTest(fixName,
             """
                 \func foo{-caret-} (x : Nat) : Nat \elim x
             """, """
@@ -296,7 +300,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                   | suc x => {?}
             """)
 
-    fun testRenamer() = typedQuickFixTest("Implement",
+    fun testRenamer() = typedQuickFixTest(fixName,
             """
                \func foo{-caret-} (n m : Nat) : Nat 
             """, """
@@ -307,7 +311,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  | suc n, suc m => {?} 
             """)
 
-    fun testTuple1() = typedQuickFixTest("Implement",
+    fun testTuple1() = typedQuickFixTest(fixName,
             """
                \func test{-caret-} {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A \elim p 
             """, """
@@ -315,7 +319,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  | (x,b) => {?} 
             """)
 
-    fun testTuple2() = typedQuickFixTest("Implement",
+    fun testTuple2() = typedQuickFixTest(fixName,
             """
                $pairDefinition
 
@@ -327,7 +331,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  | (a,b) => {?} 
             """)
 
-    fun testTuple3() = typedQuickFixTest("Implement",
+    fun testTuple3() = typedQuickFixTest(fixName,
             """
                \func test{-caret-} {A : \Type} (B : A -> \Type) (p : \Sigma (x : A) (B x)) : A 
             """, """
@@ -335,7 +339,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  | B, (x,b) => {?}
             """)
 
-    fun testFixInArendCoClauseDef() = typedQuickFixTest("Implement", """
+    fun testFixInArendCoClauseDef() = doTest("""
                \record R (f : Nat -> Nat)
                
                \func foo (n : Nat) : R \cowith
@@ -350,7 +354,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  }
     """)
 
-    fun testFixInCoClauseDefWithoutFC() = typedQuickFixTest("Implement", """
+    fun testFixInCoClauseDefWithoutFC() = doTest("""
                \record R (f : Nat -> Nat)
                
                \func foo (n : Nat) : R \cowith
@@ -365,7 +369,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  }
     """)
 
-    fun testFixInCoClauseDefWithoutWith() = typedQuickFixTest("Implement", """
+    fun testFixInCoClauseDefWithoutWith() = doTest("""
                \record R (f : Nat -> Nat)
                
                \func foo (n : Nat) : R \cowith
@@ -380,7 +384,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  }
     """)
 
-    fun test_145() = typedQuickFixTest("Implement", """
+    fun test_145() = doTest("""
                \data Empty
 
                \func isNeg (x : Nat) : \Type
@@ -399,7 +403,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
                  | {0}, ()
     """)
 
-    fun test_88_1() = typedQuickFixTest("Implement", """
+    fun test_88_1() = doTest("""
        \data D | cons (a b : Nat) (a = b)
 
        \func{-caret-} lol2 (d : D) : Nat \elim d 
@@ -410,7 +414,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | cons a b p => {?} 
     """)
 
-    fun test_88_2() = typedQuickFixTest("Implement", """
+    fun test_88_2() = doTest("""
        \data Tree | leaf | branch Tree Tree
 
        \func foo{-caret-} (z : Tree) : Nat
@@ -422,7 +426,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | branch z1 z2 => {?}        
     """)
 
-    fun test_88_3() = typedQuickFixTest("Implement", """
+    fun test_88_3() = doTest("""
        \data Tree | leaf | branch Tree Tree
 
        \func countLeaves{-caret-} (z1 z2 : Tree) : Nat 
@@ -436,7 +440,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | branch z1 z2, branch z3 z4 => {?} 
     """)
 
-    fun test_88_4() = typedQuickFixTest("Implement", """
+    fun test_88_4() = doTest("""
        \func test{-caret-} (z : Nat) : Nat \elim z 
     """, """
        \func test{-caret-} (z : Nat) : Nat \elim z
@@ -444,7 +448,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | suc z => {?} 
     """)
 
-    fun test_88_5() = typedQuickFixTest("Implement", """
+    fun test_88_5() = doTest("""
        \func lol{-caret-} (a : Nat) (b : Nat) (c : Nat) \elim b, c
     """, """
        \func lol (a : Nat) (b : Nat) (c : Nat) \elim b, c
@@ -454,7 +458,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | suc b, suc c => {?}
     """)
 
-    fun test_88_6() = typedQuickFixTest("Implement", """
+    fun test_88_6() = doTest("""
        \data D | con (t s : D)
        
        \func foo{-caret-} (t : D) : Nat 
@@ -465,7 +469,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | con t t1 => {?} 
     """)
 
-    fun test_88_7() = typedQuickFixTest("Implement", """
+    fun test_88_7() = doTest("""
        \data Tree (A : \Type) | Leaf | Branch (Tree A) A (Tree A)
        
        \func foo{-caret-} {A : \Type} (t : Tree A) : Nat \elim t
@@ -477,14 +481,14 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | Branch t1 a t2 => {?}
     """)
 
-    fun test_86_1() = typedQuickFixTest("Implement", """
+    fun test_86_1() = doTest("""
        \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim p 
     """, """
        \func foo (x y : Nat) (p : x = y) : Nat \elim p
          | idp => {?}
     """)
 
-    fun test_86_2() = typedQuickFixTest("Implement", """
+    fun test_86_2() = doTest("""
        \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim x, p 
     """, """
        \func foo (x y : Nat) (p : x = y) : Nat \elim x, p
@@ -492,7 +496,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | suc x, idp => {?}
     """)
 
-    fun test_86_3() = typedQuickFixTest("Implement", """
+    fun test_86_3() = doTest("""
        \func foo (x y : Nat) (p : x = y) : Nat => \case \elim x, p{-caret-} \with {}
     """, """
        \func foo (x y : Nat) (p : x = y) : Nat => \case \elim x, p \with {
@@ -501,7 +505,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        }
     """)
 
-    fun test_86_4() = typedQuickFixTest("Implement", """
+    fun test_86_4() = doTest("""
        \func foo (x y : Nat) (p : x = y) : Nat => \case x \as x', p \as p' : x' = y{-caret-} \with {} 
     """, """
        \func foo (x y : Nat) (p : x = y) : Nat => \case x \as x', p \as p' : x' = y \with {
@@ -510,7 +514,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        } 
     """)
 
-    fun test_86_5() = typedQuickFixTest("Implement", """
+    fun test_86_5() = doTest("""
        \func foo (x y : Nat) (p : x = y) : Nat => \case x, p{-caret-} \with {}
     """, """
        \func foo (x y : Nat) (p : x = y) : Nat => \case x, p \with {
@@ -519,7 +523,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        }
     """)
 
-    fun test_86_6() = typedQuickFixTest("Implement", """
+    fun test_86_6() = doTest("""
        \func foo{-caret-} (x : Nat) (p : x = x) : Nat \elim x, p 
     """, """
        \func foo{-caret-} (x : Nat) (p : x = x) : Nat \elim x, p
@@ -527,7 +531,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | suc x, p => {?} 
     """)
 
-    fun test_86_7() = typedQuickFixTest("Implement", """
+    fun test_86_7() = doTest("""
        \data Lol | idp
 
        \func foo{-caret-} (x y : Nat) (p : x = y) : Nat \elim p 
@@ -540,14 +544,14 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | Prelude.idp => {?} 
     """)
 
-    fun test_86_8() = typedQuickFixTest("Implement", """
+    fun test_86_8() = doTest("""
        \func foo{-caret-} (x : Nat) (p : 0 = x) : Nat 
     """, """
        \func foo (x : Nat) (p : 0 = x) : Nat
          | 0, p => {?} 
     """)
 
-    fun test_instance() = typedQuickFixTest("Implement", """
+    fun test_instance() = doTest("""
        \class C (foo : Nat)
        \instance f{-caret-} (n : Nat) : C \with 
     """, """
@@ -558,7 +562,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
     """)
 
 
-    fun `test shadowed names from parent case`() = typedQuickFixTest("Implement", """
+    fun `test shadowed names from parent case`() = doTest("""
         $listDefinition
         
         \func foo {A : \Type} (list : List A) : Nat \elim list
@@ -575,7 +579,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           }
     """)
 
-    fun `test avoid shadowing let binding`() = typedQuickFixTest("Implement", """
+    fun `test avoid shadowing let binding`() = doTest("""
        \data Wrapper (A : \Type) | wrapped (x : A)
         
        \func foo (w : Wrapper Nat) : Nat => \let x => 0 \in \case \elim{-caret-} w \with 
@@ -587,7 +591,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        }        
     """)
 
-    fun `test avoid shadowing parameter`() = typedQuickFixTest("Implement", """
+    fun `test avoid shadowing parameter`() = doTest("""
        \data Wrapper (A : \Type) | wrapped (x : A)
         
        \func foo (w x : Wrapper Nat) : Nat => \case \elim{-caret-} w \with 
@@ -599,7 +603,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        }        
     """)
 
-    fun `test names of eliminated variables may be reused`() = typedQuickFixTest("Implement", """
+    fun `test names of eliminated variables may be reused`() = doTest("""
        \func foo (n : Nat) : Nat => \case \elim{-caret-} n \with
     """, """
        \func foo (n : Nat) : Nat => \case \elim n \with {
@@ -608,7 +612,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
        }
     """)
 
-    fun `test names of eliminated variables may be reused 2`() = typedQuickFixTest("Implement", """
+    fun `test names of eliminated variables may be reused 2`() = doTest("""
         \data Wrapper (A : \Type) | wrapped (x : A)
         
         \func foo : Nat => \let x => wrapped 1 \in \case \elim{-caret-} x \with
@@ -621,7 +625,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
     """)
 
 
-    fun `test names of eliminated variables may be reused 3`() = typedQuickFixTest("Implement", """
+    fun `test names of eliminated variables may be reused 3`() = doTest("""
         \data Wrapper (A : \Type) | wrapped (x : A)
         
         \func foo (x : Nat) : Nat => \let x => wrapped 1 \in \case \elim{-caret-} x \with
@@ -633,7 +637,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         }
     """)
 
-    fun `test avoid shadowing function parameter`() = typedQuickFixTest("Implement", """
+    fun `test avoid shadowing function parameter`() = doTest("""
         \data Wrapper (A : \Type) | wrapped (x : A)
         
         {-caret-}\func foo (w x : Wrapper Nat) : Nat \elim w
@@ -644,7 +648,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | wrapped x1 => {?}
     """)
 
-    fun `test names of eliminated function parameters may be reused`() = typedQuickFixTest("Implement", """
+    fun `test names of eliminated function parameters may be reused`() = doTest("""
         \data Wrapper (A : \Type) | wrapped (x : A)
         
         {-caret-}\func foo (x : Wrapper Nat) : Nat \elim x
@@ -655,7 +659,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | wrapped x => {?}
     """)
 
-    fun `test names of eliminated function parameters may be reused 2`() = typedQuickFixTest("Implement", """
+    fun `test names of eliminated function parameters may be reused 2`() = doTest("""
         \data Wrapper (A : \Type) | wrapped (x : A)
         
         {-caret-}\func foo (x : Nat -> Nat) (w : Wrapper Nat) : Nat
@@ -666,7 +670,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | x, wrapped x1 => {?}
     """)
 
-    fun `test proper ordering of empty clauses`() = typedQuickFixTest("Implement", """
+    fun `test proper ordering of empty clauses`() = doTest("""
         \data Bool | true | false
         \data Empty
         
@@ -694,7 +698,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
           | false, false, false, b, c => {?}
     """)
 
-    fun `test zero of Fin`() = typedQuickFixTest("Implement", """
+    fun `test zero of Fin`() = doTest("""
       \func foo{-caret-} (n : Nat) (s : Fin n) : Nat
     """, """
       \func foo (n : Nat) (s : Fin n) : Nat
@@ -702,7 +706,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         | suc n, suc s => {?}  
     """)
 
-    fun testFinSuc() = typedQuickFixTest("Implement", """
+    fun testFinSuc() = doTest("""
       \func foo{-caret-} (s : Fin 3) : Nat
         | 2 => {?} 
     """, """
@@ -712,7 +716,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         | 1 => {?}
     """)
 
-    fun `test Fin2`() = typedQuickFixTest("Implement", """
+    fun `test Fin2`() = doTest("""
        \func foo{-caret-} (x : Fin 2) : Nat 
     """, """
        \func foo (x : Fin 2) : Nat
@@ -733,7 +737,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun `test case meta clauses`() {
         addMeta(true)
-        typedQuickFixTest("Implement", """
+        doTest("""
            \import Meta
            \func foo (x : Nat) : Nat => myMeta x {-caret-}\with {
               | suc n => 0
@@ -749,7 +753,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun `test case meta`() {
         addMeta(false)
-        typedQuickFixTest("Implement", """
+        doTest("""
            \import Meta
            \func foo (x : Nat) : Nat => {-caret-}myMeta x \with {}
         """, """
@@ -763,7 +767,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun `test case meta without braces`() {
         addMeta(false)
-        typedQuickFixTest("Implement", """
+        doTest("""
            \import Meta
            \func foo (x : Nat) : Nat => {-caret-}myMeta x \with
         """, """
@@ -777,7 +781,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun `test case meta without with`() {
         addMeta(false)
-        typedQuickFixTest("Implement", """
+        doTest("""
            \import Meta
            \func foo (x : Nat) : Nat => {-caret-}myMeta x
         """, """
@@ -789,7 +793,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         """)
     }
 
-    fun `test where`() = typedQuickFixTest("Implement", """
+    fun `test where`() = doTest("""
            \func foo{-caret-} (x : Nat) : Nat
              \where {} 
         """, """
@@ -799,7 +803,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
              \where {} 
         """)
 
-    fun `test names of generated parameters`()  = typedQuickFixTest("Implement", dataLeq + """
+    fun `test names of generated parameters`()  = doTest(dataLeq + """
        \func foo{-caret-} (n m k : Nat) (p : n < m) (q : m < k) : Nat 
     """, dataLeq + """
        \func foo (n m k : Nat) (p : n < m) (q : m < k) : Nat

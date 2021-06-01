@@ -1,10 +1,12 @@
 package org.arend.intention
 
 import org.arend.quickfix.QuickFixTestBase
+import org.arend.util.ArendBundle
 
 class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
+    private fun doTest(contents: String, result: String) = simpleQuickFixTest(ArendBundle.message("arend.import.replaceWithShortName"), contents, result)
 
-    fun testLink() = simpleQuickFixTest("Replace", """
+    fun testLink() = doTest("""
        \module M \where {
          \module M2 \where {
            \func foo => 101
@@ -27,7 +29,7 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
          \open M
        } """)
 
-    fun testHeadCaret() = simpleQuickFixTest("Replace", """
+    fun testHeadCaret() = doTest("""
         \func lol => Pa{-caret-}th.inProp
     """, """
         \open Path (inProp)
@@ -35,7 +37,7 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
         \func lol => {-caret-}inProp
     """)
 
-    fun testSingleItemInWhere() = simpleQuickFixTest("Replace", """
+    fun testSingleItemInWhere() = doTest("""
        \module Long \where {
          \func name => 1
        }
@@ -53,7 +55,7 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
            \func bar => name{-caret-}
     """)
 
-    fun testVisibleElement() = simpleQuickFixTest("Replace", """
+    fun testVisibleElement() = doTest("""
        \module Long \where {
          \func name => 1
        }
@@ -75,7 +77,7 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
        } 
     """)
 
-    fun testMultipleElements() = simpleQuickFixTest("Replace", """
+    fun testMultipleElements() = doTest("""
        \module Long \where {
          \func name => 1
        }
@@ -95,7 +97,7 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
        }
     """)
 
-    fun testObstructedScopes() = simpleQuickFixTest("Replace", """
+    fun testObstructedScopes() = doTest("""
        \module M \where {
          \func foo => 1
        }
@@ -127,7 +129,7 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
        } 
     """)
 
-    fun testInPatterns() = simpleQuickFixTest("Replace", """
+    fun testInPatterns() = doTest("""
        \module M \where {
          \data \infixl 2 union (A B : \Type)
            | inj1 (a : A)

@@ -7,8 +7,6 @@ import org.arend.fileTreeFromText
 import org.arend.psi.ArendFile
 
 abstract class QuickFixTestBase : ArendTestBase() {
-    private val importQfName = "Fix import"
-
     protected fun configure(@Language("Arend") contents: String, annotate: Boolean = true): FileTree {
         val result = fileTreeFromText(contents)
         result.createAndOpenFileWithCaretMarker()
@@ -34,11 +32,6 @@ abstract class QuickFixTestBase : ArendTestBase() {
         configure(contents)
         checkQuickFix(fixName, resultingContent)
     }
-
-    protected fun simpleImportFixTest(@Language("Arend") contents: String, @Language("Arend") resultingContent: String) =
-        simpleQuickFixTest(importQfName, contents, resultingContent)
-
-    protected fun checkNoImport(@Language("Arend") contents: String) = checkNoQuickFixes(importQfName, contents)
 
     protected fun simpleActionTest (@Language("Arend") contents: String, @Language("Arend") resultingContent: String, f: (ArendFile) -> Unit) {
         InlineFile(contents).withCaret()

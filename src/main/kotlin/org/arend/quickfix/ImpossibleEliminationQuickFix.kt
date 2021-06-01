@@ -21,7 +21,6 @@ import org.arend.ext.variable.Variable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.EXPECTED_CONSTRUCTOR_QUICKFIX_TEXT
 import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doInitOccupiedLocalNames
 import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doInsertCaseArgs
 import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doInsertPatternPrimers
@@ -29,13 +28,14 @@ import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doWriteTypeQuali
 import org.arend.quickfix.removers.RemoveClauseQuickFix.Companion.doRemoveClause
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.local.ImpossibleEliminationError
+import org.arend.util.ArendBundle
 
 class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val cause: SmartPsiElementPointer<ArendCompositeElement>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getFamilyName(): String = "arend.patternmatching"
+    override fun getFamilyName(): String = text
 
-    override fun getText(): String = EXPECTED_CONSTRUCTOR_QUICKFIX_TEXT
+    override fun getText(): String = ArendBundle.message("arend.pattern.doMatching")
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
         error.myCaseExpressions != null || error.myElimParams != null // this prevents quickfix from showing in the "no matching constructor" case

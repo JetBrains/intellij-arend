@@ -8,15 +8,16 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.*
 import org.arend.psi.ext.ArendPatternImplMixin
+import org.arend.util.ArendBundle
 
 class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElementPointer<ArendPatternImplMixin>): IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getFamilyName(): String = "arend.pattern"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = patternRef.element != null
 
-    override fun getText(): String = "Remove redundant pattern"
+    override fun getText(): String = ArendBundle.message("arend.pattern.remove")
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val pattern = patternRef.element ?: return

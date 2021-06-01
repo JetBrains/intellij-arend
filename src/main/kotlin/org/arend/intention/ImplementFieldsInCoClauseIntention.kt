@@ -9,12 +9,13 @@ import org.arend.psi.ArendExpr
 import org.arend.psi.CoClauseBase
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
+import org.arend.util.ArendBundle
 
-open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<CoClauseBase>(CoClauseBase::class.java, "Implement fields of a super class") {
+open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<CoClauseBase>(CoClauseBase::class.java, ArendBundle.message("arend.coClause.implementMissing")) {
     override fun isApplicableTo(element: CoClauseBase, caretOffset: Int, editor: Editor): Boolean {
         val data = element.getUserData(CoClausesKey)
         if (data != null && data.isNotEmpty()) {
-            text = "Implement fields of ${element.longName?.text}"
+            text = ArendBundle.message("arend.coClause.implementParentFields", element.longName?.text ?: "")
             return element.fatArrow == null
         }
         return false

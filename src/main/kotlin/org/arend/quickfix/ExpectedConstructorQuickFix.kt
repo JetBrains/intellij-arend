@@ -55,6 +55,7 @@ import org.arend.typechecking.patternmatching.ExpressionMatcher
 import org.arend.typechecking.patternmatching.PatternTypechecking
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.typechecking.visitor.VoidConcreteVisitor
+import org.arend.util.ArendBundle
 import org.arend.util.Decision
 import java.util.Collections.singletonList
 import kotlin.collections.ArrayList
@@ -66,9 +67,9 @@ import kotlin.math.abs
 class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getFamilyName(): String = "arend.patternmatching"
+    override fun getFamilyName(): String = text
 
-    override fun getText(): String = EXPECTED_CONSTRUCTOR_QUICKFIX_TEXT
+    override fun getText(): String = ArendBundle.message("arend.pattern.doMatching")
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
 
@@ -79,7 +80,6 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
     }
 
     companion object {
-        const val EXPECTED_CONSTRUCTOR_QUICKFIX_TEXT = "Do patternmatching on the \"stuck\" variable"
 
         abstract class AbstractExpectedConstructorErrorEntry(val error: ExpectedConstructorError, val clause: Concrete.Clause, val substitution: ExprSubstitution, val constructorTypechecked: Constructor) {
             val correctedSubsts = HashMap<Variable, ExpressionPattern>()

@@ -7,13 +7,14 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
+import org.arend.util.ArendBundle
 
 class RemoveTupleExprQuickFix(private val tupleExpr: SmartPsiElementPointer<ArendTupleExpr>, private val removeArgument: Boolean) : IntentionAction {
     override fun startInWriteAction() = true
 
-    override fun getText() = "Remove argument"
+    override fun getText() = ArendBundle.message("arend.expression.removeArgument")
 
-    override fun getFamilyName() = "arend.expression"
+    override fun getFamilyName() = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = tupleExpr.element != null
 

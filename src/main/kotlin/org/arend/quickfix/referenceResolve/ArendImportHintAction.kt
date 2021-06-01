@@ -29,6 +29,7 @@ import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendFileIndex
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.ArendBundle
 import org.arend.util.FileUtils
 
 enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
@@ -38,7 +39,9 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     override fun startInWriteAction(): Boolean = false
 
-    override fun getFamilyName(): String = "arend.reference.resolve"
+    override fun getFamilyName(): String = text
+
+    override fun getText(): String = ArendBundle.message("arend.import.fix")
 
     override fun fixSilently(editor: Editor): Boolean =
             doFix(editor, true) == Result.CLASS_AUTO_IMPORTED
@@ -58,11 +61,6 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             if (importQuickFixAllowed(referenceElement))
                 getStubElementSet(project, referenceElement, file).asSequence().filter{!onlyGenerallyAvailable || !availableOnlyAtUserRequest(it)}.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
             else emptySequence()
-
-
-    override fun getText(): String {
-        return "Fix import"
-    }
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return

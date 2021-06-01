@@ -425,4 +425,6 @@
         </group>
     </actions>
 
+    <resource-bundle>messages.ArendBundle</resource-bundle>
+
 </idea-plugin>

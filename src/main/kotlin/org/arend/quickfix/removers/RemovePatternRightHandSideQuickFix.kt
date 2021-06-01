@@ -8,15 +8,16 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendClause
 import org.arend.psi.deleteChildRangeWithNotification
 import org.arend.psi.extendLeft
+import org.arend.util.ArendBundle
 
 class RemovePatternRightHandSideQuickFix (private val clauseRef: SmartPsiElementPointer<ArendClause>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getFamilyName(): String = "arend.pattern"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = clauseRef.element != null
 
-    override fun getText(): String = "Remove redundant clause's right-hand side"
+    override fun getText(): String = ArendBundle.message("arend.clause.removeRedundantRHS")
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val clause = clauseRef.element ?: return

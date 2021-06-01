@@ -15,13 +15,14 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.splitTele
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import org.arend.util.ArendBundle
 
 class ReplaceWithLocalInstanceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>): IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getText(): String = "Replace local parameter with a local instance"
+    override fun getText(): String = ArendBundle.message("arend.instance.replaceWithLocalInstance")
 
-    override fun getFamilyName(): String = "arend.instance"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
 

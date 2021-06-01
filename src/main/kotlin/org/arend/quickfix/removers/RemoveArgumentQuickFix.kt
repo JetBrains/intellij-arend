@@ -7,13 +7,14 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendArgument
 import org.arend.psi.deleteWithNotification
+import org.arend.util.ArendBundle
 
 class RemoveArgumentQuickFix(private val argument: SmartPsiElementPointer<ArendArgument>) : IntentionAction {
     override fun startInWriteAction() = true
 
-    override fun getText() = "Remove argument"
+    override fun getText() = ArendBundle.message("arend.expression.removeArgument")
 
-    override fun getFamilyName() = "arend.expression"
+    override fun getFamilyName() = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = argument.element != null
 

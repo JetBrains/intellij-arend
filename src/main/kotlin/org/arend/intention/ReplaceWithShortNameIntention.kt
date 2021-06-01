@@ -7,8 +7,9 @@ import org.arend.psi.ArendLongName
 import org.arend.psi.ArendRefIdentifier
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.RenameReferenceAction
+import org.arend.util.ArendBundle
 
-class ReplaceWithShortNameIntention: SelfTargetingIntention<ArendLongName>(ArendLongName::class.java, "Replace with short name") {
+class ReplaceWithShortNameIntention: SelfTargetingIntention<ArendLongName>(ArendLongName::class.java, ArendBundle.message("arend.import.replaceWithShortName")) {
     override fun isApplicableTo(element: ArendLongName, caretOffset: Int, editor: Editor): Boolean =
         element.refIdentifierList.size > 1 && element.refIdentifierList.all { it.resolve is PsiLocatedReferable } &&
                 isApplicableTo(element.refIdentifierList.last())

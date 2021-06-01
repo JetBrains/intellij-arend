@@ -12,15 +12,16 @@ import org.arend.psi.ArendNsUsing
 import org.arend.psi.ArendStatCmd
 import org.arend.refactoring.doAddIdToHiding
 import org.arend.refactoring.doRemoveRefFromStatCmd
+import org.arend.util.ArendBundle
 import java.util.Collections.singletonList
 
 class HideImportQuickFix(private val causeRef: SmartPsiElementPointer<PsiElement>,
                          private val referable: Referable?): IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getText(): String = "Hide import"
+    override fun getText(): String = ArendBundle.message("arend.import.hide")
 
-    override fun getFamilyName(): String = "arend.import"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
 

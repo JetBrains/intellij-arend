@@ -11,15 +11,16 @@ import org.arend.psi.ArendElementTypes.PIPE
 import org.arend.psi.deleteChildRangeWithNotification
 import org.arend.psi.deleteWithNotification
 import org.arend.psi.findPrevSibling
+import org.arend.util.ArendBundle
 
 class RemoveClauseQuickFix (private val clauseRef: SmartPsiElementPointer<ArendClause>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getFamilyName(): String = "arend.pattern"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = clauseRef.element != null
 
-    override fun getText(): String = "Remove redundant clause"
+    override fun getText(): String = ArendBundle.message("arend.clause.removeRedundant")
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val clause = clauseRef.element ?: return

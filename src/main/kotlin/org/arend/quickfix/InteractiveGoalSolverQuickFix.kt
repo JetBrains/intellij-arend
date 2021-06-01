@@ -47,7 +47,7 @@ class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val 
 
     override fun startInWriteAction() = false
 
-    override fun getFamilyName() = "arend.goal"
+    override fun getFamilyName() = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) =
         element.isValid && goal.typecheckingContext != null && solver.isApplicable(goal.causeSourceNode, goal.expectedType)

@@ -55,6 +55,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import org.arend.util.ArendBundle
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -200,7 +201,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     val coClauseBase = cause.ancestor<CoClauseBase>()
                     val coClauseBaseFixData = coClauseBase?.getUserData(CoClausesKey)
                     if (coClauseBaseFixData != null) annotation.registerFix(object : ImplementFieldsQuickFix(SmartPointerManager.createPointer(coClauseBase), true, coClauseBaseFixData) {
-                        override fun getText(): String = "Replace {?} with empty implementation of the class"
+                        override fun getText(): String = ArendBundle.getMessage("arend.coClause.replaceWithEmptyImplementation")
                     })
 
                     if (error.errors.all { it.level != GeneralError.Level.ERROR }) when {

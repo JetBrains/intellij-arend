@@ -8,10 +8,10 @@ import com.intellij.psi.PsiFile
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.psi.ArendExpr
 import org.arend.refactoring.PsiLocatedRenamer
-import org.arend.refactoring.replaceExprSmart
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor
 import org.arend.typechecking.error.local.GoalError
+import org.arend.util.ArendBundle
 
 class GoalSolverFillingQuickFix(private val element: ArendExpr, private val goal: GoalError, private val action: (Document, Concrete.Expression, String) -> Unit) : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
@@ -23,10 +23,10 @@ class GoalSolverFillingQuickFix(private val element: ArendExpr, private val goal
 
     override fun startInWriteAction() = true
 
-    override fun getFamilyName() = "arend.goal"
+    override fun getFamilyName() = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) =
         element.isValid && goal.result != null
 
-    override fun getText() = "Fill goal"
+    override fun getText() = ArendBundle.message("arend.expression.fillGoal")
 }

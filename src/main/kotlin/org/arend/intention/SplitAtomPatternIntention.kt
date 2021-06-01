@@ -30,10 +30,11 @@ import org.arend.refactoring.*
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
+import org.arend.util.ArendBundle
 import java.util.*
 import java.util.Collections.singletonList
 
-class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, "Split atomic pattern") {
+class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, ArendBundle.message("arend.pattern.split")) {
     private var splitPatternEntries: List<SplitPatternEntry>? = null
     private var caseClauseParameters: DependentLink? = null
 

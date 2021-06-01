@@ -1,6 +1,10 @@
 package org.arend.quickfix
 
+import org.arend.util.ArendBundle
+
 class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
+    private fun doTest(contents: String, result: String) = simpleQuickFixTest(ArendBundle.message("arend.pattern.doMatching"), contents, result)
+
     private val data1S = """
       \data Vec' (b : \Sigma \Type Nat) \elim b
        | (A, 0) => nil2
@@ -9,7 +13,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
 
     /* Expected Constructor - Case */
 
-    fun test69C_01() = simpleQuickFixTest("Do", data1 + """
+    fun test69C_01() = doTest(data1 + """
       \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case xs \with {
         | nil{-caret-} => 0
         | cons x xs => 1  
@@ -21,7 +25,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       })
     """)
 
-    fun test69C_02() = simpleQuickFixTest("Do", data1 + """
+    fun test69C_02() = doTest(data1 + """
       \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat => 1 Nat.+ (\case n, xs \with {
         | n, nil{-caret-} => 0
         | n, cons x xs => 1
@@ -33,7 +37,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       })
     """)
 
-    fun test69C_03() = simpleQuickFixTest("Do", data3 + """
+    fun test69C_03() = doTest(data3 + """
       \func test3 {n m : Nat} (d : D n m) : Nat => 1 Nat.+ (\case n, d \with {
         | n, con1{-caret-} => n
         | suc n, con3 => n
@@ -45,7 +49,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       })
     """)
 
-    fun test69C_04() = simpleQuickFixTest("Do", data1 + """
+    fun test69C_04() = doTest(data1 + """
       \func test4 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n)) : Nat => 1 Nat.+ (\case xs \with {
         | nil{-caret-} => 0
         | cons x xs => 1
@@ -57,7 +61,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       })  
     """)
 
-    fun test69C_05() = simpleQuickFixTest("Do", data1 + """
+    fun test69C_05() = doTest(data1 + """
       \func test5 {A : \Type} {n : Nat} (xs : Vec A (n Nat.+ n Nat.+ n)) : Nat => 1 Nat.+ (\case n Nat.+ n \as n1, xs : Vec A (n1 Nat.+ n) \with {
         | 0, nil{-caret-} => 0
         | suc n1, cons x xs => 1
@@ -69,7 +73,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
       })
     """)
 
-    fun test69C_06() = simpleQuickFixTest("Do", data1 + """
+    fun test69C_06() = doTest(data1 + """
        \func test2 {A : \Type} {n m : Nat} (xs : Vec A n) (ys : Vec A m) : Nat => 1 Nat.+ (\case n \as n, xs : Vec A n, ys \with {
          | 0, nil, nil{-caret-} => 0
          | n, cons x xs, cons y ys => 1
@@ -87,7 +91,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | suc n, cons x xs => foo2
     """
 
-    fun test69C_07() = simpleQuickFixTest("Do", data12 + """
+    fun test69C_07() = doTest(data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case f \with {
          | foo1{-caret-} => 1
          | foo2 => 2
@@ -98,7 +102,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | suc n, cons x v, foo2 => 2
        }""")
 
-    fun test69C_08() = simpleQuickFixTest("Do", data12 + """
+    fun test69C_08() = doTest(data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n, f : Foo n v \with {
          | 0, foo1{-caret-} => 1
          | suc n, foo2 => 2
@@ -110,7 +114,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
        }
     """)
 
-    fun test69C_09() = simpleQuickFixTest("Do", data12 + """
+    fun test69C_09() = doTest(data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case v, f : Foo n v \with {
          | nil{-caret-}, foo1 => 1
          | cons x xs, foo2 => 2
@@ -122,7 +126,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
        }
     """)
 
-    fun test69C_10() = simpleQuickFixTest("Do", data12 + """
+    fun test69C_10() = doTest(data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v : Vec A n, f : Foo n v \with {
          | 0, nil, foo1{-caret-} => 1
          | suc n, cons x xs, foo2 => 2
@@ -134,7 +138,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
        }
     """)
 
-    fun test69C_11() = simpleQuickFixTest("Do", data12 + """
+    fun test69C_11() = doTest(data12 + """
        \func test {A : \Type} (n : Nat) (v : Vec A n) (f : Foo n v) : Nat => \case n \as n, v \as v, f : Foo n v \with {
          | suc m, nil{-caret-}, foo1 => m
          | suc n, cons x xs, foo2 => 2
@@ -148,7 +152,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
 
     /* Expected Constructor Error */
 
-    fun test69_01() = simpleQuickFixTest("Do", data1 + """
+    fun test69_01() = doTest(data1 + """
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim xs
         | nil{-caret-} => 0
         | cons x xs => 1 
@@ -158,7 +162,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | suc n, cons x xs => 1
     """)
 
-    fun test69_02() = simpleQuickFixTest("Do", data1 + """
+    fun test69_02() = doTest(data1 + """
       \func test2 {A : \Type} {n : Nat} (xs : Vec A n) : Nat
         | nil{-caret-} => 0
         | cons x xs => 1
@@ -168,7 +172,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | {_}, {suc n}, cons x xs => 1 
     """)
 
-    fun test69_03() = simpleQuickFixTest("Do", data1 + """
+    fun test69_03() = doTest(data1 + """
       \func test {A : \Type} {n : Nat} (xs : Vec A n) : Nat \elim n, xs
         | n, nil{-caret-} => n
         | n, cons x xs => n
@@ -178,7 +182,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | suc n, cons x xs => suc n 
     """)
 
-    fun test69_04() = simpleQuickFixTest("Do", data1S + """
+    fun test69_04() = doTest(data1S + """
       \func foo' (A : \Type) (n : Nat) (xs : Vec' (A, n)) : Nat \elim xs
         | nil2{-caret-} => 0
         | cons2 x xs => 1 
@@ -188,7 +192,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | suc n, cons2 x xs => 1  
     """)
 
-    fun test69_05() = simpleQuickFixTest("Do", data2 + """
+    fun test69_05() = doTest(data2 + """
       \func foo (n : Nat) (d : D (suc (suc n))) : Nat \elim d
         | con1{-caret-} => 101
     """, data2 + """
@@ -196,7 +200,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | con1{-caret-} => 101
     """)
 
-    fun test69_06() = simpleQuickFixTest("Do", data2 + """
+    fun test69_06() = doTest(data2 + """
       \func foo (n : Nat) (d : D (suc (suc n))) : Nat \elim n, d
         | n, con2{-caret-} => 101 
     """, data2 + """
@@ -204,7 +208,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | 0, con2 => 101
     """)
 
-    fun test69_07() = simpleQuickFixTest("Do", data2 + """
+    fun test69_07() = doTest(data2 + """
       \func foo (n : Nat) (d : D (suc (suc n))) : Nat \elim d
         | con2{-caret-} => 101 
     """, data2 + """
@@ -212,7 +216,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | 0, con2 => 101
     """)
 
-    fun test69_08() = simpleQuickFixTest("Do", data2 + """
+    fun test69_08() = doTest(data2 + """
        \func foo {n : Nat} (d : D n) : Nat \with
          | {suc n'}, con1{-caret-} => n'  
     """, data2 + """
@@ -220,7 +224,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | {1}, con1 => 0
     """)
 
-    fun test69_09() = simpleQuickFixTest("Do", data3 + """
+    fun test69_09() = doTest(data3 + """
        \func foo (a b : Nat) (d : D a b) : Nat \elim a, d
          | 0, con1{-caret-} => b Nat.+ b
          | suc a, con2 => a Nat.+ b
@@ -230,7 +234,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | suc a, suc b, con2 => a Nat.+ (suc b)
     """)
 
-    fun test69_10() = simpleQuickFixTest("Do", data1 + """
+    fun test69_10() = doTest(data1 + """
        \func test {A : \Type} (n : Nat) (xs : Vec A n) : Nat \elim n, xs
          | suc n, nil{-caret-} => n
          | n, cons x xs => n 
@@ -246,7 +250,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | envelope (D a b1) 
     """
 
-    fun test69_11() = simpleQuickFixTest("Do", data4 + """
+    fun test69_11() = doTest(data4 + """
        \func foo (a b : Nat) (d : Container a b) : Nat \elim a, d
          | 0, envelope con1{-caret-} => 1
          | suc a, envelope con2 => 2
@@ -256,7 +260,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | suc a, suc b, envelope con2 => 2
     """)
 
-    fun test69_12() = simpleQuickFixTest("Do", data1 + """
+    fun test69_12() = doTest(data1 + """
        \func foo {A : \Type} (p : \Sigma (n : Nat) (Vec A n)) : Nat \elim p
          | (n, nil{-caret-}) => n
          | (n, cons a v) => n 
@@ -271,7 +275,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | index {n : Nat} (v : Vec A n)  
     """
 
-    fun test69_13() = simpleQuickFixTest("Do", data5 + """
+    fun test69_13() = doTest(data5 + """
        \func foo {A : \Type} (p : Index A) : Nat \elim p
          | index nil{-caret-} => {?}
          | index (cons a v) => {?} 
@@ -290,7 +294,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
         | env {suc n} => cons A (Vec A (env {_} {n}))  
     """
 
-    fun test69_14() = simpleQuickFixTest("Do", data6 + """
+    fun test69_14() = doTest(data6 + """
        \func foo {A : \Type} {e : Id Nat} (p : Vec A e) : Nat
          | {_}, {env}, nil{-caret-} => {?}
          | cons a v => {?}
@@ -309,7 +313,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | index {m n k : Nat}  (v : Vec A m n k) 
     """
 
-    fun test69_15() = simpleQuickFixTest("Do", data7 + """
+    fun test69_15() = doTest(data7 + """
        \func foo {A : \Type} (p : Index A) : Nat \elim p
          | index nil{-caret-} => {?}
          | index (cons a v) => {?} 
@@ -331,7 +335,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | index (v : Vec A i)
     """
 
-    fun test69_16() = simpleQuickFixTest("Do", data8 + """
+    fun test69_16() = doTest(data8 + """
        \func foo {A : \Type} (i : D1) (p : D2 A i) : Nat \elim i, p
          | env, index nil{-caret-} => {?}
          | env, index (cons a v) => {?}
@@ -347,7 +351,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | (suc n, m) => cons A (Vec A (n, m))
     """
 
-    fun test69_17() = simpleQuickFixTest("Do", data9 + """
+    fun test69_17() = doTest(data9 + """
        \func test {A : \Type} (n : \Sigma Nat Nat) (xs : Vec A n) : Nat \elim n, xs
          | (n, m), nil => n
          | (n, m), cons{-caret-} x xs => n 
@@ -361,7 +365,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
        \data Foo (a : \Sigma Nat Nat) \elim a
          | (0, 0) => cons  
     """
-    fun test69_18() = simpleQuickFixTest("Do", data10 + """
+    fun test69_18() = doTest(data10 + """
        \func foo2 (a : \Sigma Nat Nat) (f : Foo a) : \Sigma Nat Nat \elim f
          | cons{-caret-} => a 
     """, data10 + """
@@ -369,7 +373,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | (0, 0) \as a, cons => a
     """)
 
-    fun test69_19() = simpleQuickFixTest("Do", data10 + """
+    fun test69_19() = doTest(data10 + """
        \func foo (a : \Sigma Nat Nat) (f : Foo a) : \Sigma Nat Nat \elim a, f
          | a \as b, cons{-caret-} => b
     """, data10 + """
@@ -387,7 +391,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | (0, 0) => cons 
     """
 
-    fun test69_20() = simpleQuickFixTest("Do", data11 + """
+    fun test69_20() = doTest(data11 + """
        \func foo {c : C} (f : Foo c): Nat \elim f
          | cons{-caret-} => c.a 
     """, data11 + """
@@ -395,7 +399,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          | (0, 0) \as c : C, cons => c.a
     """)
 
-    fun test69_21() = simpleQuickFixTest("Do", data3 + """
+    fun test69_21() = doTest(data3 + """
         \data D2 (a b : Nat) (d : D a b) \elim a, d
           | 0, con1{-caret-} => cons1
           | suc a, con3 => cons2 (Fin a)
@@ -405,7 +409,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
           | suc (suc a), suc (suc b), con3 => cons2 (Fin (suc a)) 
     """)
 
-    fun test69_22() = simpleQuickFixTest("Do", data3 + """
+    fun test69_22() = doTest(data3 + """
        \data D2
          | cons1 (c : Nat)
          | cons2 (a b : Nat) (d : D a b) \elim a, d {
@@ -421,7 +425,7 @@ class ExpectedConstructorQuickFixTest : QuickFixTestBase() {
          }
     """)
 
-    fun test69_23() = simpleQuickFixTest("Do", data3 + """
+    fun test69_23() = doTest(data3 + """
        \func foo (a b : Nat) (d : D a b) : Nat \elim a, d
          | 0, con1 => b Nat.+ b
          | 1, con2{-caret-} => b Nat.+ b 

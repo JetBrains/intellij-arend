@@ -7,17 +7,18 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.psi.*
+import org.arend.util.ArendBundle
 
 class MakePatternExplicitQuickFix(private val atomPatternRef: SmartPsiElementPointer<ArendAtomPattern>,
                                   private val single: Boolean) : IntentionAction {
     override fun startInWriteAction() = true
 
-    override fun getFamilyName() = "arend.pattern"
+    override fun getFamilyName() = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) =
             atomPatternRef.element != null
 
-    override fun getText() = "Make pattern explicit"
+    override fun getText() = ArendBundle.message("arend.pattern.makeExplicit")
 
     private fun getAtom(pattern: ArendPattern) =
             pattern.atomPattern?.let { if (pattern.asPattern == null) it else null }

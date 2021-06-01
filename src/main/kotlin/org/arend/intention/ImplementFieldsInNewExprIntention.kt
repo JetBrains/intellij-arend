@@ -8,8 +8,9 @@ import org.arend.psi.ArendCoClause
 import org.arend.psi.ext.ArendNewExprImplMixin
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
+import org.arend.util.ArendBundle
 
-class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, "Implement fields in \\new expression") {
+class ImplementFieldsInNewExprIntention : SelfTargetingIntention<ArendNewExprImplMixin>(ArendNewExprImplMixin::class.java, ArendBundle.message("arend.coClause.implementInNew")) {
 
     override fun isApplicableTo(element: ArendNewExprImplMixin, caretOffset: Int, editor: Editor): Boolean {
         if (element.appPrefix?.newKw == null) return false

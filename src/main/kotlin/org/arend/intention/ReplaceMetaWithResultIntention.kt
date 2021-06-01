@@ -12,8 +12,9 @@ import org.arend.psi.*
 import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.refactoring.*
 import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor
+import org.arend.util.ArendBundle
 
-class ReplaceMetaWithResultIntention : BaseArendIntention("Replace meta with result") {
+class ReplaceMetaWithResultIntention : BaseArendIntention(ArendBundle.message("arend.expression.replaceMetaWithResult")) {
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         val expr = element.ancestor<ArendExpr>()
         val refElement = (expr as? ArendLiteral)?.ipName ?: ((expr as? ArendLiteral)?.longName ?: (expr as? ArendLongNameExpr)?.longName)?.refIdentifierList?.lastOrNull() ?: return false

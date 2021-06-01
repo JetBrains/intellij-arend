@@ -1,27 +1,32 @@
 package org.arend.intention
 
 import org.arend.quickfix.QuickFixTestBase
+import org.arend.util.ArendBundle
 
 class WrapInGoalIntentionTest: QuickFixTestBase() {
-    fun `test basic`() = simpleQuickFixTest("Wrap", """
+    private val fixName = ArendBundle.message("arend.expression.wrapInGoal")
+    private fun doTest(contents: String, result: String) = simpleQuickFixTest(fixName, contents, result)
+    private fun testNoQuickFixes(contents: String) = checkNoQuickFixes(fixName, contents)
+
+    fun `test basic`() = doTest("""
         \func gkd => {-caret-}{-selection-}zero{-end_selection-}
     """, """
         \func gkd => {?(zero)}
     """)
 
-    fun `test absense without selection`() = checkNoQuickFixes("Wrap", """
+    fun `test absense without selection`() = testNoQuickFixes("""
         \func gkd => {-caret-}zero
     """)
 
-    fun `test absence when on goal`() = checkNoQuickFixes("Wrap", """
+    fun `test absence when on goal`() = testNoQuickFixes( """
         \func kkp => {-caret-}{-selection-}{?(zero)}{-end_selection-}
     """)
 
-    fun `test absence when in goal`() = checkNoQuickFixes("Wrap", """
+    fun `test absence when in goal`() = testNoQuickFixes( """
         \func sdl => {?({-caret-}zero)}
     """)
 
-    fun `test presence when deeper in goal`() = simpleQuickFixTest("Wrap", """
+    fun `test presence when deeper in goal`() = doTest("""
         \func awsl : Nat => {?(\case 1 \with {
           | zero => {-caret-}{-selection-}0{-end_selection-}
           | suc a => a

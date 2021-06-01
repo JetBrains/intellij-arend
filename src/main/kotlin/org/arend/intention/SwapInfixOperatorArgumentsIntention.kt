@@ -13,10 +13,11 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
+import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
 import org.arend.util.findDefAndArgsInParsedBinop
 
-class SwapInfixOperatorArgumentsIntention : BaseArendIntention(NAME) {
+class SwapInfixOperatorArgumentsIntention : BaseArendIntention(ArendBundle.message("arend.expression.swapInfixArguments")) {
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         editor ?: return false
         return findBinOpArguments(element) != null
@@ -48,10 +49,6 @@ class SwapInfixOperatorArgumentsIntention : BaseArendIntention(NAME) {
         val binOpSequence = appExprToConcrete(binOpSequenceAbs) ?: return null
         val (_, _, arguments) = findDefAndArgsInParsedBinop(binOp, binOpSequence) ?: return null
         return arguments.filter { it.isExplicit }.let { if (it.size == 2) it[0] to it[1] else null }
-    }
-
-    companion object {
-        const val NAME = "Swap infix operator arguments"
     }
 }
 

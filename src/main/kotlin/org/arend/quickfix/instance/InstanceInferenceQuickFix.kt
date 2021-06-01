@@ -28,14 +28,15 @@ import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import org.arend.util.ArendBundle
 
 class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>):
     IntentionAction {
     override fun startInWriteAction(): Boolean = false
 
-    override fun getText(): String = "Add instance import"
+    override fun getText(): String = ArendBundle.message("arend.instance.importInstance")
 
-    override fun getFamilyName(): String = "arend.instance"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
         error.classifyingExpression != null || project.service<TypeCheckingService>().findInstances(error.classRef, error.classifyingExpression).isNotEmpty() //if there is no classifying expression then findInstances is a cheap operation

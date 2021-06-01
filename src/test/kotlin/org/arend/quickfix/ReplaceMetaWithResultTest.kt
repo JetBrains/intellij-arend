@@ -8,8 +8,11 @@ import org.arend.ext.reference.Precedence
 import org.arend.ext.typechecking.*
 import org.arend.extImpl.ConcreteFactoryImpl
 import org.arend.term.concrete.Concrete
+import org.arend.util.ArendBundle
 
 class ReplaceMetaWithResultTest : QuickFixTestBase() {
+    private val fixName = ArendBundle.message("arend.expression.replaceMetaWithResult")
+
     private fun addMeta() {
         addGeneratedModules {
             declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, object : MetaDefinition {
@@ -21,7 +24,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     fun `test meta definition`() {
         addMeta()
-        simpleQuickFixTest("Replace meta with result", """
+        simpleQuickFixTest(fixName, """
             \import Meta
             \func test => {-caret-}myMeta 1 2 3
         """, """
@@ -32,7 +35,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     fun `test meta in binop`() {
         addMeta()
-        simpleQuickFixTest("Replace meta with result", """
+        simpleQuickFixTest(fixName, """
             \import Meta
             \func test (n : Nat) => 1 Nat.+ {-caret-}myMeta 1 n 3 Nat.+ 2
         """, """
@@ -49,7 +52,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
             })
         }
 
-        simpleQuickFixTest("Replace meta with result", """
+        simpleQuickFixTest(fixName, """
             \import Meta
             \func test => {-caret-}myMeta 1 2 3
         """, """
@@ -69,7 +72,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     fun `test meta resolver argument`() {
         addResolver()
-        simpleQuickFixTest("Replace meta with result", """
+        simpleQuickFixTest(fixName, """
             \import Meta
             \func test => {-caret-}myMeta 1 2 3
         """, """
@@ -80,7 +83,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     fun `test meta resolver argument in binop`() {
         addResolver()
-        simpleQuickFixTest("Replace meta with result", """
+        simpleQuickFixTest(fixName, """
             \import Meta
             \func test (n : Nat) => 1 Nat.+ {-caret-}myMeta 1 n 3 Nat.+ 2
         """, """
@@ -91,7 +94,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     fun `test meta resolver with clauses`() {
         addResolver()
-        simpleQuickFixTest("Replace meta with result", """
+        simpleQuickFixTest(fixName, """
             \import Meta
             \func test => {-caret-}myMeta 1 2 3 \with {}
         """, """
@@ -110,7 +113,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
             })
         }
 
-        simpleQuickFixTest("Replace meta with result", """
+        simpleQuickFixTest(fixName, """
             \import Meta
             \func test (n : Nat) : Nat => {-caret-}myMeta n \with { | 0 => 0 | suc n => n }
         """, """

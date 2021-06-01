@@ -1,6 +1,7 @@
 package org.arend.intention
 
 import org.arend.quickfix.QuickFixTestBase
+import org.arend.util.ArendBundle
 
 class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     private val pairDefinition = "\\record Pair (A B : \\Type) | fst : A | snd : B"
@@ -13,8 +14,10 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \record Pair (A B : \Type) | fst : A | snd : \Sigma (b : B) (c : Nat)
        \record Pair2 (A : \Type) (B : \Type) | fst2 : Pair A B | snd2 : Pair A B 
     """
+    
+    private fun doTest(contents: String, result: String) = typedQuickFixTest(ArendBundle.message("arend.pattern.split"), contents, result)
 
-    fun testBasicSplit() = typedQuickFixTest("Split", """
+    fun testBasicSplit() = doTest("""
        \func isLessThan2 (a : Nat) : Nat
          | 0 => 1
          | suc _{-caret-} => 1        
@@ -25,7 +28,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | suc (suc n) => 1 
     """)
 
-    fun testBasicSplitElim() = typedQuickFixTest("Split", """
+    fun testBasicSplitElim() = doTest("""
        \func isLessThan2 (a b : Nat) : Nat \elim b
          | 0 => 1
          | suc _{-caret-} => 1        
@@ -36,7 +39,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | suc (suc n) => 1 
     """)
 
-    fun testBasicSplitWithImplicitArgs() = typedQuickFixTest("Split", """
+    fun testBasicSplitWithImplicitArgs() = doTest("""
        \func isLessThan2 {a : Nat} : Nat
          | {0} => 1
          | {suc _{-caret-}} => 1
@@ -53,7 +56,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | suc{-caret-} _ => 1    
     """)
 
-    fun testSplitEmptyPattern1() = typedQuickFixTest("Split", """
+    fun testSplitEmptyPattern1() = doTest("""
        \data Empty 
         
        \func foobar (e : Empty) : Nat
@@ -65,7 +68,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | () 
     """)
 
-    fun testSplitEmptyPattern2() = typedQuickFixTest("Split", """
+    fun testSplitEmptyPattern2() = doTest("""
        \data Empty 
         
        \data Foo
@@ -83,7 +86,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | goo ()  
     """)
 
-    fun testVariableReplacement() = typedQuickFixTest("Split", """
+    fun testVariableReplacement() = doTest("""
        \data Vec (A : \Type) (n : Nat) \elim n
          | 0 => nil
          | suc n => cons A (Vec A n)
@@ -116,7 +119,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | foo1 (suc a) b => {?}
     """)
 
-    fun testRenaming() = typedQuickFixTest("Split", """
+    fun testRenaming() = doTest("""
        \data List (A : \Type)
          | nil
          | cons A (List A) 
@@ -135,7 +138,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | cons x (cons a xs) => 1
     """)
 
-    fun testRenaming2() = typedQuickFixTest("Split", """
+    fun testRenaming2() = doTest("""
        \data List (A : \Type)
          | nil
          | cons A (List A) 
@@ -156,7 +159,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | cons x (cons a1 xs), cons a l => foo (cons a1 xs) l
     """)
 
-    fun testInfixNotation() = typedQuickFixTest("Split", """
+    fun testInfixNotation() = doTest("""
        \data List (A : \Type)
          | nil
          | \infixr 5 :: A (List A)
@@ -175,7 +178,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | :: x (:: a xs) => (foo (a :: xs)) Nat.+ x
     """)
 
-    fun testSimpleResolving() = typedQuickFixTest("Split", """
+    fun testSimpleResolving() = doTest("""
        --! A.ard
        \data List (A : \Type)
          | nil
@@ -194,7 +197,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
         | List.:: a xs => 0  
     """)
 
-    fun testLongName() = typedQuickFixTest("Split", """
+    fun testLongName() = doTest("""
        --! MyNat.ard
        \module Foo \where { 
          \data MyNatural
@@ -231,7 +234,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | {suc a}, b => 0
     """)
 
-    fun testNaturalNumbers2() = typedQuickFixTest("Split", """
+    fun testNaturalNumbers2() = doTest("""
        \func foo (p : \Sigma Nat Nat) : Nat
          | (x{-caret-}, y) => {?} 
     """, """
@@ -240,7 +243,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | (suc x, y) => {?}
     """)
 
-    fun testFinZero() = typedQuickFixTest("Split", """
+    fun testFinZero() = doTest("""
        \func foo (n : Nat) (s : Fin n) : Nat
          | suc n, s{-caret-} => 0 
     """, """
@@ -249,7 +252,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | suc n, suc s => 0
     """)
 
-    fun testFinSuc() = typedQuickFixTest("Split", """
+    fun testFinSuc() = doTest("""
        \func foo (s : Fin 2) : Nat
          | 0 => 0
          | suc s{-caret-} => s
@@ -347,7 +350,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | (p,p1) => fst {fst2 {\new Pair2 A B p p1}}
     """)
 
-    fun testRecord6() = typedQuickFixTest("Split", """
+    fun testRecord6() = doTest("""
        $pairDefinition3 
        \func test9 (p : Pair2) : Nat \elim p
          | p{-caret-} : Pair2 => p.snd2.snd.2
@@ -357,7 +360,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | (p,p1) => (snd {snd2 {\new Pair2 p p1}}).2  
     """)
 
-    fun testCase() = typedQuickFixTest("Split", """
+    fun testCase() = doTest("""
        \open Nat
 
        \func foo : Nat => \case 1 + 2 \with {  
@@ -380,7 +383,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        }
     """)
 
-     fun test_86_2() = typedQuickFixTest("Split", """
+     fun test_86_2() = doTest("""
         \func bar (x y : Nat) (p : x = y) : Nat => \case \elim x, p \with {
           | n, q{-caret-} => {?}
         }
@@ -390,7 +393,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
         }
      """)
 
-    fun test_86_3() = typedQuickFixTest("Split", """
+    fun test_86_3() = doTest("""
        \data Foo
          | foo (x y : Nat) (p : x = y)
 
@@ -406,7 +409,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        } 
     """)
 
-    fun test_86_4() = typedQuickFixTest("Split", """
+    fun test_86_4() = doTest("""
        \func foo (x y : Nat) (p : x = y) : Nat \elim x, p
          | n, p{-caret-} => {?} 
     """, """
@@ -419,7 +422,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | x, p{-caret-} => {?}
     """)
 
-    fun test_88_1() = typedQuickFixTest("Split", """
+    fun test_88_1() = doTest("""
        \data D | con (t s : D)
        
        \func foo (t : D) : Nat
@@ -431,7 +434,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | con t t1 => {?} 
     """)
 
-    fun test_225() = typedQuickFixTest("Split", """
+    fun test_225() = doTest("""
        \lemma foo (n : Nat) : n = n
          | 0 => {?}
          | suc n{-caret-} => {?} 
@@ -442,7 +445,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | suc (suc n) => {?} 
     """)
 
-    fun test_type() = typedQuickFixTest("Split", """
+    fun test_type() = doTest("""
        \data D | con1 | con2
        \type T => D
        \func foo (t : T) : Nat
@@ -455,7 +458,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | con2 => 0 
     """)
 
-    fun test_arrays() = typedQuickFixTest("Split", """
+    fun test_arrays() = doTest("""
        \func foo (a : Array) : Nat
          | a{-caret-} => {?} 
     """, """
@@ -464,7 +467,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | :: a a1 => {?} 
     """)
 
-    fun test_arrays2() = typedQuickFixTest("Split", """
+    fun test_arrays2() = doTest("""
        \func foo {n : Nat} (x : Array Nat (suc n)) : Nat
          | a{-caret-} => {?} 
     """, """
@@ -472,7 +475,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | :: a a1 => {?} 
     """)
 
-    fun test_arrays3() = typedQuickFixTest("Split", """
+    fun test_arrays3() = doTest("""
        \func foo (x : Array Nat 0) : Nat
          | a{-caret-} => {?} 
     """, """

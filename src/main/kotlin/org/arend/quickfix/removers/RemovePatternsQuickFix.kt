@@ -7,16 +7,17 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendPatternImplMixin
+import org.arend.util.ArendBundle
 
 class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<ArendPatternImplMixin>,
                              private val single: Boolean) : IntentionAction {
     override fun startInWriteAction() = true
 
-    override fun getFamilyName() = "arend.pattern"
+    override fun getFamilyName() = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) = patternRef.element != null
 
-    override fun getText() = "Remove excessive patterns"
+    override fun getText() = ArendBundle.message("arend.pattern.remove")
 
     private fun removeClauses(clause: ArendClause) {
         when (val pParent = clause.parent) {

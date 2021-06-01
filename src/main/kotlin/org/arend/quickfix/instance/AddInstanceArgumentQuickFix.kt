@@ -22,15 +22,16 @@ import org.arend.refactoring.*
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import org.arend.util.ArendBundle
 import java.lang.Integer.max
 
 class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>):
     IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getText(): String = "Add local instance"
+    override fun getText(): String = ArendBundle.message("arend.instance.addLocalInstance")
 
-    override fun getFamilyName(): String = "arend.instance"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
         ((cause.element as? PsiElement)?.ancestor<ArendDefinition>()?.let{ it is ArendFunctionalDefinition || it is ArendDefData }?: false) &&

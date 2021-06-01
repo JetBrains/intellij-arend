@@ -29,6 +29,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.ext.error.MissingClausesError
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.util.ArendBundle
 import java.lang.IllegalStateException
 import kotlin.math.abs
 
@@ -38,11 +39,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
 
     override fun startInWriteAction(): Boolean = true
 
-    override fun getFamilyName(): String = "arend.patternmatching"
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = causeRef.element != null
 
-    override fun getText(): String = "Implement missing clauses"
+    override fun getText(): String = ArendBundle.message("arend.clause.implement")
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val psiFactory = ArendPsiFactory(project)
