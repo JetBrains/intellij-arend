@@ -2,21 +2,21 @@ package org.arend.project
 
 import com.intellij.icons.AllIcons
 import com.intellij.navigation.ItemPresentation
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.AdditionalLibraryRootsProvider
 import com.intellij.openapi.roots.SyntheticLibrary
 import com.intellij.openapi.vfs.VirtualFile
-import org.arend.ArendIcons
-import org.arend.typechecking.TypeCheckingService
 import javax.swing.Icon
 
 class ArendPreludeLibraryRootProvider: AdditionalLibraryRootsProvider() {
     override fun getAdditionalProjectLibraries(project: Project): MutableCollection<SyntheticLibrary> {
-        return project.service<TypeCheckingService>().prelude?.virtualFile
-            ?.let { PreludeLibrary(it) }
-            ?.let { mutableListOf(it) }
-            ?: mutableListOf()
+        // TODO Enable after 2021.1.3 or 2021.2.
+        //  Disabled because of a platform bug that leads to exceptions.
+        return mutableListOf()
+//        return project.service<TypeCheckingService>().prelude?.virtualFile
+//            ?.let { PreludeLibrary(it) }
+//            ?.let { mutableListOf(it) }
+//            ?: mutableListOf()
     }
 
     companion object {
