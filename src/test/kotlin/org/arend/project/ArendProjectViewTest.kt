@@ -18,9 +18,7 @@ class ArendProjectViewTest : ArendTestBase() {
         doTest("""
             |-Project
             | PsiDirectory: src
-            | -External Libraries
-            |  -arend-prelude
-            |   Prelude.ard
+            | External Libraries
         """.trimMargin())
     }
 
@@ -38,8 +36,6 @@ class ArendProjectViewTest : ArendTestBase() {
                 |   -PsiDirectory: src
                 |    Function.ard
                 |   arend.yaml
-                |  -arend-prelude
-                |   Prelude.ard
             """.trimMargin())
         }
     }
