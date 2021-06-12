@@ -38,6 +38,6 @@ fun createHyperlinkInfo(referable: ArendRef, error: GeneralError?): Pair<Hyperli
     } else {
         val data = (referable as? DataContainer)?.data
         val ref = data as? SmartPsiElementPointer<*> ?: (data as? PsiElement
-            ?: referable as? PsiElement)?.let { runReadAction { SmartPointerManager.createPointer(it) } }
+            ?: referable as? PsiElement)?.let { runReadAction { if (it.isValid) SmartPointerManager.createPointer(it) else null } }
         Pair(ref?.let { PsiHyperlinkInfo(it) }, referable)
     }
