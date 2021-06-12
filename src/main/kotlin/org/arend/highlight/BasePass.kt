@@ -324,8 +324,10 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.useKw
                     MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.functionKw?.coerceKw
                     ParsingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
-                    CLASSIFYING_FIELD_IN_RECORD -> (element as? ArendFieldDefIdentifier)?.parent?.let {
-                        (it as? ArendFieldTele)?.classifyingKw ?: it
+                    CLASSIFYING_FIELD_IN_RECORD -> when (element) {
+                        is ArendFieldDefIdentifier -> element.parent?.let { (it as? ArendFieldTele)?.classifyingKw ?: it }
+                        is ArendDefClass -> element.noClassifyingKw ?: element.fieldTeleList.mapNotNull { it.classifyingKw }.firstOrNull()
+                        else -> element
                     }
                     INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
                     MISPLACED_IMPORT -> (element as? ArendStatCmd)?.importKw
