@@ -51,11 +51,7 @@ class ReplaceWithLocalInstanceQuickFix(val error: InstanceInferenceError, val ca
                 val psiFactory = ArendPsiFactory(project)
                 val telescope = tele.first
                 splitTele(telescope, index)
-                if (className != null) when (telescope) {
-                    is ArendNameTele -> telescope.expr
-                    is ArendTypeTele -> telescope.typedExpr?.expr
-                    else -> null
-                }?.replaceWithNotification(psiFactory.createExpression(className))
+                if (className != null) getTeleType(telescope)?.replaceWithNotification(psiFactory.createExpression(className))
             }
         }
 

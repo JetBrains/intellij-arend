@@ -59,6 +59,7 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
         if (parent is ArendLetClause ||
             (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
             pParent is ArendNameTele ||
+            pParent is ArendLamTele ||
             parent is ArendAtomPatternOrPrefix && pParent != null ||
             parent is ArendPattern ||
             parent is ArendCaseArg || parent is ArendCaseArgExprAs ||
@@ -109,13 +110,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
 
     override val typeOf: Abstract.Expression?
         get() = when (val parent = parent) {
-            is ArendIdentifierOrUnknown -> {
-                when (val pParent = parent.parent) {
-                    is ArendNameTele -> pParent.expr
-                    is ArendTypedExpr -> pParent.expr
-                    else -> null
-                }
-            }
+            is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
             is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.expr
             is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
             is ArendPatternImplMixin -> parent.expr
@@ -127,13 +122,7 @@ abstract class ArendDefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
         get() {
             return when (val parent = parent) {
                 is ArendLetClause -> parent.typeAnnotation?.expr
-                is ArendIdentifierOrUnknown -> {
-                    when (val pParent = parent.parent) {
-                        is ArendNameTele -> pParent.expr
-                        is ArendTypedExpr -> pParent.expr
-                        else -> null
-                    }
-                }
+                is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
                 else -> null
             }
         }

@@ -300,15 +300,15 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         if (node is ArendLamExpr) {
             return node
         }
-        if (node.parentSourceNode is ArendLamExpr) {
-            return node.parentSourceNode
+        (node.parentSourceNode as? ArendLamExpr)?.let {
+            return it
         }
         if (node is ArendRefIdentifier) {
-            if (node.parentSourceNode is ArendLamExpr) {
-                return node.parentSourceNode
+            (node.parentSourceNode as? ArendLamExpr)?.let {
+                return it
             }
-            if (node.parentSourceNode is ArendNameTele && node.parentSourceNode?.parentSourceNode is ArendLamExpr) {
-                return node.parentSourceNode?.parentSourceNode
+            ((node.parentSourceNode as? ArendLamTele)?.parentSourceNode as? ArendLamExpr)?.let {
+                return it
             }
         }
         return null

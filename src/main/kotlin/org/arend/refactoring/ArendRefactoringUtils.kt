@@ -557,6 +557,7 @@ fun addImplicitArgAfter(psiFactory: ArendPsiFactory, anchor: PsiElement, argumen
 
 fun getTele(tele: PsiElement): List<ArendIdentifierOrUnknown>? = when (tele) {
     is ArendNameTele -> tele.identifierOrUnknownList
+    is ArendLamTele -> tele.identifierOrUnknownList
     is ArendTypeTele -> tele.typedExpr?.identifierOrUnknownList
     else -> null
 }

@@ -324,3 +324,12 @@ fun getArendNameText(element: PsiElement?): String? = when (element) {
     is ArendFieldDefIdentifier -> getArendNameText(element.defIdentifier)
     else -> element?.text //fallback
 }
+
+fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
+    is ArendNameTele -> tele.expr
+    is ArendLamTele -> tele.expr
+    is ArendTypedExpr -> tele.expr
+    is ArendTypeTele -> tele.typedExpr?.expr
+    is ArendFieldTele -> tele.expr
+    else -> null
+}
