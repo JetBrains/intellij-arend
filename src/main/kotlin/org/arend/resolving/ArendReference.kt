@@ -107,12 +107,16 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         val def = expr?.ancestor<PsiConcreteReferable>()
         var elements = if (expr == null) element.scope.elements else emptyList()
         val resolverListener = if (expr == null) null else object : ResolverListener {
-                override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
-                    if (refExpr.data == parent || refExpr.data == element) {
-                        elements = scope.elements
-                    }
+            override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
+                if (refExpr.data == parent || refExpr.data == element) {
+                    elements = scope.elements
                 }
             }
+
+            override fun levelResolved(originalRef: Referable?, refExpr: Concrete.IdLevelExpression?, resolvedRef: Referable?, availableRefs: Collection<Referable>) {
+                // TODO[levels]
+            }
+        }
         when {
             def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ArendIdReferableConverter).getConcrete(def)
             expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)

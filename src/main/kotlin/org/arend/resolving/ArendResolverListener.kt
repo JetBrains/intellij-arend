@@ -57,6 +57,10 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         resolveReference(refExpr.data, refExpr.referent, resolvedRefs)
     }
 
+    override fun levelResolved(originalRef: Referable?, refExpr: Concrete.IdLevelExpression?, resolvedRef: Referable?, availableRefs: MutableCollection<Referable>?) {
+        // TODO[levels]
+    }
+
     override fun patternResolved(originalRef: Referable, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
         resolveReference(pattern.data, pattern.constructor, resolvedRefs)
     }
