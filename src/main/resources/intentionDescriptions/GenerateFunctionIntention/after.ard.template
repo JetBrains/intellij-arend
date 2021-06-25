@@ -1,0 +1,3 @@
+\func foo {A : \Type} (x : List A) : x = nil => <spot>foo-lemma x
+
+\func foo-lemma {A : \Type} (x : List A) : x = nil => {?}</spot>
