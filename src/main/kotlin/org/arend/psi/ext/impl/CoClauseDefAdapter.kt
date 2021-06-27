@@ -85,4 +85,6 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     override val tcReferable: TCDefReferable?
         get() = super.tcReferable as TCDefReferable?
+
+    override fun getLevelParamsList(): List<ArendLevelParams> = emptyList()
 }

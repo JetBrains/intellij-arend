@@ -101,7 +101,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             }
         }
 
-        val expr = if (element is ArendIPName && element.longName.size > 1 || parent is ArendLongName && pParent !is ArendLocalCoClause && pParent !is ArendCoClause && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null) {
+        val expr = if (element is ArendIPName && element.longName.size > 1 || parent is ArendLongName && pParent !is ArendLocalCoClause && pParent !is ArendCoClause && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null || element is ArendRefIdentifier && parent is ArendAtomLevelExpr) {
             element.ancestor<ArendExpr>()
         } else null
         val def = expr?.ancestor<PsiConcreteReferable>()
@@ -113,8 +113,10 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 }
             }
 
-            override fun levelResolved(originalRef: Referable?, refExpr: Concrete.IdLevelExpression?, resolvedRef: Referable?, availableRefs: Collection<Referable>) {
-                // TODO[levels]
+            override fun levelResolved(originalRef: Referable?, refExpr: Concrete.IdLevelExpression, resolvedRef: Referable?, availableRefs: Collection<Referable>) {
+                if (refExpr.data == parent || refExpr.data == element) {
+                    elements = ArrayList(availableRefs)
+                }
             }
         }
         when {

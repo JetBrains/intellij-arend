@@ -415,7 +415,7 @@ class ArendCompletionContributor : CompletionContributor() {
                     var forbidden = false
                     val levelsExpr = argumentAppExpr.longNameExpr?.levelsExpr
                     if (levelsExpr != null) {
-                        counter += levelsExpr.maybeAtomLevelExprList.size
+                        counter += levelsExpr.maybeAtomLevelExprsList.size
                         if (forbidLevelExprs) forbidden = true
                     }
                     for (ch in argumentAppExpr.children) {

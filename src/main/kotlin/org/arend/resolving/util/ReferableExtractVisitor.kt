@@ -96,7 +96,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         return (expr as? Concrete.ReferenceExpression)?.referent
     }
 
-    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = referent
+    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) = referent
 
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = referent
 

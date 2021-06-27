@@ -22,7 +22,7 @@ fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appE
             parseBinOp(left, sequence)
 
     override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
-    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
+    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) = resolveReference(data, referent, fixity)
 }, null)
 
 fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? {

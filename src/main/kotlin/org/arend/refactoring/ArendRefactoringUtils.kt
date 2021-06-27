@@ -773,8 +773,8 @@ private const val APP_PREC = 10
 private const val MIN_PREC = 0
 
 private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
-    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) =
-        if (level1 != null || level2 != null) APP_PREC else MAX_PREC
+    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) =
+        if (pLevels != null || hLevels != null) APP_PREC else MAX_PREC
 
     override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, params: Void?) =
         if (pLevel != null || hLevel != null) APP_PREC else MAX_PREC
