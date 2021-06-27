@@ -423,16 +423,13 @@ class ArendCompletionContributor : CompletionContributor() {
                         if (ch is ArendAtomArgument) forbidden = true
                     }
                     counter < threshold && !forbidden
-                } else argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
+                } else (argumentAppExpr?.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)) || (ATOM_LEVEL_CONTEXT.accepts(cP.position))
             }
         }
 
-        basic(ARGUMENT_EXPRESSION, LPH_KW_LIST, unifiedLevelCondition.invoke(0, false, 2))
+        basic(or(ARGUMENT_EXPRESSION, ATOM_LEVEL_CONTEXT), LPH_KW_LIST, unifiedLevelCondition.invoke(0, false, 2))
         basic(ARGUMENT_EXPRESSION, LEVELS_KW_LIST, unifiedLevelCondition.invoke(0, true, 1))
-        basic(ARGUMENT_EXPRESSION_IN_BRACKETS, LPH_LEVEL_KWS, unifiedLevelCondition.invoke(1, false, 2))
-
-        basic(afterLeaf(NEW_KW), listOf(EVAL_KW.toString()))
-        basic(afterLeaves(EVAL_KW, PEVAL_KW, SCASE_KW), listOf(SCASE_KW.toString()))
+        basic(or(ARGUMENT_EXPRESSION_IN_BRACKETS, ATOM_LEVEL_CONTEXT), LPH_LEVEL_KWS, unifiedLevelCondition.invoke(1, false, 2))
 
         basic(withAncestors(PsiErrorElement::class.java, ArendArgumentAppExpr::class.java), LPH_LEVEL_KWS, unifiedLevelCondition.invoke(null, false, 2))
 
@@ -441,6 +438,8 @@ class ArendCompletionContributor : CompletionContributor() {
             argumentAppExpr.longNameExpr?.levelsExpr?.levelsKw != null && isLiteralApp(argumentAppExpr)
         }
 
+        basic(afterLeaf(NEW_KW), listOf(EVAL_KW.toString()))
+        basic(afterLeaves(EVAL_KW, PEVAL_KW, SCASE_KW), listOf(SCASE_KW.toString()))
 
         basic(NO_CLASSIFYING_CONTEXT, NO_CLASSIFYING_KW_LIST) { parameters ->
             parameters.position.ancestor<ArendDefClass>().let { defClass ->
@@ -572,6 +571,8 @@ class ArendCompletionContributor : CompletionContributor() {
 
         private val ARGUMENT_EXPRESSION = or(withAncestors(*(ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendAtomArgument::class.java))),
                 withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java))
+
+        private val ATOM_LEVEL_CONTEXT = withAncestors(ArendRefIdentifier::class.java, ArendAtomLevelExpr::class.java)
 
         private val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(ArendSetUniverseAppExpr::class.java, ArendUniverseAppExpr::class.java, ArendTruncatedUniverseAppExpr::class.java))
 

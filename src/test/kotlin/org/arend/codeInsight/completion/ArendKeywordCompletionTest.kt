@@ -548,7 +548,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func lol (a : Nat) => lol {-caret-} a",
             "\\func lol (a : Nat) => lol {-caret-} a 1 2")
 
-    fun `test leveled application expression 2`() = checkKeywordCompletionVariants(LPH_KW_LIST + PROP_KW_LIST, CompletionCondition.CONTAINS,
+    fun `test leveled application expression 2`() = checkKeywordCompletionVariants(LPH_KW_LIST, CompletionCondition.CONTAINS,
             "\\func lol => lol \\levels {-caret-}")
 
     fun `test leveled application expression 3`() = checkKeywordCompletionVariants(LPH_KW_LIST, CompletionCondition.CONTAINS,
