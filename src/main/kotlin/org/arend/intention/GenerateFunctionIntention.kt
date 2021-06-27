@@ -4,6 +4,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
 import com.jetbrains.rd.framework.base.deepClonePolymorphic
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.Expression
@@ -12,6 +14,7 @@ import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.TCReferable
 import org.arend.psi.ArendFieldAcc
 import org.arend.psi.ArendGoal
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.parentOfType
 import org.arend.resolving.PsiConcreteProvider
@@ -33,8 +36,25 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         val errorService = project.service<ErrorService>()
         val arendError = errorService.errors[element.containingFile]?.firstOrNull { it.cause == goal } ?: return
         val expectedGoalType = (arendError.error as? GoalError)?.expectedType
-        val freeVariables = FreeVariablesCollector.getFreeVariables(expectedGoalType)
+        val freeVariables = FreeVariablesCollector.getFreeVariables(expectedGoalType).toList()
         // todo: sort
-        // todo: convert to psi
+        // todo: implicitness
+        insertDefinition(freeVariables, goal, editor)
+    }
+
+
+    private fun insertDefinition(freeVariables : List<Binding>, goal: PsiElement, editor: Editor) {
+        val function = goal.parentOfType<ArendFunctionalDefinition>() ?: return
+        // todo: editable definition name
+        // todo: editable parameters
+        var newName = "ipsum"
+        var newFunction = "\\func $newName"
+        for (binding in freeVariables) {
+            newName += " ${binding.name}"
+            newFunction += " (${binding.name} : ${binding.typeExpr})"
+        }
+        newFunction += " => {?}"
+        editor.document.insertString(function.endOffset, "\n$newFunction")
+        editor.document.replaceString(goal.startOffset, goal.endOffset, newName)
     }
 }
