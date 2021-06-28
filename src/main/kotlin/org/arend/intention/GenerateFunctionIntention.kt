@@ -11,9 +11,11 @@ import org.arend.core.context.binding.Binding
 import org.arend.core.expr.Expression
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendGoal
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.parentOfType
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
+import org.arend.refactoring.replaceExprSmart
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
@@ -39,7 +41,7 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
     }
 
     private fun performRefactoring(
-        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, goal: PsiElement,
+        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, goal: ArendCompositeElement,
         editor: Editor, goalTypeRepresentation: String, project: Project
     ) {
         val enclosingFunctionDefinition = goal.parentOfType<ArendFunctionalDefinition>() ?: return
@@ -49,12 +51,10 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
             goalTypeRepresentation
         ) ?: return
 
-        val newFunctionDefinitionOffset =
-            enclosingFunctionDefinition.endOffset - goal.textLength + newFunctionCall.length + "\n\\func".length
+        val globalOffsetOfNewDefinition =
+            modifyDocument(editor, newFunctionCall, goal, newFunctionDefinition, enclosingFunctionDefinition, project)
 
-        modifyDocument(editor, newFunctionCall, goal, newFunctionDefinition, enclosingFunctionDefinition, project)
-
-        invokeRenamer(editor, newFunctionDefinitionOffset, project)
+        invokeRenamer(editor, globalOffsetOfNewDefinition, project)
     }
 
     private fun buildRepresentations(
@@ -80,19 +80,23 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
     private fun modifyDocument(
         editor: Editor,
         newCall: String,
-        goal: PsiElement,
+        goal: ArendCompositeElement,
         newFunctionDefinition: String,
         oldFunction: PsiElement,
         project: Project
-    ) {
+    ) : Int {
         val document = editor.document
-        document.insertString(oldFunction.endOffset, "\n$newFunctionDefinition")
-        document.replaceString(goal.startOffset, goal.endOffset, newCall)
-        editor.caretModel.moveToOffset(goal.startOffset)
+        val indent = editor.offsetToLogicalPosition(oldFunction.startOffset).column
+        val startGoalOffset = goal.startOffset
+        val positionOfNewDefinition = oldFunction.endOffset - goal.textLength + newCall.length + 2 + indent + 4
+        document.insertString(oldFunction.endOffset, "\n\n${" ".repeat(indent)}$newFunctionDefinition")
+        val parenthesizedNewCall = replaceExprSmart(document, goal, null, goal.textRange, null, null, newCall, false)
+        editor.caretModel.moveToOffset(startGoalOffset + (if (parenthesizedNewCall.startsWith("(")) 1 else 0))
         PsiDocumentManager.getInstance(project).apply {
             doPostponedOperationsAndUnblockDocument(document)
             commitDocument(document)
         }
+        return positionOfNewDefinition
     }
 
     private fun invokeRenamer(editor: Editor, functionOffset: Int, project: Project) {
