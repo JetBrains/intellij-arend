@@ -3,6 +3,7 @@ package org.arend.intention
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
@@ -11,9 +12,11 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.expr.*
 import org.arend.core.expr.visitor.VoidExpressionVisitor
+import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendGoal
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.parentOfType
+import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
@@ -30,25 +33,59 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         val arendError = errorService.errors[element.containingFile]?.firstOrNull { it.cause == goal } ?: return
         val expectedGoalType = (arendError.error as? GoalError)?.expectedType ?: return
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expectedGoalType)
-        insertDefinition(freeVariables, goal, editor, expectedGoalType.toString())
+        insertDefinition(freeVariables, goal, editor, expectedGoalType.toString(), project)
     }
 
 
-    private fun insertDefinition(freeVariables : List<Pair<Binding, ParameterExplicitnessState>>, goal: PsiElement, editor: Editor, goalTypeRepresentation : String) {
+    private fun insertDefinition(
+        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, goal: PsiElement,
+        editor: Editor, goalTypeRepresentation: String, project: Project
+    ) {
         val function = goal.parentOfType<ArendFunctionalDefinition>() ?: return
-        // todo: editable definition name
         // todo: editable parameters
-        var newName = "ipsum"
-        var newFunction = "\\func $newName"
+        val goalLength = goal.textLength
+        val defaultFunctionName = function.defIdentifier?.name ?: return
+        var newFunctionCall = "$defaultFunctionName-lemma"
+        var newFunction = "\\func $newFunctionCall"
         for ((binding, explicitness) in freeVariables) {
             if (explicitness == ParameterExplicitnessState.EXPLICIT) {
-                newName += " ${binding.name}"
+                newFunctionCall += " ${binding.name}"
             }
             newFunction += " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr}${explicitness.closingBrace}"
         }
         newFunction += " : $goalTypeRepresentation => {?}"
-        editor.document.insertString(function.endOffset, "\n$newFunction")
-        editor.document.replaceString(goal.startOffset, goal.endOffset, newName)
+        val newOffset = function.endOffset - goalLength + newFunctionCall.length + "\n\\func".length
+
+        modifyDocument(editor, newFunctionCall, goal, newFunction, function, project)
+
+        invokeRenamer(editor, newOffset, project)
+    }
+
+    private fun modifyDocument(
+        editor: Editor,
+        newCall: String,
+        goal: PsiElement,
+        newFunctionDefinition: String,
+        oldFunction: PsiElement,
+        project: Project
+    ) {
+        val document = editor.document
+        document.insertString(oldFunction.endOffset, "\n$newFunctionDefinition")
+        document.replaceString(goal.startOffset, goal.endOffset, newCall)
+        editor.caretModel.moveToOffset(goal.startOffset)
+        PsiDocumentManager.getInstance(project).apply {
+            doPostponedOperationsAndUnblockDocument(document)
+            commitDocument(document)
+        }
+    }
+
+    private fun invokeRenamer(editor: Editor, callOffset: Int, project: Project) {
+        ArendGlobalReferableRenameHandler().doRename(
+            PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.findElementAt(callOffset)
+                ?.parentOfType<ArendDefFunction>()!!,
+            editor,
+            null
+        )
     }
 }
 

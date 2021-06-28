@@ -11,16 +11,16 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     fun `test basic`() = doTest("""
         \func lorem {A : \Type} (x y : A) : x = y => {{-caret-}?}
     """, """
-        \func lorem {A : \Type} (x y : A) : x = y => ipsum x y
-        \func ipsum {A : \Type} (x : A) (y : A) : x = y => {?}
+        \func lorem {A : \Type} (x y : A) : x = y => lorem-lemma x y
+        \func lorem-lemma {A : \Type} (x : A) (y : A) : x = y => {?}
         """
     )
 
     fun `test dependent type`() = doTest("""
         \func lorem {A : \Type} {B : A -> \Type} {a : A} (x y : B a) : x = y => {{-caret-}?}
     """, """
-        \func lorem {A : \Type} {B : A -> \Type} {a : A} (x y : B a) : x = y => ipsum x y
-        \func ipsum {A : \Type} {B : A -> \Type} {a : A} (x : B a) (y : B a) : x = y => {?}
+        \func lorem {A : \Type} {B : A -> \Type} {a : A} (x y : B a) : x = y => lorem-lemma x y
+        \func lorem-lemma {A : \Type} {B : A -> \Type} {a : A} (x : B a) (y : B a) : x = y => {?}
         """
     )
 }
