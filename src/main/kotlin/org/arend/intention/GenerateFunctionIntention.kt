@@ -3,8 +3,11 @@ package org.arend.intention
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
@@ -65,15 +68,15 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         val enclosingFunctionName = functionDefinition.defIdentifier?.name ?: return null
 
         val explicitVariableNames = freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }
-            .joinToString(" ") { it.first.name }
+            .joinToString("") { " " + it.first.name }
 
-        val parameters = freeVariables.joinToString(" ") { (binding, explicitness) ->
-            "${explicitness.openBrace}${binding.name} : ${binding.typeExpr}${explicitness.closingBrace}"
+        val parameters = freeVariables.joinToString("") { (binding, explicitness) ->
+            " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr}${explicitness.closingBrace}"
         }
 
         val newFunctionName = "$enclosingFunctionName-lemma"
-        val newFunctionCall = "$newFunctionName $explicitVariableNames"
-        val newFunctionDefinition = "\\func $newFunctionName $parameters : $goalTypeRepresentation => {?}"
+        val newFunctionCall = "$newFunctionName$explicitVariableNames"
+        val newFunctionDefinition = "\\func $newFunctionName$parameters : $goalTypeRepresentation => {?}"
         return newFunctionCall to newFunctionDefinition
     }
 
@@ -86,17 +89,28 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         project: Project
     ) : Int {
         val document = editor.document
-        val indent = editor.offsetToLogicalPosition(oldFunction.startOffset).column
         val startGoalOffset = goal.startOffset
-        val positionOfNewDefinition = oldFunction.endOffset - goal.textLength + newCall.length + 2 + indent + 4
-        document.insertString(oldFunction.endOffset, "\n\n${" ".repeat(indent)}$newFunctionDefinition")
+        val positionOfNewDefinition = oldFunction.endOffset - goal.textLength + newCall.length + 4
+        document.insertString(oldFunction.endOffset, "\n\n$newFunctionDefinition")
         val parenthesizedNewCall = replaceExprSmart(document, goal, null, goal.textRange, null, null, newCall, false)
-        editor.caretModel.moveToOffset(startGoalOffset + (if (parenthesizedNewCall.startsWith("(")) 1 else 0))
         PsiDocumentManager.getInstance(project).apply {
             doPostponedOperationsAndUnblockDocument(document)
             commitDocument(document)
         }
-        return positionOfNewDefinition
+        val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return positionOfNewDefinition
+        val callElementPointer =
+            psiFile.findElementAt(startGoalOffset + 1)!!.let(SmartPointerManager::createPointer)
+        val newDefinitionPointer =
+            psiFile.findElementAt(positionOfNewDefinition)!!.let(SmartPointerManager::createPointer)
+        CodeStyleManager.getInstance(project).reformatText(
+            psiFile,
+            listOf(
+                TextRange(startGoalOffset, startGoalOffset + parenthesizedNewCall.length),
+                TextRange(positionOfNewDefinition - 2, positionOfNewDefinition + newFunctionDefinition.length)
+            )
+        )
+        editor.caretModel.moveToOffset(callElementPointer.element!!.startOffset)
+        return newDefinitionPointer.element!!.startOffset
     }
 
     private fun invokeRenamer(editor: Editor, functionOffset: Int, project: Project) {
