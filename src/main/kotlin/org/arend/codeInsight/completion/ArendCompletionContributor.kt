@@ -5,6 +5,7 @@ import com.intellij.codeInsight.completion.CompletionInitializationContext.DUMMY
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.ElementPattern
+import com.intellij.patterns.ElementPatternCondition
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.patterns.StandardPatterns.*
 import com.intellij.psi.*
@@ -465,6 +466,18 @@ class ArendCompletionContributor : CompletionContributor() {
                         ArendDefFunction::class.java, ArendConstructor::class.java, ArendDefClass::class.java, ArendClassField::class.java))),
                 after(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java)))), ALIAS_KW_LIST)
 
+        basic(and(afterLeaf(ID), after(and(withParent(ArendDefIdentifier::class.java), withGrandParents(ArendDefData::class.java, ArendDefInstance::class.java,
+                ArendDefFunction::class.java, ArendDefClass::class.java)))), PH_LEVELS_KW_LIST)
+
+        val levelParamsPattern = withAncestors(ArendDefIdentifier::class.java, ArendLevelParams::class.java)
+
+        basic(or(afterLeaf(PLEVELS_KW), after(levelParamsPattern)), HLEVELS_KW_LIST) { cP: CompletionParameters ->
+            val jointData = ArendCompletionParameters(cP)
+            val levelParams = jointData.prevElement?.parent?.parent as? ArendLevelParams
+            val prevKeyword = levelParams?.findPrevSibling()
+            if (prevKeyword != null) prevKeyword.elementType == PLEVELS_KW else true
+        }
+
         basic(and(afterLeaf(LPAREN), or(withAncestors(ArendNameTele::class.java, ArendDefFunction::class.java),
                 withAncestors(ArendTypeTele::class.java, ArendConstructor::class.java),
                 withAncestors(*(DEF_IDENTIFIER_PREFIX + arrayOf(ArendDefFunction::class.java))),
@@ -533,7 +546,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val INSIDE_RETURN_EXPR_CONTEXT = or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
 
         private val WHERE_CONTEXT = and(
-                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX)),
+                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX), withAncestors(ArendDefIdentifier::class.java, ArendLevelParams::class.java)),
                 not(PREC_CONTEXT),
                 not(INSIDE_RETURN_EXPR_CONTEXT),
                 not(afterLeaves(COLON, TRUNCATED_KW, FAT_ARROW, WITH_KW, ARROW, IN_KW, INSTANCE_KW, EXTENDS_KW, DOT, NEW_KW, EVAL_KW, PEVAL_KW, CASE_KW, SCASE_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WHERE_KW, USE_KW, PIPE, LEVEL_KW, COERCE_KW)),
