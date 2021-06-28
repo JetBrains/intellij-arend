@@ -12,7 +12,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         \func lorem {A : \Type} (x y : A) : x = y => {{-caret-}?}
     """, """
         \func lorem {A : \Type} (x y : A) : x = y => ipsum x y
-        \func ipsum {A : \Type} (x : A) (y : A) => {?}
+        \func ipsum {A : \Type} (x : A) (y : A) : x = y => {?}
         """
     )
 
@@ -20,7 +20,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         \func lorem {A : \Type} {B : A -> \Type} {a : A} (x y : B a) : x = y => {{-caret-}?}
     """, """
         \func lorem {A : \Type} {B : A -> \Type} {a : A} (x y : B a) : x = y => ipsum x y
-        \func ipsum {A : \Type} {B : A -> \Type} {a : A} (x : B a) (y : B a) => {?}
+        \func ipsum {A : \Type} {B : A -> \Type} {a : A} (x : B a) (y : B a) : x = y => {?}
         """
     )
 }

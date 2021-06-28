@@ -30,11 +30,11 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         val arendError = errorService.errors[element.containingFile]?.firstOrNull { it.cause == goal } ?: return
         val expectedGoalType = (arendError.error as? GoalError)?.expectedType ?: return
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expectedGoalType)
-        insertDefinition(freeVariables, goal, editor)
+        insertDefinition(freeVariables, goal, editor, expectedGoalType.toString())
     }
 
 
-    private fun insertDefinition(freeVariables : List<Pair<Binding, ParameterExplicitnessState>>, goal: PsiElement, editor: Editor) {
+    private fun insertDefinition(freeVariables : List<Pair<Binding, ParameterExplicitnessState>>, goal: PsiElement, editor: Editor, goalTypeRepresentation : String) {
         val function = goal.parentOfType<ArendFunctionalDefinition>() ?: return
         // todo: editable definition name
         // todo: editable parameters
@@ -46,8 +46,7 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
             }
             newFunction += " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr}${explicitness.closingBrace}"
         }
-        // todo: return type
-        newFunction += " => {?}"
+        newFunction += " : $goalTypeRepresentation => {?}"
         editor.document.insertString(function.endOffset, "\n$newFunction")
         editor.document.replaceString(goal.startOffset, goal.endOffset, newName)
     }
