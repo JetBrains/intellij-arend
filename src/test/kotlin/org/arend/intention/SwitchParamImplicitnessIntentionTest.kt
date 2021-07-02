@@ -47,7 +47,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         \func g => id _ 1
         """,
         """
-        \func id (A : \Type) => \lam (x : A) => x
+        \func id {A : \Type} => \lam (x : A) => x
         \func g => id 1
         """
     )
