@@ -1,0 +1,3 @@
+\func id (A : \Type) => \lam (x : A) => x
+
+\func g => id _ 1
