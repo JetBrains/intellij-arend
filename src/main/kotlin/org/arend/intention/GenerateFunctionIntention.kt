@@ -12,6 +12,9 @@ import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.Expression
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendGoal
 import org.arend.psi.ext.ArendCompositeElement
@@ -19,6 +22,8 @@ import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.parentOfType
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
+import org.arend.resolving.ArendReferableConverter
+import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
@@ -34,7 +39,12 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         val goal = element.parentOfType<ArendGoal>(false) ?: return
         val expectedGoalType = getGoalType(project, goal) ?: return
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expectedGoalType)
-        performRefactoring(freeVariables, goal, editor, expectedGoalType.toString(), project)
+        performRefactoring(freeVariables, goal, editor, expectedGoalType, project)
+    }
+
+    private fun getPrettyPrintConfig(context : ArendCompositeElement) : PrettyPrinterConfig {
+        val scope = context.scope.let(CachingScope::make)
+        return PrettyPrinterConfigWithRenamer(scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
     }
 
     private fun getGoalType(project: Project, goal: ArendGoal): Expression? {
@@ -45,13 +55,13 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
 
     private fun performRefactoring(
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, goal: ArendCompositeElement,
-        editor: Editor, goalTypeRepresentation: String, project: Project
+        editor: Editor, goalType: Expression, project: Project
     ) {
         val enclosingFunctionDefinition = goal.parentOfType<ArendFunctionalDefinition>() ?: return
-        val (newFunctionCall, newFunctionDefinition) = buildRepresentations(
+        val (newFunctionCall, newFunctionDefinition) = buildRepresentations(goal,
             enclosingFunctionDefinition,
             freeVariables,
-            goalTypeRepresentation
+            goalType
         ) ?: return
 
         val globalOffsetOfNewDefinition =
@@ -61,17 +71,23 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
     }
 
     private fun buildRepresentations(
+        context: ArendCompositeElement,
         functionDefinition: ArendFunctionalDefinition,
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
-        goalTypeRepresentation: String
+        goalType: Expression
     ): Pair<String, String>? {
+        // todo: better type representation, avoid ton of implicit arguments
         val enclosingFunctionName = functionDefinition.defIdentifier?.name ?: return null
+
+        val ppconfig = getPrettyPrintConfig(context)
+
+        val goalTypeRepresentation = goalType.prettyPrint(ppconfig).toString()
 
         val explicitVariableNames = freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }
             .joinToString("") { " " + it.first.name }
 
         val parameters = freeVariables.joinToString("") { (binding, explicitness) ->
-            " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr}${explicitness.closingBrace}"
+            " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr.prettyPrint(ppconfig)}${explicitness.closingBrace}"
         }
 
         val newFunctionName = "$enclosingFunctionName-lemma"
@@ -93,10 +109,7 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         val positionOfNewDefinition = oldFunction.endOffset - goal.textLength + newCall.length + 4
         document.insertString(oldFunction.endOffset, "\n\n$newFunctionDefinition")
         val parenthesizedNewCall = replaceExprSmart(document, goal, null, goal.textRange, null, null, newCall, false)
-        PsiDocumentManager.getInstance(project).apply {
-            doPostponedOperationsAndUnblockDocument(document)
-            commitDocument(document)
-        }
+        PsiDocumentManager.getInstance(project).commitDocument(document)
         val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return positionOfNewDefinition
         val callElementPointer =
             psiFile.findElementAt(startGoalOffset + 1)!!.let(SmartPointerManager::createPointer)

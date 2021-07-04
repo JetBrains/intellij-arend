@@ -64,4 +64,36 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun `test imported definition`() = doTest("""
+        \module Foo \where {
+          \func rr : Nat => 1
+        }
+
+        \func foo : Foo.rr = 1 => {?{-caret-}}
+            """, """
+        \module Foo \where {
+          \func rr : Nat => 1
+        }
+
+        \func foo : Foo.rr = 1 => foo-lemma
+
+        \func foo-lemma : Foo.rr = 1 => {?}
+        """)
+
+    fun `test imported definition in parameter`() = doTest("""
+        \module Foo \where {
+          \func rr : Nat => 1
+        }
+
+        \func foo (eq : Foo.rr = 1) : eq = idp => {?}
+    """, """
+        \module Foo \where {
+          \func rr : Nat => 1
+        }
+
+        \func foo (eq : Foo.rr = 1) : eq = idp => foo-lemma eq
+
+        \func foo-lemma (eq : Foo.rr = 1) : eq = idp {Nat} {1} => {?}
+    """)
+
 }
