@@ -2,6 +2,7 @@ package org.arend.intention
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
@@ -15,11 +16,14 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
     }
 
     override fun applyTo(element: ArendCompositeElement, project: Project, editor: Editor) {
-        val range = element.textRange
-        val openBracket = if (editor.document.text[range.startOffset] == '(') "{" else "("
-        val closeBracket = if (editor.document.text[range.endOffset - 1] == ')') "}" else ")"
-
-        editor.document.replaceString(range.startOffset, range.startOffset + 1, openBracket)
-        editor.document.replaceString(range.endOffset - 1, range.endOffset, closeBracket)
+        val isExplicit = (element.text.first() == '(')
+        val factory = ArendPsiFactory(element.project)
+        // TODO: implement for other tele
+        val text = with(element.text) {
+            substring(1, length - 1)
+        }
+        val (params, type) = text.split(":")
+        val newElement = factory.createNameTele(params.trim().trimEnd(), type.trim().trimEnd(), !isExplicit)
+        element.replaceWithNotification(newElement)
     }
 }
