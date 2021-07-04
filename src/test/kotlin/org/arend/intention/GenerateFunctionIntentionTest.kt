@@ -85,7 +85,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
           \func rr : Nat => 1
         }
 
-        \func foo (eq : Foo.rr = 1) : eq = idp => {?}
+        \func foo (eq : Foo.rr = 1) : eq = idp => {?{-caret-}}
     """, """
         \module Foo \where {
           \func rr : Nat => 1
@@ -93,7 +93,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
 
         \func foo (eq : Foo.rr = 1) : eq = idp => foo-lemma eq
 
-        \func foo-lemma (eq : Foo.rr = 1) : eq = idp {Nat} {1} => {?}
+        \func foo-lemma (eq : Foo.rr = 1) : eq = idp => {?}
     """)
 
 }

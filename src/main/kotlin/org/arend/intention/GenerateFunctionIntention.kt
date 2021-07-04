@@ -13,6 +13,7 @@ import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.ArendDefFunction
@@ -29,6 +30,7 @@ import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
 import org.arend.util.FreeVariablesWithDependenciesCollector
 import org.arend.util.ParameterExplicitnessState
+import java.util.*
 
 class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.generate.function")) {
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean =
@@ -44,7 +46,9 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
 
     private fun getPrettyPrintConfig(context : ArendCompositeElement) : PrettyPrinterConfig {
         val scope = context.scope.let(CachingScope::make)
-        return PrettyPrinterConfigWithRenamer(scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
+        return object : PrettyPrinterConfigWithRenamer(scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }) {
+            override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> = EnumSet.noneOf(PrettyPrinterFlag::class.java)
+        }
     }
 
     private fun getGoalType(project: Project, goal: ArendGoal): Expression? {
@@ -76,7 +80,6 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
         goalType: Expression
     ): Pair<String, String>? {
-        // todo: better type representation, avoid ton of implicit arguments
         val enclosingFunctionName = functionDefinition.defIdentifier?.name ?: return null
 
         val ppconfig = getPrettyPrintConfig(context)
