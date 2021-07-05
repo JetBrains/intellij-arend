@@ -26,7 +26,6 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
         }
 
         val (elementIndex, isExplicitArg) = markArguments(element)
-        println(elementIndex)
         val (params, type) = text.split(":")
         val newElement = factory.createNameTele(params.trim().trimEnd(), type.trim().trimEnd(), !isExplicit)
         val replaced = element.replaceWithNotification(newElement)
@@ -77,11 +76,8 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
                 if (child is ArendArgument) {
                     if (i == elementIndex) {
                         var newText = child.text
-                        if (isExplicitArg[elementIndex]) {
-                            newText = "{$newText}"
-                        } else {
-                            newText = newText.substring(1, newText.length - 1)
-                        }
+                        newText = if (isExplicitArg[elementIndex]) "{$newText}"
+                                    else newText.substring(1, newText.length - 1)
                         append("$newText ")
                     } else {
                         append(child.text + " ")
