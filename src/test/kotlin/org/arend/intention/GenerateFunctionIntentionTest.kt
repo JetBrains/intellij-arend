@@ -104,4 +104,11 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         \func lorem-lemma {A : \Prop} (x : A) (y : A) : x = y => Path.inProp _ _
     """)
 
+    fun `test goal with name`() = doTest("""
+        \func lorem {A : \Prop} (x y : A) : x = y => {?my-lemma{-caret-}}
+    """, """
+        \func lorem {A : \Prop} (x y : A) : x = y => my-lemma x y
+        
+        \func my-lemma {A : \Prop} (x : A) (y : A) : x = y => {?}""")
+
 }

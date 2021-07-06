@@ -62,10 +62,12 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         editor: Editor, goalType: Expression, project: Project
     ) {
         val enclosingFunctionDefinition = goal.parentOfType<ArendFunctionalDefinition>() ?: return
-        val (newFunctionCall, newFunctionDefinition) = buildRepresentations(goal,
+        val (newFunctionCall, newFunctionDefinition) = buildRepresentations(
+            goal,
             enclosingFunctionDefinition,
             freeVariables,
             goalType,
+            goal.defIdentifier?.name,
             goal.expr?.text
         ) ?: return
 
@@ -80,9 +82,10 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         functionDefinition: ArendFunctionalDefinition,
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
         goalType: Expression,
+        goalName: String?,
         goalBody: String?
     ): Pair<String, String>? {
-        val enclosingFunctionName = functionDefinition.defIdentifier?.name ?: return null
+        val newFunctionName = goalName ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" } ?: return null
 
         val ppconfig = getPrettyPrintConfig(context)
 
@@ -96,7 +99,6 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         }
 
         val actualGoalBody = goalBody ?: "{?}"
-        val newFunctionName = "$enclosingFunctionName-lemma"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
         val newFunctionDefinition = "\\func $newFunctionName$parameters : $goalTypeRepresentation => $actualGoalBody"
         return newFunctionCall to newFunctionDefinition
