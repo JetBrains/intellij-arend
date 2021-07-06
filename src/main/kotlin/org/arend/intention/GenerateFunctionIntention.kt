@@ -58,14 +58,15 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
     }
 
     private fun performRefactoring(
-        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, goal: ArendCompositeElement,
+        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, goal: ArendGoal,
         editor: Editor, goalType: Expression, project: Project
     ) {
         val enclosingFunctionDefinition = goal.parentOfType<ArendFunctionalDefinition>() ?: return
         val (newFunctionCall, newFunctionDefinition) = buildRepresentations(goal,
             enclosingFunctionDefinition,
             freeVariables,
-            goalType
+            goalType,
+            goal.expr?.text
         ) ?: return
 
         val globalOffsetOfNewDefinition =
@@ -78,7 +79,8 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
         context: ArendCompositeElement,
         functionDefinition: ArendFunctionalDefinition,
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
-        goalType: Expression
+        goalType: Expression,
+        goalBody: String?
     ): Pair<String, String>? {
         val enclosingFunctionName = functionDefinition.defIdentifier?.name ?: return null
 
@@ -93,9 +95,10 @@ class GenerateFunctionIntention : BaseArendIntention(ArendBundle.message("arend.
             " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr.prettyPrint(ppconfig)}${explicitness.closingBrace}"
         }
 
+        val actualGoalBody = goalBody ?: "{?}"
         val newFunctionName = "$enclosingFunctionName-lemma"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
-        val newFunctionDefinition = "\\func $newFunctionName$parameters : $goalTypeRepresentation => {?}"
+        val newFunctionDefinition = "\\func $newFunctionName$parameters : $goalTypeRepresentation => $actualGoalBody"
         return newFunctionCall to newFunctionDefinition
     }
 
