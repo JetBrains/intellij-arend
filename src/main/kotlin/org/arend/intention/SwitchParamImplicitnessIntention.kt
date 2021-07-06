@@ -4,12 +4,20 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.searches.ReferencesSearch
+import org.arend.codeInsight.ArendParameterInfoHandler
+import org.arend.ext.error.ArgumentExplicitnessError
+import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
 import org.arend.psi.ext.PsiReferable
+import org.arend.term.abs.Abstract
+import kotlin.streams.toList
 
-class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement> (ArendCompositeElement::class.java, ArendBundle.message("arend.coClause.switchParamImplicitness")) {
+class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
+    ArendCompositeElement::class.java,
+    ArendBundle.message("arend.coClause.switchParamImplicitness")
+) {
     override fun isApplicableTo(element: ArendCompositeElement, caretOffset: Int, editor: Editor): Boolean {
         return when (element) {
             is ArendNameTele, is ArendLamTele, is ArendFieldTele, is ArendTypeTele -> true
@@ -19,72 +27,113 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
 
     // TODO: implement for other tele
     override fun applyTo(element: ArendCompositeElement, project: Project, editor: Editor) {
-        val isExplicit = (element.text.first() == '(')
-        val factory = ArendPsiFactory(element.project)
-        val text = with(element.text) {
-            substring(1, length - 1)
-        }
+        val argumentIndex = getArgumentIndex(element)
 
-        val (elementIndex, isExplicitArg) = markArguments(element)
-        val (params, type) = text.split(":")
-        val newElement = factory.createNameTele(params.trim().trimEnd(), type.trim().trimEnd(), !isExplicit)
-        val replaced = element.replaceWithNotification(newElement)
-
+        val replaced = element.replaceWithNotification(rewriteFunctionDef(element))
         val psiFunction = replaced.ancestor<PsiReferable>() as? PsiElement
         psiFunction ?: return
 
         for (psiReference in ReferencesSearch.search(psiFunction)) {
-            val psiUsageElement = psiReference.element.ancestor<ArendArgumentAppExpr>() as? PsiElement
-            psiUsageElement ?: continue
-            val newPsi = rewriteFunctionCalling(psiUsageElement, isExplicitArg, elementIndex)
-            psiUsageElement.replaceWithNotification(newPsi)
+            val psiFunctionCall = psiReference.element.ancestor<ArendArgumentAppExpr>()
+            psiFunctionCall ?: continue
+
+            val parameterIndices = getParametersIndices(psiReference.element)
+
+            val newPsiElement = rewriteFunctionCalling(psiFunctionCall, parameterIndices, argumentIndex)
+            psiFunctionCall.replaceWithNotification(newPsiElement)
         }
     }
 
-    private fun markArguments(element: ArendCompositeElement): Pair<Int, List<Boolean>> {
-        // isExplicitArg[i] = true <=> ith parameter is implicit
-        val isExplicitArg = mutableListOf<Boolean>()
+    private fun getArgumentIndex(element: ArendCompositeElement): Int {
         var elementIndex = 0
         var i = 0
         for (args in element.parent.children) {
             if (args is ArendNameTele) {
                 if (args == element) {
                     elementIndex = i
+                    break
                 }
                 for (child in args.children) {
-                    if (child is ArendIdentifierOrUnknown) {
-                        isExplicitArg.add((args.text.first() == '('))
-                        i++
-                    }
-
-                    if (child.text == ":") break
+                    if (child is ArendIdentifierOrUnknown) i++
+                    if (child.text.equals(":")) break
                 }
             }
         }
 
-        return Pair(elementIndex, isExplicitArg)
+        return elementIndex
+    }
+
+    private fun getParametersIndices(psiFunctionUsage: PsiElement): List<Int> {
+        val psiFunctionCall = psiFunctionUsage.ancestor<ArendArgumentAppExpr>()
+        psiFunctionCall ?: return emptyList()
+
+        val parameterHandler = ArendParameterInfoHandler()
+        val container = parameterHandler.extractRefFromSourceNode(psiFunctionUsage as Abstract.SourceNode)
+        val ref = container?.resolve as? Referable
+        val parameters = ref?.let { parameterHandler.getAllParametersForReferable(it) }
+        parameters ?: return emptyList()
+
+        val argsExplicitness = getArgumentsExplicitness(psiFunctionCall)
+
+        val argsIndices = mutableListOf<Int>()
+        for (i in psiFunctionCall.argumentList.indices) {
+            argsIndices.add(parameterHandler.findParamIndex(parameters, argsExplicitness.subList(0, i + 1)))
+        }
+
+        return argsIndices
+    }
+
+    private fun getArgumentsExplicitness(psiFunctionCall: ArendArgumentAppExpr): List<Boolean> {
+        return psiFunctionCall.argumentList.stream().map { it.text.first() != '{' }.toList()
+    }
+
+    private fun rewriteFunctionDef(psiDefFunction: ArendCompositeElement): PsiElement {
+        val factory = ArendPsiFactory(psiDefFunction.project)
+        val isExplicit = (psiDefFunction.text.first() == '(')
+        val text = with(psiDefFunction.text) {
+            substring(1, length - 1)
+        }
+        val (params, type) = text.split(":")
+        return factory.createNameTele(params.trim().trimEnd(), type.trim().trimEnd(), !isExplicit)
     }
 
     private fun rewriteFunctionCalling(
-        psiFunctionCall: PsiElement,
-        isExplicitArg: List<Boolean>,
+        psiFunctionCall: ArendArgumentAppExpr,
+        parameterIndices: List<Int>,
         elementIndex: Int
     ): PsiElement {
+        val elementIndexInArgs = parameterIndices.indexOf(elementIndex)
+
+        if (elementIndexInArgs == -1) {
+            TODO()
+        }
+
+        fun rewriteArg(text: String, toExplicit: Boolean): String {
+            var newText = ""
+
+            if (toExplicit) {
+                newText = text.substring(1, text.length - 1)
+                if (text.contains(" ")) {
+                    newText = "($newText)"
+                }
+                return newText
+            }
+
+            newText = if (text.first() == '(') "{" + text.substring(1, text.length - 1) + "}" else text.substring(
+                1,
+                text.length - 1
+            )
+            return newText
+        }
+
         val expr = buildString {
-            var i = 0
-            for (child in psiFunctionCall.children) {
-                if (child is ArendArgument) {
-                    if (i == elementIndex) {
-                        var newText = child.text
-                        newText = if (isExplicitArg[elementIndex]) "{$newText}"
-                                    else newText.substring(1, newText.length - 1)
-                        append("$newText ")
-                    } else {
-                        append(child.text + " ")
-                    }
-                    i++
+            append(psiFunctionCall.atomFieldsAcc?.text + " ")
+
+            for ((i, arg) in psiFunctionCall.argumentList.withIndex()) {
+                if (parameterIndices[i] != elementIndex) {
+                    append(arg.text + " ")
                 } else {
-                    append(child.text + " ")
+                    append(rewriteArg(arg.text, arg.text.first() == '{') + " ")
                 }
             }
         }

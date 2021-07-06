@@ -64,7 +64,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         context.setupUIComponentPresentation(text, hlStart, hlEnd, !context.isUIComponentEnabled, false, false, context.defaultParameterColor)
     }
 
-    private fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
+    public fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
         val params = mutableListOf<Abstract.Parameter>()
         val psiFactory = ArendPsiFactory(ProjectManager.getInstance().openProjects.first())
         if (def is Abstract.ParametersHolder) {
@@ -177,7 +177,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return res
     }
 
-    private fun findParamIndex(params: List<Abstract.Parameter>, argsExplicitness: List<Boolean>): Int {
+    public fun findParamIndex(params: List<Abstract.Parameter>, argsExplicitness: List<Boolean>): Int {
         if (argsExplicitness.isEmpty()) return -1
 
         val argIsExplicit = argsExplicitness.last()
@@ -327,7 +327,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return null
     }
 
-    private fun extractRefFromSourceNode(node: Abstract.SourceNode): ArendReferenceContainer? {
+    public fun extractRefFromSourceNode(node: Abstract.SourceNode): ArendReferenceContainer? {
         if (node is ArendLiteral) {
             if (node.ipName != null) {
                 return node.ipName
@@ -395,7 +395,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return ascendLambda(absNode)?.parentSourceNode?.let{ tryToLocateAtTheCurrentLevel(it, isNewArgPos, false) }
     }
 
-    private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, ArendReferenceContainer>? {
+    public fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, ArendReferenceContainer>? {
         val isNewArgPos = isNewArgumentPosition(file, offset)
         val absNode = skipWhitespaces(file, adjustOffset(file, offset))?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
 
