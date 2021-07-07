@@ -63,4 +63,15 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         \func f => kComb {_} {\Sigma Nat Nat} 1 (4, 2) 
         """
     )
+
+    fun testFunctionExToImParens() = doTest(
+        """
+        \func f (P{-caret-} : \Type) (p : P) => p
+        \func g => f (\Sigma Nat Nat) (4, 2)
+        """,
+        """
+        \func f {P{-caret-} : \Type} (p : P) => p
+        \func g => f {(\Sigma Nat Nat)} (4, 2)
+        """
+    )
 }

@@ -143,7 +143,6 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
             return ""
         }
 
-        newText = if (text.first() == '(') text.substring(1, text.length - 1) else text
-        return "{$newText}"
+        return "{$text}"
     }
 }
