@@ -27,11 +27,10 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
 
     // TODO: implement for other tele
     override fun applyTo(element: ArendCompositeElement, project: Project, editor: Editor) {
-        val argumentIndex = getArgumentIndex(element)
-
-        val replaced = element.replaceWithNotification(rewriteFunctionDef(element))
-        val psiFunction = replaced.ancestor<PsiReferable>() as? PsiElement
+        val psiFunction = element.ancestor<PsiReferable>() as? PsiElement
         psiFunction ?: return
+
+        val argumentIndex = getArgumentIndex(element)
 
         for (psiReference in ReferencesSearch.search(psiFunction)) {
             val psiFunctionCall = psiReference.element.ancestor<ArendArgumentAppExpr>()
@@ -39,9 +38,15 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
 
             val parameterIndices = getParametersIndices(psiReference.element)
 
+            for ((i, j) in parameterIndices.withIndex()) {
+                println("$i -> $j")
+            }
+
             val newPsiElement = rewriteFunctionCalling(psiFunctionCall, parameterIndices, argumentIndex)
             psiFunctionCall.replaceWithNotification(newPsiElement)
         }
+
+        element.replaceWithNotification(rewriteFunctionDef(element))
     }
 
     private fun getArgumentIndex(element: ArendCompositeElement): Int {
@@ -119,11 +124,8 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
                 return newText
             }
 
-            newText = if (text.first() == '(') "{" + text.substring(1, text.length - 1) + "}" else text.substring(
-                1,
-                text.length - 1
-            )
-            return newText
+            newText = if (text.first() == '(') text.substring(1, text.length - 1) else text
+            return "{$newText}"
         }
 
         val expr = buildString {
