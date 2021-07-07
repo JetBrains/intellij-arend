@@ -5,14 +5,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
-import org.arend.ext.error.ArgumentExplicitnessError
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
 import org.arend.psi.ext.PsiReferable
 import org.arend.term.abs.Abstract
-import kotlin.streams.toList
 
 class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
     ArendCompositeElement::class.java,
@@ -37,10 +35,6 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
             psiFunctionCall ?: continue
 
             val parameterIndices = getParametersIndices(psiReference.element)
-
-            for ((i, j) in parameterIndices.withIndex()) {
-                println("$i -> $j")
-            }
 
             val newPsiElement = rewriteFunctionCalling(psiFunctionCall, parameterIndices, argumentIndex)
             psiFunctionCall.replaceWithNotification(newPsiElement)
@@ -89,7 +83,7 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
     }
 
     private fun getArgumentsExplicitness(psiFunctionCall: ArendArgumentAppExpr): List<Boolean> {
-        return psiFunctionCall.argumentList.stream().map { it.text.first() != '{' }.toList()
+        return psiFunctionCall.argumentList.map { it.text.first() != '{' }
     }
 
     private fun rewriteFunctionDef(psiDefFunction: ArendCompositeElement): PsiElement {
@@ -108,39 +102,48 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
         elementIndex: Int
     ): PsiElement {
         val elementIndexInArgs = parameterIndices.indexOf(elementIndex)
+        val argsText = psiFunctionCall.argumentList.map { it.text } as MutableList<String>
+        val indices: MutableList<Int> = parameterIndices as MutableList<Int>
 
         if (elementIndexInArgs == -1) {
-            TODO()
-        }
-
-        fun rewriteArg(text: String, toExplicit: Boolean): String {
-            var newText = ""
-
-            if (toExplicit) {
-                newText = text.substring(1, text.length - 1)
-                if (text.contains(" ")) {
-                    newText = "($newText)"
-                }
-                return newText
-            }
-
-            newText = if (text.first() == '(') text.substring(1, text.length - 1) else text
-            return "{$newText}"
+            val insertAfterIndex = -parameterIndices.binarySearch(elementIndex) - 1
+            argsText.add(insertAfterIndex, "{_}")
+            indices.add(insertAfterIndex, elementIndex)
         }
 
         val expr = buildString {
             append(psiFunctionCall.atomFieldsAcc?.text + " ")
 
-            for ((i, arg) in psiFunctionCall.argumentList.withIndex()) {
-                if (parameterIndices[i] != elementIndex) {
-                    append(arg.text + " ")
+            for ((i, arg) in argsText.withIndex()) {
+                if (indices[i] != elementIndex) {
+                    append("$arg ")
                 } else {
-                    append(rewriteArg(arg.text, arg.text.first() == '{') + " ")
+                    val isNextArgExplicit = if (i != indices.size - 1) (argsText[i + 1].first() != '{') else true
+                    append(rewriteArg(arg, arg.first() == '{', isNextArgExplicit) + " ")
                 }
             }
-        }
+        }.replace("\\s+".toRegex(), " ")
 
         val factory = ArendPsiFactory(psiFunctionCall.project)
         return factory.createExpression(expr)
+    }
+
+    private fun rewriteArg(text: String, toExplicit: Boolean, isNextArgExplicit: Boolean): String {
+        var newText: String
+
+        if (toExplicit) {
+            newText = text.substring(1, text.length - 1)
+            if (text.contains(" ")) {
+                newText = "($newText)"
+            }
+            return newText
+        }
+
+        if (text == "_" && isNextArgExplicit) {
+            return ""
+        }
+
+        newText = if (text.first() == '(') text.substring(1, text.length - 1) else text
+        return "{$newText}"
     }
 }
