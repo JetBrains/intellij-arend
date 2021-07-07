@@ -60,7 +60,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func kComb {A{-caret-} : \Type} {B : \Type} => \lam (a : A) (b : B) => a
-        \func f => kComb {_} {\Sigma Nat Nat} 1 (4, 2) 
+        \func f => kComb {_} {\Sigma Nat Nat} 1 (4, 2)
         """
     )
 }
