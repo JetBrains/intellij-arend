@@ -29,7 +29,7 @@ object BinOpIntentionUtil {
     internal fun isBinOpApp(expression: Concrete.AppExpression) =
             isBinOp(expression.function.data as? ArendReferenceContainer)
 
-    private fun isBinOp(binOpReference: ArendReferenceContainer?) =
+    fun isBinOp(binOpReference: ArendReferenceContainer?) =
             if (binOpReference is ArendIPName) binOpReference.infix != null
             else (resolve(binOpReference))?.precedence?.isInfix == true
 

@@ -102,7 +102,7 @@ private fun unwrapAppExprInParens(tuple: ArendTuple): ArendArgumentAppExpr? {
     return (expr as? ArendNewExpr)?.appExpr as? ArendArgumentAppExpr ?: return null
 }
 
-private fun unwrapParens(tuple: ArendTuple): ArendExpr? {
+public fun unwrapParens(tuple: ArendTuple): ArendExpr? {
     val tupleExpr = tuple.tupleExprList.singleOrNull() ?: return null
     return if (tupleExpr.colon == null) tupleExpr.exprList.singleOrNull() else null
 }

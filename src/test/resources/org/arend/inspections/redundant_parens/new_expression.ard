@@ -1,0 +1,7 @@
+\class Pair (x y : Nat)
+
+\func test1 => \new <weak_warning descr="Redundant parentheses">(Pair 1 2)</weak_warning>
+\func test2 => <weak_warning descr="Redundant parentheses">(Pair 1)</weak_warning> { | y => 2 }
+
+\func pair (n : Nat) => (n, n)
+\func test3 => (pair 0).1
