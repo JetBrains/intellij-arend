@@ -8,8 +8,10 @@ import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendLocalCoClauseImplMixin
 import org.arend.util.ArendBundle
 import org.arend.psi.ext.PsiReferable
+import org.arend.psi.impl.ArendLocalCoClauseImpl
 import org.arend.term.abs.Abstract
 
 class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
@@ -35,7 +37,6 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
             psiFunctionCall ?: continue
 
             val parameterIndices = getParametersIndices(psiReference.element)
-
             val newPsiElement = rewriteFunctionCalling(psiFunctionCall, parameterIndices, argumentIndex)
             psiFunctionCall.replaceWithNotification(newPsiElement)
         }
@@ -46,15 +47,18 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
     private fun getArgumentIndex(element: ArendCompositeElement): Int {
         var elementIndex = 0
         var i = 0
-        for (args in element.parent.children) {
-            if (args is ArendNameTele) {
-                if (args == element) {
-                    elementIndex = i
-                    break
-                }
-                for (child in args.children) {
-                    if (child is ArendIdentifierOrUnknown) i++
-                    if (child.text.equals(":")) break
+        for (arg in element.parent.children) {
+            when (arg) {
+                is ArendNameTele, is ArendFieldTele, is ArendTypeTele -> {
+                    if (arg == element) {
+                        elementIndex = i
+                        break
+                    }
+
+                    for (tok in arg.text.split("\\s+".toRegex())) {
+                        if (tok == ":") break
+                        i++
+                    }
                 }
             }
         }
@@ -72,18 +76,13 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
         val parameters = ref?.let { parameterHandler.getAllParametersForReferable(it) }
         parameters ?: return emptyList()
 
-        val argsExplicitness = getArgumentsExplicitness(psiFunctionCall)
-
+        val argsExplicitness = psiFunctionCall.argumentList.map { it.text.first() != '{' }
         val argsIndices = mutableListOf<Int>()
         for (i in psiFunctionCall.argumentList.indices) {
             argsIndices.add(parameterHandler.findParamIndex(parameters, argsExplicitness.subList(0, i + 1)))
         }
 
         return argsIndices
-    }
-
-    private fun getArgumentsExplicitness(psiFunctionCall: ArendArgumentAppExpr): List<Boolean> {
-        return psiFunctionCall.argumentList.map { it.text.first() != '{' }
     }
 
     private fun rewriteFunctionDef(psiDefFunction: ArendCompositeElement): PsiElement {

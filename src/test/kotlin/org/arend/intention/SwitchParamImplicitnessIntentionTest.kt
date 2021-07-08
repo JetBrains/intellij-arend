@@ -60,7 +60,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func kComb {A{-caret-} : \Type} {B : \Type} => \lam (a : A) (b : B) => a
-        \func f => kComb {_} {\Sigma Nat Nat} 1 (4, 2) 
+        \func f => kComb {_} {\Sigma Nat Nat} 1 (4, 2)
         """
     )
 
@@ -129,119 +129,119 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         \func f => Test _ 42
         """
     )
-
-    fun testTypeExToImAddBraces() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
-        
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd Nat n => 2
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
-        
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd {Nat} n => 2
-        }
-        """
-    )
-
-    fun testTypeImToExRemoveBraces() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd {Nat} n => 2
-        }
-        """,
-        """"
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
-        
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd Nat n => 2
-        }
-        """
-    )
-
-    fun testTypeImToExAddParam() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd n => 2
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd _ n => 2
-        } 
-        """
-    )
-
-    fun testTypeExToImUnderscore() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd _ n => 2
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd n => 2
-        }
-        """
-    )
-
-    fun testTypeImToExUnderscore() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd _ n => 2
-        } 
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd n => 2
-        }
-        """
-    )
+//
+//    fun testTypeExToImAddBraces() = doTest(
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd (X{-caret-} : \Type) (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd Nat n => 2
+//        }
+//        """,
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd {X{-caret-} : \Type} (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd {Nat} n => 2
+//        }
+//        """
+//    )
+//
+//    fun testTypeImToExRemoveBraces() = doTest(
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd {X{-caret-} : \Type} (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd {Nat} n => 2
+//        }
+//        """,
+//        """"
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd (X{-caret-} : \Type) (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd Nat n => 2
+//        }
+//        """
+//    )
+//
+//    fun testTypeImToExAddParam() = doTest(
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd {X{-caret-} : \Type} (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd n => 2
+//        }
+//        """,
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd (X{-caret-} : \Type) (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd _ n => 2
+//        }
+//        """
+//    )
+//
+//    fun testTypeExToImUnderscore() = doTest(
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd (X{-caret-} : \Type) (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd _ n => 2
+//        }
+//        """,
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd {X{-caret-} : \Type} (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd n => 2
+//        }
+//        """
+//    )
+//
+//    fun testTypeImToExUnderscore() = doTest(
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd (X{-caret-} : \Type) (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd _ n => 2
+//        }
+//        """,
+//        """
+//        \record testRecord (T : \Type)
+//          | fst (X : T) : Nat
+//          | snd {X{-caret-} : \Type} (n : X) : Nat
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | fst X => 1
+//          | snd n => 2
+//        }
+//        """
+//    )
 }
