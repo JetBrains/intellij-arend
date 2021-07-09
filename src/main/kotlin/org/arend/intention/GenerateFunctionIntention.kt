@@ -15,21 +15,20 @@ import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.Expression
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
-import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendGoal
+import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.getSelectionWithoutErrors
-import org.arend.psi.parentOfType
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.resolving.ArendReferableConverter
+import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
@@ -54,27 +53,17 @@ class GenerateFunctionIntention : BaseIntentionAction() {
                 file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) != null
     }
 
-    private data class SelectionResult(val expectedType : Expression, val replaceablePsi : ArendCompositeElement, val identifier : String?, val body : PsiElement?)
+    private data class SelectionResult(val expectedType : Expression, val replaceablePsi : ArendCompositeElement, val identifier : String?, val body : String?)
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         editor ?: return
         file ?: return
         val selection = editor.getSelectionWithoutErrors() ?: return
         val selectionResult = if (selection.isEmpty) {
-            val goal = file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) ?: return
-            val goalType = getGoalType(project, goal) ?: return
-            SelectionResult(goalType, goal, goal.defIdentifier?.name, goal.expr)
+            extractGoalData(file, editor, project)
         } else {
-            val subexprResult = tryCorrespondedSubExpr(selection, file, project, editor) ?: return
-            val enclosingRange = rangeOfConcrete(subexprResult.subConcrete)
-            val enclosingPsi =
-                subexprResult
-                    .subPsi
-                    .parents(true)
-                    .lastOrNull { enclosingRange.contains(it.textRange) } as? ArendCompositeElement
-                    ?: subexprResult.subPsi
-            SelectionResult(subexprResult.subCore.type, enclosingPsi, null, enclosingPsi)
-        }
+            extractSelectionData(file, editor, project, selection)
+        } ?: return
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(selectionResult.expectedType)
         performRefactoring(freeVariables, selectionResult, editor, project)
     }
@@ -83,13 +72,29 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         val scope = context.scope.let(CachingScope::make)
         return object : PrettyPrinterConfigWithRenamer(scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }) {
             override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> = EnumSet.noneOf(PrettyPrinterFlag::class.java)
+            override fun getNormalizationMode(): NormalizationMode = NormalizationMode.RNF
         }
     }
 
-    private fun getGoalType(project: Project, goal: ArendGoal): Expression? {
+    private fun extractGoalData(file : PsiFile, editor: Editor, project: Project): SelectionResult? {
+        val goal = file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) ?: return null
         val errorService = project.service<ErrorService>()
         val arendError = errorService.errors[goal.containingFile]?.firstOrNull { it.cause == goal } ?: return null
-        return (arendError.error as? GoalError)?.expectedType
+        val goalType = (arendError.error as? GoalError)?.expectedType ?: return null
+        return SelectionResult(goalType, goal, goal.defIdentifier?.name, goal.expr?.text)
+    }
+
+    private fun extractSelectionData(file : PsiFile, editor: Editor, project: Project, range : TextRange) : SelectionResult? {
+        val subexprResult = tryCorrespondedSubExpr(range, file, project, editor) ?: return null
+        val enclosingRange = rangeOfConcrete(subexprResult.subConcrete)
+        val enclosingPsi =
+            subexprResult
+                .subPsi
+                .parents(true)
+                .filterIsInstance<ArendExpr>()
+                .lastOrNull { enclosingRange.contains(it.textRange) }
+                ?: subexprResult.subPsi
+        return SelectionResult(subexprResult.subCore.type, enclosingPsi, null, subexprResult.subCore.prettyPrint(getPrettyPrintConfig(enclosingPsi))?.toString())
     }
 
     private fun performRefactoring(
@@ -127,7 +132,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
             " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr.prettyPrint(ppconfig)}${explicitness.closingBrace}"
         }
 
-        val actualGoalBody = selection.body?.text ?: "{?}"
+        val actualGoalBody = selection.body ?: "{?}"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
         val newFunctionDefinition = "\\func $newFunctionName$parameters : $goalTypeRepresentation => $actualGoalBody"
         return newFunctionCall to newFunctionDefinition
