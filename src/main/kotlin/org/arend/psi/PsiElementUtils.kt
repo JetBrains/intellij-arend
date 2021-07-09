@@ -2,9 +2,12 @@ package org.arend.psi
 
 import com.intellij.ide.util.EditSourceUtil
 import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore.KEY_MODULE
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
@@ -14,6 +17,7 @@ import org.arend.module.config.LibraryConfig
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
+import org.arend.typechecking.error.ErrorService
 
 val PsiElement.theOnlyChild: PsiElement?
     get() = firstChild?.takeIf { it.nextSibling == null }
@@ -333,3 +337,14 @@ fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
     is ArendFieldTele -> tele.expr
     else -> null
 }
+
+fun Editor.getSelectionWithoutErrors(): TextRange? =
+    EditorUtil.getSelectionInAnyMode(this).takeIf { range ->
+        if (range.isEmpty) {
+            return@takeIf false
+        }
+        val nnProject = project ?: return@takeIf false
+        val file = nnProject.let { PsiDocumentManager.getInstance(it).getPsiFile(document) } ?: return@takeIf false
+        val elementsWithErrors = nnProject.service<ErrorService>().errors[file]?.mapNotNull { it.cause } ?: return@takeIf true
+        elementsWithErrors.all { !range.intersects(it.textRange) }
+    }

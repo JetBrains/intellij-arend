@@ -123,4 +123,12 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         \func foo-lemma : Fin 21 => (10 Nat.+ 10)
     """)
 
+    fun `test extract from selection 2`() = doTest("""
+        \func bar {A : \Prop} (x y : A) : x = y => {-selection-}Path.i{-caret-}nProp{-end_selection-} _ _
+    """, """
+        \func bar {A : \Prop} (x y : A) : x = y => bar-lemma x y
+
+        \func bar-lemma {A : \Prop} (x : A) (y : A) : x = y => Path.inProp _ _
+    """)
+
 }

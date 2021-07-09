@@ -3,7 +3,6 @@ package org.arend.intention
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
@@ -11,6 +10,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.codeStyle.CodeStyleManager
+import com.intellij.psi.util.parents
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
@@ -23,7 +23,9 @@ import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendGoal
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.getSelectionWithoutErrors
 import org.arend.psi.parentOfType
+import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
 import org.arend.refactoring.tryCorrespondedSubExpr
@@ -47,7 +49,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         if (!canModify(file) || !BaseArendIntention.canModify(file)) {
             return false
         }
-        val selection = EditorUtil.getSelectionInAnyMode(editor)
+        val selection = editor.getSelectionWithoutErrors() ?: return false
         return !selection.isEmpty ||
                 file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) != null
     }
@@ -57,14 +59,21 @@ class GenerateFunctionIntention : BaseIntentionAction() {
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         editor ?: return
         file ?: return
-        val selection = EditorUtil.getSelectionInAnyMode(editor)
+        val selection = editor.getSelectionWithoutErrors() ?: return
         val selectionResult = if (selection.isEmpty) {
             val goal = file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) ?: return
             val goalType = getGoalType(project, goal) ?: return
             SelectionResult(goalType, goal, goal.defIdentifier?.name, goal.expr)
         } else {
             val subexprResult = tryCorrespondedSubExpr(selection, file, project, editor) ?: return
-            SelectionResult(subexprResult.subCore.type, subexprResult.subPsi, null, subexprResult.subPsi)
+            val enclosingRange = rangeOfConcrete(subexprResult.subConcrete)
+            val enclosingPsi =
+                subexprResult
+                    .subPsi
+                    .parents(true)
+                    .lastOrNull { enclosingRange.contains(it.textRange) } as? ArendCompositeElement
+                    ?: subexprResult.subPsi
+            SelectionResult(subexprResult.subCore.type, enclosingPsi, null, enclosingPsi)
         }
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(selectionResult.expectedType)
         performRefactoring(freeVariables, selectionResult, editor, project)
