@@ -22,7 +22,7 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
 ) {
     override fun isApplicableTo(element: ArendCompositeElement, caretOffset: Int, editor: Editor): Boolean {
         return when (element) {
-            is ArendNameTele, is ArendLamTele, is ArendFieldTele, is ArendTypeTele -> true
+            is ArendNameTele, is ArendFieldTele, is ArendTypeTele -> true
             else -> false
         }
     }
@@ -49,7 +49,6 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
         return when (element) {
             is ArendNameTele, is ArendFieldTele -> SwitchParamImplicitnessNameFieldApplier()
             is ArendTypeTele -> SwitchParamImplicitnessTypeApplier()
-            is ArendLamTele -> TODO("implement  applier for lamTele")
             else -> null
         }
     }
