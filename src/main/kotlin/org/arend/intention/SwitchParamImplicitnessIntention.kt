@@ -1,8 +1,10 @@
 package org.arend.intention
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.naming.reference.Referable
@@ -11,6 +13,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.impl.ArendLocalCoClauseImpl
+import org.arend.refactoring.splitTele
 import org.arend.term.abs.Abstract
 
 class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
@@ -25,10 +28,23 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
     }
 
     override fun applyTo(element: ArendCompositeElement, project: Project, editor: Editor) {
-        chooseApplier(element)?.applyTo(element)
+        val elementOnCaret = getPsiElementOnCaret(project, editor)
+        val (switchedArgIndex, argCount) = getTeleInfo(element, elementOnCaret)
+
+        if (argCount == 1) {
+            chooseApplier(element)?.applyTo(element)
+            return
+        }
+
+        if (switchedArgIndex == -1) {
+            // TODO: show context window with this message
+            println("[DEBUG] caret must be on argument's name")
+        } else {
+            splitTele(element, switchedArgIndex)
+            chooseApplier(element)?.applyTo(element)
+        }
     }
 
-    // TODO: implement for other tele
     private fun chooseApplier(element: ArendCompositeElement): SwitchParamImplicitnessApplier? {
         return when (element) {
             is ArendNameTele, is ArendFieldTele -> SwitchParamImplicitnessNameFieldApplier()
@@ -36,6 +52,27 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
             is ArendLamTele -> TODO("implement  applier for lamTele")
             else -> null
         }
+    }
+
+    private fun getTeleInfo(element: ArendCompositeElement, switchedArg: PsiElement): Pair<Int, Int> {
+        val args = getTeleParams(element)
+        if (args.size == 1) {
+            return Pair(0, 1)
+        }
+
+        for ((i, arg) in args.withIndex()) {
+            if (switchedArg.text.equals(arg.text)) {
+                return Pair(i, args.size)
+            }
+        }
+        return Pair(-1, -1)
+    }
+
+    // TODO: rewrite or remove this function
+    private fun getPsiElementOnCaret(project: Project, editor: Editor): PsiElement {
+        val offset = editor.caretModel.offset
+        val file = FileDocumentManager.getInstance().getFile(editor.document)
+        return PsiManager.getInstance(project).findFile(file!!)?.findElementAt(offset)!!
     }
 }
 
@@ -65,7 +102,6 @@ abstract class SwitchParamImplicitnessApplier {
 
     private fun getParametersIndices(psiFunctionUsage: PsiElement): List<Int> {
         val psiFunctionCall = getPsiFunctionCall(psiFunctionUsage)
-        // psiFunctionUsage.ancestor<ArendArgumentAppExpr>()
         psiFunctionCall ?: return emptyList()
 
         val parameterHandler = ArendParameterInfoHandler()
@@ -74,7 +110,6 @@ abstract class SwitchParamImplicitnessApplier {
         val parameters = ref?.let { parameterHandler.getAllParametersForReferable(it) }
         parameters ?: return emptyList()
 
-//        val argsExplicitness = psiFunctionCall.argumentList.map { it.text.first() != '{' }
         val argsExplicitness = getCallingParameters(psiFunctionCall).map { it.first() != '{' }
         val argsIndices = mutableListOf<Int>()
         for (i in argsExplicitness.indices) {
@@ -134,7 +169,7 @@ abstract class SwitchParamImplicitnessApplier {
                 if (indices[i] != switchedArgIndex) {
                     append("$arg ")
                 } else {
-                    val isNextArgExplicit = if (i != indices.size - 1) (argsText[i + 1].first() != '{') else true
+                    val isNextArgExplicit = if (i != indices.size - 1) (argsText[i + 1].first() != '{') else false
                     append(rewriteArg(arg, arg.first() == '{', isNextArgExplicit) + " ")
                 }
             }
@@ -149,7 +184,7 @@ abstract class SwitchParamImplicitnessApplier {
         for (arg in element.parent.children) {
             when (arg) {
                 is ArendNameTele, is ArendFieldTele, is ArendTypeTele -> {
-                    if (arg == element) {
+                    if (arg.equals(element)) {
                         elementIndex = i
                         break
                     }
@@ -185,9 +220,7 @@ abstract class SwitchParamImplicitnessApplier {
 }
 
 class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier() {
-    override fun getPsiFunctionCall(element: PsiElement): PsiElement? {
-        return element.ancestor<ArendArgumentAppExpr>()
-    }
+    override fun getPsiFunctionCall(element: PsiElement) = element.ancestor<ArendArgumentAppExpr>()
 
     override fun getCallingParameters(element: PsiElement): List<String> {
         val psiFunctionCall = element as ArendArgumentAppExpr
@@ -201,9 +234,7 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
 }
 
 class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
-    override fun getPsiFunctionCall(element: PsiElement): PsiElement? {
-        return element.ancestor<ArendLocalCoClause>()
-    }
+    override fun getPsiFunctionCall(element: PsiElement) = element.ancestor<ArendLocalCoClause>()
 
     override fun getCallingParameters(element: PsiElement): List<String> {
         val psiFunctionCall = element as ArendLocalCoClauseImpl

@@ -244,4 +244,105 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         }
         """
     )
+
+    fun testTypeImToExUnderscoreEnd() = doTest(
+        """
+        \record testRecord (T : \Type)
+          | k {A B : \Type} (a : A) (b :{-caret-} B) : A
+
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k a _ => a
+        }
+        """,
+        """
+        \record testRecord (T : \Type)
+          | k {A B : \Type} (a : A) {b :{-caret-} B} : A
+        
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k a {_} => a
+        }
+        """
+    )
+
+    fun testFunctionImToExSplitTeleA() = doTest(
+        """
+        \func k {{-caret-}A B : \Type} (a : A) (b : B) => a
+        \func f => k {_} 1 (1, 2)
+        """,
+        """
+        \func k ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => a
+        \func f => k _ 1 (1, 2)
+        """
+    )
+
+    fun testFunctionImToExSplitTeleB() = doTest(
+        """
+        \func k {A {-caret-}B : \Type} (a : A) (b : B) => a
+        \func f => k {_} 1 (1, 2)
+        """,
+        """
+        \func k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => a
+        \func f => k {_} _ 1 (1, 2)
+        """
+    )
+
+//    fun testFieldImToExSplitTeleA() = doTest(
+//        """
+//        \class Test {{-caret}A B : \Type} (a : A) (b : B)
+//        \func f => Test {Nat} 1 (4, 2)
+//        """,
+//        """
+//        \class Test ({-caret-}A : \Type) {B : \Type} (a : A) (b : B)
+//        \func f => Test Nat 1 (4, 2)
+//        """
+//    )
+
+//    fun testFieldImToExSplitTeleB() = doTest(
+//        """
+//        \class Test {A {-caret-}B : \Type} (a : A) (b : B)
+//        \func f => Test {Nat} 1 (4, 2)
+//        """,
+//        """
+//        \class Test {A : \Type} (B : \Type) (a : A) (b : B)
+//        \func f => Test {Nat} _ 1 (4, 2)
+//        """
+//    )
+
+    fun testTypeImToExSplitA() = doTest(
+        """
+        \record testRecord (T : \Type)
+          | k {{-caret-}A B : \Type} (a : A) (b : B) : A
+
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k {_} a b => a
+        }
+        """,
+        """
+        \record testRecord (T : \Type)
+          | k ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) : A
+        
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k _ a b => a
+        }
+        """
+    )
+
+    fun testTypeImToExSplitB() = doTest(
+        """
+        \record testRecord (T : \Type)
+          | k {A {-caret-}B : \Type} (a : A) (b : B) : A
+          
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k {_} a b => a
+        }
+        """,
+        """
+        \record testRecord (T : \Type)
+          | k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) : A
+          
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k {_} _ a b => a
+        }
+        """
+    )
 }
