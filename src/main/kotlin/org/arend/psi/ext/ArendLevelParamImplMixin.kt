@@ -9,14 +9,15 @@ import org.arend.psi.ArendLevelParam
 abstract class ArendLevelParamImplMixin(node: ASTNode) : ArendCompositeElementImpl(node), ArendLevelParam {
     private var levelRefCache: LevelReferable? = null
 
-    val levelRef: LevelReferable = runReadAction {
-        val ref = levelRefCache
-        val defId = defIdentifier
-        val name = defId.refName
-        if (ref?.refName == name) ref else synchronized(this) {
-            val newRef = DataLevelReferable(defId, name)
-            levelRefCache = newRef
-            newRef
+    val levelRef: LevelReferable
+        get() = runReadAction {
+            val ref = levelRefCache
+            val defId = defIdentifier
+            val name = defId.refName
+            if (ref?.data == defId && ref.refName == name) ref else synchronized(this) {
+                val newRef = DataLevelReferable(defId, name)
+                levelRefCache = newRef
+                newRef
+            }
         }
-    }
 }
