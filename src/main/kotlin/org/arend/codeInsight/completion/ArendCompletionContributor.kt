@@ -5,7 +5,6 @@ import com.intellij.codeInsight.completion.CompletionInitializationContext.DUMMY
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.ElementPattern
-import com.intellij.patterns.ElementPatternCondition
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.patterns.StandardPatterns.*
 import com.intellij.psi.*
@@ -469,11 +468,11 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(and(afterLeaf(ID), after(and(withParent(ArendDefIdentifier::class.java), withGrandParents(ArendDefData::class.java, ArendDefInstance::class.java,
                 ArendDefFunction::class.java, ArendDefClass::class.java)))), PH_LEVELS_KW_LIST)
 
-        val levelParamsPattern = withAncestors(ArendDefIdentifier::class.java, ArendLevelParams::class.java)
+        val levelParamsPattern = withAncestors(ArendDefIdentifier::class.java, ArendLevelParam::class.java, ArendLevelParams::class.java)
 
         basic(or(afterLeaf(PLEVELS_KW), after(levelParamsPattern)), HLEVELS_KW_LIST) { cP: CompletionParameters ->
             val jointData = ArendCompletionParameters(cP)
-            val levelParams = jointData.prevElement?.parent?.parent as? ArendLevelParams
+            val levelParams = jointData.prevElement?.parent?.parent?.parent as? ArendLevelParams
             val prevKeyword = levelParams?.findPrevSibling()
             if (prevKeyword != null) prevKeyword.elementType == PLEVELS_KW else true
         }
@@ -520,6 +519,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val NEW_EXPR_PREFIX = ARGUMENT_APP_EXPR_PREFIX + arrayOf(ArendNewExpr::class.java)
         private val RETURN_EXPR_PREFIX = ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendReturnExpr::class.java)
         private val DEF_IDENTIFIER_PREFIX = arrayOf<Class<out PsiElement>>(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java)
+        private val ATOM_LEVEL_PREFIX = arrayOf<Class<out PsiElement>>(ArendRefIdentifier::class.java, ArendAtomLevelExpr::class.java)
 
         private val PREC_CONTEXT = or(
                 afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, TYPE_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW),
@@ -546,7 +546,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val INSIDE_RETURN_EXPR_CONTEXT = or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
 
         private val WHERE_CONTEXT = and(
-                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX), withAncestors(ArendDefIdentifier::class.java, ArendLevelParams::class.java)),
+                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX), withAncestors(ArendDefIdentifier::class.java, ArendLevelParam::class.java, ArendLevelParams::class.java)),
                 not(PREC_CONTEXT),
                 not(INSIDE_RETURN_EXPR_CONTEXT),
                 not(afterLeaves(COLON, TRUNCATED_KW, FAT_ARROW, WITH_KW, ARROW, IN_KW, INSTANCE_KW, EXTENDS_KW, DOT, NEW_KW, EVAL_KW, PEVAL_KW, CASE_KW, SCASE_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WHERE_KW, USE_KW, PIPE, LEVEL_KW, COERCE_KW)),
@@ -585,7 +585,10 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ARGUMENT_EXPRESSION = or(withAncestors(*(ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendAtomArgument::class.java))),
                 withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java))
 
-        private val ATOM_LEVEL_CONTEXT = withAncestors(ArendRefIdentifier::class.java, ArendAtomLevelExpr::class.java)
+        private val ATOM_LEVEL_CONTEXT =
+               or(withAncestors(*(ATOM_LEVEL_PREFIX + arrayOf(ArendLevelExpr::class.java))),
+                  withAncestors(*(ATOM_LEVEL_PREFIX + arrayOf(ArendMaybeAtomLevelExpr::class.java, ArendExpr::class.java))),
+                  withAncestors(*(ATOM_LEVEL_PREFIX + arrayOf(ArendMaybeAtomLevelExprs::class.java, ArendLevelsExpr::class.java))))
 
         private val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(ArendSetUniverseAppExpr::class.java, ArendUniverseAppExpr::class.java, ArendTruncatedUniverseAppExpr::class.java))
 
