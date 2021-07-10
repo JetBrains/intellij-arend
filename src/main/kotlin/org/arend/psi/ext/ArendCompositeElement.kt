@@ -51,10 +51,11 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
 
     var isExtends = false
     val parentScope = sourceNode.parentSourceNode?.let {
-        if (it is ArendDefClass && sourceNode is ArendLongName) {
+        val classDef = if (sourceNode is ArendLongName) (it as? ArendSuperClass)?.parent as? ArendDefClass else null
+        if (classDef != null) {
             isExtends = true
             // The last parameters is set to ONLY_EXTERNAL to prevent infinite recursion during resolving of references in \\extends
-            LexicalScope.insideOf(it, it.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(it, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
+            LexicalScope.insideOf(classDef, classDef.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
         } else it.scope
     } ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
 

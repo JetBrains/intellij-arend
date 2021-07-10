@@ -296,11 +296,15 @@ functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | useMod
 
 levelCmp ::= LESS_OR_EQUALS | GREATER_OR_EQUALS
 
-levelParams ::= [defIdentifier (levelCmp defIdentifier)*] {
+levelParams ::= [levelParam (levelCmp levelParam)*] {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.LevelParameters"
                  ]
     mixin = "org.arend.psi.ext.ArendLevelParamsImplMixin"
+}
+
+levelParam ::= defIdentifier {
+    mixin = "org.arend.psi.ext.ArendLevelParamImplMixin"
 }
 
 private functionType ::= COLON returnExprWOB { pin = 1 }
@@ -374,7 +378,14 @@ private defClassClass ::= CLASS_KW defClassHeader classStats { pin = 1 }
 
 private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
 
-private defClassHeader ::= prec? defIdentifier [PLEVELS_KW levelParams] [HLEVELS_KW levelParams] alias? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
+private defClassHeader ::= prec? defIdentifier [PLEVELS_KW levelParams] [HLEVELS_KW levelParams] alias? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence superClass>>]
+
+superClass ::= longName [maybeAtomLevelExprs maybeAtomLevelExprs?] {
+    pin = 1
+    implements = [ "org.arend.psi.ext.ArendSourceNode"
+                   "org.arend.term.abs.Abstract.ReferenceExpression" ]
+    mixin = "org.arend.psi.ext.ArendSuperClassImplMixin"
+}
 
 functionBody ::= functionTermBody
     | COWITH_KW coClauses?
