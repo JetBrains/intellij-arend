@@ -345,4 +345,70 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         }
         """
     )
+
+    fun testFunctionImToExInfix() = doTest(
+        """
+        \func mp {{-caret-}A B : \Type} (a : A) (ab : A -> B) => ab a
+        \func g => 42 `mp` (\lam n => n + 1)
+        """,
+        """
+        \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (ab : A -> B) => ab a
+        \func g => mp _ 42 (\lam n => n + 1)
+        """
+    )
+
+    fun testFunctionExToImInfixAddBraces() = doTest(
+        """
+        \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (ab : A -> B) => ab a
+        \func g => (Nat `mp` 42) (\lam n => n + 1)
+        """,
+        """
+        \func mp {{-caret-}A : \Type} {B : \Type} (a : A) (ab : A -> B) => ab a
+        \func g => mp {Nat} 42 (\lam n => n + 1)
+        """
+    )
+
+    fun testFunctionImToExInfixAddUnderscore() = doTest(
+        """
+        \func mp (A : \Type) {{-caret-}B : \Type} (a : A) (ab : A -> B) => ab a
+        \func g => (Nat `mp` 42) (\lam n => n + 1)
+        """,
+        """
+        \func mp (A : \Type) (B{-caret-} : \Type) (a : A) (ab : A -> B) => ab a
+        \func g => mp Nat _ 42 (\lam n => n + 1)
+        """
+    )
+
+    fun testFunctionImToExInfixRemoveBraces() = doTest(
+        """
+        \func mp {{-caret-}A B : \Type} (a : A) (ab : A -> B) => ab a
+        \func g => 42 `mp` {Nat} {\Sigma Nat Nat} (\lam n => (n, n + 1))
+        """,
+        """
+        \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (ab : A -> B) => ab a
+        \func g => mp Nat {\Sigma Nat Nat} 42 (\lam n => (n, n + 1))
+        """
+    )
+
+    fun testFunctionImToExAfterInfix() = doTest(
+        """
+        \func f {A B : \Type} (a : A) (b : B) {{-caret-}C : \Type} (c : C) => (a, (b, c))
+        \func g => (1 `f` {_} {_} (2, 3)) 4 
+        """,
+        """
+        \func f {A B : \Type} (a : A) (b : B) ({-caret-}C : \Type) (c : C) => (a, (b, c))
+        \func g => (1 `f` {_} {_} (2, 3)) _ 4 
+        """
+    )
+
+    fun testFunctionImToExAddUnderscore2() = doTest(
+        """
+        \func f {A B : \Type} (a : A) {{-caret-}C : \Type} (b : B) (c : C) => (a, (b, c))
+        \func g => (1 `f` {_} {_} 2) 3
+        """,
+        """
+        \func f {A B : \Type} (a : A) ({-caret-}C : \Type) (b : B) (c : C) => (a, (b, c))
+        \func g => f {_} {_} 1 _ 2 3
+        """
+    )
 }
