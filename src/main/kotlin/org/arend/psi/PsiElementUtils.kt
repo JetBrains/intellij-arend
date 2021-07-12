@@ -364,6 +364,5 @@ fun getTeleParams(tele: PsiElement): List<PsiElement> = when (tele) {
         val typedExpr = tele.childOfType<ArendTypedExpr>()
         typedExpr?.childrenOfType<ArendIdentifierOrUnknown>() ?: emptyList()
     }
-    is ArendLamTele -> TODO()
     else -> emptyList()
 }

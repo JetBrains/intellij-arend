@@ -286,27 +286,27 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-//    fun testFieldImToExSplitTeleA() = doTest(
-//        """
-//        \class Test {{-caret}A B : \Type} (a : A) (b : B)
-//        \func f => Test {Nat} 1 (4, 2)
-//        """,
-//        """
-//        \class Test ({-caret-}A : \Type) {B : \Type} (a : A) (b : B)
-//        \func f => Test Nat 1 (4, 2)
-//        """
-//    )
+    fun testFieldImToExSplitTeleA() = doTest(
+        """
+        \class Test {{-caret-}A B : \Type} (a : A) (b : B)
+        \func f => Test {Nat} 1 (4, 2)
+        """,
+        """
+        \class Test ({-caret-}A : \Type) {B : \Type} (a : A) (b : B)
+        \func f => Test Nat 1 (4, 2)
+        """
+    )
 
-//    fun testFieldImToExSplitTeleB() = doTest(
-//        """
-//        \class Test {A {-caret-}B : \Type} (a : A) (b : B)
-//        \func f => Test {Nat} 1 (4, 2)
-//        """,
-//        """
-//        \class Test {A : \Type} (B : \Type) (a : A) (b : B)
-//        \func f => Test {Nat} _ 1 (4, 2)
-//        """
-//    )
+    fun testFieldImToExSplitTeleB() = doTest(
+        """
+        \class Test {A {-caret-}B : \Type} (a : A) (b : B)
+        \func f => Test {Nat} 1 (4, 2)
+        """,
+        """
+        \class Test {A  : \Type} (B : \Type) (a : A) (b : B)
+        \func f => Test {Nat} _ 1 (4, 2)
+        """
+    )
 
     fun testTypeImToExSplitA() = doTest(
         """

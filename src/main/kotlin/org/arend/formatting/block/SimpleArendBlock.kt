@@ -92,7 +92,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
 
             if ((myNode.psi is ArendNameTele || myNode.psi is ArendTypedExpr) && (c1et == IDENTIFIER_OR_UNKNOWN && c2et == COLON)) return oneSpaceWrap
-            if (c1et == NAME_TELE && c2et == NAME_TELE || c1et == TYPE_TELE && c2et == TYPE_TELE) return oneSpaceWrap
+
+            if (c1et == NAME_TELE && c2et == NAME_TELE || c1et == TYPE_TELE && c2et == TYPE_TELE || c1et == FIELD_TELE && c2et == FIELD_TELE) return oneSpaceWrap
 
             if (myNode.psi is ArendNewExpr && c1et == ARGUMENT_APP_EXPR && c2et == WITH_BODY) return oneSpaceWrap
 
@@ -102,7 +103,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (myNode.psi is ArendPattern && (c1et == DEF_IDENTIFIER || c1et == ATOM_PATTERN_OR_PREFIX) && c2et == ATOM_PATTERN_OR_PREFIX) return oneSpaceWrap
 
-            if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
+            if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele || nodePsi is ArendFieldTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
 
             if ((myNode.psi is ArendDefinition || myNode.psi is ArendClassStat) && (psi2 is ArendPrec || psi2 is ArendDefIdentifier)) return oneSpaceNoWrap
 
