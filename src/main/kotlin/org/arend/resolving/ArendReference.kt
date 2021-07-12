@@ -101,7 +101,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         val element = element
         val parent = element.parent
         val pParent = parent?.parent
-        if (pParent is ArendDefClass) {
+        if (pParent is ArendSuperClass) {
             clazz = ArendDefClass::class.java
         } else {
             val atomFieldsAcc = ((pParent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
