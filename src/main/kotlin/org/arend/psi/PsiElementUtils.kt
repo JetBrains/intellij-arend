@@ -341,7 +341,7 @@ fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
 fun Editor.getSelectionWithoutErrors(): TextRange? =
     EditorUtil.getSelectionInAnyMode(this).takeIf { range ->
         if (range.isEmpty) {
-            return@takeIf false
+            return@takeIf true
         }
         val nnProject = project ?: return@takeIf false
         val file = nnProject.let { PsiDocumentManager.getInstance(it).getPsiFile(document) } ?: return@takeIf false

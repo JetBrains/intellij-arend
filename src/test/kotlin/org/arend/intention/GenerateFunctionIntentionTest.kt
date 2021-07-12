@@ -101,7 +101,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func lorem {A : \Prop} (x y : A) : x = y => lorem-lemma x y
         
-        \func lorem-lemma {A : \Prop} (x : A) (y : A) : x = y => Path.inProp _ _
+        \func lorem-lemma {A : \Prop} (x : A) (y : A) : x = y => Path.inProp x y
     """)
 
     fun `test goal with name`() = doTest("""
@@ -120,7 +120,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
 
         \func foo : Nat => bar (foo-lemma)
     
-        \func foo-lemma : Fin 21 => (10 Nat.+ 10)
+        \func foo-lemma : Fin 21 => 20
     """)
 
     fun `test extract from selection 2`() = doTest("""
@@ -128,14 +128,14 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func bar {A : \Prop} (x y : A) : x = y => bar-lemma x y
 
-        \func bar-lemma {A : \Prop} (x : A) (y : A) : x = y => Path.inProp _ _
+        \func bar-lemma {A : \Prop} (x : A) (y : A) : x = y => Path.inProp x y
     """)
 
     fun `test extract from selection 3`() = doTest("""
         \func bar {A : \Prop} (x y : A) : x = y => Path.inProp {-selection-}{-caret-}_{-end_selection-} _
     """, """
-        \func bar {A : \Prop} (x y : A) : x = y => Path.inProp (bar-lemma A) _
+        \func bar {A : \Prop} (x y : A) : x = y => Path.inProp (bar-lemma x) _
 
-        \func bar-lemma (A : \Prop) : A => x
+        \func bar-lemma {A : \Prop} (x : A) : A => x
     """)
 }

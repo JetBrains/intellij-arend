@@ -28,7 +28,6 @@ import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.resolving.ArendReferableConverter
-import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
@@ -53,7 +52,12 @@ class GenerateFunctionIntention : BaseIntentionAction() {
                 file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) != null
     }
 
-    private data class SelectionResult(val expectedType : Expression, val replaceablePsi : ArendCompositeElement, val identifier : String?, val body : String?)
+    private data class SelectionResult(
+        val expectedType: Expression,
+        val replaceablePsi: ArendCompositeElement,
+        val identifier: String?,
+        val body: Expression?
+    )
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         editor ?: return
@@ -64,7 +68,8 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         } else {
             extractSelectionData(file, editor, project, selection)
         } ?: return
-        val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(selectionResult.expectedType)
+        val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body)
+        val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expressions)
         performRefactoring(freeVariables, selectionResult, editor, project)
     }
 
@@ -79,9 +84,13 @@ class GenerateFunctionIntention : BaseIntentionAction() {
     private fun extractGoalData(file : PsiFile, editor: Editor, project: Project): SelectionResult? {
         val goal = file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) ?: return null
         val errorService = project.service<ErrorService>()
-        val arendError = errorService.errors[goal.containingFile]?.firstOrNull { it.cause == goal } ?: return null
-        val goalType = (arendError.error as? GoalError)?.expectedType ?: return null
-        return SelectionResult(goalType, goal, goal.defIdentifier?.name, goal.expr?.text)
+        val arendError = errorService.errors[goal.containingFile]?.firstOrNull { it.cause == goal }?.error as? GoalError
+            ?: return null
+        val goalType = (arendError as? GoalError)?.expectedType ?: return null
+        val goalExpr = goal.expr?.let {
+            tryCorrespondedSubExpr(it.textRange, file, project, editor)
+        }?.subCore
+        return SelectionResult(goalType, goal, goal.defIdentifier?.name, goalExpr)
     }
 
     private fun extractSelectionData(file : PsiFile, editor: Editor, project: Project, range : TextRange) : SelectionResult? {
@@ -94,7 +103,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
                 .filterIsInstance<ArendExpr>()
                 .lastOrNull { enclosingRange.contains(it.textRange) }
                 ?: subexprResult.subPsi
-        return SelectionResult(subexprResult.subCore.type, enclosingPsi, null, subexprResult.subCore.prettyPrint(getPrettyPrintConfig(enclosingPsi))?.toString())
+        return SelectionResult(subexprResult.subCore.type, enclosingPsi, null, subexprResult.subCore)
     }
 
     private fun performRefactoring(
@@ -132,9 +141,9 @@ class GenerateFunctionIntention : BaseIntentionAction() {
             " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr.prettyPrint(ppconfig)}${explicitness.closingBrace}"
         }
 
-        val actualGoalBody = selection.body ?: "{?}"
+        val actualBody = selection.body?.prettyPrint(ppconfig) ?: "{?}"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
-        val newFunctionDefinition = "\\func $newFunctionName$parameters : $goalTypeRepresentation => $actualGoalBody"
+        val newFunctionDefinition = "\\func $newFunctionName$parameters : $goalTypeRepresentation => $actualBody"
         return newFunctionCall to newFunctionDefinition
     }
 

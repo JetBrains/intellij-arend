@@ -14,9 +14,9 @@ enum class ParameterExplicitnessState(val openBrace : String, val closingBrace :
 
 class FreeVariablesWithDependenciesCollector private constructor() : VoidExpressionVisitor<ParameterExplicitnessState>() {
     companion object {
-        fun collectFreeVariables(expression : Expression) : List<Pair<Binding, ParameterExplicitnessState>> =
+        fun collectFreeVariables(expressions : List<Expression>) : List<Pair<Binding, ParameterExplicitnessState>> =
             FreeVariablesWithDependenciesCollector()
-                .apply { expression.accept(this, ParameterExplicitnessState.EXPLICIT) }
+                .apply { expressions.forEach { it.accept(this, ParameterExplicitnessState.EXPLICIT) } }
                 .apply {
                     val allImplicitBindings = freeBindings.mapNotNull { if (it.second == ParameterExplicitnessState.IMPLICIT) it.first else null }
                     freeBindings.removeIf { it.first in toRemove || (it.second == ParameterExplicitnessState.EXPLICIT && it.first in allImplicitBindings) }
