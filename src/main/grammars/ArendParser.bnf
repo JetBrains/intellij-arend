@@ -771,7 +771,7 @@ levelExpr ::= atomLevelExpr
     recoverWhile = levelExpr_recover
 }
 
-private levelExpr_recover ::= !RPAREN & statement_recover
+private levelExpr_recover ::= !(RPAREN | COMMA) & statement_recover
 
 atomLevelExpr ::= LP_KW
     | LH_KW
