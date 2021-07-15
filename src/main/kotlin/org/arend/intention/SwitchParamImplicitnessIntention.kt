@@ -7,16 +7,21 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
+import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.impl.ArendLocalCoClauseImpl
-import org.arend.refactoring.correspondedSubExpr
 import org.arend.refactoring.getTele
 import org.arend.refactoring.splitTele
+import org.arend.resolving.ArendIdReferableConverter
 import org.arend.term.abs.Abstract
+import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.concrete.Concrete
+import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 
 class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
     ArendCompositeElement::class.java,
@@ -235,15 +240,36 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
     }
 
     override fun convertFunctionCallToPrefix(psiFunctionUsage: PsiElement): PsiElement? {
-        val psiFunctionCallRaw = getTopParentPsiFunctionCall(psiFunctionUsage)
-        val concreteFunctionCall =
-            correspondedSubExpr(
-                psiFunctionUsage.textRange,
-                psiFunctionUsage.containingFile,
-                psiFunctionUsage.project
+        // TODO: rewrite this function
+        fun buildTextFromConcrete(concrete: Concrete.AppExpression): String {
+            return buildString {
+                append(concrete.function.toString() + " ")
+                for (arg in concrete.arguments) {
+                    var argText = arg.expression.toString()
+                    // TODO: find another way to check this
+                    if (argText.contains(' ') && argText.first() != '(') argText = "($argText)"
+                    append(if (arg.isExplicit) "$argText " else "{$argText} ")
+                }
+            }
+        }
+
+        val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
+        val scope = (psiFunctionUsage as ArendRefIdentifier).scope
+        val concrete = ConcreteBuilder.convertExpression(psiFunctionCall as Abstract.Expression)
+            .accept(
+                ExpressionResolveNameVisitor(
+                    ArendIdReferableConverter,
+                    scope,
+                    ArrayList<Referable>(),
+                    DummyErrorReporter.INSTANCE,
+                    null
+                ), null
             )
-        val functionCallText = concreteFunctionCall.subConcrete.toString()
-        return createPsiFromText(functionCallText, psiFunctionCallRaw)
+            .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
+                as Concrete.AppExpression
+
+        val functionCallText = buildTextFromConcrete(concrete)
+        return createPsiFromText(functionCallText, psiFunctionCall)
     }
 
     override fun getCallingParameters(element: PsiElement): List<String> {

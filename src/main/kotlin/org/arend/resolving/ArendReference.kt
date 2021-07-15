@@ -60,7 +60,7 @@ class TemporaryLocatedReferable(private val referable: LocatedReferable) : Locat
     override fun getUnderlyingReferable() = referable
 }
 
-private object ArendIdReferableConverter : ReferableConverter {
+object ArendIdReferableConverter : ReferableConverter {
     override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
         null -> null
         is TCReferable -> referable
