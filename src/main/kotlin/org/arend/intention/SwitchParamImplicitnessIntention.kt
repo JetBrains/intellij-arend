@@ -254,7 +254,7 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         }
 
         val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
-        val scope = (psiFunctionUsage as ArendRefIdentifier).scope
+        val scope = (psiFunctionCall as ArendArgumentAppExpr).scope
         val concrete = ConcreteBuilder.convertExpression(psiFunctionCall as Abstract.Expression)
             .accept(
                 ExpressionResolveNameVisitor(
