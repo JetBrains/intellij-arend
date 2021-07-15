@@ -74,8 +74,8 @@ abstract class SwitchParamImplicitnessApplier {
             val psiFunctionUsage = psiReference.element
             val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
             val psiFunctionCallPrefix = convertFunctionCallToPrefix(psiFunctionUsage)
-
             psiFunctionCallPrefix ?: continue
+
             val newPsiElement = rewriteFunctionCalling(
                 psiFunctionUsage,
                 psiFunctionCallPrefix,
@@ -91,7 +91,8 @@ abstract class SwitchParamImplicitnessApplier {
 
     private fun getParametersIndices(psiFunctionUsage: PsiElement, psiFunctionCall: PsiElement): List<Int> {
         val parameterHandler = ArendParameterInfoHandler()
-        val container = parameterHandler.extractRefFromSourceNode(psiFunctionUsage as Abstract.SourceNode)
+        val container =
+            parameterHandler.extractRefFromSourceNode(if (psiFunctionUsage !is ArendIPName) psiFunctionUsage as Abstract.SourceNode else psiFunctionUsage.ancestor<ArendLiteral>() as Abstract.SourceNode)
         val ref = container?.resolve as? Referable
         val parameters = ref?.let { parameterHandler.getAllParametersForReferable(it) }
         parameters ?: return emptyList()
@@ -127,7 +128,11 @@ abstract class SwitchParamImplicitnessApplier {
         psiFunctionCall: PsiElement,
         argumentIndex: Int,
     ): PsiElement? {
-        val functionName = psiFunctionUsage.text
+        val functionName =
+            with(psiFunctionUsage.text) {
+                if (contains('`')) substring(1, length - 1) else this
+            }
+
         val parameters = getCallingParameters(psiFunctionCall)
         val parameterIndices = getParametersIndices(psiFunctionUsage, psiFunctionCall)
 

@@ -18,6 +18,17 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testFunctionImToExLambdaInArg() = doTest(
+        """
+        \func f {A{-caret-} : \Type} {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => f 42 (lam n => n + 1)
+        """,
+        """
+        \func f (A{-caret-} : \Type) {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => f _ 42 (lam n => n + 1)
+        """
+    )
+
     fun testFunctionExToImAddBraces() = doTest(
         """
         \func f (a b : Int) (p{-caret-} : a = b) => 0
@@ -257,7 +268,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | k {A B : \Type} (a : A) {b :{-caret-} B} : A
-        
+
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k a {_} => a
         }
@@ -320,7 +331,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | k ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) : A
-        
+
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k _ a b => a
         }
@@ -331,7 +342,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | k {A {-caret-}B : \Type} (a : A) (b : B) : A
-          
+
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k {_} a b => a
         }
@@ -339,7 +350,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) : A
-          
+
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k {_} _ a b => a
         }
@@ -348,12 +359,12 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
 
     fun testFunctionImToExInfix() = doTest(
         """
-        \func mp {{-caret-}A B : \Type} (a : A) (ab : A -> B) => ab a
-        \func g => 42 `mp` (\lam n => n + 1)
+        \func mp {{-caret-}A B : \Type} (a : A) (b : B) => a
+        \func g => 42 `mp` 41
         """,
         """
-        \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (ab : A -> B) => ab a
-        \func g => mp _ 42 (\lam n => n + 1)
+        \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => a
+        \func g => mp _ 42 41
         """
     )
 
@@ -393,11 +404,11 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
     fun testFunctionImToExAfterInfix() = doTest(
         """
         \func f {A B : \Type} (a : A) (b : B) {{-caret-}C : \Type} (c : C) => (a, (b, c))
-        \func g => (1 `f` {_} {_} (2, 3)) 4 
+        \func g => (1 `f` {_} {_} (2, 3)) 4
         """,
         """
         \func f {A B : \Type} (a : A) (b : B) ({-caret-}C : \Type) (c : C) => (a, (b, c))
-        \func g => (1 `f` {_} {_} (2, 3)) _ 4 
+        \func g => (1 `f` {_} {_} (2, 3)) _ 4
         """
     )
 
@@ -409,6 +420,28 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func f {A B : \Type} (a : A) ({-caret-}C : \Type) (b : B) (c : C) => (a, (b, c))
         \func g => f {_} {_} 1 _ 2 3
+        """
+    )
+
+    fun testFunctionImToExRedundantBraces1() = doTest(
+        """
+        \func f {A{-caret-} : \Type} {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => ((f {Nat}) 1) 2
+        """,
+        """
+        \func f (A{-caret-} : \Type) {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => f Nat 1 2
+        """
+    )
+
+    fun testFunctionImToExRedundantBraces2() = doTest(
+        """
+        \func f {A : \Type} {B{-caret-} : \Type} (a : A) (b : B) => (a, b)
+        \func g => ((f {Nat}) 1) 2
+        """,
+        """
+        \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
+        \func g => f {Nat} _ 1 2
         """
     )
 }
