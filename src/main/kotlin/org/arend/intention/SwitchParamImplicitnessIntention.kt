@@ -78,7 +78,7 @@ abstract class SwitchParamImplicitnessApplier {
         for (psiReference in ReferencesSearch.search(psiFunctionDef)) {
             val psiFunctionUsage = psiReference.element
             val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
-            val psiFunctionCallPrefix = convertFunctionCallToPrefix(psiFunctionUsage)
+            val psiFunctionCallPrefix = convertFunctionCallToPrefix(psiFunctionCall)
             psiFunctionCallPrefix ?: continue
 
             val newPsiElement = rewriteFunctionCalling(
@@ -157,9 +157,9 @@ abstract class SwitchParamImplicitnessApplier {
 
     abstract fun getParentPsiFunctionCall(element: PsiElement): PsiElement?
 
-    abstract fun convertFunctionCallToPrefix(psiFunctionUsage: PsiElement): PsiElement?
+    abstract fun convertFunctionCallToPrefix(psiFunctionCall: PsiElement): PsiElement?
 
-    protected fun getTopParentPsiFunctionCall(element: PsiElement): PsiElement {
+    private fun getTopParentPsiFunctionCall(element: PsiElement): PsiElement {
         var current = element
         var parent = getParentPsiFunctionCall(element)
 
@@ -236,15 +236,23 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement? {
         val parent = element.parent?.ancestor<ArendArgumentAppExpr>()
         parent ?: return null
-        return if (parent.argumentList.contains(element)) element else parent
+
+        if (element !is ArendArgumentAppExpr) return parent
+
+        val concreteFunctionCall = convertFunctionCallToPrefix(parent) as? ArendArgumentAppExpr ?: return null
+        for (arg in concreteFunctionCall.argumentList) {
+            if (arg.text.equals(element.text) || arg.text.equals("(" + element.text + ")"))
+                return null
+        }
+        return parent
     }
 
-    override fun convertFunctionCallToPrefix(psiFunctionUsage: PsiElement): PsiElement? {
+    override fun convertFunctionCallToPrefix(psiFunctionCall: PsiElement): PsiElement? {
         fun buildTextFromConcrete(concrete: Concrete.AppExpression): String {
             return buildString {
                 append(concrete.function.toString() + " ")
                 for (arg in concrete.arguments) {
-                    var argText = arg.expression.toString()
+                    val argText = arg.expression.toString()
                     // TODO: find another way to check this
                     if (arg.isExplicit) {
                         if (argText.contains(' ') && argText.first() != '(') {
@@ -259,7 +267,6 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
             }
         }
 
-        val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
         val scope = (psiFunctionCall as ArendArgumentAppExpr).scope
         val concrete = ConcreteBuilder.convertExpression(psiFunctionCall as Abstract.Expression)
             .accept(
@@ -272,7 +279,7 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
                 ), null
             )
             .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
-                as Concrete.AppExpression
+                as? Concrete.AppExpression ?: return null
 
         val functionCallText = buildTextFromConcrete(concrete)
         return createPsiFromText(functionCallText, psiFunctionCall)
@@ -290,14 +297,13 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
 }
 
 class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
+    // TODO: check this case
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement? {
-        val parent = element.parent?.ancestor<ArendLocalCoClause>()
-        parent ?: return null
-        return if (parent.lamParamList.contains(element)) element else parent
+        return element.parent?.ancestor<ArendLocalCoClause>()
     }
 
-    override fun convertFunctionCallToPrefix(psiFunctionUsage: PsiElement): PsiElement {
-        return getTopParentPsiFunctionCall(psiFunctionUsage)
+    override fun convertFunctionCallToPrefix(psiFunctionCall: PsiElement): PsiElement {
+        return psiFunctionCall
     }
 
     override fun getCallingParameters(element: PsiElement): List<String> {
