@@ -240,15 +240,21 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
     }
 
     override fun convertFunctionCallToPrefix(psiFunctionUsage: PsiElement): PsiElement? {
-        // TODO: rewrite this function
         fun buildTextFromConcrete(concrete: Concrete.AppExpression): String {
             return buildString {
                 append(concrete.function.toString() + " ")
                 for (arg in concrete.arguments) {
                     var argText = arg.expression.toString()
                     // TODO: find another way to check this
-                    if (argText.contains(' ') && argText.first() != '(') argText = "($argText)"
-                    append(if (arg.isExplicit) "$argText " else "{$argText} ")
+                    if (arg.isExplicit) {
+                        if (argText.contains(' ') && argText.first() != '(') {
+                            append("($argText) ")
+                        } else {
+                            append("$argText ")
+                        }
+                    } else {
+                        append("{$argText} ")
+                    }
                 }
             }
         }
