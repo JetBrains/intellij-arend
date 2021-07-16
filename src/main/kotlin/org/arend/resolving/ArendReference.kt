@@ -8,6 +8,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
+import org.arend.core.context.binding.FieldLevelVariable
 import org.arend.core.context.binding.ParamLevelVariable
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
@@ -64,9 +65,9 @@ class TemporaryLocatedReferable(private val referable: LocatedReferable) : Locat
 class TemporaryFieldReferable(private val referable: Referable) : Referable by referable, LevelReferable {
     override fun getData() = referable
 
-    override fun getLevelVariable(): ParamLevelVariable? = null
+    override fun getLevelField(): FieldLevelVariable.LevelField? = null
 
-    override fun setLevelVariable(levelVariable: ParamLevelVariable?) {}
+    override fun setLevelField(levelField: FieldLevelVariable.LevelField?) {}
 }
 
 private object ArendIdReferableConverter : ReferableConverter {
