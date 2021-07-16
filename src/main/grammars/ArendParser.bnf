@@ -303,9 +303,7 @@ levelParams ::= [levelParam (levelCmp levelParam)*] {
     mixin = "org.arend.psi.ext.ArendLevelParamsImplMixin"
 }
 
-levelParam ::= defIdentifier {
-    mixin = "org.arend.psi.ext.ArendLevelParamImplMixin"
-}
+levelParam ::= defIdentifier
 
 private functionType ::= COLON returnExprWOB { pin = 1 }
 

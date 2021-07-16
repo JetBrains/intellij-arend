@@ -8,8 +8,6 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
-import org.arend.core.context.binding.FieldLevelVariable
-import org.arend.core.context.binding.ParamLevelVariable
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.*
@@ -62,14 +60,6 @@ class TemporaryLocatedReferable(private val referable: LocatedReferable) : Locat
     override fun getUnderlyingReferable() = referable
 }
 
-class TemporaryFieldReferable(private val referable: Referable) : Referable by referable, LevelReferable {
-    override fun getData() = referable
-
-    override fun getLevelField(): FieldLevelVariable.LevelField? = null
-
-    override fun setLevelField(levelField: FieldLevelVariable.LevelField?) {}
-}
-
 private object ArendIdReferableConverter : ReferableConverter {
     override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
         null -> null
@@ -77,12 +67,6 @@ private object ArendIdReferableConverter : ReferableConverter {
         is FieldReferable -> FieldReferableImpl(referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCDefReferable.NULL_REFERABLE)
         is MetaAdapter -> referable.metaRef ?: referable.makeTCReferable(TCDefReferable.NULL_REFERABLE)
         else -> TemporaryLocatedReferable(referable)
-    }
-
-    override fun toDataLevelReferable(referable: Referable?) = when (referable) {
-        null -> null
-        is LevelReferable -> referable
-        else -> TemporaryFieldReferable(referable)
     }
 
     override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaRef ?: referable
