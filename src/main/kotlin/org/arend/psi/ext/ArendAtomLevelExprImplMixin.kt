@@ -17,6 +17,6 @@ abstract class ArendAtomLevelExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(
         negativeNumber?.text?.toIntOrNull()?.let { return visitor.visitNumber(this, it, params) }
         refIdentifier?.text?.let { return visitor.visitId(this, NamedUnresolvedReference(this, it), params) }
         levelExpr?.let { return it.accept(visitor, params) }
-        return visitor.visitError(this)
+        return visitor.visitError(this, params)
     }
 }
