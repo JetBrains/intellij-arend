@@ -812,7 +812,7 @@ levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
 maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
 
-maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | atomLevelExpr
+maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | maybeAtomLevelExpr
 
 private levelsLevels ::= LEVELS_KW maybeAtomLevelExprs maybeAtomLevelExprs { pin = 1 }
 

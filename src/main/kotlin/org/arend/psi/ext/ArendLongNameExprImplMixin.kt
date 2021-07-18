@@ -12,7 +12,7 @@ abstract class ArendLongNameExprImplMixin(node: ASTNode) : ArendExprImplMixin(no
         if (levels != null) {
             val levelExprsList = levels.maybeAtomLevelExprsList
             if (levelExprsList.size == 2) {
-                return visitor.visitReference(name, name.referent, null, levelExprsList[0]?.atomLevelExpr?.let { listOf(it) } ?: levelExprsList[0]?.levelExprList, levelExprsList[1]?.atomLevelExpr?.let { listOf(it) } ?: levelExprsList[1]?.levelExprList, params)
+                return visitor.visitReference(name, name.referent, null, levelExprsList[0]?.maybeAtomLevelExpr?.atomLevelExpr?.let { listOf(it) } ?: levelExprsList[0]?.levelExprList, levelExprsList[1]?.maybeAtomLevelExpr?.atomLevelExpr?.let { listOf(it) } ?: levelExprsList[1]?.levelExprList, params)
             }
         }
         val levelExprList = atomOnlyLevelExprList
