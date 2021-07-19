@@ -7,6 +7,7 @@ import org.arend.ext.reference.Precedence
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.intention.binOp.BinOpSeqProcessor
 import org.arend.intention.binOp.CaretHelper
+import org.arend.naming.MetaBinOpParser
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.refactoring.rangeOfConcrete
@@ -111,22 +112,12 @@ private fun doesNotNeedParens(childBinOp: Concrete.AppExpression, parentBinOp: C
     val parentPrecedence = getPrecedence(parentBinOp.function) ?: return false
     val childIsLeftArg = rangeOfConcrete(childBinOp).endOffset < rangeOfConcrete(parentBinOp.function).startOffset
     return if (childIsLeftArg)
-        comparePrecedence(childPrecedence, parentPrecedence) == PartialComparator.Result.GREATER
-    else comparePrecedence(parentPrecedence, childPrecedence) == PartialComparator.Result.LESS
+        MetaBinOpParser.comparePrecedence(childPrecedence, parentPrecedence) == PartialComparator.Result.GREATER
+    else MetaBinOpParser.comparePrecedence(parentPrecedence, childPrecedence) == PartialComparator.Result.LESS
 }
 
 private fun getPrecedence(function: Concrete.Expression) =
         ((function as? Concrete.ReferenceExpression)?.referent as? GlobalReferable)?.precedence
-
-// TODO copy-pasted from MetaBinOpParser
-private fun comparePrecedence(prec1: Precedence, prec2: Precedence): PartialComparator.Result = when {
-    prec1.priority < prec2.priority -> PartialComparator.Result.LESS
-    prec1.priority > prec2.priority -> PartialComparator.Result.GREATER
-    prec1.associativity != prec2.associativity || prec1.associativity == Precedence.Associativity.NON_ASSOC ->
-        PartialComparator.Result.UNCOMPARABLE
-    prec1.associativity == Precedence.Associativity.LEFT_ASSOC -> PartialComparator.Result.GREATER
-    else -> PartialComparator.Result.LESS
-}
 
 class RemoveClarifyingParensProcessor : BinOpSeqProcessor() {
     override fun mapArgument(arg: Concrete.Argument,
