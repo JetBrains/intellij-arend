@@ -588,7 +588,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ATOM_LEVEL_CONTEXT =
                or(withAncestors(*(ATOM_LEVEL_PREFIX + arrayOf(ArendLevelExpr::class.java))),
                   withAncestors(*(ATOM_LEVEL_PREFIX + arrayOf(ArendMaybeAtomLevelExpr::class.java, ArendExpr::class.java))),
-                  withAncestors(*(ATOM_LEVEL_PREFIX + arrayOf(ArendMaybeAtomLevelExprs::class.java, ArendLevelsExpr::class.java))))
+                  withAncestors(*(ATOM_LEVEL_PREFIX + arrayOf(ArendMaybeAtomLevelExpr::class.java, ArendMaybeAtomLevelExprs::class.java, ArendLevelsExpr::class.java))))
 
         private val LPH_CONTEXT = and(withParent(PsiErrorElement::class.java), withGrandParents(ArendSetUniverseAppExpr::class.java, ArendUniverseAppExpr::class.java, ArendTruncatedUniverseAppExpr::class.java))
 
