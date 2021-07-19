@@ -1,5 +1,10 @@
 package org.arend.quickfix
 
+import com.intellij.codeInsight.intention.EmptyIntentionAction
+import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.codeInsight.intention.IntentionActionDelegate
+import com.intellij.codeInspection.ex.DisableInspectionToolAction
+import com.intellij.codeInspection.ex.EditInspectionToolsSettingsAction
 import org.intellij.lang.annotations.Language
 import org.arend.ArendTestBase
 import org.arend.FileTree
@@ -20,9 +25,11 @@ abstract class QuickFixTestBase : ArendTestBase() {
         if (contents != null) {
             InlineFile(contents).withCaret()
         }
-        assert(myFixture.filterAvailableIntentions(fixName).isEmpty())
+        val intentions = myFixture.filterAvailableIntentions(fixName)
+                .filter { !isToolOptionsAction(it) }
+                .map { it.text to it }
+        assertEmpty("There must be no quick fixes available\n", intentions)
     }
-
     protected fun checkQuickFix(fixName: String, @Language("Arend") resultingContent: String) {
         myFixture.launchAction(myFixture.findSingleIntention(fixName))
         testCaret(resultingContent)
@@ -56,5 +63,11 @@ abstract class QuickFixTestBase : ArendTestBase() {
         myFixture.doHighlighting()
         assert(myFixture.filterAvailableIntentions(fixName).isEmpty())
     }
-
 }
+
+private fun isToolOptionsAction(action: IntentionAction?) =
+        action is IntentionActionDelegate &&
+                (action.delegate is EmptyIntentionAction ||
+                        action.delegate is EditInspectionToolsSettingsAction ||
+                        action.delegate is DisableInspectionToolAction)
+
