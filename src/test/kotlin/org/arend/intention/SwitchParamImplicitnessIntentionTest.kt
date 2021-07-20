@@ -537,6 +537,17 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testOperatorImToExMixStyle() = doTest(
+        """
+        \func p {A{-caret-} : \Type} {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => p 1 (p 2 (3 `p` {Nat} (p {_} 4 5)))
+        """,
+        """
+        \func p (A{-caret-} : \Type) {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => p _ 1 (p _ 2 (p Nat 3 (p _ 4 5)))
+        """
+    )
+
     fun testOperatorImToExInfixrChain() = doTest(
         """
         \func \infixr 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
@@ -544,7 +555,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func \infixr 6 !+! ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => !+! _ 1 (!+! _ 2 3)
+        \func g => (!+!) _ 1 ((!+!) _ 2 3)
         """
     )
 
@@ -555,7 +566,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func \infixl 6 !+! ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => !+! _ (!+! _ 1 2) 3
+        \func g => (!+!) _ ((!+!) _ 1 2) 3
         """
     )
 }

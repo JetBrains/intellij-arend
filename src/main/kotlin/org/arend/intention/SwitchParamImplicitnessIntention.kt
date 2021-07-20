@@ -5,10 +5,16 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiReference
+import com.intellij.psi.search.LocalSearchScope
+import com.intellij.psi.search.SearchScope
+import com.intellij.psi.search.searches.ReferenceSearcher
 import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.refactoring.suggested.startOffset
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -22,6 +28,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
+import kotlin.math.abs
 
 class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
     ArendCompositeElement::class.java,
@@ -77,21 +84,65 @@ abstract class SwitchParamImplicitnessApplier {
 
         for (psiReference in ReferencesSearch.search(psiFunctionDef)) {
             val psiFunctionUsage = psiReference.element
-            val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
-            val psiFunctionCallPrefix = convertFunctionCallToPrefix(psiFunctionCall)
-            psiFunctionCallPrefix ?: continue
-
-            val newPsiElement = rewriteFunctionCalling(
-                psiFunctionUsage,
-                psiFunctionCallPrefix,
-                switchedArgIndexInDef
-            )
-
-            newPsiElement ?: continue
-            psiFunctionCall.replaceWithNotification(newPsiElement)
+            if (!psiFunctionUsage.isValid) continue
+            replaceDeep(psiFunctionUsage, psiFunctionDef, switchedArgIndexInDef)
         }
 
         rewriteFunctionDef(element, switchedArgIndexInTele)
+        processed.clear()
+    }
+
+    private val processed = mutableSetOf<String>()
+
+    // * replace all children and after replace itself
+    // * top psi function call is already in prefix form
+    private fun replaceDeep(psiFunctionUsage: PsiElement, psiFunctionDef: PsiElement, switchedArgIndexInDef: Int) {
+        // this element has already been replaced
+        if (!psiFunctionUsage.isValid) return
+
+        val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
+
+        println("---------")
+        val psiFunctionCallPrefix = convertFunctionCallToPrefix(psiFunctionCall)
+        psiFunctionCallPrefix ?: return
+
+        // TODO: don't compare strings
+        if (processed.contains(psiFunctionCall.text)) {
+            return
+        }
+
+        println("psiFunctionCall " + psiFunctionCall.text)
+        println("psiFunctionCallPrefix " + psiFunctionCallPrefix.text)
+        val replacedFunctionCall = psiFunctionCall.replaceWithNotification(psiFunctionCallPrefix)
+
+        val scope = LocalSearchScope(replacedFunctionCall)
+        val refs = ReferencesSearch.search(psiFunctionDef, scope)
+
+        if (refs.findAll().isEmpty()) {
+            return
+        }
+
+        if (refs.findAll().size != 1) {
+            for (ref in refs) {
+                val curElement = ref.element
+                // TODO: find another way to check this
+                if (abs(curElement.textOffset - replacedFunctionCall.textOffset) < 2) {
+                    continue
+                }
+                replaceDeep(curElement, psiFunctionDef, switchedArgIndexInDef)
+            }
+        }
+
+        val newPsiElement = rewriteFunctionCalling(
+            psiFunctionUsage,
+            replacedFunctionCall,
+            switchedArgIndexInDef
+        )
+
+        println("newPsiElement " + newPsiElement.text)
+        val replacedOuter = replacedFunctionCall.replaceWithNotification(newPsiElement)
+        processed.add(replacedOuter.text)
+        println("---------")
     }
 
     private fun getParametersIndices(psiFunctionUsage: PsiElement, psiFunctionCall: PsiElement): List<Int> {
@@ -132,7 +183,7 @@ abstract class SwitchParamImplicitnessApplier {
         psiFunctionUsage: PsiElement,
         psiFunctionCall: PsiElement,
         argumentIndex: Int,
-    ): PsiElement? {
+    ): PsiElement {
         val functionName =
             with(psiFunctionUsage.text) {
                 if (contains('`')) substring(1, length - 1) else this
@@ -151,8 +202,28 @@ abstract class SwitchParamImplicitnessApplier {
             indices.add(insertAfterIndex, argumentIndex)
         }
 
+        val elementIndexInArgs2 = indices.indexOf(argumentIndex)
+
         val expr = buildFunctionCallingText(functionName, argsText, indices, argumentIndex)
-        return createPsiFromText(expr.trimEnd(), psiFunctionCall)
+        // TODO: refactor this
+        val newPsiSwitchedArgument = (createPsiFromText(
+            expr.trimEnd(),
+            psiFunctionCall
+        )!! as ArendArgumentAppExpr).argumentList[elementIndexInArgs2] as PsiElement
+
+        if (elementIndexInArgs == -1) {
+            val anchor = (psiFunctionCall as ArendArgumentAppExpr).argumentList[elementIndexInArgs2]
+            val factory = ArendPsiFactory(psiFunctionUsage.project)
+            val psiWs = factory.createWhitespace(" ")
+            psiFunctionCall.addBeforeWithNotification(newPsiSwitchedArgument, anchor)
+            val anchor2 = psiFunctionCall.argumentList[elementIndexInArgs2]
+            psiFunctionCall.addAfterWithNotification(psiWs, anchor2)
+        } else {
+            (psiFunctionCall as ArendArgumentAppExpr).argumentList[elementIndexInArgs2].replaceWithNotification(
+                newPsiSwitchedArgument
+            )
+        }
+        return psiFunctionCall
     }
 
     abstract fun getParentPsiFunctionCall(element: PsiElement): PsiElement?
@@ -224,9 +295,10 @@ abstract class SwitchParamImplicitnessApplier {
             return newText
         }
 
-        if (text == "_" && isNextArgExplicit) {
-            return ""
-        }
+        // TODO: don't forget this fix this!
+//        if (text == "_" && isNextArgExplicit) {
+//            return ""
+//        }
 
         return "{$text}"
     }
@@ -255,7 +327,10 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
                     val argText = arg.expression.toString()
                     // TODO: find another way to check this
                     if (arg.isExplicit) {
-                        if (argText.contains(' ') && argText.first() != '(') {
+                        val tupleRegex = "\\((.+,)*(.+)\\)".toRegex()
+                        // TODO: remove redundant braces
+                        // regex isn't correct: `(1, 2) op (3, 4)` isn't tuple, but is matched
+                        if (argText.contains(' ') && !tupleRegex.matches(argText)) {
                             append("($argText) ")
                         } else {
                             append("$argText ")
@@ -281,7 +356,10 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
             .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
                 as? Concrete.AppExpression ?: return null
 
+//        println("concrete in convert $concrete" )
+
         val functionCallText = buildTextFromConcrete(concrete)
+//        println("functionCallText in convert $functionCallText")
         return createPsiFromText(functionCallText, psiFunctionCall)
     }
 
