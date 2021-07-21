@@ -118,7 +118,7 @@ abstract class SwitchParamImplicitnessApplier {
         for (ref in refs) {
             val curElement = ref.element
             // TODO: find another way to check this
-            if (abs(curElement.textOffset - replacedFunctionCall.textOffset) < 2) {
+            if (abs(curElement.textOffset - replacedFunctionCall.textOffset) < 3) {
                 continue
             }
             replaceDeep(curElement, psiFunctionDef, switchedArgIndexInDef)
@@ -385,7 +385,8 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
     }
 
     override fun getIthPsiCallingParameter(element: PsiElement, index: Int): PsiElement {
-        TODO("Not yet implemented")
+        val psiFunctionCall = element as ArendLocalCoClause
+        return psiFunctionCall.lamParamList[index]
     }
 
     override fun getCallingParameters(element: PsiElement): List<String> {
