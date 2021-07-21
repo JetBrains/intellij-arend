@@ -87,8 +87,10 @@ abstract class SwitchParamImplicitnessApplier {
         rewriteFunctionDef(element, switchedArgIndexInTele)
     }
 
-    // * replace all children and after replace itself
-    // * top psi function call is already in prefix form
+    /*
+        Initially, this function replaces all children of given element `psiFunctionUsage`
+        then converts the current to the prefix form and rewrites this
+    */
     private fun replaceDeep(
         psiFunctionUsage: PsiElement,
         psiFunctionDef: PsiElement,
@@ -98,7 +100,6 @@ abstract class SwitchParamImplicitnessApplier {
         if (!psiFunctionUsage.isValid) return
 
         val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
-
         val psiFunctionCallPrefix = convertFunctionCallToPrefix(psiFunctionCall)
         psiFunctionCallPrefix ?: return
 
@@ -124,12 +125,7 @@ abstract class SwitchParamImplicitnessApplier {
             replaceDeep(curElement, psiFunctionDef, switchedArgIndexInDef)
         }
 
-        val newPsiElement = rewriteFunctionCalling(
-            psiFunctionUsage,
-            replacedFunctionCall,
-            switchedArgIndexInDef
-        )
-
+        val newPsiElement = rewriteFunctionCalling(psiFunctionUsage, replacedFunctionCall, switchedArgIndexInDef)
         val replacedNewFunctionCall = replacedFunctionCall.replaceWithNotification(newPsiElement)
         processed.add(replacedNewFunctionCall.text)
     }
@@ -171,13 +167,9 @@ abstract class SwitchParamImplicitnessApplier {
     private fun rewriteFunctionCalling(
         psiFunctionUsage: PsiElement,
         psiFunctionCall: PsiElement,
-        argumentIndex: Int,
+        argumentIndex: Int
     ): PsiElement {
-        val functionName =
-            with(psiFunctionUsage.text) {
-                if (contains('`')) substring(1, length - 1) else this
-            }
-
+        val functionName = psiFunctionUsage.text.replace("`", "")
         val parameters = getCallingParameters(psiFunctionCall)
         val parameterIndices = getParametersIndices(psiFunctionUsage, psiFunctionCall)
         val argsText = parameters as MutableList<String>

@@ -569,4 +569,15 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         \func g => (!+!) _ ((!+!) _ 1 2) 3
         """
     )
+
+    fun testOperatorSameArguments() = doTest(
+        """
+        \func k {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
+        \func g => k (k 2 3) (k (k 2 3) 3)
+        """,
+        """
+        \func k ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => k _ (k _ 2 3) (k _ (k _ 2 3) 3)
+        """
+    )
 }
