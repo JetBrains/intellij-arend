@@ -580,4 +580,56 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         \func g => k _ (k _ 2 3) (k _ (k _ 2 3) 3)
         """
     )
+
+    fun testFunctionImToExPartialApp1() = doTest(
+        """
+        \func f {A {-caret-}B : \Type} (a : A) (b : B) => (a, b)
+        \func g => f {Nat}
+        \func h => g 1 2
+        """,
+        """
+        \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
+        \func g => \lam {B} a b => f {Nat} B a b
+        \func h => g 1 2
+        """
+    )
+
+    fun testFunctionImToExPartialApp2() = doTest(
+        """
+        \func f {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
+        \func g => f {Nat}
+        \func h => g 1 2
+        """,
+        """
+        \func f ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => f Nat
+        \func h => g 1 2
+        """
+    )
+
+    fun testFunctionExToImPartialApp1() = doTest(
+        """
+        \func f (A {-caret-}B : \Type) (a : A) (b : B) => (a, b)
+        \func g => f Nat
+        \func h => g Nat 1 2
+        """,
+        """
+        \func f (A : \Type) {B{-caret-} : \Type} (a : A) (b : B) => (a, b)
+        \func g => \lam B a b => f Nat {B} a b
+        \func h => g Nat 1 2
+        """
+    )
+
+    fun testOperatorImToExPartialApp1() = doTest(
+        """
+        \func \infixl 6 !+! {A B : \Type} (a : A) ({-caret-}b : B) => (a, b)
+        \func g => 1 !+! {Nat} {Nat}
+        \func h => g 2
+        """,
+        """
+        \func \infixl 6 !+! {A B : \Type} (a : A) {{-caret-}b : B} => (a, b)
+        \func g => \lam b => (!+!) {Nat} {Nat} 1 {b}
+        \func h => g 2
+        """
+    )
 }

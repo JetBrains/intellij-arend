@@ -122,6 +122,16 @@ class ArendPsiFactory(
         return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
     }
 
+    fun createLam(teles: List<String>, expr: String): ArendLamExpr {
+        val code = buildString {
+            append("\\lam")
+            append(teles.joinToString(" ", " "))
+            append(" => ")
+            append(expr)
+        }.trimEnd()
+        return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
+    }
+
     fun createPairOfBraces(): Pair<PsiElement, PsiElement> {
         val nestedCoClause = createNestedCoClause("foo")
         return Pair(nestedCoClause.lbrace!!, nestedCoClause.rbrace!!)

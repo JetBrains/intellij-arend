@@ -24,6 +24,7 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 import kotlin.math.abs
+import kotlin.streams.toList
 
 class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
     ArendCompositeElement::class.java,
@@ -125,7 +126,12 @@ abstract class SwitchParamImplicitnessApplier {
             replaceDeep(curElement, psiFunctionDef, switchedArgIndexInDef)
         }
 
-        val newPsiElement = rewriteFunctionCalling(psiFunctionUsage, replacedFunctionCall, switchedArgIndexInDef)
+        val newPsiElement = rewriteFunctionCalling(
+            psiFunctionUsage,
+            replacedFunctionCall,
+            psiFunctionDef as ArendDefFunction,
+            switchedArgIndexInDef
+        )
         val replacedNewFunctionCall = replacedFunctionCall.replaceWithNotification(newPsiElement)
         processed.add(replacedNewFunctionCall.text)
     }
@@ -167,6 +173,7 @@ abstract class SwitchParamImplicitnessApplier {
     private fun rewriteFunctionCalling(
         psiFunctionUsage: PsiElement,
         psiFunctionCall: PsiElement,
+        psiFunctionDef: ArendDefFunction,
         argumentIndex: Int
     ): PsiElement {
         val functionName = psiFunctionUsage.text.replace("`", "")
@@ -174,6 +181,14 @@ abstract class SwitchParamImplicitnessApplier {
         val parameterIndices = getParametersIndices(psiFunctionUsage, psiFunctionCall)
         val argsText = parameters as MutableList<String>
         val indices: MutableList<Int> = parameterIndices as MutableList<Int>
+
+        // check this
+        val isPartialAppExpr = (parameterIndices.maxOrNull() ?: -1 < argumentIndex)
+        val lastIndex = parameterIndices.maxOrNull() ?: 0
+
+        if (isPartialAppExpr) {
+            return rewriteToLambda(psiFunctionUsage, psiFunctionCall, psiFunctionDef, argumentIndex, lastIndex)
+        }
 
         val existsInArgList = (parameterIndices.indexOf(argumentIndex) != -1)
 
@@ -212,6 +227,36 @@ abstract class SwitchParamImplicitnessApplier {
             }
         }
         return psiFunctionCall
+    }
+
+    private fun rewriteToLambda(
+        psiFunctionUsage: PsiElement,
+        psiFunctionCall: PsiElement,
+        psiFunctionDef: ArendDefFunction,
+        switchedArgIndex: Int,
+        startFromIndex: Int
+    ): PsiElement {
+        val teleList = mutableListOf<String>()
+        for (tele in psiFunctionDef.nameTeleList) {
+            // fix naming?
+            teleList.addAll(tele.identifierOrUnknownList.map {
+                if (tele.isExplicit) it.text else "{${it.text}}"
+            })
+        }
+
+        // todo: search how to do copy
+        val teleListCut = teleList.subList(startFromIndex + 1, teleList.size)
+        val callingArgs = teleList.stream().toList() as MutableList<String>
+        callingArgs[switchedArgIndex] =
+            with(callingArgs[switchedArgIndex]) {
+                if (first() == '{') substring(1, length - 1) else "{$this}"
+            }
+
+        val callingArgsCut = callingArgs.subList(startFromIndex + 1, callingArgs.size)
+
+        val newFunctionCallText = psiFunctionCall.text + callingArgsCut.joinToString(" ", " ")
+        val factory = ArendPsiFactory(psiFunctionUsage.project)
+        return factory.createLam(teleListCut, newFunctionCallText)
     }
 
     abstract fun getParentPsiFunctionCall(element: PsiElement): PsiElement?
