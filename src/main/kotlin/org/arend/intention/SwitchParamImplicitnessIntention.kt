@@ -37,10 +37,10 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
     }
 
     override fun applyTo(element: ArendCompositeElement, project: Project, editor: Editor) {
-        val elementOnCaret = getPsiElementOnCaret(project, editor)
+        val elementOnCaret = element.containingFile.findElementAt(editor.caretModel.offset)
         val switchedArgIndexInTele = getSwitchedArgIndex(element, elementOnCaret)
 
-        if (switchedArgIndexInTele == -1) {
+        if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
             // TODO: show context window with this message
             println("[DEBUG] caret must be on argument's name")
             return
@@ -57,16 +57,10 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
         }
     }
 
-    private fun getSwitchedArgIndex(tele: ArendCompositeElement, switchedArg: PsiElement): Int {
-        val argsText = getTele(tele)!!.map { it.text }
-        return if (argsText.size == 1) 0 else argsText.indexOf(switchedArg.text)
-    }
-
-    // TODO: rewrite or remove this function
-    private fun getPsiElementOnCaret(project: Project, editor: Editor): PsiElement {
-        val offset = editor.caretModel.offset
-        val file = FileDocumentManager.getInstance().getFile(editor.document)
-        return PsiManager.getInstance(project).findFile(file!!)?.findElementAt(offset)!!
+    private fun getSwitchedArgIndex(tele: ArendCompositeElement, switchedArg: PsiElement?): Int? {
+        switchedArg ?: return -1
+        val argsText = getTele(tele)?.map { it.text }
+        return if (argsText?.size == 1) 0 else argsText?.indexOf(switchedArg.text)
     }
 }
 
