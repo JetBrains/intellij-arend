@@ -348,17 +348,25 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
     }
 
     override fun convertFunctionCallToPrefix(psiFunctionCall: PsiElement): PsiElement? {
+        fun needToWrapInBrackets(expr: String): Boolean {
+            val stack = ArrayDeque<Char>()
+            for (sym in expr) {
+                when (sym) {
+                    '(' -> stack.addFirst(sym)
+                    ')' -> stack.removeFirst()
+                    ' ' -> if (stack.isEmpty()) return true
+                }
+            }
+            return false
+        }
+
         fun buildTextFromConcrete(concrete: Concrete.AppExpression): String {
             return buildString {
-                append(concrete.function.toString() + " ")
+                append("${concrete.function} ")
                 for (arg in concrete.arguments) {
                     val argText = arg.expression.toString()
-                    // TODO: find another way to check this
                     if (arg.isExplicit) {
-                        val tupleRegex = "\\((.+,)*(.+)\\)".toRegex()
-                        // TODO: remove redundant braces
-                        // regex isn't correct: `(1, 2) op (3, 4)` isn't tuple, but is matched
-                        if (argText.contains(' ') && !tupleRegex.matches(argText)) {
+                        if (needToWrapInBrackets(argText)) {
                             append("($argText) ")
                         } else {
                             append("$argText ")

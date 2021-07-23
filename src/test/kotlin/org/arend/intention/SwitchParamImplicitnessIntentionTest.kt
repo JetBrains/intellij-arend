@@ -357,7 +357,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionImToExInfix() = doTest(
+    fun testFunctionImToExInfixSimple() = doTest(
         """
         \func mp {{-caret-}A B : \Type} (a : A) (b : B) => a
         \func g => 42 `mp` 41
@@ -365,6 +365,17 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => a
         \func g => mp _ 42 41
+        """
+    )
+
+    fun testFunctionImToExInfixChain() = doTest(
+        """
+        \func \infixl 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
+        \func f => ((1, 2) !+! (3, 4)) !+! (5, 6)
+        """,
+        """
+        \func \infixl 6 !+! ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
+        \func f => (!+!) _ ((!+!) _ (1, 2) (3, 4)) (5, 6)
         """
     )
 
