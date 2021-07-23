@@ -12,6 +12,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
 
@@ -357,12 +358,8 @@ fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
     else -> null
 }
 
-fun getTeleParams(tele: PsiElement): List<PsiElement> = when (tele) {
-    is ArendNameTele -> tele.childrenOfType<ArendIdentifierOrUnknown>()
-    is ArendFieldTele -> tele.childrenOfType<ArendFieldDefIdentifier>()
-    is ArendTypeTele -> {
-        val typedExpr = tele.childOfType<ArendTypedExpr>()
-        typedExpr?.childrenOfType<ArendIdentifierOrUnknown>() ?: emptyList()
-    }
+fun getTelesFromDef(def: PsiElement?): List<ArendCompositeElement> = when (def) {
+    is ArendDefFunction -> def.nameTeleList
+    is ArendDefClass -> def.fieldTeleList
     else -> emptyList()
 }

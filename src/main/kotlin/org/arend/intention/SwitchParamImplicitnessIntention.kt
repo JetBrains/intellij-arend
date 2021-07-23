@@ -24,7 +24,6 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 import kotlin.math.abs
-import kotlin.streams.toList
 
 class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
     ArendCompositeElement::class.java,
@@ -59,7 +58,7 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
     }
 
     private fun getSwitchedArgIndex(tele: ArendCompositeElement, switchedArg: PsiElement): Int {
-        val argsText = getTeleParams(tele).map { it.text }
+        val argsText = getTele(tele)!!.map { it.text }
         return if (argsText.size == 1) 0 else argsText.indexOf(switchedArg.text)
     }
 
@@ -129,7 +128,7 @@ abstract class SwitchParamImplicitnessApplier {
         val newPsiElement = rewriteFunctionCalling(
             psiFunctionUsage,
             replacedFunctionCall,
-            psiFunctionDef as ArendDefFunction,
+            psiFunctionDef,
             switchedArgIndexInDef
         )
         val replacedNewFunctionCall = replacedFunctionCall.replaceWithNotification(newPsiElement)
@@ -161,9 +160,7 @@ abstract class SwitchParamImplicitnessApplier {
 
         val factory = ArendPsiFactory(tele.project)
         val isExplicit = (tele.text.first() == '(')
-        val text = with(tele.text) {
-            substring(1, length - 1)
-        }
+        val text = with(tele.text) { substring(1, length - 1) }
         val (params, type) = text.split(":")
         val newTele = factory.createNameTele(params.trim().trimEnd(), type.trim().trimEnd(), !isExplicit)
 
@@ -173,23 +170,21 @@ abstract class SwitchParamImplicitnessApplier {
     private fun rewriteFunctionCalling(
         psiFunctionUsage: PsiElement,
         psiFunctionCall: PsiElement,
-        psiFunctionDef: ArendDefFunction,
+        psiFunctionDef: PsiElement,
         argumentIndex: Int
     ): PsiElement {
         val functionName = psiFunctionUsage.text.replace("`", "")
         val parameters = getCallingParameters(psiFunctionCall)
         val parameterIndices = getParametersIndices(psiFunctionUsage, psiFunctionCall)
-        val argsText = parameters as MutableList<String>
-        val indices: MutableList<Int> = parameterIndices as MutableList<Int>
-
-        // check this
-        val isPartialAppExpr = (parameterIndices.maxOrNull() ?: -1 < argumentIndex)
-        val lastIndex = parameterIndices.maxOrNull() ?: 0
+        val lastIndex = parameterIndices.maxOrNull() ?: -1
+        val isPartialAppExpr = (lastIndex < argumentIndex)
 
         if (isPartialAppExpr) {
             return rewriteToLambda(psiFunctionUsage, psiFunctionCall, psiFunctionDef, argumentIndex, lastIndex)
         }
 
+        val argsText = parameters as MutableList<String>
+        val indices: MutableList<Int> = parameterIndices as MutableList<Int>
         val existsInArgList = (parameterIndices.indexOf(argumentIndex) != -1)
 
         if (!existsInArgList) {
@@ -232,28 +227,26 @@ abstract class SwitchParamImplicitnessApplier {
     private fun rewriteToLambda(
         psiFunctionUsage: PsiElement,
         psiFunctionCall: PsiElement,
-        psiFunctionDef: ArendDefFunction,
+        psiFunctionDef: PsiElement,
         switchedArgIndex: Int,
         startFromIndex: Int
     ): PsiElement {
         val teleList = mutableListOf<String>()
-        for (tele in psiFunctionDef.nameTeleList) {
-            // fix naming?
-            teleList.addAll(tele.identifierOrUnknownList.map {
-                if (tele.isExplicit) it.text else "{${it.text}}"
+
+        for (tele in getTelesFromDef(psiFunctionDef)) {
+            val paramsInTele = getTele(tele) ?: continue
+            teleList.addAll(paramsInTele.map {
+                val genName = "gen_" + it.text
+                if (tele.text.first() != '{') genName else "{$genName}"
             })
         }
 
-        // todo: search how to do copy
         val teleListCut = teleList.subList(startFromIndex + 1, teleList.size)
-        val callingArgs = teleList.stream().toList() as MutableList<String>
-        callingArgs[switchedArgIndex] =
-            with(callingArgs[switchedArgIndex]) {
-                if (first() == '{') substring(1, length - 1) else "{$this}"
-            }
+        val callingArgs = teleList.toMutableList()
+        val toExplicit = (callingArgs[switchedArgIndex].first() == '{')
+        callingArgs[switchedArgIndex] = rewriteArg(callingArgs[switchedArgIndex], toExplicit, false)
 
         val callingArgsCut = callingArgs.subList(startFromIndex + 1, callingArgs.size)
-
         val newFunctionCallText = psiFunctionCall.text + callingArgsCut.joinToString(" ", " ")
         val factory = ArendPsiFactory(psiFunctionUsage.project)
         return factory.createLam(teleListCut, newFunctionCallText)
