@@ -31,11 +31,11 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
 
     fun testFunctionExToImAddBraces() = doTest(
         """
-        \func f (a b : Int) (p{-caret-} : a = b) => 0
+        \func f (a: b: : Int) (p{-caret-} : a: = b:) => 0
         \func g => f 1 1 idp
         """,
         """
-        \func f (a b : Int) {p{-caret-} : a = b} => 0
+        \func f (a: b: : Int) {p{-caret-} : a: = b:} => 0
         \func g => f 1 1 {idp}
         """
     )

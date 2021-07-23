@@ -82,7 +82,8 @@ abstract class SwitchParamImplicitnessApplier {
     }
 
     /*
-        Initially, this function replaces all children of given element `psiFunctionUsage`
+        Initially, this function replaces all children of given element `psiFunctionUsage`,
+        which contains references to `psiFunctionDef` and
         then converts the current to the prefix form and rewrites this
     */
     private fun replaceDeep(
@@ -155,7 +156,7 @@ abstract class SwitchParamImplicitnessApplier {
         val factory = ArendPsiFactory(tele.project)
         val isExplicit = (tele.text.first() == '(')
         val text = with(tele.text) { substring(1, length - 1) }
-        val (params, type) = text.split(":")
+        val (params, type) = text.split(" : ")
         val newTele = factory.createNameTele(params.trim().trimEnd(), type.trim().trimEnd(), !isExplicit)
 
         tele.replaceWithNotification(newTele)
