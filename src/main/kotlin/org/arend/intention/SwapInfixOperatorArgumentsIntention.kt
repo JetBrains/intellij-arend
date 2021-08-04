@@ -3,15 +3,11 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiWhiteSpace
-import com.intellij.psi.util.PsiTreeUtil
-import org.arend.error.DummyErrorReporter
-import org.arend.psi.*
-import org.arend.psi.ext.ArendReferenceElement
+import org.arend.intention.binOp.BinOpIntentionUtil
+import org.arend.psi.ArendArgumentAppExpr
+import org.arend.psi.ArendExpr
+import org.arend.psi.parentOfType
 import org.arend.refactoring.rangeOfConcrete
-import org.arend.resolving.ArendReferableConverter
-import org.arend.term.abs.Abstract
-import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
@@ -35,28 +31,11 @@ class SwapInfixOperatorArgumentsIntention : BaseArendIntention(ArendBundle.messa
     }
 
     private fun findBinOpArguments(element: PsiElement): Pair<Concrete.Argument, Concrete.Argument>? {
-        val binOpReference = PsiTreeUtil.findFirstParent(skipWhiteSpacesBackwards(element)) {
-            it is ArendRefIdentifier || it is ArendIPName
-        } as? ArendReferenceElement ?: return null
-        val isBinOp =
-                if (binOpReference is ArendIPName) binOpReference.infix != null
-                else resolveFunction(binOpReference)?.data?.precedence?.isInfix == true
-        if (!isBinOp) {
-            return null
-        }
-        val binOp = binOpReference.parentOfType<ArendExpr>() ?: return null
-        val binOpSequenceAbs = binOp.parentOfType<ArendArgumentAppExpr>() ?: return null
+        val binOp = BinOpIntentionUtil.findBinOp(element) ?: return null
+        val binOpExpr = binOp.parentOfType<ArendExpr>() ?: return null
+        val binOpSequenceAbs = binOpExpr.parentOfType<ArendArgumentAppExpr>() ?: return null
         val binOpSequence = appExprToConcrete(binOpSequenceAbs) ?: return null
-        val (_, _, arguments) = findDefAndArgsInParsedBinop(binOp, binOpSequence) ?: return null
+        val (_, _, arguments) = findDefAndArgsInParsedBinop(binOpExpr, binOpSequence) ?: return null
         return arguments.filter { it.isExplicit }.let { if (it.size == 2) it[0] to it[1] else null }
     }
-}
-
-private fun skipWhiteSpacesBackwards(element: PsiElement) =
-        if (element is PsiWhiteSpace) PsiTreeUtil.prevCodeLeaf(element) else element
-
-private fun resolveFunction(referenceNode: ArendReferenceElement): Concrete.FunctionDefinition? {
-    val functionAbs = referenceNode.resolve as? Abstract.FunctionDefinition ?: return null
-    return ConcreteBuilder.convert(ArendReferableConverter, functionAbs, DummyErrorReporter.INSTANCE)
-            as? Concrete.FunctionDefinition ?: return null
 }

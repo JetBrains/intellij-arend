@@ -208,11 +208,6 @@
             <category>Arend</category>
         </intentionAction>
 
-        <intentionAction>
-            <className>org.arend.intention.SwitchParamImplicitnessIntention</className>
-            <category>Arend</category>
-        </intentionAction>
-
         <!-- <highlightRangeExtension implementation="org.arend.annotation.ArendHighlightRangeExtension"/> -->
 
         <daemon.changeLocalityDetector implementation="org.arend.highlight.ArendChangeLocalityDetector"/>
@@ -244,9 +239,7 @@
         <!-- Renaming of referables with aliases -->
         <renameHandler implementation="org.arend.refactoring.rename.ArendGlobalReferableRenameHandler"/>
         <nameSuggestionProvider implementation="org.arend.refactoring.rename.ArendAliasNameSuggestionProvider"/>
-        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.ArendRefactoringSupportProvider"/>
-
-        <refactoring.changeSignatureUsageProcessor implementation="org.arend.refactoring.changeSignature.ArendChangeSignatureUsageProcessor"/>
+        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.rename.ArendRefactoringSupportProvider"/>
 
         <!-- Notification groups -->
 
