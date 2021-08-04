@@ -239,7 +239,7 @@
         <!-- Renaming of referables with aliases -->
         <renameHandler implementation="org.arend.refactoring.rename.ArendGlobalReferableRenameHandler"/>
         <nameSuggestionProvider implementation="org.arend.refactoring.rename.ArendAliasNameSuggestionProvider"/>
-        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.rename.ArendRefactoringSupportProvider"/>
+        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.ArendRefactoringSupportProvider"/>
 
         <!-- Notification groups -->
 
