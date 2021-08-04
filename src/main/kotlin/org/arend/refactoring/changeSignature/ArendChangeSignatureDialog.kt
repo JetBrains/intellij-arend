@@ -5,7 +5,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.PsiTypeCodeFragmentImpl
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.changeSignature.*
-import com.intellij.refactoring.ui.JavaComboBoxVisibilityPanel
+import com.intellij.refactoring.ui.ComboBoxVisibilityPanel
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
 import org.arend.ArendFileType
@@ -14,23 +14,21 @@ class ArendChangeSignatureDialog(
     project: Project,
     val descriptor: ArendSignatureDescriptor,
 ) : ChangeSignatureDialogBase<
-        ParameterInfoImpl,
+        ArendParameterInfo,
         PsiMethod,
         String,
         ArendSignatureDescriptor,
-        ParameterTableModelItemBase<ParameterInfoImpl>,
+        ParameterTableModelItemBase<ArendParameterInfo>,
         ArendParameterTableModel
         >(project, descriptor, false, descriptor.method) {
 
 
     override fun getFileType() = ArendFileType
 
-    override fun createParametersInfoModel(d: ArendSignatureDescriptor): ArendParameterTableModel {
-        return ArendParameterTableModel(d, myDefaultValueContext)
-    }
+    override fun createParametersInfoModel(d: ArendSignatureDescriptor) =
+        ArendParameterTableModel(d, myDefaultValueContext)
 
     override fun createRefactoringProcessor(): BaseRefactoringProcessor? {
-        println("createRefactoringProcessor")
         return null
     }
 
@@ -43,7 +41,6 @@ class ArendChangeSignatureDialog(
         treeToReuse: Tree?,
         callback: Consumer<MutableSet<PsiMethod>>?
     ): CallerChooserBase<PsiMethod>? {
-        println("createCallerChooser")
         return null
     }
 
@@ -55,9 +52,12 @@ class ArendChangeSignatureDialog(
         return "calculateSignature"
     }
 
-    override fun createVisibilityControl() = JavaComboBoxVisibilityPanel()
+    override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
 
     private fun createTypeCodeFragment(function: PsiElement): PsiCodeFragment {
-        return PsiTypeCodeFragmentImpl(function.project, true, "name", function.text, 0, myDefaultValueContext)
+        // or `return PsiTypeCodeFragmentImpl(function.project, true, "dummyName", function.text, 0, myDefaultValueContext)`
+        return PsiTypeCodeFragmentImpl(function.project, true, "dummyName", function.text, 0, function.context)
     }
+
+    private class Type
 }

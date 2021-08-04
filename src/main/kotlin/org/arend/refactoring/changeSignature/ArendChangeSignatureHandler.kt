@@ -12,13 +12,12 @@ import org.arend.util.ArendBundle
 
 class ArendChangeSignatureHandler : ChangeSignatureHandler {
     override fun invoke(project: Project, elements: Array<out PsiElement>, dataContext: DataContext?) {
-//        TODO("Not yet implemented")
         val function = elements.singleOrNull() as? ArendDefFunction ?: return
         showRefactoringDialog(project, function)
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?, dataContext: DataContext?) {
-//        TODO("Not yet implemented")
+        TODO("Not yet implemented")
     }
 
     override fun findTargetMember(element: PsiElement) = element.ancestor<ArendDefFunction>()
