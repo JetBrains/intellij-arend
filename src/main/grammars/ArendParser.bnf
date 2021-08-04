@@ -105,8 +105,6 @@
         BLOCK_COMMENT       = 'BLOCK_COMMENT'
     ]
 
-    extraRoot(".*CodeFragmentElement")=true
-
     extends("def(Function|Data|Class|Instance|Meta)") = definition
     extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
@@ -1079,5 +1077,3 @@ private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 private meta comma_separated_sequence_trail ::= <<p>> (COMMA <<p>>)* COMMA? { pin = 1 }
 
 private meta piped ::= pipe_def <<p>> { pin = 1 }
-
-TypeReferenceCodeFragmentElement ::= expr?
