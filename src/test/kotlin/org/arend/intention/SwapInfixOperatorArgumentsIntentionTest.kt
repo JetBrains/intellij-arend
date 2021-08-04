@@ -2,13 +2,15 @@ package org.arend.intention
 
 import org.arend.quickfix.QuickFixTestBase
 import org.arend.util.ArendBundle
+import org.intellij.lang.annotations.Language
 
 class SwapInfixOperatorArgumentsIntentionTest : QuickFixTestBase() {
     val fixName = ArendBundle.message("arend.expression.swapInfixArguments")
 
-    private fun doTest(contents: String, result: String) = typedQuickFixTest(fixName, contents, result)
+    private fun doTest(@Language("Arend") before: String, @Language("Arend") after: String) =
+            typedQuickFixTest(fixName, before, after)
 
-    private fun testNoQuickfixes(contents: String) = typedCheckNoQuickFixes(fixName, contents)
+    private fun doTestNoFix(@Language("Arend") code: String) = typedCheckNoQuickFixes(fixName, code)
 
     fun `test infix`() = doTest(""" 
       \func \infixl 5 op (a b : Nat) : Nat => 0
@@ -18,10 +20,10 @@ class SwapInfixOperatorArgumentsIntentionTest : QuickFixTestBase() {
       \func f => 1 {-caret-}op 0
     """)
 
-    fun `test no fix when not infix`() = testNoQuickfixes(""" 
-      \func op (a b : Nat) : Nat => 0
-      \func f => 0 {-caret-}op 1
-    """)
+    fun `test no fix when not infix`() = doTestNoFix(""" 
+  \func op (a b : Nat) : Nat => 0
+  \func f => 0 {-caret-}op 1
+""")
 
     fun `test func as infix`() = doTest(""" 
       \func op (a b : Nat) : Nat => 0
@@ -31,10 +33,10 @@ class SwapInfixOperatorArgumentsIntentionTest : QuickFixTestBase() {
       \func f => 1 {-caret-}`op` 0
     """)
 
-    fun `test no fix when func as postfix`() = testNoQuickfixes(""" 
-      \func op (a b : Nat) : Nat => 0
-      \func f => 0 {-caret-}`op
-    """)
+    fun `test no fix when func as postfix`() = doTestNoFix(""" 
+  \func op (a b : Nat) : Nat => 0
+  \func f => 0 {-caret-}`op
+""")
 
     fun `test caret is after operator`() = doTest(""" 
       \func \infixl 5 op (a b : Nat) : Nat => 0
@@ -44,10 +46,10 @@ class SwapInfixOperatorArgumentsIntentionTest : QuickFixTestBase() {
       \func f => 1 op{-caret-} 0
     """)
 
-    fun `test no fix when one explicit argument`() = testNoQuickfixes(""" 
-      \func op (a b : Nat) : Nat => 0
-      \func f => 0 {-caret-}`op`
-    """)
+    fun `test no fix when one explicit argument`() = doTestNoFix(""" 
+  \func op (a b : Nat) : Nat => 0
+  \func f => 0 {-caret-}`op`
+""")
 
     fun `test first operator in a sequence`() = doTest(""" 
       \open Nat (+)
@@ -93,5 +95,25 @@ class SwapInfixOperatorArgumentsIntentionTest : QuickFixTestBase() {
     """, """
       \func op {a b : Nat} (c d : Nat): Nat => 0
       \func f => 3 {-caret-}`op` {1} {2} 0
+    """)
+
+    fun `test data`() = doTest("""
+      \data \infixr 5 And (A B : \Type)
+        | \infixr 5 && A B
+      \func f : Nat And{-caret-} Int => 0 && 1
+    """, """
+      \data \infixr 5 And (A B : \Type)
+        | \infixr 5 && A B
+      \func f : Int And{-caret-} Nat => 0 && 1
+    """)
+
+    fun `test data constructor`() = doTest("""
+      \data \infixr 5 And (A B : \Type)
+        | \infixr 5 && A B
+      \func f : Nat And Int => 0 &&{-caret-} 1
+    """, """
+      \data \infixr 5 And (A B : \Type)
+        | \infixr 5 && A B
+      \func f : Nat And Int => 1 &&{-caret-} 0
     """)
 }
