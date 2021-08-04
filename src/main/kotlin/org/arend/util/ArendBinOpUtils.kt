@@ -17,13 +17,17 @@ import org.arend.term.concrete.Concrete
 import org.arend.resolving.util.parseBinOp
 import org.arend.resolving.util.resolveReference
 
-fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
-    override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) =
-            parseBinOp(left, sequence)
+fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appExprToConcrete(appExpr, false)
 
-    override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
-    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) = resolveReference(data, referent, fixity)
-}, null)
+fun appExprToConcrete(appExpr: Abstract.Expression, setData: Boolean): Concrete.Expression? =
+        appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
+            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Concrete.Expression =
+                    parseBinOp(if (setData) data else null, left, sequence)
+            override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) =
+                    resolveReference(data, referent, null)
+            override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) =
+                    resolveReference(data, referent, fixity)
+        }, null)
 
 fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? {
     val cExprData = cExpr.data
