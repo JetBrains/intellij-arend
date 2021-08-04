@@ -1,50 +1,26 @@
 package org.arend.refactoring.changeSignature
 
-import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.MethodDescriptor
-import com.intellij.refactoring.changeSignature.ParameterInfoImpl
 import org.arend.psi.ArendDefFunction
 
-class ArendSignatureDescriptor(val function: ArendDefFunction) : MethodDescriptor<ParameterInfoImpl, String> {
-    override fun getName(): String {
-        return "getName"
-    }
+class ArendSignatureDescriptor(val function: ArendDefFunction) : MethodDescriptor<ArendParameterInfo, String> {
+    override fun getName() = function.name
 
-    override fun getParameters(): List<ParameterInfoImpl> {
-        return emptyList()
-    }
+    override fun getParameters(): List<ArendParameterInfo> = function.parameters.map { ArendParameterInfo(it) }
 
-    override fun getParametersCount(): Int {
-        return 0
-    }
+    override fun getParametersCount(): Int = function.parameters.size
 
-    override fun getVisibility(): String {
-        return "visibility"
-    }
+    override fun getVisibility() = ""
 
-    override fun getMethod(): PsiElement {
-        return function
-    }
+    override fun getMethod() = function
 
-    override fun canChangeVisibility(): Boolean {
-//        TODO("Not yet implemented")
-        return false
-    }
+    override fun canChangeVisibility() = false
 
-    override fun canChangeParameters(): Boolean {
-//        TODO("Not yet implemented")
-        return false
-    }
+    override fun canChangeParameters() = true
 
-    override fun canChangeName(): Boolean {
-//        TODO("Not yet implemented")
-        return false
-    }
+    override fun canChangeName() = true
 
     override fun canChangeReturnType(): MethodDescriptor.ReadWriteOption {
-//        TODO("Not yet implemented")
         return MethodDescriptor.ReadWriteOption.ReadWrite
     }
-
-
 }
