@@ -1,31 +1,25 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.refactoring.changeSignature.ParameterInfo
-import org.arend.term.abs.Abstract
+import org.arend.psi.ArendNameTele
 
-class ArendParameterInfo(val parameter: Abstract.Parameter) : ParameterInfo {
-    override fun getName(): String = parameter.toString()
+class ArendParameterInfo(val parameter: ArendNameTele) : ParameterInfo {
+    override fun getName(): String {
+        // only one argument in tele for now
+        return parameter.identifierOrUnknownList[0].text
+    }
 
     override fun getOldIndex(): Int = -1
 
-    override fun getDefaultValue(): String? = null
+    override fun getDefaultValue(): String = ""
 
     override fun setName(name: String?) {
-        TODO("Not yet implemented")
+//        TODO("Not yet implemented")
     }
 
-    override fun getTypeText(): String {
-        return parameter.type.toString()
-    }
+    override fun getTypeText(): String? = parameter.expr?.text
 
+    override fun isUseAnySingleVariable(): Boolean = false
 
-    override fun isUseAnySingleVariable(): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override fun setUseAnySingleVariable(b: Boolean) {
-        TODO("Not yet implemented")
-    }
-
-
+    override fun setUseAnySingleVariable(b: Boolean) {}
 }
