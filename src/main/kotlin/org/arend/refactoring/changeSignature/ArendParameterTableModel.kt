@@ -4,7 +4,11 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.PsiTypeCodeFragmentImpl
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
+import com.intellij.ui.BooleanTableCellEditor
+import com.intellij.ui.BooleanTableCellRenderer
 import org.arend.ArendFileType
+import javax.swing.table.TableCellEditor
+import javax.swing.table.TableCellRenderer
 
 class ArendParameterTableModel(
     val descriptor: ArendSignatureDescriptor,
@@ -15,7 +19,8 @@ class ArendParameterTableModel(
     NameColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(defaultValueContext.project),
     TypeColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(
         descriptor.method.project, ArendFileType
-    )
+    ),
+    ParamImplicitnessColumn()
 ) {
     override fun createRowItem(parameterInfo: ArendParameterInfo?): ParameterTableModelItemBase<ArendParameterInfo> {
         if (parameterInfo == null) {
@@ -38,5 +43,25 @@ class ArendParameterTableModel(
         ) {
             override fun isEllipsisType(): Boolean = false
         }
+    }
+
+    private class ParamImplicitnessColumn :
+        ColumnInfoBase<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>, Boolean>("Explicit") {
+        override fun valueOf(item: ParameterTableModelItemBase<ArendParameterInfo>): Boolean =
+            item.parameter.isExplicit()
+
+        override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>, value: Boolean?) {
+            if (value == null) return
+            item.parameter.switchExplicit()
+            // TODO: code from intention should be here
+        }
+
+        override fun isCellEditable(item: ParameterTableModelItemBase<ArendParameterInfo>): Boolean = true
+
+        override fun doCreateRenderer(item: ParameterTableModelItemBase<ArendParameterInfo>): TableCellRenderer =
+            BooleanTableCellRenderer()
+
+        override fun doCreateEditor(item: ParameterTableModelItemBase<ArendParameterInfo>): TableCellEditor =
+            BooleanTableCellEditor()
     }
 }

@@ -9,7 +9,6 @@ import com.intellij.refactoring.ui.ComboBoxVisibilityPanel
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
 import org.arend.ArendFileType
-import org.arend.psi.ArendDefFunction
 
 class ArendChangeSignatureDialog(
     project: Project,
@@ -29,23 +28,17 @@ class ArendChangeSignatureDialog(
     override fun createParametersInfoModel(d: ArendSignatureDescriptor) =
         ArendParameterTableModel(d, myDefaultValueContext)
 
-    override fun createRefactoringProcessor(): BaseRefactoringProcessor? {
-        return null
-    }
+    override fun createRefactoringProcessor(): BaseRefactoringProcessor? = null
 
-    override fun createReturnTypeCodeFragment(): PsiCodeFragment? {
-        return createTypeCodeFragment(myMethod.method)
-    }
+    override fun createReturnTypeCodeFragment(): PsiCodeFragment = createTypeCodeFragment(myMethod.method)
 
     override fun createCallerChooser(
         title: String?,
         treeToReuse: Tree?,
         callback: Consumer<MutableSet<PsiElement>>?
-    ): CallerChooserBase<PsiElement>? {
-        return null
-    }
+    ): CallerChooserBase<PsiElement>? = null
 
-    override fun validateAndCommitData(): String? {
+    override fun validateAndCommitData(): String {
         return "ValidateAndCommitData"
     }
 

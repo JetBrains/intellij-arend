@@ -7,7 +7,8 @@ class ArendSignatureDescriptor(private val function: ArendDefFunction) : MethodD
     override fun getName(): String? = function.name
 
     override fun getParameters(): List<ArendParameterInfo> {
-        return function.nameTeleList.map { ArendParameterInfo(it) }
+        // TODO: write adapter
+        return function.nameTeleList.map { ArendParameterInfo(it, it.text, it.isExplicit) }
     }
 
     override fun getParametersCount(): Int = function.nameTeleList.size

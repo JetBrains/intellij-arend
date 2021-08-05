@@ -3,9 +3,12 @@ package org.arend.refactoring.changeSignature
 import com.intellij.refactoring.changeSignature.ParameterInfo
 import org.arend.psi.ArendNameTele
 
-class ArendParameterInfo(val parameter: ArendNameTele) : ParameterInfo {
+class ArendParameterInfo(val parameter: ArendNameTele,
+                         private var name: String,
+                         private var isExplicit: Boolean) : ParameterInfo {
+
     override fun getName(): String {
-        // only one argument in tele for now
+        // only one argument can be in tele for now
         return parameter.identifierOrUnknownList[0].text
     }
 
@@ -14,10 +17,18 @@ class ArendParameterInfo(val parameter: ArendNameTele) : ParameterInfo {
     override fun getDefaultValue(): String = ""
 
     override fun setName(name: String?) {
-//        TODO("Not yet implemented")
+        if (name == null) return
+        this.name = name
     }
 
     override fun getTypeText(): String? = parameter.expr?.text
+
+    fun isExplicit(): Boolean = isExplicit
+//        parameter.isExplicit
+
+    fun switchExplicit() {
+        isExplicit.xor(true)
+    }
 
     override fun isUseAnySingleVariable(): Boolean = false
 
