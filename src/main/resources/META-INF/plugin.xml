@@ -275,6 +275,7 @@
         <!-- Refactoring -->
 
         <renameInputValidator implementation="org.arend.refactoring.ArendRenameInputValidator"/>
+        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.ArendRefactoringSupportProvider"/>
         <!-- Renaming of files -->
         <renamePsiElementProcessor implementation="org.arend.refactoring.ArendRenamePsiElementProcessor" />
         <moveFileHandler implementation="org.arend.refactoring.ArendMoveFileHandler"/>
@@ -283,7 +284,9 @@
         <!-- Renaming of referables with aliases -->
         <renameHandler implementation="org.arend.refactoring.rename.ArendGlobalReferableRenameHandler"/>
         <nameSuggestionProvider implementation="org.arend.refactoring.rename.ArendAliasNameSuggestionProvider"/>
-        <lang.refactoringSupport language="Arend" implementationClass="org.arend.refactoring.ArendRefactoringSupportProvider"/>
+        <!-- Change Signature -->
+        <refactoring.changeSignatureUsageProcessor implementation="org.arend.refactoring.changeSignature.ArendChangeSignatureUsageProcessor"
+                                                   id="Arend" />
 
         <refactoring.changeSignatureUsageProcessor implementation="org.arend.refactoring.changeSignature.ArendChangeSignatureUsageProcessor"/>
 
