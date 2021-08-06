@@ -12,8 +12,8 @@ version = "1.6.1"
 plugins {
     idea
     kotlin("jvm") version "1.5.0"
-    id("org.jetbrains.intellij") version "0.7.2"
-    id("org.jetbrains.grammarkit") version "2021.1.1"
+    id("org.jetbrains.intellij") version "1.1.4"
+    id("org.jetbrains.grammarkit") version "2021.1.3"
 }
 
 repositories {
@@ -54,11 +54,11 @@ idea {
 }
 
 intellij {
-    version = "2021.1.2"
-    pluginName = "Arend"
-    updateSinceUntilBuild = true
-    instrumentCode = true
-    setPlugins("yaml", "java", "IdeaVIM:0.67")
+    version.set("2021.2")
+    pluginName.set("Arend")
+    updateSinceUntilBuild.set(true)
+    instrumentCode.set(true)
+    plugins.set(listOf("yaml", "java", "IdeaVIM:0.67"))
 }
 
 tasks.named<JavaExec>("runIde") {
@@ -66,10 +66,10 @@ tasks.named<JavaExec>("runIde") {
 }
 
 tasks.withType<PatchPluginXmlTask>().configureEach {
-    version(project.version)
-    pluginId(project.group)
-    changeNotes(file("src/main/html/change-notes.html").readText())
-    pluginDescription(file("src/main/html/description.html").readText())
+    version.set(project.version.toString())
+    pluginId.set(project.group.toString())
+    changeNotes.set(file("src/main/html/change-notes.html").readText())
+    pluginDescription.set(file("src/main/html/description.html").readText())
 }
 
 val generateArendLexer = tasks.register<GenerateLexer>("genArendLexer") {

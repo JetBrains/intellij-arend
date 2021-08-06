@@ -23,7 +23,7 @@ class ArendCallHierarchyBrowser(project: Project, method: PsiElement) : CallHier
     override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor) =
         (descriptor as? ArendHierarchyNodeDescriptor)?.psiElement
 
-    override fun createTrees(trees: MutableMap<String, JTree>) {
+    override fun createTrees(trees: MutableMap<in String, in JTree>) {
         trees[CALLEE_TYPE] = createTree(false)
         trees[CALLER_TYPE] = createTree(false)
     }
