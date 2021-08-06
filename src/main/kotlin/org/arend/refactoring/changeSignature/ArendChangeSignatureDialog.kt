@@ -13,6 +13,7 @@ import org.arend.psi.ArendPsiFactory
 class ArendChangeSignatureDialog(
     project: Project,
     val descriptor: ArendSignatureDescriptor,
+    private val changeInfo: ArendChangeInfo?
 ) : ChangeSignatureDialogBase<
         ArendParameterInfo,
         PsiElement,
@@ -24,10 +25,11 @@ class ArendChangeSignatureDialog(
 
     override fun getFileType() = ArendFileType
 
-    override fun createParametersInfoModel(d: ArendSignatureDescriptor) =
-        ArendParameterTableModel(d, myDefaultValueContext)
+    override fun createParametersInfoModel(descriptor: ArendSignatureDescriptor) =
+        ArendParameterTableModel(descriptor, myDefaultValueContext)
 
-    override fun createRefactoringProcessor(): BaseRefactoringProcessor? = null
+    override fun createRefactoringProcessor(): BaseRefactoringProcessor =
+        ArendChangeSignatureProcessor(project, ArendChangeInfo.create(descriptor.method))
 
     override fun createReturnTypeCodeFragment(): PsiCodeFragment = createTypeCodeFragment(myMethod.method)
 
@@ -37,13 +39,13 @@ class ArendChangeSignatureDialog(
         callback: Consumer<MutableSet<PsiElement>>?
     ): CallerChooserBase<PsiElement>? = null
 
-    override fun validateAndCommitData(): String {
-        return "ValidateAndCommitData"
+    override fun validateAndCommitData(): String? {
+        // `null` -> run refactoring
+        // msg!! -> error msg
+        return null
     }
 
-    override fun calculateSignature(): String {
-        return "calculateSignature"
-    }
+    override fun calculateSignature(): String = changeInfo?.signature() ?: ""
 
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
 

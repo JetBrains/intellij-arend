@@ -26,7 +26,6 @@ class ArendChangeSignatureHandler : ChangeSignatureHandler {
 
     private fun showRefactoringDialog(project: Project, function: ArendDefFunction) {
         val descriptor = ArendSignatureDescriptor(function)
-        ArendChangeSignatureDialog(project, descriptor).show()
+        ArendChangeSignatureDialog(project, descriptor, ArendChangeInfo.create(function)).show()
     }
-
 }

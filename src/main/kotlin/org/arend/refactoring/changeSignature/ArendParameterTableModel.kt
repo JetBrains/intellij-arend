@@ -23,7 +23,7 @@ class ArendParameterTableModel(
     ParamImplicitnessColumn()
 ) {
     override fun createRowItem(parameterInfo: ArendParameterInfo?): ParameterTableModelItemBase<ArendParameterInfo> {
-        val resultParameterInfo = parameterInfo ?: ArendParameterInfo("", "", true)
+        val resultParameterInfo = parameterInfo ?: ArendParameterInfo.createEmpty()
 
         val typeCodeFragment = PsiTypeCodeFragmentImpl(
             myTypeContext.project,
@@ -50,7 +50,6 @@ class ArendParameterTableModel(
 
         override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>, value: Boolean?) {
             if (value == null) return
-            println("value $value")
             item.parameter.switchExplicit()
         }
 
