@@ -7,8 +7,14 @@ class ArendSignatureDescriptor(private val function: ArendDefFunction) : MethodD
     override fun getName(): String? = function.name
 
     override fun getParameters(): List<ArendParameterInfo> {
-        // TODO: write adapter
-        return function.nameTeleList.map { ArendParameterInfo(it, it.text, it.isExplicit) }
+        // FIXME: only one argument in tele for now
+        return function.nameTeleList.map {
+            ArendParameterInfo(
+                it.identifierOrUnknownList[0].text,
+                it.expr?.text,
+                it.isExplicit
+            )
+        }
     }
 
     override fun getParametersCount(): Int = function.nameTeleList.size

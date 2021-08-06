@@ -22,7 +22,6 @@ class ArendChangeSignatureDialog(
         ArendParameterTableModel
         >(project, descriptor, false, descriptor.method.context) {
 
-
     override fun getFileType() = ArendFileType
 
     override fun createParametersInfoModel(d: ArendSignatureDescriptor) =
