@@ -23,21 +23,19 @@ class ArendParameterTableModel(
     ParamImplicitnessColumn()
 ) {
     override fun createRowItem(parameterInfo: ArendParameterInfo?): ParameterTableModelItemBase<ArendParameterInfo> {
-        if (parameterInfo == null) {
-            TODO("case `parameterInfo == null` isn't implemented yet")
-        }
+        val resultParameterInfo = parameterInfo ?: ArendParameterInfo("", "", true)
 
         val typeCodeFragment = PsiTypeCodeFragmentImpl(
             myTypeContext.project,
             true,
             "fragment.ard",
-            parameterInfo.typeText,
+            resultParameterInfo.typeText,
             0,
             myTypeContext
         )
 
         return object : ParameterTableModelItemBase<ArendParameterInfo>(
-            parameterInfo,
+            resultParameterInfo,
             typeCodeFragment,
             null
         ) {
@@ -52,8 +50,8 @@ class ArendParameterTableModel(
 
         override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>, value: Boolean?) {
             if (value == null) return
+            println("value $value")
             item.parameter.switchExplicit()
-            // TODO: code from intention should be here
         }
 
         override fun isCellEditable(item: ParameterTableModelItemBase<ArendParameterInfo>): Boolean = true

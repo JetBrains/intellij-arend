@@ -1,16 +1,14 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.refactoring.changeSignature.ParameterInfo
-import org.arend.psi.ArendNameTele
 
-class ArendParameterInfo(val parameter: ArendNameTele,
-                         private var name: String,
-                         private var isExplicit: Boolean) : ParameterInfo {
+class ArendParameterInfo(
+    private var name: String,
+    private var type: String?,
+    private var isExplicit: Boolean
+) : ParameterInfo {
 
-    override fun getName(): String {
-        // only one argument can be in tele for now
-        return parameter.identifierOrUnknownList[0].text
-    }
+    override fun getName(): String = name
 
     override fun getOldIndex(): Int = -1
 
@@ -21,13 +19,12 @@ class ArendParameterInfo(val parameter: ArendNameTele,
         this.name = name
     }
 
-    override fun getTypeText(): String? = parameter.expr?.text
+    override fun getTypeText(): String? = type
 
     fun isExplicit(): Boolean = isExplicit
-//        parameter.isExplicit
 
     fun switchExplicit() {
-        isExplicit.xor(true)
+        isExplicit = !isExplicit
     }
 
     override fun isUseAnySingleVariable(): Boolean = false
