@@ -6,15 +6,14 @@ import com.intellij.refactoring.changeSignature.ChangeInfo
 import com.intellij.refactoring.changeSignature.ParameterInfo
 import org.arend.ArendLanguage
 import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendNameTele
 
 class ArendChangeInfo private constructor(
     private val function: ArendDefFunction,
     private val name: String,
-    private val originalTeles: List<ArendParameterInfo>,
-    private val returnType: String?
+    private val teles: MutableList<ArendParameterInfo>,
+    var returnType: String?
 ) : ChangeInfo {
-    override fun getNewParameters(): Array<ParameterInfo> = originalTeles.toTypedArray()
+    override fun getNewParameters(): Array<ParameterInfo> = teles.toTypedArray()
 
     override fun isParameterSetOrOrderChanged(): Boolean = false
 
@@ -34,12 +33,21 @@ class ArendChangeInfo private constructor(
 
     override fun getLanguage(): Language = ArendLanguage.INSTANCE
 
+    fun addNewParameter(parameter: ArendParameterInfo) = teles.add(parameter)
+
+    fun removeParameter(index: Int) = teles.removeAt(index)
+
+    // replace this function?
+    fun updateReturnType(type: String?) {
+        returnType = type
+    }
+
+    // TODO: rename all occurrences in signature
+    // \func id {{-caret-}A : \Type} (a : A) => a
     fun signature(): String = buildString {
         append("\\func $name ")
-        for (tele in originalTeles) {
-            val lBr = if (tele.isExplicit()) "(" else "{"
-            val rBr = if (tele.isExplicit()) ")" else "}"
-            append("$lBr${tele.name} : ${tele.typeText}$rBr ")
+        for (tele in teles) {
+            append("${tele.showTele()} ")
         }
         append(": $returnType")
     }
@@ -49,7 +57,12 @@ class ArendChangeInfo private constructor(
             return ArendChangeInfo(
                 function,
                 function.name ?: "ERROR NAME",
-                function.nameTeleList.mapIndexed { index, tele -> ArendParameterInfo.create(tele, index) },
+                function.nameTeleList.mapIndexed { index, tele ->
+                    ArendParameterInfo.create(
+                        tele,
+                        index
+                    )
+                } as MutableList<ArendParameterInfo>,
                 function.returnExpr?.text
             )
         }

@@ -10,6 +10,6 @@ import com.intellij.usageView.UsageViewDescriptor
 class ArendChangeSignatureProcessor(project: Project, changeInfo: ChangeInfo?) :
     ChangeSignatureProcessorBase(project, changeInfo) {
 
-    override fun createUsageViewDescriptor(usages: Array<out UsageInfo>): UsageViewDescriptor = BaseUsageViewDescriptor(changeInfo?.method)
-
+    override fun createUsageViewDescriptor(usages: Array<out UsageInfo>): UsageViewDescriptor =
+        BaseUsageViewDescriptor(changeInfo?.method)
 }

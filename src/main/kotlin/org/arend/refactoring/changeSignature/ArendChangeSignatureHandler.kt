@@ -25,7 +25,8 @@ class ArendChangeSignatureHandler : ChangeSignatureHandler {
     override fun getTargetNotFoundMessage() = ArendBundle.message("arend.error.wrongCaretPosition")
 
     private fun showRefactoringDialog(project: Project, function: ArendDefFunction) {
-        val descriptor = ArendSignatureDescriptor(function)
-        ArendChangeSignatureDialog(project, descriptor, ArendChangeInfo.create(function)).show()
+        val changeInfo = ArendChangeInfo.create(function)
+        val descriptor = ArendSignatureDescriptor(changeInfo)
+        ArendChangeSignatureDialog(project, descriptor, changeInfo).show()
     }
 }
