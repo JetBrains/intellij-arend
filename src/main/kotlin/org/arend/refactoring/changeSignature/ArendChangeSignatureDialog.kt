@@ -29,7 +29,7 @@ class ArendChangeSignatureDialog(
         ArendParameterTableModel(descriptor, myDefaultValueContext)
 
     override fun createRefactoringProcessor(): BaseRefactoringProcessor =
-        ArendChangeSignatureProcessor(project, ArendChangeInfo.create(descriptor.method))
+        ArendChangeSignatureProcessor(project, changeInfo)
 
     override fun createReturnTypeCodeFragment(): PsiCodeFragment = createTypeCodeFragment(myMethod.method)
 
@@ -39,11 +39,8 @@ class ArendChangeSignatureDialog(
         callback: Consumer<MutableSet<PsiElement>>?
     ): CallerChooserBase<PsiElement>? = null
 
-    override fun validateAndCommitData(): String? {
-        // `null` -> run refactoring
-        // msg!! -> error msg
-        return null
-    }
+    // TODO: add information about errors
+    override fun validateAndCommitData(): String? = null
 
     override fun calculateSignature(): String = changeInfo?.signature() ?: ""
 

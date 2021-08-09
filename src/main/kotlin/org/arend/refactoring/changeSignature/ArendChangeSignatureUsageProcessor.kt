@@ -11,7 +11,7 @@ import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.containers.MultiMap
-import com.intellij.util.containers.toArray
+import org.arend.psi.ArendDefFunction
 
 class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
     override fun findUsages(info: ChangeInfo?): Array<UsageInfo> {
@@ -25,10 +25,8 @@ class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
         return usages.toTypedArray()
     }
 
-    override fun findConflicts(info: ChangeInfo?, refUsages: Ref<Array<UsageInfo>>?): MultiMap<PsiElement, String> {
-//        TODO("Not yet implemented")
-        return MultiMap.empty()
-    }
+    override fun findConflicts(info: ChangeInfo?, refUsages: Ref<Array<UsageInfo>>?): MultiMap<PsiElement, String> =
+        MultiMap.empty()
 
     override fun processUsage(
         changeInfo: ChangeInfo?,
@@ -41,14 +39,13 @@ class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
     }
 
     override fun processPrimaryMethod(changeInfo: ChangeInfo?): Boolean {
-//        TODO("Not yet implemented")
-        return false
+        if (changeInfo !is ArendChangeInfo) return false
+        // TODO: don't always change signature
+        processFunction(changeInfo.method.project, changeInfo, changeInfo.method as ArendDefFunction)
+        return true
     }
 
-    override fun shouldPreviewUsages(changeInfo: ChangeInfo?, usages: Array<out UsageInfo>?): Boolean {
-//        TODO("Not yet implemented")
-        return false
-    }
+    override fun shouldPreviewUsages(changeInfo: ChangeInfo?, usages: Array<out UsageInfo>?): Boolean = false
 
     override fun setupDefaultValues(
         changeInfo: ChangeInfo?,

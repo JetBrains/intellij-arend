@@ -1,22 +1,29 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.refactoring.changeSignature.MethodDescriptor
-import org.arend.psi.ArendDefFunction
 
-class ArendSignatureDescriptor(private val function: ArendDefFunction) :
+class ArendSignatureDescriptor(private val changeInfo: ArendChangeInfo) :
     MethodDescriptor<ArendParameterInfo, String> {
-    override fun getName(): String? = function.name
+    override fun getName(): String = changeInfo.newName
 
     override fun getParameters(): List<ArendParameterInfo> {
         // FIXME: only one argument in tele for now
-        return function.nameTeleList.mapIndexed { index, it -> ArendParameterInfo.create(it, index,) }
+        return changeInfo.newParameters.map { it as ArendParameterInfo }
     }
 
-    override fun getParametersCount(): Int = function.nameTeleList.size
+    fun getReturnType(): String? = changeInfo.returnType
+
+    fun setReturnType(type: String?) = changeInfo.updateReturnType(type)
+
+    fun addNewParameter(parameter: ArendParameterInfo) = changeInfo.addNewParameter(parameter)
+
+    fun removeParameter(index: Int) = changeInfo.removeParameter(index)
+
+    override fun getParametersCount(): Int = changeInfo.newParameters.size
 
     override fun getVisibility() = ""
 
-    override fun getMethod() = function
+    override fun getMethod() = changeInfo.method
 
     override fun canChangeVisibility() = false
 
