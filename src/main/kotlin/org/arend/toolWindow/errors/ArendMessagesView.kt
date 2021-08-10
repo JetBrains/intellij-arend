@@ -163,9 +163,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
         val errorsMap = project.service<ErrorService>().errors
         val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
-        tree.update(root) {
-            if (it == root) errorsMap.keys
-            else when (val obj = it.userObject) {
+        tree.update(root) { node ->
+            if (node == root) errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }.map { it.key }
+            else when (val obj = node.userObject) {
                 is ArendFile -> {
                     val arendErrors = errorsMap[obj]
                     val children = LinkedHashSet<Any>()
