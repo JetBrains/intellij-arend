@@ -2,7 +2,6 @@ package org.arend.resolving
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
-import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.ext.reference.Precedence
@@ -17,8 +16,6 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.impl.ClassDefinitionAdapter
-import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteDefinitionVisitor
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
@@ -128,11 +125,6 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
     override fun getConcreteClass(referable: GlobalReferable): Concrete.ClassDefinition? {
         val psiReferable = referable.underlyingReferable
         return if (psiReferable is ArendDefClass) getConcreteDefinition(psiReferable) as? Concrete.ClassDefinition else null
-    }
-
-    override fun getConcreteClassHeader(referable: GlobalReferable): Concrete.ClassDefinition? {
-        val psiReferable = referable.underlyingReferable
-        return if (psiReferable is ClassDefinitionAdapter) ConcreteBuilder.convertClassHeader(ArendReferableConverter, psiReferable, DummyErrorReporter.INSTANCE) else null
     }
 
     override fun getConcreteData(referable: GlobalReferable): Concrete.DataDefinition? {

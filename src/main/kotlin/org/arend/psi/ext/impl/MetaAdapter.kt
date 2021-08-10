@@ -60,4 +60,6 @@ private class MetaLevelParameters(private val levels: ArendMetaLevels) : Abstrac
     override fun getReferables(): List<ArendDefIdentifier> = levels.defIdentifierList
 
     override fun getComparisonList(): List<Abstract.Comparison> = emptyList()
+
+    override fun isIncreasing() = true
 }

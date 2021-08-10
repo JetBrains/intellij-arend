@@ -25,6 +25,8 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getSuperClassReferences(): List<ClassReferable> = superClassList.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
 
+    override fun hasLevels(index: Int) = superClassList.getOrNull(index)?.maybeAtomLevelExprsList?.isNotEmpty() ?: false
+
     override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.definition ?: (it.coClause as? ArendCoClauseImplMixin)?.functionReference ?: it.defModule }
 
     private inline val parameterFields: List<ArendFieldDefIdentifier> get() = fieldTeleList.flatMap { it.fieldDefIdentifierList }

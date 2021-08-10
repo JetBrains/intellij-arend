@@ -11,4 +11,6 @@ abstract class ArendMetaLevelsImplMixin(node: ASTNode) : ArendSourceNodeImpl(nod
     override fun getReferables(): List<Referable> = defIdentifierList
 
     override fun getComparisonList(): List<Abstract.Comparison> = emptyList()
+
+    override fun isIncreasing() = true
 }

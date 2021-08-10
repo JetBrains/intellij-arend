@@ -13,4 +13,6 @@ abstract class ArendLevelParamsImplMixin(node: ASTNode) : ArendCompositeElementI
     override fun getComparisonList(): List<Abstract.Comparison> = levelCmpList.map {
         if (it.greaterOrEquals != null) Abstract.Comparison.GREATER_OR_EQUALS else Abstract.Comparison.LESS_OR_EQUALS
     }
+
+    override fun isIncreasing() = levelCmpList.firstOrNull()?.equals(Abstract.Comparison.LESS_OR_EQUALS) ?: true
 }
