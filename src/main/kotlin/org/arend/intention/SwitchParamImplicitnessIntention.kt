@@ -103,7 +103,9 @@ abstract class SwitchParamImplicitnessApplier {
             return
         }
 
-        val replacedFunctionCall = psiFunctionCall.replaceWithNotification(psiFunctionCallPrefix)
+        val replacedFunctionCall =
+            psiFunctionCall.replaceWithNotification(psiFunctionCallPrefix) as ArendArgumentAppExpr
+
         val scope = LocalSearchScope(replacedFunctionCall)
         val refs = ReferencesSearch.search(psiFunctionDef, scope)
 
@@ -120,14 +122,19 @@ abstract class SwitchParamImplicitnessApplier {
             replaceDeep(curElement, psiFunctionDef, switchedArgIndexInDef)
         }
 
-        val newPsiElement = rewriteFunctionCalling(
-            psiFunctionUsage,
-            replacedFunctionCall,
-            psiFunctionDef,
-            switchedArgIndexInDef
-        )
-        val replacedNewFunctionCall = replacedFunctionCall.replaceWithNotification(newPsiElement)
-        processed.add(replacedNewFunctionCall.text)
+        // avoid case when another infix operator on the top
+        val callerText = replacedFunctionCall.atomFieldsAcc?.text
+        val psiFunctionName = psiFunctionUsage.text.replace("`", "")
+        if (psiFunctionName == callerText || psiFunctionName == "($callerText)") {
+            val newPsiElement = rewriteFunctionCalling(
+                psiFunctionUsage,
+                replacedFunctionCall,
+                psiFunctionDef,
+                switchedArgIndexInDef
+            )
+            val replacedNewFunctionCall = replacedFunctionCall.replaceWithNotification(newPsiElement)
+            processed.add(replacedNewFunctionCall.text)
+        }
     }
 
     private fun getParametersIndices(psiFunctionUsage: PsiElement, psiFunctionCall: PsiElement): List<Int> {

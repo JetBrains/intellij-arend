@@ -63,6 +63,19 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testFunctionExToImLastParameter() = doTest(
+        """
+        \data D (a b : Nat) | con
+        \func foo (a {-caret-}b : Nat) : D a b => con
+        \func test : D 0 1 => foo _ _
+        """,
+        """
+        \data D (a b : Nat) | con
+        \func foo (a : Nat) {{-caret-}b : Nat} : D a b => con
+        \func test : D 0 1 => foo _
+        """
+    )
+
     // Param after underscore is explicit
     fun testFunctionImToExUnderscore() = doTest(
         """
@@ -376,6 +389,19 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func \infixl 6 !+! ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
         \func f => (!+!) _ ((!+!) _ (1, 2) (3, 4)) (5, 6)
+        """
+    )
+
+    fun testFunctionImToExOtherInfixOnTop() = doTest(
+        """
+        \open Nat (+)
+        \func f (a {-caret-}b : Nat) => a
+        \func test => foo 0 1 + 2
+        """,
+        """
+        \open Nat (+)
+        \func f (a : Nat) {{-caret-}b : Nat} => a
+        \func test => (+) (foo 0 {1}) 2
         """
     )
 
