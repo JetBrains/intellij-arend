@@ -103,8 +103,7 @@ abstract class SwitchParamImplicitnessApplier {
             return
         }
 
-        val replacedFunctionCall =
-            psiFunctionCall.replaceWithNotification(psiFunctionCallPrefix) as ArendArgumentAppExpr
+        val replacedFunctionCall = psiFunctionCall.replaceWithNotification(psiFunctionCallPrefix)
 
         val scope = LocalSearchScope(replacedFunctionCall)
         val refs = ReferencesSearch.search(psiFunctionDef, scope)
@@ -123,9 +122,10 @@ abstract class SwitchParamImplicitnessApplier {
         }
 
         // avoid case when another infix operator on the top
-        val callerText = replacedFunctionCall.atomFieldsAcc?.text
+        val callerText = getCallerText(replacedFunctionCall)
         val psiFunctionName = psiFunctionUsage.text.replace("`", "")
-        if (psiFunctionName == callerText || psiFunctionName == "($callerText)") {
+
+        if (psiFunctionName == callerText || callerText == "($psiFunctionName)") {
             val newPsiElement = rewriteFunctionCalling(
                 psiFunctionUsage,
                 replacedFunctionCall,
@@ -274,6 +274,8 @@ abstract class SwitchParamImplicitnessApplier {
 
     abstract fun getCallingParameters(element: PsiElement): List<String>
 
+    abstract fun getCallerText(element: PsiElement): String
+
     // remove this function?
     private fun buildFunctionCallingText(
         functionName: String,
@@ -412,6 +414,11 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         val factory = ArendPsiFactory(psiFunctionCall.project)
         return factory.createExpression(expr).childOfType<ArendArgumentAppExpr>()!!
     }
+
+    override fun getCallerText(element: PsiElement): String {
+        val psiFunctionCall = element as ArendArgumentAppExpr
+        return psiFunctionCall.atomFieldsAcc?.text ?: ""
+    }
 }
 
 class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
@@ -420,9 +427,7 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
         return element.parent?.ancestor<ArendLocalCoClause>()
     }
 
-    override fun convertFunctionCallToPrefix(psiFunctionCall: PsiElement): PsiElement {
-        return psiFunctionCall
-    }
+    override fun convertFunctionCallToPrefix(psiFunctionCall: PsiElement): PsiElement = psiFunctionCall
 
     override fun getIthPsiCallingParameter(element: PsiElement, index: Int): PsiElement {
         val psiFunctionCall = element as ArendLocalCoClause
@@ -438,5 +443,10 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
         val factory = ArendPsiFactory(psiFunctionCall.project)
         val body = (psiFunctionCall as ArendLocalCoClause).expr?.text
         return factory.createLocalCoClause(expr, body)
+    }
+
+    override fun getCallerText(element: PsiElement): String {
+        val coClause = element as ArendLocalCoClause
+        return coClause.longName?.text ?: ""
     }
 }
