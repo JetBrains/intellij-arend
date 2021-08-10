@@ -9,6 +9,7 @@ import com.intellij.codeInsight.daemon.impl.PsiElementListNavigator
 import com.intellij.codeInsight.navigation.BackgroundUpdaterTask
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PsiClassListCellRenderer
+import com.intellij.ide.util.PsiClassRenderingInfo
 import com.intellij.ide.util.PsiElementListCellRenderer
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.markup.GutterIconRenderer
@@ -60,7 +61,7 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
         }
 
         override fun getContainerText(element: ArendDefinition, name: String) =
-            PsiClassListCellRenderer.getContainerTextStatic(element)
+            PsiClassRenderingInfo.getContainerTextStatic(element)
 
         override fun getIconFlags() = 0
     }

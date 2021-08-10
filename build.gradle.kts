@@ -22,6 +22,7 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
+    implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
 }
 
@@ -58,7 +59,7 @@ intellij {
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("yaml", "java", "IdeaVIM:0.67"))
+    plugins.set(listOf("yaml", "java", "IdeaVIM:0.69"))
 }
 
 tasks.named<JavaExec>("runIde") {
@@ -127,7 +128,7 @@ tasks.register<Copy>("prelude") {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "6.7"
+    gradleVersion = "7.1"
 }
 
 // Utils
