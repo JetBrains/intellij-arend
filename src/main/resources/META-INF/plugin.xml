@@ -167,6 +167,9 @@
 
         <psi.referenceContributor language="yaml" implementation="org.arend.yaml.codeInsight.YAMLReferenceContributor"/>
 
+        <!-- Inspections -->
+        <lang.inspectionSuppressor language="Arend" implementationClass="org.arend.inspection.ArendInspectionSuppressor"/>
+
         <!-- Intention Actions -->
         <intentionAction>
             <className>org.arend.intention.ImplementFieldsInNewExprIntention</className>
@@ -210,6 +213,16 @@
 
         <intentionAction>
             <className>org.arend.intention.SwitchParamImplicitnessIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.AddClarifyingParensIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.RemoveClarifyingParensIntention</className>
             <category>Arend</category>
         </intentionAction>
 
