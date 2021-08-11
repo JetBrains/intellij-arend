@@ -11,11 +11,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
-import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.intention.unwrapParens
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.util.ArendBundle
+import org.arend.util.isBinOp
 
 class RedundantParensInspection : LocalInspectionTool() {
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : ArendVisitor() {
@@ -54,12 +54,12 @@ private fun isAtomic(argumentAppExpr: ArendArgumentAppExpr): Boolean {
     return argumentAppExpr.atomFieldsAcc != null
 }
 
-fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
+private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
     if (atomFieldsAcc.fieldAccList.isNotEmpty()) {
         return false
     }
     val literal = atomFieldsAcc.atom.literal ?: return false
-    return BinOpIntentionUtil.isBinOp(literal.longName) || BinOpIntentionUtil.isBinOp(literal.ipName)
+    return isBinOp(literal.longName) || isBinOp(literal.ipName)
 }
 
 private fun neverNeedsParensInParent(tuple: ArendTuple): Boolean {

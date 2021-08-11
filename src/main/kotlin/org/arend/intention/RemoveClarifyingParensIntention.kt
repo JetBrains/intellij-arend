@@ -3,7 +3,6 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import org.arend.ext.reference.Precedence
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.intention.binOp.BinOpSeqProcessor
 import org.arend.intention.binOp.CaretHelper
