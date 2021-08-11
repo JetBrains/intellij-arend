@@ -7,9 +7,9 @@ import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.Referable
-import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -235,8 +235,7 @@ abstract class SwitchParamImplicitnessApplier {
         startFromIndex: Int
     ): PsiElement {
         val teleList = mutableListOf<String>()
-        val argumentAppExpr = psiFunctionCall as ArendArgumentAppExpr
-        val referables = argumentAppExpr.scope.elements.map { VariableImpl(it.textRepresentation()) } as MutableList
+        val referables = getContext(psiFunctionCall) as MutableList
 
         for (tele in getTelesFromDef(psiFunctionDef)) {
             val paramsInTele = getTele(tele) ?: continue
@@ -302,6 +301,8 @@ abstract class SwitchParamImplicitnessApplier {
     }
 
     abstract fun createPsiFromText(expr: String, psiFunctionCall: PsiElement): PsiElement
+
+    abstract fun getContext(element: PsiElement): List<Variable>
 
     private fun getArgumentIndex(element: PsiElement): Int {
         var i = 0
@@ -425,6 +426,11 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         return factory.createExpression(expr).childOfType<ArendArgumentAppExpr>()!!
     }
 
+    override fun getContext(element: PsiElement): List<Variable> {
+        val argumentAppExpr = element as ArendArgumentAppExpr
+        return argumentAppExpr.scope.elements.map { VariableImpl(it.textRepresentation()) }
+    }
+
     override fun getCallerText(element: PsiElement): String {
         val psiFunctionCall = element as ArendArgumentAppExpr
         return psiFunctionCall.atomFieldsAcc?.text ?: ""
@@ -453,6 +459,11 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
         val factory = ArendPsiFactory(psiFunctionCall.project)
         val body = (psiFunctionCall as ArendLocalCoClause).expr?.text
         return factory.createLocalCoClause(expr, body)
+    }
+
+    override fun getContext(element: PsiElement): List<Variable> {
+        val localCoClause = element as ArendLocalCoClause
+        return localCoClause.scope.elements.map { VariableImpl(it.textRepresentation()) }
     }
 
     override fun getCallerText(element: PsiElement): String {

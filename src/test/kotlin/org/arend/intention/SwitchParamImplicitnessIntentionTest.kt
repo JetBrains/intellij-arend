@@ -637,7 +637,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
-        \func g => \lam {gen_B} gen_a gen_b => f {Nat} gen_B gen_a gen_b
+        \func g => \lam {B} a b => f {Nat} B a b
         \func h => g 1 2
         """
     )
@@ -664,7 +664,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
         \func id {A : \Type} (a : A) => a
-        \func g => id (\lam {gen_B} gen_a gen_b => f {Nat} gen_B gen_a gen_b)
+        \func g => id (\lam {B} a b => f {Nat} B a b)
         """
     )
 
@@ -676,7 +676,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func f (A : \Type) {B{-caret-} : \Type} (a : A) (b : B) => (a, b)
-        \func g => \lam gen_B gen_a gen_b => f Nat {gen_B} gen_a gen_b
+        \func g => \lam B a b => f Nat {B} a b
         \func h => g Nat 1 2
         """
     )
@@ -689,7 +689,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func \infixl 6 !+! {A B : \Type} (a : A) {{-caret-}b : B} => (a, b)
-        \func g => \lam gen_b => (!+!) {Nat} {Nat} 1 {gen_b}
+        \func g => \lam b => (!+!) {Nat} {Nat} 1 {b}
         \func h => g 2
         """
     )
@@ -701,7 +701,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \class Test {A  : \Type} (B{-caret-} : \Type) (a : A) (b : B)
-        \func f => \lam {gen_B} gen_a gen_b => Test {Nat} gen_B gen_a gen_b
+        \func f => \lam {B} a b => Test {Nat} B a b
         """
     )
 
