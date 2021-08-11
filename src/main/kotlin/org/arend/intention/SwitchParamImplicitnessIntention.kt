@@ -41,13 +41,12 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
         val elementOnCaret = element.containingFile.findElementAt(editor.caretModel.offset)
         val switchedArgIndexInTele = getSwitchedArgIndex(element, elementOnCaret)
 
+        // switch all variables in telescope
         if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
-            // TODO: show context window with this message
-            println("[DEBUG] caret must be on argument's name")
-            return
+            switchTeleExplicitness(element)
+        } else {
+            chooseApplier(element)?.applyTo(element, switchedArgIndexInTele)
         }
-
-        chooseApplier(element)?.applyTo(element, switchedArgIndexInTele)
     }
 
     private fun chooseApplier(element: ArendCompositeElement): SwitchParamImplicitnessApplier? {
@@ -63,14 +62,40 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
         val argsText = getTele(tele)?.map { it.text }
         return if (argsText?.size == 1) 0 else argsText?.indexOf(switchedArg.text)
     }
+
+    private fun switchTeleExplicitness(tele: ArendCompositeElement) {
+        val psiFunctionDef = tele.ancestor<PsiReferable>() as PsiElement
+        val teleIndex = psiFunctionDef.children.indexOf(tele)
+        val anchor = psiFunctionDef.children[teleIndex - 1]
+
+        val newTele = createSwitchedTele(tele)
+        newTele ?: return
+
+        var curElement = tele
+        val teleSize = getTele(tele)?.size ?: return
+        for (i in 0..teleSize) {
+            val splittedTele = chooseApplier(curElement)?.applyTo(curElement, 0)
+            splittedTele ?: continue
+            curElement = splittedTele.nextSibling as? ArendCompositeElement ?: break
+        }
+
+        val first = psiFunctionDef.children[teleIndex]
+        val last = psiFunctionDef.children[teleIndex + teleSize - 1]
+
+        val factory = ArendPsiFactory(tele.project)
+        psiFunctionDef.deleteChildRangeWithNotification(first, last)
+        val inserted = psiFunctionDef.addAfterWithNotification(newTele, anchor)
+        val psiWs = factory.createWhitespace(" ")
+        psiFunctionDef.addBeforeWithNotification(psiWs, inserted)
+    }
 }
 
 abstract class SwitchParamImplicitnessApplier {
     private val processed = mutableSetOf<String>()
 
-    fun applyTo(element: ArendCompositeElement, switchedArgIndexInTele: Int) {
+    fun applyTo(element: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
         val psiFunctionDef = element.ancestor<PsiReferable>() as? PsiElement
-        psiFunctionDef ?: return
+        psiFunctionDef ?: return element
 
         val switchedArgIndexInDef = getArgumentIndex(element) + switchedArgIndexInTele
 
@@ -79,7 +104,7 @@ abstract class SwitchParamImplicitnessApplier {
             replaceDeep(psiFunctionUsage, psiFunctionDef, switchedArgIndexInDef)
         }
 
-        rewriteFunctionDef(element, switchedArgIndexInTele)
+        return rewriteFunctionDef(element, switchedArgIndexInTele)
     }
 
     /*
@@ -87,7 +112,7 @@ abstract class SwitchParamImplicitnessApplier {
         which contains references to `psiFunctionDef` and
         then converts the current to the prefix form and rewrites this
     */
-    private fun replaceDeep(
+    private fun  replaceDeep(
         psiFunctionUsage: PsiElement,
         psiFunctionDef: PsiElement,
         switchedArgIndexInDef: Int,
@@ -133,7 +158,9 @@ abstract class SwitchParamImplicitnessApplier {
                 psiFunctionDef,
                 switchedArgIndexInDef
             )
-            val replacedNewFunctionCall = replacedFunctionCall.replaceWithNotification(newPsiElement)
+
+            val psiExprElement = if (newPsiElement is ArendLamExpr) replacedFunctionCall.ancestor<ArendNewExpr>()!! else replacedFunctionCall
+            val replacedNewFunctionCall = psiExprElement.replaceWithNotification(newPsiElement)
             processed.add(replacedNewFunctionCall.text)
         }
     }
@@ -155,19 +182,16 @@ abstract class SwitchParamImplicitnessApplier {
         return argsIndices
     }
 
-    private fun rewriteFunctionDef(tele: ArendCompositeElement, switchedArgIndexInTele: Int) {
+    private fun rewriteFunctionDef(tele: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
         val teleSize = getTele(tele)?.size
         if (teleSize != null && teleSize > 1) {
             splitTele(tele, switchedArgIndexInTele)
         }
 
-        val factory = ArendPsiFactory(tele.project)
-        val isExplicit = (tele.text.first() == '(')
-        val text = with(tele.text) { substring(1, length - 1) }
-        val (params, type) = text.split(" : ")
-        val newTele = factory.createNameTele(params.trim().trimEnd(), type.trim().trimEnd(), !isExplicit)
+        val newTele = createSwitchedTele(tele)
+        newTele ?: return tele
 
-        tele.replaceWithNotification(newTele)
+        return tele.replaceWithNotification(newTele)
     }
 
     private fun rewriteFunctionCalling(
@@ -233,7 +257,7 @@ abstract class SwitchParamImplicitnessApplier {
         psiFunctionDef: PsiElement,
         switchedArgIndex: Int,
         startFromIndex: Int
-    ): PsiElement {
+    ): ArendLamExpr {
         val teleList = mutableListOf<String>()
         val referables = getContext(psiFunctionCall) as MutableList
 
@@ -469,5 +493,17 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
     override fun getCallerText(element: PsiElement): String {
         val coClause = element as ArendLocalCoClause
         return coClause.longName?.text ?: ""
+    }
+}
+
+private fun createSwitchedTele(tele: ArendCompositeElement): ArendCompositeElement? {
+    val factory = ArendPsiFactory(tele.project)
+    val isExplicit = (tele.text.first() == '(')
+    val text = with(tele.text) { substring(1, length - 1) }
+    val (params, type) = text.split(" : ").map { it.trim().trimEnd() }
+    return when (tele) {
+        is ArendNameTele, is ArendFieldTele -> factory.createNameTele(params, type, !isExplicit)
+        is ArendTypeTele -> factory.createTypeTele(params, type, !isExplicit)
+        else -> null
     }
 }

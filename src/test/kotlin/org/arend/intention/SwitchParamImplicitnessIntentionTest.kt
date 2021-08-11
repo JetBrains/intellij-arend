@@ -168,7 +168,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
+          | snd {{-caret-}X : \Type} (n : X) : Nat
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | fst X => 1
@@ -191,7 +191,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
+          | snd ({-caret-}X : \Type) (n : X) : Nat
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | fst X => 1
@@ -214,7 +214,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
+          | snd ({-caret-}X : \Type) (n : X) : Nat
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | fst X => 1
@@ -237,7 +237,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
+          | snd {{-caret-}X : \Type} (n : X) : Nat
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | fst X => 1
@@ -260,7 +260,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \record testRecord (T : \Type)
           | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
+          | snd {{-caret-}X : \Type} (n : X) : Nat
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | fst X => 1
@@ -280,7 +280,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \record testRecord (T : \Type)
-          | k {A B : \Type} (a : A) {b :{-caret-} B} : A
+          | k {A B : \Type} (a : A) {b {-caret-}: B} : A
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k a {_} => a
@@ -362,7 +362,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \record testRecord (T : \Type)
-          | k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) : A
+          | k {A : \Type} ({-caret-}B : \Type) (a : A) (b : B) : A
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k {_} _ a b => a
