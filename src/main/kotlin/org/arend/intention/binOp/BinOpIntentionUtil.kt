@@ -3,6 +3,8 @@ package org.arend.intention.binOp
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.util.castSafelyTo
+import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendIPName
@@ -29,8 +31,12 @@ object BinOpIntentionUtil {
 
     private fun isBinOp(binOpReference: ArendReferenceContainer?) =
             if (binOpReference is ArendIPName) binOpReference.infix != null
-            else (binOpReference?.resolve as? GlobalReferable)?.precedence?.isInfix == true
+            else (resolve(binOpReference))?.precedence?.isInfix == true
 
     private fun skipWhiteSpacesBackwards(element: PsiElement) =
             if (element is PsiWhiteSpace) PsiTreeUtil.prevCodeLeaf(element) else element
+
+    private fun resolve(reference: ArendReferenceContainer?): GlobalReferable? =
+            reference?.resolve?.castSafelyTo<GlobalReferable>()
+                    ?.let { if (it.hasAlias() && it.aliasName == reference.referenceName) AliasReferable(it) else it }
 }
