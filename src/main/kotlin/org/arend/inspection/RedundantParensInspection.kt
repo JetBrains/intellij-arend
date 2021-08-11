@@ -11,7 +11,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
-import org.arend.intention.unwrapParens
+import org.arend.refactoring.unwrapParens
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.util.ArendBundle
