@@ -405,6 +405,17 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testFunctionImToExSaveModule() = doTest(
+        """
+        \func f (a {-caret-}b : Nat) => a
+        \func test => foo 0 1 Nat.+ 2
+        """,
+        """
+        \func f (a : Nat) {{-caret-}b : Nat} => a
+        \func test => (Nat.+) (foo 0 {1}) 2
+        """
+    )
+
     fun testFunctionExToImInfixAddBraces() = doTest(
         """
         \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (ab : A -> B) => ab a

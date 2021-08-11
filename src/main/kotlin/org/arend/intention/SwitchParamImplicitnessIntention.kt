@@ -366,7 +366,12 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
 
         fun buildTextFromConcrete(concrete: Concrete.AppExpression): String {
             return buildString {
-                append("${concrete.function} ")
+                val psiFunction = concrete.function.data as PsiElement
+                var functionText = psiFunction.text.replace("`", "")
+                if (concrete.function.toString().first() == '(') {
+                    functionText = "($functionText)"
+                }
+                append("$functionText ")
                 for (arg in concrete.arguments) {
                     val argText = arg.expression.toString()
                     if (arg.isExplicit) {
