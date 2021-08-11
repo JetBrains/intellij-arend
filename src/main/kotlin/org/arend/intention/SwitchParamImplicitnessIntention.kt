@@ -1,15 +1,16 @@
 package org.arend.intention
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.Referable
+import org.arend.naming.renamer.Renamer
+import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -234,12 +235,16 @@ abstract class SwitchParamImplicitnessApplier {
         startFromIndex: Int
     ): PsiElement {
         val teleList = mutableListOf<String>()
+        val argumentAppExpr = psiFunctionCall as ArendArgumentAppExpr
+        val referables = argumentAppExpr.scope.elements.map { VariableImpl(it.textRepresentation()) } as MutableList
 
         for (tele in getTelesFromDef(psiFunctionDef)) {
             val paramsInTele = getTele(tele) ?: continue
             teleList.addAll(paramsInTele.map {
-                val genName = "gen_" + it.text
-                if (tele.text.first() != '{') genName else "{$genName}"
+                val variable = VariableImpl(it.text)
+                val freshName = StringRenamer().generateFreshName(variable, referables)
+                referables.add(VariableImpl(freshName))
+                if (tele.text.first() != '{') freshName else "{$freshName}"
             })
         }
 
@@ -344,8 +349,8 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         if (element !is ArendArgumentAppExpr) return parent
 
         val concreteFunctionCall = convertFunctionCallToPrefix(parent) as? ArendArgumentAppExpr ?: return null
-        for (arg in concreteFunctionCall.argumentList) {
-            if (arg.text.equals(element.text) || arg.text.equals("(" + element.text + ")"))
+        for (arg in getCallingParameters(concreteFunctionCall)) {
+            if (arg == element.text || arg == "(" + element.text + ")")
                 return null
         }
         return parent

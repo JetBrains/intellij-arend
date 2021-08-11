@@ -704,4 +704,15 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         \func f => \lam {gen_B} gen_a gen_b => Test {Nat} gen_B gen_a gen_b
         """
     )
+
+    fun testFunctionImToExPartialAppCorrectNaming() = doTest(
+        """
+        \func foo (a {-caret-}b b1 : Nat) => a
+        \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => foo 0
+        """,
+        """
+        \func foo (a : Nat) {b{-caret-} : Nat} (b1 : Nat) => a
+        \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => \lam b2 b3 => foo 0 {b2} b3
+        """
+    )
 }
