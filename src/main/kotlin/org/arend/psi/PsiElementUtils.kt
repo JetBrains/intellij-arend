@@ -361,5 +361,6 @@ fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
 fun getTelesFromDef(def: PsiElement?): List<ArendCompositeElement> = when (def) {
     is ArendDefFunction -> def.nameTeleList
     is ArendDefClass -> def.fieldTeleList
+    is ArendClassField -> def.typeTeleList
     else -> emptyList()
 }

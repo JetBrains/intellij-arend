@@ -63,6 +63,17 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testFunctionExToImWithOmittedArgs() = doTest(
+        """
+        \func f {A B : \Type} ({-caret-}a : A) (b : B) => a
+        \func test (a b : Nat) => f a b
+        """,
+        """
+        \func f {A B : \Type} {{-caret-}a : A} (b : B) => a
+        \func test (a b : Nat) => f {_} {_} {a} b
+        """
+    )
+
 //    fun testFunctionExToImLastParameter() = doTest(
 //        """
 //        \data D (a b : Nat) | con
@@ -370,6 +381,44 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testTypeExToImParamAfterEx() = doTest(
+        """
+        \record testRecord (T : \Type)
+          | k {A B : \Type} ({-caret-}a : A) (b : B) : A
+
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k {_} a b => a
+        }
+        """,
+        """
+        \record testRecord (T : \Type)
+          | k {A B : \Type} {{-caret-}a : A} (b : B) : A
+
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k {_} {_} {a} b => a
+        }
+        """
+    )
+
+    fun testTypeImToExAllTele() = doTest(
+        """
+        \record testRecord (T : \Type)
+          | k {A B : {-caret-}\Type} (a : A) (b : B) : A
+
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k a b => a
+        }
+        """,
+        """
+        \record testRecord (T : \Type)
+          | k (A B : {-caret-}\Type) (a : A) (b : B) : A
+
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k _ _ a b => a
+        }
+        """
+    )
+
     fun testFunctionImToExInfixSimple() = doTest(
         """
         \func mp {{-caret-}A B : \Type} (a : A) (b : B) => a
@@ -396,23 +445,23 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \open Nat (+)
         \func f (a {-caret-}b : Nat) => a
-        \func test => foo 0 1 + 2
+        \func test => f 0 1 + 2
         """,
         """
         \open Nat (+)
-        \func f (a : Nat) {{-caret-}b : Nat} => a
-        \func test => (+) (foo 0 {1}) 2
+        \func f (a : Nat) {b{-caret-} : Nat} => a
+        \func test => (+) (f 0 {1}) 2
         """
     )
 
     fun testFunctionImToExSaveModule() = doTest(
         """
         \func f (a {-caret-}b : Nat) => a
-        \func test => foo 0 1 Nat.+ 2
+        \func test => f 0 1 Nat.+ 2
         """,
         """
-        \func f (a : Nat) {{-caret-}b : Nat} => a
-        \func test => (Nat.+) (foo 0 {1}) 2
+        \func f (a : Nat) {b{-caret-} : Nat} => a
+        \func test => (Nat.+) (f 0 {1}) 2
         """
     )
 

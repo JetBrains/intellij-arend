@@ -112,7 +112,7 @@ abstract class SwitchParamImplicitnessApplier {
         which contains references to `psiFunctionDef` and
         then converts the current to the prefix form and rewrites this
     */
-    private fun  replaceDeep(
+    private fun replaceDeep(
         psiFunctionUsage: PsiElement,
         psiFunctionDef: PsiElement,
         switchedArgIndexInDef: Int,
@@ -159,7 +159,8 @@ abstract class SwitchParamImplicitnessApplier {
                 switchedArgIndexInDef
             )
 
-            val psiExprElement = if (newPsiElement is ArendLamExpr) replacedFunctionCall.ancestor<ArendNewExpr>()!! else replacedFunctionCall
+            val psiExprElement =
+                if (newPsiElement is ArendLamExpr) replacedFunctionCall.ancestor<ArendNewExpr>()!! else replacedFunctionCall
             val replacedNewFunctionCall = psiExprElement.replaceWithNotification(newPsiElement)
             processed.add(replacedNewFunctionCall.text)
         }
@@ -238,14 +239,25 @@ abstract class SwitchParamImplicitnessApplier {
             val isNextArgExplicit =
                 if (elementIndexInArgs != indices.size - 1) (argsText[elementIndexInArgs + 1].first() != '{') else false
             val needToRemoveArg = (argsText[elementIndexInArgs] == "_") && isNextArgExplicit
-            val psiSwitchedArg = getIthPsiCallingParameter(psiFunctionCall, elementIndexInArgs)
+            var psiSwitchedArg = getIthPsiCallingParameter(psiFunctionCall, elementIndexInArgs)
 
             if (needToRemoveArg) {
                 val nextWs = psiSwitchedArg.nextSibling
                 nextWs.deleteWithNotification()
                 psiSwitchedArg.deleteWithNotification()
             } else {
-                psiSwitchedArg.replaceWithNotification(newPsiSwitchedArgument)
+                // from explicit to implicit
+                // need to add all omitted previous implicit args
+                psiSwitchedArg = psiSwitchedArg.replaceWithNotification(newPsiSwitchedArgument)
+
+                if (newPsiSwitchedArgument.text.first() == '{') {
+                    val paramsBefore =
+                        if (elementIndexInArgs == 0) indices[elementIndexInArgs] else (indices[elementIndexInArgs] - indices[elementIndexInArgs - 1] - 1)
+
+                    if (paramsBefore > 0) {
+                        addArgumentSequenceBefore("{_} ".repeat(paramsBefore), psiFunctionCall, psiSwitchedArg)
+                    }
+                }
             }
         }
         return psiFunctionCall
@@ -327,43 +339,6 @@ abstract class SwitchParamImplicitnessApplier {
     abstract fun createPsiFromText(expr: String, psiFunctionCall: PsiElement): PsiElement
 
     abstract fun getContext(element: PsiElement): List<Variable>
-
-    private fun getArgumentIndex(element: PsiElement): Int {
-        var i = 0
-        for (arg in element.parent.children) {
-            when (arg) {
-                is ArendNameTele, is ArendFieldTele, is ArendTypeTele -> {
-                    if (arg.equals(element)) {
-                        return i
-                    }
-
-                    for (tok in arg.text.split("\\s+".toRegex())) {
-                        if (tok == ":") break
-                        i++
-                    }
-                }
-            }
-        }
-        return -1
-    }
-
-    private fun rewriteArg(text: String, toExplicit: Boolean, isNextArgExplicit: Boolean): String {
-        var newText: String
-
-        if (toExplicit) {
-            newText = text.substring(1, text.length - 1)
-            if (text.contains(" ")) {
-                newText = "($newText)"
-            }
-            return newText
-        }
-
-        if (text == "_" && isNextArgExplicit) {
-            return ""
-        }
-
-        return "{$text}"
-    }
 }
 
 class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier() {
@@ -506,4 +481,51 @@ private fun createSwitchedTele(tele: ArendCompositeElement): ArendCompositeEleme
         is ArendTypeTele -> factory.createTypeTele(params, type, !isExplicit)
         else -> null
     }
+}
+
+private fun rewriteArg(text: String, toExplicit: Boolean, isNextArgExplicit: Boolean): String {
+    var newText: String
+
+    if (toExplicit) {
+        newText = text.substring(1, text.length - 1)
+        if (text.contains(" ")) {
+            newText = "($newText)"
+        }
+        return newText
+    }
+
+    if (text == "_" && isNextArgExplicit) {
+        return ""
+    }
+
+    return "{$text}"
+}
+
+private fun getArgumentIndex(element: PsiElement): Int {
+    var i = 0
+    for (arg in element.parent.children) {
+        when (arg) {
+            is ArendNameTele, is ArendFieldTele, is ArendTypeTele -> {
+                if (arg.equals(element)) {
+                    return i
+                }
+
+                for (tok in arg.text.split("\\s+".toRegex())) {
+                    if (tok == ":") break
+                    i++
+                }
+            }
+        }
+    }
+    return -1
+}
+
+private fun addArgumentSequenceBefore(argSequence: String, psiFunctionCall: PsiElement, anchor: PsiElement) {
+    val factory = ArendPsiFactory(psiFunctionCall.project)
+    val exprPsi = factory.createExpression("dummy $argSequence").childOfType<ArendArgumentAppExpr>()!!
+    val (first, last) = Pair(exprPsi.argumentList.first(), exprPsi.argumentList.last())
+
+    val psiWs = factory.createWhitespace(" ")
+    psiFunctionCall.addRangeBeforeWithNotification(first, last, anchor)
+    psiFunctionCall.addBeforeWithNotification(psiWs, anchor)
 }
