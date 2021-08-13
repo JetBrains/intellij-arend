@@ -460,8 +460,8 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         \func test (a b : Nat) => (f 1 2 Nat.+ 42) Nat.* 43
         """,
         """
-        \func f {A B : \Type} {a{-caret-} : A} (b : B) => a
-        \func test (a b : Nat) => (Nat.*) (f {_} {_} {1} 2 Nat.+ 42) 43
+        \func f {A B : \Type} {{-caret-}a : A} (b : B) => a
+        \func test (a b : Nat) => (Nat.*) ((Nat.+) (f {_} {_} {1} 2) 42) 43
         """
     )
 

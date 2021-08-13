@@ -356,7 +356,12 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
                 }
                 append("$functionText ")
                 for (arg in concrete.arguments) {
-                    val argText = arg.expression.toString()
+                    val concreteArg = arg.expression
+                    val argText =
+                        if (concreteArg !is Concrete.AppExpression) {
+                            (concreteArg.data as PsiElement).text
+                        } else buildTextFromConcrete(concreteArg)
+
                     if (arg.isExplicit) {
                         if (needToWrapInBrackets(argText)) {
                             append("($argText) ")
@@ -367,7 +372,7 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
                         append("{$argText} ")
                     }
                 }
-            }
+            }.trimEnd()
         }
 
         val scope = (psiFunctionCall as ArendArgumentAppExpr).scope
