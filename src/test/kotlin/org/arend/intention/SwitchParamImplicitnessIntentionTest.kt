@@ -411,7 +411,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \record testRecord (T : \Type)
-          | k (A B : {-caret-}\Type) (a : A) (b : B) : A
+          | k (A B : \Type) {-caret-}(a : A) (b : B) : A
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k _ _ a b => a

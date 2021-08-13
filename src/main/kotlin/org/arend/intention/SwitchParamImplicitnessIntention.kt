@@ -524,11 +524,9 @@ private fun getArgumentIndex(element: PsiElement): Int {
                 if (arg.equals(element)) {
                     return i
                 }
-
-                for (tok in arg.text.split("\\s+".toRegex())) {
-                    if (tok == ":") break
-                    i++
-                }
+                val teles = getTele(arg)
+                teles ?: continue
+                i += teles.size
             }
         }
     }
