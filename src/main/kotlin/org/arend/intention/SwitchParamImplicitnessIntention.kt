@@ -3,6 +3,7 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiReference
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
@@ -24,7 +25,6 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
-import kotlin.math.abs
 
 class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
     ArendCompositeElement::class.java,
@@ -131,19 +131,15 @@ abstract class SwitchParamImplicitnessApplier {
 
         val replacedFunctionCall = psiFunctionCall.replaceWithNotification(psiFunctionCallPrefix)
 
-        val scope = LocalSearchScope(replacedFunctionCall)
-        val refs = ReferencesSearch.search(psiFunctionDef, scope)
-
-        if (refs.findAll().isEmpty()) {
+        val refs = searchRefsInPsiElement(psiFunctionDef, replacedFunctionCall)
+        if (refs.isEmpty()) {
             return
         }
 
+        val currentFunctionRef = extractRefIdFromCalling(psiFunctionDef, replacedFunctionCall)
         for (ref in refs) {
+            if (ref.element == currentFunctionRef) continue
             val curElement = ref.element
-            // TODO: find another way to check this
-            if (abs(curElement.textOffset - replacedFunctionCall.textOffset) < 3) {
-                continue
-            }
             replaceDeep(curElement, psiFunctionDef, switchedArgIndexInDef)
         }
 
@@ -316,29 +312,11 @@ abstract class SwitchParamImplicitnessApplier {
 
     abstract fun getCallerText(element: PsiElement): String
 
-    // remove this function?
-    private fun buildFunctionCallingText(
-        functionName: String,
-        argsText: List<String>,
-        indices: List<Int>,
-        switchedArgIndex: Int
-    ): String {
-        return buildString {
-            append("$functionName ")
-            for ((i, arg) in argsText.withIndex()) {
-                if (indices[i] != switchedArgIndex) {
-                    append("$arg ")
-                } else {
-                    val isNextArgExplicit = if (i != indices.size - 1) (argsText[i + 1].first() != '{') else false
-                    append(rewriteArg(arg, arg.first() == '{', isNextArgExplicit) + " ")
-                }
-            }
-        }.replace("\\s+".toRegex(), " ")
-    }
-
     abstract fun createPsiFromText(expr: String, psiFunctionCall: PsiElement): PsiElement
 
     abstract fun getContext(element: PsiElement): List<Variable>
+
+    abstract fun extractRefIdFromCalling(psiFunctionDef: PsiElement, psiFunctionCall: PsiElement): PsiElement?
 }
 
 class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier() {
@@ -430,6 +408,12 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         return argumentAppExpr.scope.elements.map { VariableImpl(it.textRepresentation()) }
     }
 
+    override fun extractRefIdFromCalling(psiFunctionDef: PsiElement, psiFunctionCall: PsiElement): PsiElement? {
+        val function = (psiFunctionCall as ArendArgumentAppExpr).atomFieldsAcc!!
+        val refs = searchRefsInPsiElement(psiFunctionDef, function)
+        return if (refs.isEmpty()) null else refs.first().element
+    }
+
     override fun getCallerText(element: PsiElement): String {
         val psiFunctionCall = element as ArendArgumentAppExpr
         return psiFunctionCall.atomFieldsAcc?.text ?: ""
@@ -463,6 +447,12 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
     override fun getContext(element: PsiElement): List<Variable> {
         val localCoClause = element as ArendLocalCoClause
         return localCoClause.scope.elements.map { VariableImpl(it.textRepresentation()) }
+    }
+
+    override fun extractRefIdFromCalling(psiFunctionDef: PsiElement, psiFunctionCall: PsiElement): PsiElement? {
+        val function = (psiFunctionCall as ArendLocalCoClause).longName!!
+        val refs = searchRefsInPsiElement(psiFunctionDef, function)
+        return if (refs.isEmpty()) null else refs.first().element
     }
 
     override fun getCallerText(element: PsiElement): String {
@@ -501,6 +491,26 @@ private fun rewriteArg(text: String, toExplicit: Boolean, isNextArgExplicit: Boo
     return "{$text}"
 }
 
+// remove this function?
+private fun buildFunctionCallingText(
+    functionName: String,
+    argsText: List<String>,
+    indices: List<Int>,
+    switchedArgIndex: Int
+): String {
+    return buildString {
+        append("$functionName ")
+        for ((i, arg) in argsText.withIndex()) {
+            if (indices[i] != switchedArgIndex) {
+                append("$arg ")
+            } else {
+                val isNextArgExplicit = if (i != indices.size - 1) (argsText[i + 1].first() != '{') else false
+                append(rewriteArg(arg, arg.first() == '{', isNextArgExplicit) + " ")
+            }
+        }
+    }.replace("\\s+".toRegex(), " ")
+}
+
 private fun getArgumentIndex(element: PsiElement): Int {
     var i = 0
     for (arg in element.parent.children) {
@@ -528,4 +538,12 @@ private fun addArgumentSequenceBefore(argSequence: String, psiFunctionCall: PsiE
     val psiWs = factory.createWhitespace(" ")
     psiFunctionCall.addRangeBeforeWithNotification(first, last, anchor)
     psiFunctionCall.addBeforeWithNotification(psiWs, anchor)
+}
+
+/*
+    Returns list of all references to `def` in `element` scope
+ */
+private fun searchRefsInPsiElement(def: PsiElement, element: PsiElement): List<PsiReference> {
+    val scope = LocalSearchScope(element)
+    return ReferencesSearch.search(def, scope).findAll().toList()
 }

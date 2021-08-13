@@ -129,7 +129,7 @@ class ArendPsiFactory(
             append(" => ")
             append(expr)
         }.trimEnd()
-        return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
+        return createFromText(code)?.childOfType() ?: error("Failed to create lambda: `$code`")
     }
 
     fun createPairOfBraces(): Pair<PsiElement, PsiElement> {

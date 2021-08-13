@@ -456,12 +456,12 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
 
     fun testFunctionImToExSaveModule() = doTest(
         """
-        \func f (a {-caret-}b : Nat) => a
-        \func test => f 0 1 Nat.+ 2
+        \func f {A B : \Type} ({-caret-}a : A) (b : B) => a
+        \func test (a b : Nat) => (f 1 2 Nat.+ 42) Nat.* 43
         """,
         """
-        \func f (a : Nat) {b{-caret-} : Nat} => a
-        \func test => (Nat.+) (f 0 {1}) 2
+        \func f {A B : \Type} {a{-caret-} : A} (b : B) => a
+        \func test (a b : Nat) => (Nat.*) (f {_} {_} {1} 2 Nat.+ 42) 43
         """
     )
 
