@@ -23,12 +23,15 @@ import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.ext.TCDefinition
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.resolving.ArendReferableConverter
+import org.arend.term.prettyprint.MinimizedRepresentation
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
+import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
@@ -111,10 +114,11 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         editor: Editor, project: Project
     ) {
         val enclosingFunctionDefinition = selection.replaceablePsi.parentOfType<ArendFunctionalDefinition>() ?: return
+        val enclosingDefinitionReferable = selection.replaceablePsi.parentOfType<TCDefinition>()!!
         val (newFunctionCall, newFunctionDefinition) = buildRepresentations(
-            selection,
-            enclosingFunctionDefinition,
-            freeVariables,
+                enclosingDefinitionReferable, selection,
+                enclosingFunctionDefinition,
+                freeVariables,
         ) ?: return
 
         val globalOffsetOfNewDefinition =
@@ -124,16 +128,19 @@ class GenerateFunctionIntention : BaseIntentionAction() {
     }
 
     private fun buildRepresentations(
-        selection: SelectionResult,
-        functionDefinition: ArendFunctionalDefinition,
-        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
+            enclosingDefinitionReferable: TCDefinition,
+            selection: SelectionResult,
+            functionDefinition: ArendFunctionalDefinition,
+            freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
     ): Pair<String, String>? {
         val newFunctionName = selection.identifier ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" } ?: return null
 
         val ppconfig = getPrettyPrintConfig(selection.replaceablePsi)
 
-        val goalTypeRepresentation = selection.expectedType.prettyPrint(ppconfig).toString()
+        val renamer = ppconfig.definitionRenamer
 
+        val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
+        val minimizedReturnType = MinimizedRepresentation.generateMinimizedRepresentation(selection.expectedType, ip, renamer)
         val explicitVariableNames = freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }
             .joinToString("") { " " + it.first.name }
 
@@ -143,7 +150,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
 
         val actualBody = selection.body?.prettyPrint(ppconfig) ?: "{?}"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
-        val newFunctionDefinition = "\\func $newFunctionName$parameters : $goalTypeRepresentation => $actualBody"
+        val newFunctionDefinition = "\\func $newFunctionName$parameters : $minimizedReturnType => $actualBody"
         return newFunctionCall to newFunctionDefinition
     }
 

@@ -138,4 +138,16 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
 
         \func bar-lemma {A : \Prop} (x : A) : A => x
     """)
+
+    fun `test implicit args`() = doTest("""
+        \data D {x y : Nat} {eq : x = y} (z : Nat) | dd
+
+        \func foo : D {2} {2} {idp} 1 => {-selection-}{-caret-}dd{-end_selection-}
+    """, """
+        \data D {x y : Nat} {eq : x = y} (z : Nat) | dd
+
+        \func foo : D {2} {2} {idp} 1 => foo-lemma
+  
+        \func foo-lemma : D {2} {2} {idp {Nat} {2}} 1 => dd
+    """)
 }
