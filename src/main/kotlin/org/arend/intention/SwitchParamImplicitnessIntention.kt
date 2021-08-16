@@ -146,7 +146,7 @@ abstract class SwitchParamImplicitnessApplier {
         }
 
         // avoid case when another infix operator on the top
-        if (psiFunctionName == getCallerText(replacedFunctionCall)) {
+        if (psiFunctionDef == resolveCaller(replacedFunctionCall)) {
             val newPsiElement = rewriteFunctionCalling(
                 psiFunctionUsage,
                 replacedFunctionCall,
@@ -324,7 +324,7 @@ abstract class SwitchParamImplicitnessApplier {
 
     abstract fun getCallingParameters(element: PsiElement): List<String>
 
-    abstract fun getCallerText(element: PsiElement): String
+    abstract fun resolveCaller(element: PsiElement): PsiElement?
 
     abstract fun createPsiFromText(expr: String, psiFunctionCall: PsiElement): PsiElement
 
@@ -419,9 +419,11 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         return if (refs.isEmpty()) null else refs.first().element
     }
 
-    override fun getCallerText(element: PsiElement): String {
+    override fun resolveCaller(element: PsiElement): PsiElement? {
         val psiFunctionCall = element as ArendArgumentAppExpr
-        return psiFunctionCall.atomFieldsAcc?.text ?: ""
+        val longName = psiFunctionCall.atomFieldsAcc?.childOfType<ArendLongName>()
+        longName ?: return null
+        return getRefToFunFromLongName(longName)
     }
 }
 
@@ -438,7 +440,7 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
     }
 
     override fun getCallingParameters(element: PsiElement): List<String> {
-        val psiFunctionCall = element as ArendLocalCoClauseImpl
+        val psiFunctionCall = element as ArendLocalCoClause
         return psiFunctionCall.lamParamList.map { it.text }
     }
 
@@ -459,9 +461,11 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
         return if (refs.isEmpty()) null else refs.first().element
     }
 
-    override fun getCallerText(element: PsiElement): String {
+    override fun resolveCaller(element: PsiElement): PsiElement? {
         val coClause = element as ArendLocalCoClause
-        return coClause.longName?.text ?: ""
+        val longName = coClause.longName
+        longName ?: return null
+        return getRefToFunFromLongName(longName)
     }
 }
 
@@ -548,4 +552,9 @@ private fun addArgumentSequenceBefore(argSequence: String, psiFunctionCall: PsiE
 private fun searchRefsInPsiElement(def: PsiElement, element: PsiElement): List<PsiReference> {
     val scope = LocalSearchScope(element)
     return ReferencesSearch.search(def, scope).findAll().toList()
+}
+
+private fun getRefToFunFromLongName(longName: ArendLongName): PsiElement? {
+    val ref = longName.children.last() as? ArendRefIdentifier
+    return ref?.resolve
 }
