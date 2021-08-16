@@ -29,6 +29,7 @@ import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.resolving.ArendReferableConverter
+import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.MinimizedRepresentation
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.PsiInstanceProviderSet
@@ -133,24 +134,28 @@ class GenerateFunctionIntention : BaseIntentionAction() {
             functionDefinition: ArendFunctionalDefinition,
             freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
     ): Pair<String, String>? {
-        val newFunctionName = selection.identifier ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" } ?: return null
+        val newFunctionName = selection.identifier ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" }
+        ?: return null
 
-        val ppconfig = getPrettyPrintConfig(selection.replaceablePsi)
+        val prettyPrinter: (Expression) -> Concrete.Expression = run {
+            val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
+            val ppconfig = getPrettyPrintConfig(selection.replaceablePsi)
+            val renamer = ppconfig.definitionRenamer
 
-        val renamer = ppconfig.definitionRenamer
-
-        val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
-        val minimizedReturnType = MinimizedRepresentation.generateMinimizedRepresentation(selection.expectedType, ip, renamer)
-        val explicitVariableNames = freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }
-            .joinToString("") { " " + it.first.name }
-
-        val parameters = freeVariables.joinToString("") { (binding, explicitness) ->
-            " ${explicitness.openBrace}${binding.name} : ${binding.typeExpr.prettyPrint(ppconfig)}${explicitness.closingBrace}"
+            { MinimizedRepresentation.generateMinimizedRepresentation(it, ip, renamer) }
         }
 
-        val actualBody = selection.body?.prettyPrint(ppconfig) ?: "{?}"
+        val explicitVariableNames = freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }
+                .joinToString("") { " " + it.first.name }
+
+        val parameters = freeVariables.joinToString("") { (binding, explicitness) ->
+            " ${explicitness.openBrace}${binding.name} : ${prettyPrinter(binding.typeExpr)}${explicitness.closingBrace}"
+        }
+
+        val actualBody = selection.body?.let { prettyPrinter(it) }
+                ?: "{?}"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
-        val newFunctionDefinition = "\\func $newFunctionName$parameters : $minimizedReturnType => $actualBody"
+        val newFunctionDefinition = "\\func $newFunctionName$parameters : ${prettyPrinter(selection.expectedType)} => $actualBody"
         return newFunctionCall to newFunctionDefinition
     }
 
