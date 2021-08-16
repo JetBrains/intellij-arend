@@ -294,17 +294,8 @@ abstract class SwitchParamImplicitnessApplier {
 
     abstract fun convertFunctionCallToPrefix(psiFunctionCall: PsiElement): PsiElement?
 
-    private fun getTopParentPsiFunctionCall(element: PsiElement): PsiElement {
-        var current = element
-        var parent = getParentPsiFunctionCall(element)
-
-        while (parent != null) {
-            current = parent
-            parent = getParentPsiFunctionCall(parent)
-        }
-
-        return current
-    }
+    private fun getTopParentPsiFunctionCall(element: PsiElement): PsiElement =
+        getParentPsiFunctionCall(element) ?: element
 
     abstract fun getIthPsiCallingParameter(element: PsiElement, index: Int): PsiElement
 
@@ -320,19 +311,8 @@ abstract class SwitchParamImplicitnessApplier {
 }
 
 class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier() {
-    override fun getParentPsiFunctionCall(element: PsiElement): PsiElement? {
-        val parent = element.parent?.ancestor<ArendArgumentAppExpr>()
-        parent ?: return null
-
-        if (element !is ArendArgumentAppExpr) return parent
-
-        val concreteFunctionCall = convertFunctionCallToPrefix(parent) as? ArendArgumentAppExpr ?: return null
-        for (arg in getCallingParameters(concreteFunctionCall)) {
-            if (arg == element.text || arg == "(" + element.text + ")")
-                return null
-        }
-        return parent
-    }
+    override fun getParentPsiFunctionCall(element: PsiElement): PsiElement? =
+        element.parent?.ancestor<ArendArgumentAppExpr>()
 
     override fun convertFunctionCallToPrefix(psiFunctionCall: PsiElement): PsiElement? {
         fun needToWrapInBrackets(expr: String): Boolean {
@@ -350,10 +330,7 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         fun buildTextFromConcrete(concrete: Concrete.AppExpression): String {
             return buildString {
                 val psiFunction = concrete.function.data as PsiElement
-                var functionText = psiFunction.text.replace("`", "")
-                if (concrete.function.toString().first() == '(') {
-                    functionText = "($functionText)"
-                }
+                val functionText = psiFunction.text.replace("`", "")
                 append("$functionText ")
                 for (arg in concrete.arguments) {
                     val concreteArg = arg.expression
@@ -426,7 +403,6 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
 }
 
 class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
-    // TODO: check this case
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement? {
         return element.parent?.ancestor<ArendLocalCoClause>()
     }
