@@ -728,16 +728,27 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-//    fun testFunctionExToImPartialApp2() = doTest(
-//        """
-//        \func p (a {-caret-}b : Nat) => a
-//        \func test (f : (Nat -> Nat -> Nat) -> Nat) => f p
-//        """,
-//        """
-//        \func p (a : Nat) {{-caret-}b : Nat} => a
-//        \func test (f : (Nat -> Nat -> Nat) -> Nat) => f (\lam a b => p a {b})
-//        """
-//    )
+    fun testFunctionExToImPartialApp2() = doTest(
+        """
+        \func p (a {-caret-}b : Nat) => a
+        \func test (f : (Nat -> Nat -> Nat) -> Nat) => f (p)
+        """,
+        """
+        \func p (a : Nat) {b{-caret-} : Nat} => a
+        \func test (f : (Nat -> Nat -> Nat) -> Nat) => f (\lam a b => p a {b})
+        """
+    )
+
+    fun testFunctionExToImPartialApp3() = doTest(
+        """
+        \func p (a {-caret-}b : Nat) => a
+        \func test (f : (Nat -> Nat -> Nat) -> Nat) => f p
+        """,
+        """
+        \func p (a : Nat) {b{-caret-} : Nat} => a
+        \func test (f : (Nat -> Nat -> Nat) -> Nat) => f (\lam a b => p a {b})
+        """
+    )
 
     fun testOperatorImToExPartialApp1() = doTest(
         """

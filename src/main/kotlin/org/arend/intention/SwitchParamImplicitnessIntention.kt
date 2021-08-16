@@ -120,9 +120,9 @@ abstract class SwitchParamImplicitnessApplier {
         // this element has already been replaced
         if (!psiFunctionUsage.isValid) return
 
+        val psiFunctionName = psiFunctionUsage.text.replace("`", "")
         val psiFunctionCall = getTopParentPsiFunctionCall(psiFunctionUsage)
-        val psiFunctionCallPrefix = convertFunctionCallToPrefix(psiFunctionCall)
-        psiFunctionCallPrefix ?: return
+        val psiFunctionCallPrefix = convertFunctionCallToPrefix(psiFunctionCall) ?: psiFunctionCall
 
         // TODO: don't compare strings
         if (processed.contains(psiFunctionCall.text)) {
@@ -130,6 +130,8 @@ abstract class SwitchParamImplicitnessApplier {
         }
 
         val replacedFunctionCall = psiFunctionCall.replaceWithNotification(psiFunctionCallPrefix)
+
+        tryProcessCaseWithoutArguments(replacedFunctionCall, psiFunctionName)
 
         val refs = searchRefsInPsiElement(psiFunctionDef, replacedFunctionCall)
         if (refs.isEmpty()) {
@@ -144,10 +146,7 @@ abstract class SwitchParamImplicitnessApplier {
         }
 
         // avoid case when another infix operator on the top
-        val callerText = getCallerText(replacedFunctionCall)
-        val psiFunctionName = psiFunctionUsage.text.replace("`", "")
-
-        if (psiFunctionName == callerText || callerText == "($psiFunctionName)") {
+        if (psiFunctionName == getCallerText(replacedFunctionCall)) {
             val newPsiElement = rewriteFunctionCalling(
                 psiFunctionUsage,
                 replacedFunctionCall,
@@ -288,6 +287,30 @@ abstract class SwitchParamImplicitnessApplier {
         val newFunctionCallText = psiFunctionCall.text + callingArgsCut.joinToString(" ", " ")
         val factory = ArendPsiFactory(psiFunctionUsage.project)
         return factory.createLam(teleListCut, newFunctionCallText)
+    }
+
+
+    /*
+        wrap the function, when its in arguments, in parens.
+        case:
+        \func suc ({-caret-}a : Nat) => a Nat.+ 1
+        \func foo (f : (Nat -> Nat) -> Nat ) => f suc
+
+        converts to:
+        \func suc ({-caret-}a : Nat) => a Nat.+ 1
+        \func foo (f : (Nat -> Nat) -> Nat ) => f (suc)
+    */
+    private fun tryProcessCaseWithoutArguments(psiFunctionCall: PsiElement, functionName: String) {
+        val parameters = getCallingParameters(psiFunctionCall)
+        for ((i, parameter) in parameters.withIndex()) {
+            if (functionName == parameter) {
+                val argumentInBraces =
+                    (ArendPsiFactory(psiFunctionCall.project).createExpression("dummy ($functionName)")
+                        .childOfType<ArendArgumentAppExpr>())!!.argumentList.first()
+                val ithArg = getIthPsiCallingParameter(psiFunctionCall, i)
+                ithArg.replaceWithNotification(argumentInBraces)
+            }
+        }
     }
 
     abstract fun getParentPsiFunctionCall(element: PsiElement): PsiElement?
