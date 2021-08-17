@@ -10,6 +10,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.codeStyle.CodeStyleManager
+import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parents
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
@@ -139,7 +140,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
 
         val prettyPrinter: (Expression) -> Concrete.Expression = run {
             val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
-            val ppconfig = getPrettyPrintConfig(selection.replaceablePsi)
+            val ppconfig = getPrettyPrintConfig(selection.replaceablePsi.parentOfType<ArendStatement>()!!)
             val renamer = ppconfig.definitionRenamer
 
             { MinimizedRepresentation.generateMinimizedRepresentation(it, ip, renamer) }

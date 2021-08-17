@@ -150,4 +150,18 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
   
         \func foo-lemma : D {2} {2} {idp {Nat} {2}} 1 => dd
     """)
+
+    fun `test qualified definition`() = doTest("""
+        \func foo : Nat => {-selection-}b{-caret-}ar{-end_selection-}
+        \where {
+            \func bar : Nat => 1
+        }
+    """, """
+        \func foo : Nat => foo-lemma
+        \where {
+            \func bar : Nat => 1
+        }
+        
+        \func foo-lemma : Nat => foo.bar
+    """.trimIndent())
 }
