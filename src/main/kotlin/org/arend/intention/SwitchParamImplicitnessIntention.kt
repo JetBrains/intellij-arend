@@ -112,11 +112,14 @@ abstract class SwitchParamImplicitnessApplier {
         which contains references to `psiFunctionDef` and
         then converts the current to the prefix form and rewrites this
     */
+    var step = 0
     private fun replaceDeep(
         psiFunctionUsage: PsiElement,
         psiFunctionDef: PsiElement,
         switchedArgIndexInDef: Int,
     ) {
+        step++
+        if (step > 50) return
         // this element has already been replaced
         if (!psiFunctionUsage.isValid) return
 
@@ -161,13 +164,9 @@ abstract class SwitchParamImplicitnessApplier {
         }
     }
 
-    private fun getParametersIndices(psiFunctionUsage: PsiElement, psiFunctionCall: PsiElement): List<Int> {
+    private fun getParametersIndices(psiFunctionDef: PsiElement, psiFunctionCall: PsiElement): List<Int> {
         val parameterHandler = ArendParameterInfoHandler()
-        val container =
-            parameterHandler.extractRefFromSourceNode(if (psiFunctionUsage !is ArendIPName) psiFunctionUsage as Abstract.SourceNode else psiFunctionUsage.ancestor<ArendLiteral>() as Abstract.SourceNode)
-        val ref = container?.resolve as? Referable
-        val parameters = ref?.let { parameterHandler.getAllParametersForReferable(it) }
-        parameters ?: return emptyList()
+        val parameters = parameterHandler.getAllParametersForReferable(psiFunctionDef as PsiReferable)
 
         val argsExplicitness = getCallingParameters(psiFunctionCall).map { it.first() != '{' }
         val argsIndices = mutableListOf<Int>()
@@ -198,7 +197,7 @@ abstract class SwitchParamImplicitnessApplier {
     ): PsiElement {
         val functionName = psiFunctionUsage.text.replace("`", "")
         val parameters = getCallingParameters(psiFunctionCall)
-        val parameterIndices = getParametersIndices(psiFunctionUsage, psiFunctionCall)
+        val parameterIndices = getParametersIndices(psiFunctionDef, psiFunctionCall)
         val lastIndex = parameterIndices.maxOrNull() ?: -1
         val isPartialAppExpr = (lastIndex < argumentIndex)
 

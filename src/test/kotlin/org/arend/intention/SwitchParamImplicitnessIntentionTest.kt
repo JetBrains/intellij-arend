@@ -280,24 +280,25 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testTypeImToExUnderscoreEnd() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | k {A B : \Type} (a : A) (b :{-caret-} B) : A
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | k a _ => a
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | k {A B : \Type} (a : A) {b {-caret-}: B} : A
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | k a {_} => a
-        }
-        """
-    )
+//    TODO
+//    fun testTypeImToExUnderscoreEnd() = doTest(
+//        """
+//        \record testRecord (T : \Type)
+//          | k {A B : \Type} (a : A) (b :{-caret-} B) : A
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | k a _ => a
+//        }
+//        """,
+//        """
+//        \record testRecord (T : \Type)
+//          | k {A B : \Type} (a : A) {b {-caret-}: B} : A
+//
+//        \func h => \new testRecord (\Sigma Nat Nat) {
+//          | k a {_} => a
+//        }
+//        """
+//    )
 
     fun testFunctionImToExSplitTeleA() = doTest(
         """
