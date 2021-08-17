@@ -232,13 +232,13 @@ abstract class SwitchParamImplicitnessApplier {
             psiFunctionCall.addAfterWithNotification(psiWs, anchorInsertedArg)
         } else {
             val isNextArgExplicit =
-                if (elementIndexInArgs != indices.size - 1) (argsText[elementIndexInArgs + 1].first() != '{') else false
+                if (elementIndexInArgs != indices.size - 1) (argsText[elementIndexInArgs + 1].first() != '{') else true
             val needToRemoveArg = (argsText[elementIndexInArgs] == "_") && isNextArgExplicit
             var psiSwitchedArg = getIthPsiCallingParameter(psiFunctionCall, elementIndexInArgs)
 
             if (needToRemoveArg) {
                 val nextWs = psiSwitchedArg.nextSibling
-                nextWs.deleteWithNotification()
+                nextWs?.deleteWithNotification()
                 psiSwitchedArg.deleteWithNotification()
             } else {
                 // from explicit to implicit
@@ -513,7 +513,6 @@ private fun rewriteArg(text: String, toExplicit: Boolean, isNextArgExplicit: Boo
     return "{$text}"
 }
 
-// remove this function?
 private fun buildFunctionCallingText(
     functionName: String,
     argsText: List<String>,
