@@ -73,10 +73,10 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
         element is ArendDefIdentifier && sourceNode is Abstract.Pattern -> ConstructorFilteredScope(scope.globalSubscope)
         isExtends -> object : Scope { // exclude Array
             override fun find(pred: Predicate<Referable?>): Referable? =
-                scope.find { ref -> !(ref == Prelude.ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.ARRAY.ref) && pred.test(ref) }
+                scope.find { ref -> !(ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref) && pred.test(ref) }
             override fun resolveName(name: String?): Referable? {
                 val ref = scope.resolveName(name)
-                return if (ref == Prelude.ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.ARRAY.ref) null else ref
+                return if (ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref) null else ref
             }
             override fun resolveNamespace(name: String?, onlyInternal: Boolean) = scope.resolveNamespace(name, onlyInternal)
             override fun getGlobalSubscope() = scope.globalSubscope

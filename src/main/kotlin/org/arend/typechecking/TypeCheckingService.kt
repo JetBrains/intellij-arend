@@ -18,7 +18,6 @@ import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.*
 import org.arend.core.expr.visitor.CompareVisitor
-import org.arend.core.subst.LevelPair
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.definition.CoreDefinition
 import org.arend.ext.core.definition.CoreFunctionDefinition
@@ -45,6 +44,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.ext.impl.fillAdditionalNames
 import org.arend.psi.listener.ArendDefinitionChangeListener
@@ -151,6 +151,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             preludeLibrary.prelude?.let {
                 fillAdditionalNames(it, additionalNames)
             }
+            Prelude.initializeArray((preludeScope.resolveName(Prelude.ARRAY_NAME) as MetaAdapter).metaRef)
 
             // Set the listener that updates typechecked definitions
             project.service<ArendPsiChangeService>().addListener(this)
