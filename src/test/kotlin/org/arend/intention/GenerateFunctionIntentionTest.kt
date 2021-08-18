@@ -164,4 +164,28 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         
         \func foo-lemma : Nat => foo.bar
     """.trimIndent())
+
+    fun `test projection`() = doTest("""
+        \func foo : \Sigma Nat Nat => (1, 1)
+
+        \func bar => \let (a, b) => foo \in {-selection-}{-caret-}a{-end_selection-}
+    """, """
+        \func foo : \Sigma Nat Nat => (1, 1)
+
+        \func bar => \let (a, b) => foo \in bar-lemma a
+        
+        \func bar-lemma (a : Nat) : Nat => a 
+    """)
+
+    fun `test nested projection`() = doTest("""
+        \func foo : \Sigma (\Sigma Nat Nat) Nat => ((1, 1), 1)
+
+        \func bar : \Sigma Nat Nat => \let ((a, b), c) => foo \in {-selection-}(a{-caret-}, c){-end_selection-}
+    """, """
+        \func foo : \Sigma (\Sigma Nat Nat) Nat => ((1, 1), 1)
+
+        \func bar : \Sigma Nat Nat => \let ((a, b), c) => foo \in bar-lemma a c
+        
+        \func bar-lemma (a : Nat) (c : Nat) : \Sigma Nat Nat => (a, c) 
+    """)
 }

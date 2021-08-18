@@ -150,11 +150,10 @@ class GenerateFunctionIntention : BaseIntentionAction() {
                 .joinToString("") { " " + it.first.name }
 
         val parameters = freeVariables.joinToString("") { (binding, explicitness) ->
-            " ${explicitness.openBrace}${binding.name} : ${prettyPrinter(binding.typeExpr)}${explicitness.closingBrace}"
+            " ${explicitness.openingBrace}${binding.name} : ${prettyPrinter(binding.typeExpr)}${explicitness.closingBrace}"
         }
 
-        val actualBody = selection.body?.let { prettyPrinter(it) }
-                ?: "{?}"
+        val actualBody = selection.body?.let { prettyPrinter(it) } ?: "{?}"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
         val newFunctionDefinition = "\\func $newFunctionName$parameters : ${prettyPrinter(selection.expectedType)} => $actualBody"
         return newFunctionCall to newFunctionDefinition

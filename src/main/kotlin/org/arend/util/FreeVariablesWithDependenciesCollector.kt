@@ -1,6 +1,7 @@
 package org.arend.util
 
 import org.arend.core.context.binding.Binding
+import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.expr.*
@@ -8,7 +9,7 @@ import org.arend.core.expr.visitor.VoidExpressionVisitor
 import kotlin.Pair
 
 
-enum class ParameterExplicitnessState(val openBrace : String, val closingBrace : String) {
+enum class ParameterExplicitnessState(val openingBrace : String, val closingBrace : String) {
     EXPLICIT("(", ")"), IMPLICIT("{", "}")
 }
 
@@ -39,7 +40,7 @@ class FreeVariablesWithDependenciesCollector private constructor() : VoidExpress
     private fun weakenState(state: ParameterExplicitnessState, typeExpr: Expression): ParameterExplicitnessState {
         if (state == ParameterExplicitnessState.EXPLICIT) return state
         return when (typeExpr) {
-            is PiExpression, is SigmaExpression -> ParameterExplicitnessState.EXPLICIT
+            is FunCallExpression, is PiExpression, is SigmaExpression -> ParameterExplicitnessState.EXPLICIT
             else -> state
         }
     }
@@ -106,6 +107,11 @@ class FreeVariablesWithDependenciesCollector private constructor() : VoidExpress
     override fun visitCase(expr: CaseExpression, state: ParameterExplicitnessState): Void? {
         super.visitCase(expr, state)
         freeParams(expr.parameters)
+        return null
+    }
+
+    override fun visitProj(expr: ProjExpression, state: ParameterExplicitnessState): Void? {
+        freeBindings.add(TypedBinding(expr.toString(), expr.type) to state)
         return null
     }
 }
