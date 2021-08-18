@@ -327,7 +327,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return null
     }
 
-    public fun extractRefFromSourceNode(node: Abstract.SourceNode): ArendReferenceContainer? {
+    private fun extractRefFromSourceNode(node: Abstract.SourceNode): ArendReferenceContainer? {
         if (node is ArendLiteral) {
             if (node.ipName != null) {
                 return node.ipName
