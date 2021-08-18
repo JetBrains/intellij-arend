@@ -138,24 +138,24 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         val newFunctionName = selection.identifier ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" }
         ?: return null
 
-        val prettyPrinter: (Expression) -> Concrete.Expression = run {
+        val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {
             val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
             val ppconfig = getPrettyPrintConfig(selection.replaceablePsi.parentOfType<ArendStatement>()!!)
             val renamer = ppconfig.definitionRenamer
 
-            { MinimizedRepresentation.generateMinimizedRepresentation(it, ip, renamer) }
+            { expr, useReturnType -> MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, renamer, useReturnType) }
         }
 
         val explicitVariableNames = freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }
                 .joinToString("") { " " + it.first.name }
 
         val parameters = freeVariables.joinToString("") { (binding, explicitness) ->
-            " ${explicitness.openingBrace}${binding.name} : ${prettyPrinter(binding.typeExpr)}${explicitness.closingBrace}"
+            " ${explicitness.openingBrace}${binding.name} : ${prettyPrinter(binding.typeExpr, false)}${explicitness.closingBrace}"
         }
 
-        val actualBody = selection.body?.let { prettyPrinter(it) } ?: "{?}"
+        val actualBody = selection.body?.let { prettyPrinter(it, true) } ?: "{?}"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
-        val newFunctionDefinition = "\\func $newFunctionName$parameters : ${prettyPrinter(selection.expectedType)} => $actualBody"
+        val newFunctionDefinition = "\\func $newFunctionName$parameters : ${prettyPrinter(selection.expectedType, false)} => $actualBody"
         return newFunctionCall to newFunctionDefinition
     }
 
