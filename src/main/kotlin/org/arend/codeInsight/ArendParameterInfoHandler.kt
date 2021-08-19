@@ -395,7 +395,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return ascendLambda(absNode)?.parentSourceNode?.let{ tryToLocateAtTheCurrentLevel(it, isNewArgPos, false) }
     }
 
-    public fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, ArendReferenceContainer>? {
+    private fun findAppExpr(file: PsiFile, offset: Int): Pair<Int, ArendReferenceContainer>? {
         val isNewArgPos = isNewArgumentPosition(file, offset)
         val absNode = skipWhitespaces(file, adjustOffset(file, offset))?.let { PsiTreeUtil.findFirstParent(it) { x -> x is Abstract.SourceNode } as? Abstract.SourceNode } ?: return null
 

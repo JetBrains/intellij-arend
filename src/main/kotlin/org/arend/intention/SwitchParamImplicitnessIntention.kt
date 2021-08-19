@@ -10,7 +10,6 @@ import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
-import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -163,13 +162,16 @@ abstract class SwitchParamImplicitnessApplier {
         val parameterHandler = ArendParameterInfoHandler()
         val parameters = parameterHandler.getAllParametersForReferable(psiFunctionDef as PsiReferable)
 
-        val argsExplicitness = getCallingParameters(psiFunctionCall).map { it.text.first() != '{' }
+        // Check this
+        val argsExplicitness = getCallingParametersWithPhantom(psiFunctionCall).map { it.first() != '{' }
         val argsIndices = mutableListOf<Int>()
+
         for (i in argsExplicitness.indices) {
             argsIndices.add(parameterHandler.findParamIndex(parameters, argsExplicitness.subList(0, i + 1)))
         }
 
-        return argsIndices
+        val cntPhantomArgs = argsExplicitness.size - getCallingParameters(psiFunctionCall).size
+        return argsIndices.subList(cntPhantomArgs, argsIndices.size)
     }
 
     private fun rewriteFunctionDef(tele: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
@@ -194,9 +196,24 @@ abstract class SwitchParamImplicitnessApplier {
         val parameters = getCallingParameters(psiFunctionCall).map { it.text }
         val parameterIndices = getParametersIndices(psiFunctionDef, psiFunctionCall)
         val lastIndex = parameterIndices.maxOrNull() ?: -1
-        val isPartialAppExpr = (lastIndex < argumentIndex)
+        val needRewriteToLambda = (lastIndex < argumentIndex)
 
-        if (isPartialAppExpr) {
+        if (needRewriteToLambda) {
+            /////////////////////////////
+            val teleExplicitness = mutableListOf<Boolean>()
+            for (tele in getTelesFromDef(psiFunctionDef)) {
+                for (_param in getTele(tele)!!) {
+                    teleExplicitness.add(tele.text.first() != '{')
+                }
+            }
+
+            val omittedParametersExplicitness = teleExplicitness.subList(lastIndex + 1, teleExplicitness.size)
+            val allOmitted = omittedParametersExplicitness.all { !it }
+
+            if (allOmitted) {
+                return createPsiFromText("${psiFunctionCall.text} _", psiFunctionCall)
+            }
+            /////////////////////////////
             return rewriteToLambda(psiFunctionUsage, psiFunctionCall, psiFunctionDef, argumentIndex, lastIndex)
         }
 
@@ -231,8 +248,8 @@ abstract class SwitchParamImplicitnessApplier {
             var psiSwitchedArg = getIthPsiCallingParameter(psiFunctionCall, elementIndexInArgs)
 
             if (needToRemoveArg) {
-                val nextWs = psiSwitchedArg.nextSibling
-                nextWs?.deleteWithNotification()
+                val prevWs = psiSwitchedArg.prevSibling
+                prevWs?.deleteWithNotification()
                 psiSwitchedArg.deleteWithNotification()
             } else {
                 // from explicit to implicit
@@ -333,6 +350,8 @@ abstract class SwitchParamImplicitnessApplier {
     abstract fun getContext(element: PsiElement): List<Variable>
 
     abstract fun extractRefIdFromCalling(psiFunctionDef: PsiElement, psiFunctionCall: PsiElement): PsiElement?
+
+    abstract fun getCallingParametersWithPhantom(psiFunctionCall: PsiElement): List<String>
 }
 
 class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier() {
@@ -383,20 +402,7 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
             }.trimEnd()
         }
 
-        val scope = (psiFunctionCall as ArendArgumentAppExpr).scope
-        val concrete = ConcreteBuilder.convertExpression(psiFunctionCall as Abstract.Expression)
-            .accept(
-                ExpressionResolveNameVisitor(
-                    ArendIdReferableConverter,
-                    scope,
-                    ArrayList<Referable>(),
-                    DummyErrorReporter.INSTANCE,
-                    null
-                ), null
-            )
-            .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
-                as? Concrete.AppExpression ?: return null
-
+        val concrete = convertCallToConcrete(psiFunctionCall) ?: return null
         val functionCallText = buildTextFromConcrete(concrete)
         return createPsiFromText(functionCallText, psiFunctionCall)
     }
@@ -427,11 +433,33 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         return if (refs.isEmpty()) null else refs.first().element
     }
 
+    override fun getCallingParametersWithPhantom(psiFunctionCall: PsiElement): List<String> {
+        val concrete = convertCallToConcrete(psiFunctionCall)
+        return concrete?.arguments?.map { if (it.isExplicit) it.toString() else "{$it}" } ?: emptyList()
+    }
+
     override fun resolveCaller(element: PsiElement): PsiElement? {
         val psiFunctionCall = element as ArendArgumentAppExpr
         val longName = psiFunctionCall.atomFieldsAcc?.childOfType<ArendLongName>()
         longName ?: return null
         return getRefToFunFromLongName(longName)
+    }
+
+    private fun convertCallToConcrete(psiFunctionCall: PsiElement): Concrete.AppExpression? {
+        val scope = (psiFunctionCall as ArendArgumentAppExpr).scope
+
+        return ConcreteBuilder.convertExpression(psiFunctionCall as Abstract.Expression)
+            .accept(
+                ExpressionResolveNameVisitor(
+                    ArendIdReferableConverter,
+                    scope,
+                    ArrayList(),
+                    DummyErrorReporter.INSTANCE,
+                    null
+                ), null
+            )
+            .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
+                as? Concrete.AppExpression ?: return null
     }
 }
 
@@ -467,6 +495,10 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
         val function = (psiFunctionCall as ArendLocalCoClause).longName!!
         val refs = searchRefsInPsiElement(psiFunctionDef, function)
         return if (refs.isEmpty()) null else refs.first().element
+    }
+
+    override fun getCallingParametersWithPhantom(psiFunctionCall: PsiElement): List<String> {
+        return getCallingParameters(psiFunctionCall).map { it.text }
     }
 
     override fun resolveCaller(element: PsiElement): PsiElement? {
