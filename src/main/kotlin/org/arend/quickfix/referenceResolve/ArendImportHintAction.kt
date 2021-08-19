@@ -19,6 +19,7 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
+import com.intellij.util.SlowOperations
 import org.arend.settings.ArendSettings
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.*
@@ -147,10 +148,11 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
                 }
                 result
             }
-            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
-                   StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ProjectAndLibrariesScope(project), ArendFile::class.java) +
-                   libRefs +
-                   service.getAdditionalReferables(name)
+            return SlowOperations.allowSlowOperations<List<PsiLocatedReferable>, Exception> {
+                StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
+                        StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ProjectAndLibrariesScope(project), ArendFile::class.java) +
+                        libRefs + service.getAdditionalReferables(name)
+            }
         }
 
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {
