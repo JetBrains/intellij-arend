@@ -1,0 +1,20 @@
+\open Nat (+)
+
+\class Pair (x y : Nat)
+
+\func test1 => <weak_warning descr="Redundant parentheses">(1 = 1)</weak_warning>
+\func test2 (n : Nat) : Nat
+  | n => <weak_warning descr="Redundant parentheses">(0 + 0)</weak_warning>
+
+\meta test3 => <weak_warning descr="Redundant parentheses">(1 = 1)</weak_warning>
+
+\instance test4 : Pair => <weak_warning descr="Redundant parentheses">(\new Pair { | x => 0 | y => 0 })</weak_warning>
+\instance test5 : Pair
+  | x => <weak_warning descr="Redundant parentheses">(0 + 0)</weak_warning>
+  | y : Nat => <weak_warning descr="Redundant parentheses">(0 + 0)</weak_warning>
+
+\record B (n : Nat)
+\record test6 \extends B
+  | n => <weak_warning descr="Redundant parentheses">(1 + 2)</weak_warning>
+
+\func test7 => \new Pair 0 { | y => <weak_warning descr="Redundant parentheses">(0 + 0)</weak_warning> }

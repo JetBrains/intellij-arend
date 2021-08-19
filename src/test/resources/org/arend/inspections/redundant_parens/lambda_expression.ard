@@ -1,0 +1,2 @@
+\func test1 => \lam (x : Nat) => <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>
+\func test2 => \lam {a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>} (b : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) => 1
