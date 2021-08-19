@@ -1,6 +1,5 @@
 package org.arend.refactoring
 
-import com.intellij.openapi.components.ServiceManager
 import com.intellij.psi.PsiElement
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
@@ -288,7 +287,7 @@ class ImportFileAction(currentFile: ArendFile,
         val statCmdStatement = createStatCmdStatement(factory, longName.toString(), usingList?.map { Pair(it, null as String?) }?.toList(), ArendPsiFactory.StatCmdKind.IMPORT)
 
         if (currentFile.isRepl) {
-            val replService = ServiceManager.getService(currentFile.project, ArendReplService::class.java)
+            val replService = currentFile.project.getService(ArendReplService::class.java)
             replService.getRepl()?.repl(statCmdStatement.text) {""}
             return
         }

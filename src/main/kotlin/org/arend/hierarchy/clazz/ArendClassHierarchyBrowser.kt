@@ -61,7 +61,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         }
     }
 
-    override fun createTrees(trees: MutableMap<String, JTree>) {
+    override fun createTrees(trees: MutableMap<in String, in JTree>) {
         val subTree = createTree(false)
         val superTree = createTree(false)
 
