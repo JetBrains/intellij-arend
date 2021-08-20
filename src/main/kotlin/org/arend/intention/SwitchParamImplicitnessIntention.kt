@@ -99,10 +99,15 @@ abstract class SwitchParamImplicitnessApplier {
         val def = element.ancestor<PsiReferable>() as? PsiElement ?: return element
         val switchedArgIndexInDef = getTeleIndexInDef(def, element) + switchedArgIndexInTele
 
-        // if not infix and not for typeTele
-//        for (ref in ReferencesSearch.search(def)) {
-//            wrapCallIntoParens(def, ref.element)
-//        }
+        if (element !is ArendTypeTele) {
+            for (ref in ReferencesSearch.search(def)) {
+                val usage = ref.element
+                if (!usage.isValid) continue
+                val call = getParentPsiFunctionCall(usage)
+                val concrete = convertCallToConcrete(call) ?: continue
+                wrapCallIntoParens(concrete, def)
+            }
+        }
 
         for (ref in ReferencesSearch.search(def)) {
             replaceWithSubTerms(ref.element, def, switchedArgIndexInDef)
@@ -111,20 +116,63 @@ abstract class SwitchParamImplicitnessApplier {
         return rewriteFunctionDef(element, switchedArgIndexInTele)
     }
 
-//    private fun wrapCallIntoParens(usage: PsiElement, def: PsiElement) {
-//        val call = getParentPsiFunctionCall(usage)
-//        val concrete = convertCallToConcrete(call) ?: return
-//
-//        for (element in concrete.argumentsSequence) {
-//            if (element is Concrete.AppExpression) {
-//                wrapCallIntoParens()
-//            }
-//        }
-//    }
+    private fun wrapCallIntoParens(concrete: Concrete.AppExpression, def: PsiElement) {
+        fun getTopChildOnPath(element: PsiElement, parent: PsiElement): PsiElement {
+            var current = element
+            while (current.parent != parent) {
+                current = current.parent
+            }
+            return current
+        }
+
+        for (argument in concrete.arguments) {
+            val expr = argument.expression
+            if (expr is Concrete.AppExpression) {
+                wrapCallIntoParens(expr, def)
+            }
+        }
+
+        val function = concrete.function.data as PsiElement
+        val resolve = if (function is ArendLongName) {
+            getRefToFunFromLongName(function)
+        } else {
+            function.reference?.resolve()
+        }
+
+        if (def == resolve) {
+            val argumentsSequence = concrete.argumentsSequence.map { it.expression.data as PsiElement }
+            val first = argumentsSequence.minByOrNull { it.textOffset } ?: return
+            val last = argumentsSequence.maxByOrNull { it.textOffset } ?: return
+
+            val parent = getParentPsiFunctionCall(first)
+            val firstChild = getTopChildOnPath(first, parent)
+            val lastChild = getTopChildOnPath(last, parent)
+
+            val callText = buildPrefixTextFromConcrete(concrete)
+            val newCall = buildString {
+                for (child in parent.children) {
+                    when (child) {
+                        firstChild -> {
+                            append("($callText) ")
+                            break
+                        }
+                        else -> {
+                            append("${child.text} ")
+                        }
+                    }
+                }
+            }.trimEnd()
+
+            val wrappedCall = factory.createExpression(newCall).childOfType<ArendArgumentAppExpr>()!!.children.last()
+            parent.addAfterWithNotification(wrappedCall, lastChild)
+            parent.deleteChildRangeWithNotification(firstChild, lastChild)
+            wrapped.add(wrappedCall)
+        }
+    }
 
     /*
-        Initially, this function replaces all children of given element `psiFunctionUsage`,
-        which contains references to `psiFunctionDef` and
+        Initially, this function replaces all children of given element `usage`,
+        which contains references to `def` and
         then converts the current to the prefix form and rewrites this
     */
     private fun replaceWithSubTerms(
@@ -137,6 +185,7 @@ abstract class SwitchParamImplicitnessApplier {
 
         val call = getParentPsiFunctionCall(usage)
         val callPrefix = convertFunctionCallToPrefix(call) ?: call
+        val needUnwrap = wrapped.contains(call)
 
         // TODO: don't compare strings
         if (processed.contains(call.text)) {
@@ -158,9 +207,9 @@ abstract class SwitchParamImplicitnessApplier {
             }
         }
 
-        // avoid case when another infix operator on the top
+        // after wrapping in parens it should be always true
         if (def == resolveCaller(updatedCall)) {
-            val newPsiElement = rewriteFunctionCalling(
+            val rewrittenCall = rewriteFunctionCalling(
                 usage,
                 updatedCall,
                 def,
@@ -168,11 +217,15 @@ abstract class SwitchParamImplicitnessApplier {
             )
 
             val psiToBeReplace =
-                if (newPsiElement is ArendLamExpr) {
+                if (rewrittenCall is ArendLamExpr) {
                     updatedCall.ancestor<ArendNewExpr>() ?: updatedCall
                 } else updatedCall
 
-            val newCall = psiToBeReplace.replaceWithNotification(newPsiElement)
+            if (needUnwrap && rewrittenCall !is ArendLamExpr) {
+                // TODO
+            }
+
+            val newCall = psiToBeReplace.replaceWithNotification(rewrittenCall)
             processed.add(newCall.text)
         }
     }
@@ -181,7 +234,6 @@ abstract class SwitchParamImplicitnessApplier {
         val parameterHandler = ArendParameterInfoHandler()
         val parameters = parameterHandler.getAllParametersForReferable(def as PsiReferable)
 
-        // Check this
         val argsExplicitness = getCallingParametersWithPhantom(call).map { it.first() != '{' }
         val argsIndices = mutableListOf<Int>()
 
@@ -323,10 +375,10 @@ abstract class SwitchParamImplicitnessApplier {
         \func foo (f : (Nat -> Nat) -> Nat) => f (suc)
     */
     private fun tryProcessPartialUsageWithoutArguments(
-        psiFunctionCall: PsiElement,
-        psiFunctionDef: PsiElement
+        call: PsiElement,
+        def: PsiElement
     ) {
-        val parameters = getCallingParameters(psiFunctionCall)
+        val parameters = getCallingParameters(call)
         for ((i, parameter) in parameters.withIndex()) {
             if (parameter.text == "_" || parameter.text.contains(" ")) continue
             val paramRef = parameter.childOfType<ArendLongName>() ?: parameter.childOfType<ArendRefIdentifier>()
@@ -336,9 +388,9 @@ abstract class SwitchParamImplicitnessApplier {
                 getRefToFunFromLongName(paramRef)
             } else (paramRef as ArendRefIdentifier).resolve
 
-            if (resolved == psiFunctionDef) {
+            if (resolved == def) {
                 val argumentInBraces = factory.createArgument("(${parameter.text})")
-                val ithArg = getCallingParameters(psiFunctionCall)[i]
+                val ithArg = getCallingParameters(call)[i]
                 ithArg.replaceWithNotification(argumentInBraces)
             }
         }
@@ -366,59 +418,6 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         element.parent?.ancestor<ArendArgumentAppExpr>() ?: element
 
     override fun convertFunctionCallToPrefix(call: PsiElement): PsiElement? {
-        fun buildArgTextFromConcrete(expr: Concrete.AppExpression): String {
-//            val cntArgs = expr.argumentsSequence.size
-//            var element: PsiElement = (expr.data as PsiElement).ancestor<ArendAtomArgument>()
-//                ?: (expr.data as PsiElement).ancestor<ArendAtomFieldsAcc>()
-//                ?: return "ERROR"
-//
-//            return buildString {
-//                var step = 0
-//                while (step < cntArgs) {
-//                    if (element !is PsiWhiteSpace) {
-//                        append("${element.text} ")
-//                        step++
-//                    }
-//
-//                    if (element.nextSibling == null) break
-//                    element = element.nextSibling
-//                }
-//            }
-            return "ERROR"
-        }
-
-        fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String {
-            return buildString {
-                val psiFunction = concrete.function.data as PsiElement
-                val functionText = psiFunction.text.replace("`", "")
-                append("$functionText ")
-
-                for (arg in concrete.arguments) {
-                    val concreteArg = arg.expression
-                    val argText =
-                        if (concreteArg !is Concrete.AppExpression) {
-                            (concreteArg.data as PsiElement).text
-                        } else buildPrefixTextFromConcrete(concreteArg)
-
-                    // avoid duplication in case R.foo <=> foo {R}
-                    // functionText is `R.foo`, argText is `R.foo`
-                    if (functionText == argText) {
-                        continue
-                    }
-
-                    if (arg.isExplicit) {
-                        if (needToWrapInBrackets(argText)) {
-                            append("($argText) ")
-                        } else {
-                            append("$argText ")
-                        }
-                    } else {
-                        append("{$argText} ")
-                    }
-                }
-            }.trimEnd()
-        }
-
         val concrete = convertCallToConcrete(call) ?: return null
         val functionCallText = buildPrefixTextFromConcrete(concrete)
         return createPsiFromText(functionCallText, call)
@@ -637,3 +636,36 @@ private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
         .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
             as? Concrete.AppExpression ?: return null
 }
+
+fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String {
+    return buildString {
+        val psiFunction = concrete.function.data as PsiElement
+        val functionText = psiFunction.text.replace("`", "")
+        append("$functionText ")
+
+        for (arg in concrete.arguments) {
+            val concreteArg = arg.expression
+            val argText =
+                if (concreteArg !is Concrete.AppExpression) {
+                    (concreteArg.data as PsiElement).text
+                } else buildPrefixTextFromConcrete(concreteArg)
+
+            // avoid duplication in case R.foo <=> foo {R}
+            // functionText is `R.foo`, argText is `R.foo`
+            if (functionText == argText) {
+                continue
+            }
+
+            if (arg.isExplicit) {
+                if (needToWrapInBrackets(argText)) {
+                    append("($argText) ")
+                } else {
+                    append("$argText ")
+                }
+            } else {
+                append("{$argText} ")
+            }
+        }
+    }.trimEnd()
+}
+
