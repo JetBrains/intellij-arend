@@ -2,6 +2,7 @@ package org.arend.intention
 
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -16,9 +17,9 @@ import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.Expression
-import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
-import org.arend.ext.prettyprinting.PrettyPrinterFlag
+import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
+import org.arend.extImpl.definitionRenamer.ScopeDefinitionRenamer
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.*
@@ -32,16 +33,18 @@ import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.MinimizedRepresentation
-import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
+import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
 import org.arend.util.FreeVariablesWithDependenciesCollector
 import org.arend.util.ParameterExplicitnessState
-import java.util.*
 
 class GenerateFunctionIntention : BaseIntentionAction() {
+    companion object {
+        val log = logger<GenerateFunctionIntention>()
+    }
 
     override fun getText(): String = ArendBundle.message("arend.generate.function")
     override fun getFamilyName() = text
@@ -76,14 +79,6 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body)
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expressions)
         performRefactoring(freeVariables, selectionResult, editor, project)
-    }
-
-    private fun getPrettyPrintConfig(context: ArendCompositeElement): PrettyPrinterConfig {
-        val scope = context.scope.let(CachingScope::make)
-        return object : PrettyPrinterConfigWithRenamer(scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }) {
-            override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> = EnumSet.noneOf(PrettyPrinterFlag::class.java)
-            override fun getNormalizationMode(): NormalizationMode = NormalizationMode.RNF
-        }
     }
 
     private fun extractGoalData(file : PsiFile, editor: Editor, project: Project): SelectionResult? {
@@ -140,10 +135,18 @@ class GenerateFunctionIntention : BaseIntentionAction() {
 
         val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {
             val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
-            val ppconfig = getPrettyPrintConfig(selection.replaceablePsi.parentOfType<ArendStatement>()!!)
-            val renamer = ppconfig.definitionRenamer
+            val renamer = CachingDefinitionRenamer(ScopeDefinitionRenamer(selection.replaceablePsi.parentOfType<ArendStatement>()!!.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }));
 
-            { expr, useReturnType -> MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, renamer, useReturnType) }
+            { expr, useReturnType ->
+                try {
+                    MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, renamer, useReturnType)
+                } catch (e: Exception) {
+                    log.error(e)
+                    ToAbstractVisitor.convert(expr, object : PrettyPrinterConfig {
+                        override fun getDefinitionRenamer() = renamer
+                    })
+                }
+            }
         }
 
         val explicitVariableNames = freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }
