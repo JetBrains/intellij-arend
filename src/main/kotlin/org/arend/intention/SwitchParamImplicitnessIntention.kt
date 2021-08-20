@@ -91,7 +91,8 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
 abstract class SwitchParamImplicitnessApplier {
     protected lateinit var factory: ArendPsiFactory
     private val processed = mutableSetOf<String>()
-    private val wrapped = mutableSetOf<PsiElement>()
+    private val wrapped = mutableSetOf<Concrete.AppExpression>()
+    private val needUnwrap = mutableSetOf<PsiElement>()
 
     fun applyTo(element: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
         factory = ArendPsiFactory(element.project)
@@ -116,19 +117,18 @@ abstract class SwitchParamImplicitnessApplier {
         return rewriteFunctionDef(element, switchedArgIndexInTele)
     }
 
-    private fun wrapCallIntoParens(concrete: Concrete.AppExpression, def: PsiElement) {
-        fun getTopChildOnPath(element: PsiElement, parent: PsiElement): PsiElement {
-            var current = element
-            while (current.parent != parent) {
-                current = current.parent
-            }
-            return current
-        }
+    private fun wrapCallIntoParens(concreteAppExpr: Concrete.AppExpression, def: PsiElement): PsiElement? {
+        if (wrapped.contains(concreteAppExpr)) return null
 
-        for (argument in concrete.arguments) {
-            val expr = argument.expression
-            if (expr is Concrete.AppExpression) {
-                wrapCallIntoParens(expr, def)
+        var concrete = concreteAppExpr
+        val cntArguments = concrete.arguments.size - 1
+
+        // It's important to update concrete, because its `data` becomes dummy after rewriting
+        for (i in 0..cntArguments) {
+            val argument = concrete.arguments[i].expression
+            if (argument is Concrete.AppExpression) {
+                val parentCallWithWrappedArgument = wrapCallIntoParens(argument, def) ?: continue
+                concrete = convertCallToConcrete(parentCallWithWrappedArgument) ?: continue
             }
         }
 
@@ -141,16 +141,16 @@ abstract class SwitchParamImplicitnessApplier {
 
         if (def == resolve) {
             val argumentsSequence = concrete.argumentsSequence.map { it.expression.data as PsiElement }
-            val first = argumentsSequence.minByOrNull { it.textOffset } ?: return
-            val last = argumentsSequence.maxByOrNull { it.textOffset } ?: return
+            val first = argumentsSequence.minByOrNull { it.textOffset } ?: return null
+            val last = argumentsSequence.maxByOrNull { it.textOffset } ?: return null
 
-            val parent = getParentPsiFunctionCall(first)
-            val firstChild = getTopChildOnPath(first, parent)
-            val lastChild = getTopChildOnPath(last, parent)
+            val call = getParentPsiFunctionCall(first)
+            val firstChild = getTopChildOnPath(first, call)
+            val lastChild = getTopChildOnPath(last, call)
 
             val callText = buildPrefixTextFromConcrete(concrete)
             val newCall = buildString {
-                for (child in parent.children) {
+                for (child in call.children) {
                     when (child) {
                         firstChild -> {
                             append("($callText) ")
@@ -164,10 +164,15 @@ abstract class SwitchParamImplicitnessApplier {
             }.trimEnd()
 
             val wrappedCall = factory.createExpression(newCall).childOfType<ArendArgumentAppExpr>()!!.children.last()
-            parent.addAfterWithNotification(wrappedCall, lastChild)
-            parent.deleteChildRangeWithNotification(firstChild, lastChild)
-            wrapped.add(wrappedCall)
+            val insertedCall = call.addAfterWithNotification(wrappedCall, lastChild)
+            call.deleteChildRangeWithNotification(firstChild, lastChild)
+
+            wrapped.add(concrete)
+            needUnwrap.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
+            return call
         }
+
+        return null
     }
 
     /*
@@ -185,7 +190,7 @@ abstract class SwitchParamImplicitnessApplier {
 
         val call = getParentPsiFunctionCall(usage)
         val callPrefix = convertFunctionCallToPrefix(call) ?: call
-        val needUnwrap = wrapped.contains(call)
+        val needUnwrap = needUnwrap.contains(call)
 
         // TODO: don't compare strings
         if (processed.contains(call.text)) {
@@ -216,17 +221,34 @@ abstract class SwitchParamImplicitnessApplier {
                 switchedArgIndexInDef
             )
 
-            val psiToBeReplace =
-                if (rewrittenCall is ArendLamExpr) {
-                    updatedCall.ancestor<ArendNewExpr>() ?: updatedCall
-                } else updatedCall
+            if (needUnwrap) {
+                val tuple = updatedCall.ancestor<ArendTuple>()!!
+                val parentCall = getParentPsiFunctionCall(tuple)
+                val child = getTopChildOnPath(tuple, parentCall)
 
-            if (needUnwrap && rewrittenCall !is ArendLamExpr) {
-                // TODO
+                val (first, last) =
+                    if (child is ArendAtomFieldsAcc) {
+                        Pair(rewrittenCall.firstChild, rewrittenCall.lastChild)
+                    } else {
+                        assert(child is ArendAtomArgument)
+                        val dummyExpr =
+                            factory.createExpression("dummy ${rewrittenCall.text}")
+                                .childOfType<ArendArgumentAppExpr>()!!
+                        Pair(dummyExpr.children[1], dummyExpr.lastChild)
+                    }
+
+                parentCall.addRangeAfterWithNotification(first, last, child)
+                child.deleteWithNotification()
+            } else {
+                val psiToBeReplace =
+                    if (rewrittenCall is ArendLamExpr) {
+                        updatedCall.ancestor<ArendNewExpr>() ?: updatedCall
+                    } else updatedCall
+
+                psiToBeReplace.replaceWithNotification(rewrittenCall)
             }
 
-            val newCall = psiToBeReplace.replaceWithNotification(rewrittenCall)
-            processed.add(newCall.text)
+            processed.add(rewrittenCall.text)
         }
     }
 
@@ -637,7 +659,7 @@ private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
             as? Concrete.AppExpression ?: return null
 }
 
-fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String {
+private fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String {
     return buildString {
         val psiFunction = concrete.function.data as PsiElement
         val functionText = psiFunction.text.replace("`", "")
@@ -667,5 +689,13 @@ fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String {
             }
         }
     }.trimEnd()
+}
+
+private fun getTopChildOnPath(element: PsiElement, parent: PsiElement): PsiElement {
+    var current = element
+    while (current.parent != null && current.parent != parent) {
+        current = current.parent
+    }
+    return current
 }
 

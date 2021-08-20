@@ -451,7 +451,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \open Nat (+)
         \func f (a : Nat) {b{-caret-} : Nat} => a
-        \func test => + (f 0 {1}) 2
+        \func test => f 0 {1} + 2
         """
     )
 
@@ -462,7 +462,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func f {A B : \Type} {{-caret-}a : A} (b : B) => a
-        \func test (a b : Nat) => (Nat.+ (f {_} {_} {1} 2) 42) Nat.* 43
+        \func test (a b : Nat) => (f {_} {_} {1} 2 Nat.+ 42) Nat.* 43
         """
     )
 
@@ -507,28 +507,6 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func f {A B : \Type} (a : A) ({-caret-}C : \Type) (b : B) (c : C) => (a, (b, c))
         \func g => (f {_} {_} 1 _ 2) 3
-        """
-    )
-
-    fun testFunctionImToExRedundantBraces1() = doTest(
-        """
-        \func f {A{-caret-} : \Type} {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => ((f {Nat}) 1) 2
-        """,
-        """
-        \func f (A{-caret-} : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => ((f Nat) 1) 2
-        """
-    )
-
-    fun testFunctionImToExRedundantBraces2() = doTest(
-        """
-        \func f {A : \Type} {B{-caret-} : \Type} (a : A) (b : B) => (a, b)
-        \func g => ((f {Nat}) 1) 2
-        """,
-        """
-        \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
-        \func g => ((\lam {B} a b => f {Nat} B a b) 1) 2
         """
     )
 
@@ -686,7 +664,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
-        \func g => \lam {B} a b => f {Nat} B a b
+        \func g => (\lam {B} a b => f {Nat} B a b)
         """
     )
 
@@ -771,7 +749,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \class Test {A  : \Type} (B{-caret-} : \Type) (a : A) (b : B)
-        \func f => \lam {B} a b => Test {Nat} B a b
+        \func f => (\lam {B} a b => Test {Nat} B a b)
         """
     )
 
@@ -782,7 +760,7 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func foo (a : Nat) {b{-caret-} : Nat} (b1 : Nat) => a
-        \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => \lam b2 b3 => foo 0 {b2} b3
+        \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => (\lam b2 b3 => foo 0 {b2} b3)
         """
     )
 }
