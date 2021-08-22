@@ -586,6 +586,11 @@ fun surroundingTupleExpr(baseExpr: ArendExpr): ArendTupleExpr? =
                 newExpr.parent as? ArendTupleExpr else null
         }
 
+fun unwrapParens(tuple: ArendTuple): ArendExpr? {
+    val tupleExpr = tuple.tupleExprList.singleOrNull() ?: return null
+    return if (tupleExpr.colon == null) tupleExpr.exprList.singleOrNull() else null
+}
+
 fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
                              argumentOrFieldsAcc: PsiElement,
                              defArgsData: DefAndArgsInParsedBinopResult): ArendArgumentAppExpr? {

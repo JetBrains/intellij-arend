@@ -1,15 +1,13 @@
 package org.arend.refactoring
 
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
-import com.intellij.openapi.fileEditor.impl.text.TextEditorPsiDataProvider
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.util.parentOfType
 import com.intellij.refactoring.rename.PsiElementRenameHandler
 import com.intellij.refactoring.rename.RenameHandlerRegistry
 import com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
 import com.intellij.testFramework.fixtures.CodeInsightTestUtil
-import org.intellij.lang.annotations.Language
 import org.arend.ArendTestBase
 import org.arend.ext.concrete.expr.ConcreteExpression
 import org.arend.ext.module.LongName
@@ -20,6 +18,7 @@ import org.arend.ext.typechecking.ContextData
 import org.arend.ext.typechecking.MetaResolver
 import org.arend.extImpl.ConcreteFactoryImpl
 import org.arend.term.concrete.Concrete
+import org.intellij.lang.annotations.Language
 
 class RenameTest : ArendTestBase() {
 
@@ -328,19 +327,14 @@ class RenameTest : ArendTestBase() {
     @Language("Arend") before: String,
     @Language("Arend") after: String) {
         val psiFile = InlineFile(before).withCaret()
-        val editor = myFixture.editor
+        val editor = myFixture.editor as EditorEx
+        val editorContext = editor.dataContext
         val currentCaret = editor.caretModel.currentCaret
         val elementToRename = psiFile.findElementAt(currentCaret.offset)!!.parentOfType<PsiNamedElement>(true)
-        val textEditorPsiDataProvider = TextEditorPsiDataProvider()
         val dataContext = DataContext { dataId ->
             when (dataId) {
-                CommonDataKeys.PROJECT.name -> project
-                CommonDataKeys.EDITOR.name -> editor
-                CommonDataKeys.CARET.name,
-                CommonDataKeys.PSI_ELEMENT.name,
-                CommonDataKeys.PSI_FILE.name -> textEditorPsiDataProvider.getData(dataId, editor, currentCaret)
                 PsiElementRenameHandler.DEFAULT_NAME.name -> newName
-                else -> null
+                else -> editorContext.getData(dataId)
             }
         }
         val handler = RenameHandlerRegistry.getInstance().getRenameHandler(dataContext)!!

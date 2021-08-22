@@ -4,18 +4,21 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
+import com.intellij.util.castSafelyTo
+import org.arend.naming.reference.AliasReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendIPName
 import org.arend.psi.ArendImplicitArgument
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
+import org.arend.resolving.util.parseBinOp
+import org.arend.resolving.util.resolveReference
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
-import org.arend.resolving.util.parseBinOp
-import org.arend.resolving.util.resolveReference
 
 fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appExprToConcrete(appExpr, false)
 
@@ -192,3 +195,11 @@ fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
 }
 
 */
+
+fun isBinOp(binOpReference: ArendReferenceContainer?) =
+        if (binOpReference is ArendIPName) binOpReference.infix != null
+        else (resolve(binOpReference))?.precedence?.isInfix == true
+
+private fun resolve(reference: ArendReferenceContainer?): GlobalReferable? =
+        reference?.resolve?.castSafelyTo<GlobalReferable>()
+                ?.let { if (it.hasAlias() && it.aliasName == reference.referenceName) AliasReferable(it) else it }

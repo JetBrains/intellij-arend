@@ -1,0 +1,31 @@
+\open Nat (+)
+
+\func f2 {A : \Type} {B : \Type} (a : A) (b : B) => <warning descr="Goal">{?}</warning>
+
+\func test0 : \Sigma => ()
+
+\func test1 => 1 + <weak_warning descr="Redundant parentheses">(2)</weak_warning>
+\func test2 => <weak_warning descr="Redundant parentheses">(2)</weak_warning>
+\func test3 => f2 {Nat} <weak_warning descr="Redundant parentheses">(<weak_warning descr="Redundant parentheses">(1)</weak_warning>)</weak_warning> 2
+
+\data Empty
+\func p => Path.inProp {Empty}
+\func test4 : <weak_warning descr="\level is ignored">\level</weak_warning> <weak_warning descr="Redundant parentheses">(Empty)</weak_warning> <weak_warning descr="Redundant parentheses">(p)</weak_warning> => <warning descr="Goal">{?}</warning>
+\func test5 : <weak_warning descr="\level is ignored">\level</weak_warning> Empty (Path.inProp {Empty}) => <warning descr="Goal">{?}</warning>
+
+\class Unit
+\func test6 => f2 (\new Unit) 1
+
+\class Pair (x y : Nat)
+\func test7 => f2 (Pair { | x => 1 }) 1
+
+\func test8 => f2 (\Set 0) 1
+
+\func test9 => f2 (Path \levels 0 0) 1
+\func test10 {A : \Type \lp \lh} => f2 (Path \lp \lh) 1
+
+\func test11 => f2 (\Sigma) 1
+\func test12 => f2 (\Pi (n : Nat) -> Nat) 1
+\func test13 (e : Empty) => f2 {Empty} (\case e \with {}) 1
+
+\func test14 => f2 (+) 1

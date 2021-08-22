@@ -1,0 +1,15 @@
+\func test1 {a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>} (b : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) => 1
+
+\record A (f : (0 = 0) -> Nat)
+\record test2 (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) \extends A {
+  | b (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) (<weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) : Nat
+  \field c (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) (<weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) : Nat
+  \override f (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) : Nat
+  \default f (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) : Nat => 1
+}
+
+\class test3 (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>)
+  | test4 (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) (<weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) : Nat
+
+\data test5 (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) (<weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>)
+  | test6 (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) (<weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>)

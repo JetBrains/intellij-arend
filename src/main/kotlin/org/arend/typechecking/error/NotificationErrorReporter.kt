@@ -33,7 +33,7 @@ class NotificationErrorReporter(private val project: Project, private val ppConf
                 Level.WARNING, Level.WARNING_UNUSED, Level.GOAL -> NotificationType.WARNING
                 Level.INFO, null -> NotificationType.INFORMATION
             }
-            group.createNotification(title, null, content, type, null).notify(project)
+            group.createNotification(title ?: "", content, type).notify(project)
         }
     }
 

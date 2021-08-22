@@ -169,6 +169,11 @@
 
         <!-- Inspections -->
         <lang.inspectionSuppressor language="Arend" implementationClass="org.arend.inspection.ArendInspectionSuppressor"/>
+        <localInspection language="Arend" groupPath="Arend"
+                         bundle="messages.ArendBundle" key="arend.inspection.redundant.parentheses.name"
+                         groupBundle="messages.InspectionsBundle" groupKey="group.names.declaration.redundancy"
+                         enabledByDefault="true" level="WEAK WARNING"
+                         implementationClass="org.arend.inspection.RedundantParensInspection"/>
 
         <!-- Intention Actions -->
         <intentionAction>
