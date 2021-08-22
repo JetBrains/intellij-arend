@@ -672,12 +672,10 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func f {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
         \func g => f {Nat}
-        \func h => g 1 2
         """,
         """
         \func f ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
         \func g => f Nat
-        \func h => g 1 2
         """
     )
 
@@ -698,12 +696,10 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func f (A {-caret-}B : \Type) (a : A) (b : B) => (a, b)
         \func g => f Nat
-        \func h => g Nat 1 2
         """,
         """
         \func f (A : \Type) {B{-caret-} : \Type} (a : A) (b : B) => (a, b)
-        \func g => \lam B a b => f Nat {B} a b
-        \func h => g Nat 1 2
+        \func g => (\lam B a b => f Nat {B} a b)
         """
     )
 
@@ -733,12 +729,10 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func \infixl 6 !+! {A B : \Type} (a : A) ({-caret-}b : B) => (a, b)
         \func g => 1 !+! {Nat} {Nat}
-        \func h => g 2
         """,
         """
         \func \infixl 6 !+! {A B : \Type} (a : A) {{-caret-}b : B} => (a, b)
-        \func g => \lam b => !+! {Nat} {Nat} 1 {b}
-        \func h => g 2
+        \func g => (\lam b => !+! {Nat} {Nat} 1 {b})
         """
     )
 

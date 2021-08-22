@@ -91,8 +91,7 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
 abstract class SwitchParamImplicitnessApplier {
     protected lateinit var factory: ArendPsiFactory
     private val processed = mutableSetOf<String>()
-    private val wrapped = mutableSetOf<Concrete.AppExpression>()
-    private val needUnwrap = mutableSetOf<PsiElement>()
+    private val wrapped = mutableSetOf<PsiElement>()
 
     fun applyTo(element: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
         factory = ArendPsiFactory(element.project)
@@ -118,13 +117,11 @@ abstract class SwitchParamImplicitnessApplier {
     }
 
     private fun wrapCallIntoParens(concreteAppExpr: Concrete.AppExpression, def: PsiElement): PsiElement? {
-        if (wrapped.contains(concreteAppExpr)) return null
-
         var concrete = concreteAppExpr
-        val cntArguments = concrete.arguments.size - 1
+        val cntArguments = concrete.arguments.size
 
         // It's important to update concrete, because its `data` becomes dummy after rewriting
-        for (i in 0..cntArguments) {
+        for (i in 0 until cntArguments) {
             val argument = concrete.arguments[i].expression
             if (argument is Concrete.AppExpression) {
                 val parentCallWithWrappedArgument = wrapCallIntoParens(argument, def) ?: continue
@@ -145,6 +142,8 @@ abstract class SwitchParamImplicitnessApplier {
             val last = argumentsSequence.maxByOrNull { it.textOffset } ?: return null
 
             val call = getParentPsiFunctionCall(first)
+            if (wrapped.contains(call)) return null
+
             val firstChild = getTopChildOnPath(first, call)
             val lastChild = getTopChildOnPath(last, call)
 
@@ -167,8 +166,7 @@ abstract class SwitchParamImplicitnessApplier {
             val insertedCall = call.addAfterWithNotification(wrappedCall, lastChild)
             call.deleteChildRangeWithNotification(firstChild, lastChild)
 
-            wrapped.add(concrete)
-            needUnwrap.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
+            wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
             return call
         }
 
@@ -190,7 +188,7 @@ abstract class SwitchParamImplicitnessApplier {
 
         val call = getParentPsiFunctionCall(usage)
         val callPrefix = convertFunctionCallToPrefix(call) ?: call
-        val needUnwrap = needUnwrap.contains(call)
+        val needUnwrap = wrapped.contains(call)
 
         // TODO: don't compare strings
         if (processed.contains(call.text)) {
@@ -201,9 +199,7 @@ abstract class SwitchParamImplicitnessApplier {
         tryProcessPartialUsageWithoutArguments(updatedCall, def)
 
         val refs = searchRefsInPsiElement(def, updatedCall)
-        if (refs.isEmpty()) {
-            return
-        }
+        if (refs.isEmpty()) return
 
         val callerRef = extractRefIdFromCalling(def, updatedCall)
         for (ref in refs) {
@@ -221,7 +217,7 @@ abstract class SwitchParamImplicitnessApplier {
                 switchedArgIndexInDef
             )
 
-            if (needUnwrap) {
+            if (needUnwrap && rewrittenCall !is ArendLamExpr) {
                 val tuple = updatedCall.ancestor<ArendTuple>()!!
                 val parentCall = getParentPsiFunctionCall(tuple)
                 val child = getTopChildOnPath(tuple, parentCall)
