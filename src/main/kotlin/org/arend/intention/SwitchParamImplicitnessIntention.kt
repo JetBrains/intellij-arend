@@ -8,10 +8,8 @@ import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.error.DummyErrorReporter
-import org.arend.ext.module.LongName
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
-import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -134,10 +132,7 @@ abstract class SwitchParamImplicitnessApplier {
         val resolve = tryResolveFunctionName(concrete.function.data as PsiElement)
 
         if (def == resolve) {
-            val argumentsSequence = concrete.argumentsSequence.map { it.expression.data as PsiElement }
-            val first = argumentsSequence.minByOrNull { it.textOffset } ?: return null
-            val last = argumentsSequence.maxByOrNull { it.textOffset } ?: return null
-
+            val (first, last) = getRangeForConcrete(concrete) ?: return null
             val call = getParentPsiFunctionCall(first)
             if (wrapped.contains(call)) return null
 
@@ -410,6 +405,43 @@ abstract class SwitchParamImplicitnessApplier {
         }
     }
 
+    protected fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String =
+        buildString {
+            val psiFunction = concrete.function.data as PsiElement
+            val call = getParentPsiFunctionCall(psiFunction)
+            val functionText = psiFunction.text.replace("`", "")
+            append("$functionText ")
+
+            for (arg in concrete.arguments) {
+                val concreteArg = arg.expression
+                val argText =
+                    if (concreteArg !is Concrete.AppExpression) {
+                        (concreteArg.data as PsiElement).text
+                    } else {
+                        val (first, last) = getRangeForConcrete(concreteArg) ?: continue
+                        val firstChild = getTopChildOnPath(first, call)
+                        val lastChild = getTopChildOnPath(last, call)
+                        getTextForRange(firstChild, lastChild)
+                    }
+
+                // avoid duplication in case R.foo <=> foo {R}
+                // functionText is `R.foo`, argText is `R.foo`
+                if (functionText == argText) {
+                    continue
+                }
+
+                if (arg.isExplicit) {
+                    if (needToWrapInBrackets(argText)) {
+                        append("($argText) ")
+                    } else {
+                        append("$argText ")
+                    }
+                } else {
+                    append("{$argText} ")
+                }
+            }
+        }.trimEnd()
+
     abstract fun getParentPsiFunctionCall(element: PsiElement): PsiElement
 
     abstract fun convertFunctionCallToPrefix(call: PsiElement): PsiElement?
@@ -658,41 +690,26 @@ private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
             as? Concrete.AppExpression ?: return null
 }
 
-private fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String =
-    buildString {
-        val psiFunction = concrete.function.data as PsiElement
-        val functionText = psiFunction.text.replace("`", "")
-        append("$functionText ")
-
-        for (arg in concrete.arguments) {
-            val concreteArg = arg.expression
-            val argText =
-                if (concreteArg !is Concrete.AppExpression) {
-                    (concreteArg.data as PsiElement).text
-                } else buildPrefixTextFromConcrete(concreteArg)
-
-            // avoid duplication in case R.foo <=> foo {R}
-            // functionText is `R.foo`, argText is `R.foo`
-            if (functionText == argText) {
-                continue
-            }
-
-            if (arg.isExplicit) {
-                if (needToWrapInBrackets(argText)) {
-                    append("($argText) ")
-                } else {
-                    append("$argText ")
-                }
-            } else {
-                append("{$argText} ")
-            }
-        }
-    }.trimEnd()
-
 private fun getTopChildOnPath(element: PsiElement, parent: PsiElement): PsiElement {
     var current = element
     while (current.parent != null && current.parent != parent) {
         current = current.parent
     }
     return current
+}
+
+private fun getRangeForConcrete(concrete: Concrete.Expression): Pair<PsiElement, PsiElement>? {
+    val argumentsSequence = concrete.argumentsSequence.map { it.expression.data as PsiElement }
+    val first = argumentsSequence.minByOrNull { it.textOffset } ?: return null
+    val last = argumentsSequence.maxByOrNull { it.textOffset } ?: return null
+    return Pair(first, last)
+}
+
+private fun getTextForRange(first: PsiElement, last: PsiElement) = buildString {
+    var current = first
+    append(current.text)
+    while (current != last) {
+        current = current.nextSibling
+        append(current.text)
+    }
 }
