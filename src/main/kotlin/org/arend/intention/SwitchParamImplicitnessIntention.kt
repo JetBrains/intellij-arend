@@ -8,8 +8,10 @@ import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.module.LongName
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
+import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -127,17 +129,6 @@ abstract class SwitchParamImplicitnessApplier {
                 val parentCallWithWrappedArgument = wrapCallIntoParens(argument, def) ?: continue
                 concrete = convertCallToConcrete(parentCallWithWrappedArgument) ?: continue
             }
-
-            // case when the function is in the argument list
-            if (argument is Concrete.ReferenceExpression) {
-                val data = argument.data as PsiElement
-                val resolve = tryResolveFunctionName(data)
-
-                if (def == resolve) {
-                    val call = getParentPsiFunctionCall(data) as ArendArgumentAppExpr
-                    return wrapIthArgumentInCall(factory, call, i)
-                }
-            }
         }
 
         val resolve = tryResolveFunctionName(concrete.function.data as PsiElement)
@@ -202,6 +193,7 @@ abstract class SwitchParamImplicitnessApplier {
         }
 
         val updatedCall = call.replaceWithNotification(callPrefix)
+        tryProcessPartialUsageWithoutArguments(updatedCall, def)
 
         val refs = searchRefsInPsiElement(def, updatedCall)
         if (refs.isEmpty()) return
@@ -385,6 +377,37 @@ abstract class SwitchParamImplicitnessApplier {
         val callingArgsCut = callingArgs.subList(startFromIndex + 1, callingArgs.size)
         val newCallText = call.text + callingArgsCut.joinToString(" ", " ")
         return factory.createLam(teleListCut, newCallText)
+    }
+
+    /*
+       wrap the function, when its in arguments, in parens.
+       case:
+       \func suc ({-caret-}a : Nat) => a Nat.+ 1
+       \func foo (f : (Nat -> Nat) -> Nat) => f suc
+       converts to:
+       \func suc ({-caret-}a : Nat) => a Nat.+ 1
+       \func foo (f : (Nat -> Nat) -> Nat) => f (suc)
+   */
+    private fun tryProcessPartialUsageWithoutArguments(
+        call: PsiElement,
+        def: PsiElement
+    ) {
+        val parameters = getCallingParameters(call)
+        for ((i, parameter) in parameters.withIndex()) {
+            if (parameter.text == "_" || parameter.text.contains(" ")) continue
+            val paramRef = parameter.childOfType<ArendLongName>() ?: parameter.childOfType<ArendRefIdentifier>()
+            ?: continue
+
+            val resolved = if (paramRef is ArendLongName) {
+                getRefToFunFromLongName(paramRef)
+            } else (paramRef as ArendRefIdentifier).resolve
+
+            if (resolved == def) {
+                val argumentInBraces = factory.createArgument("(${parameter.text})")
+                val ithArg = getCallingParameters(call)[i]
+                ithArg.replaceWithNotification(argumentInBraces)
+            }
+        }
     }
 
     abstract fun getParentPsiFunctionCall(element: PsiElement): PsiElement
@@ -618,18 +641,6 @@ private fun needToWrapInBrackets(expr: String): Boolean {
     return false
 }
 
-private fun wrapIthArgumentInCall(
-    factory: ArendPsiFactory,
-    call: ArendArgumentAppExpr,
-    index: Int
-): ArendArgumentAppExpr {
-    val ithArgument = call.argumentList[index]
-    val argumentInBraces = factory.createArgument("(${ithArgument.text})")
-    call.addAfterWithNotification(argumentInBraces, call.argumentList[index])
-    call.argumentList[index].deleteWithNotification()
-    return call
-}
-
 private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
     val scope = (call as ArendArgumentAppExpr).scope
 
@@ -647,8 +658,8 @@ private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
             as? Concrete.AppExpression ?: return null
 }
 
-private fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String {
-    return buildString {
+private fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String =
+    buildString {
         val psiFunction = concrete.function.data as PsiElement
         val functionText = psiFunction.text.replace("`", "")
         append("$functionText ")
@@ -677,7 +688,6 @@ private fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): Strin
             }
         }
     }.trimEnd()
-}
 
 private fun getTopChildOnPath(element: PsiElement, parent: PsiElement): PsiElement {
     var current = element
