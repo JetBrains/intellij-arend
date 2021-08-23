@@ -134,10 +134,15 @@ abstract class SwitchParamImplicitnessApplier {
         if (def == resolve) {
             val (first, last) = getRangeForConcrete(concrete) ?: return null
             val call = getParentPsiFunctionCall(first)
-            if (wrapped.contains(call)) return null
-
             val firstChild = getTopChildOnPath(first, call)
             val lastChild = getTopChildOnPath(last, call)
+
+            val isAlreadyWrapped = wrapped.contains(call)
+                    || "(${call.text})" == call.ancestor<ArendTuple>()?.text
+                    && call.firstChild == firstChild
+                    && call.lastChild == lastChild
+
+            if (isAlreadyWrapped) return null
 
             val callText = buildPrefixTextFromConcrete(concrete)
             val newCall = buildString {
