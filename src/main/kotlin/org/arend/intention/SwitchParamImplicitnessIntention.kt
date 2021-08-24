@@ -208,7 +208,6 @@ abstract class SwitchParamImplicitnessApplier {
         // after wrapping in parens it should be always true
         if (def == resolveCaller(updatedCall)) {
             val rewrittenCall = rewriteFunctionCalling(
-                usage,
                 updatedCall,
                 def,
                 switchedArgIndexInDef
@@ -273,12 +272,10 @@ abstract class SwitchParamImplicitnessApplier {
     }
 
     private fun rewriteFunctionCalling(
-        usage: PsiElement,
         call: PsiElement,
         def: PsiElement,
         switchedArgumentIndexInDef: Int
     ): PsiElement {
-        val functionName = usage.text.replace("`", "")
         val argsText = getCallingParameters(call).map { it.text } as MutableList<String>
         val indices = getParametersIndices(def, call) as MutableList<Int>
         val lastIndex = indices.maxOrNull() ?: -1
@@ -311,17 +308,15 @@ abstract class SwitchParamImplicitnessApplier {
         }
 
         val switchedArgumentIndexInArgs = indices.indexOf(switchedArgumentIndexInDef)
-        val expr = buildFunctionCallingText(functionName, argsText, indices, switchedArgumentIndexInDef)
-
-        val newCall = createPsiFromText(expr.trimEnd(), call)
-        val newSwitchedArgument = getCallingParameters(newCall)[switchedArgumentIndexInArgs]
+        val nextArgExplicit =
+            if (switchedArgumentIndexInArgs != indices.size - 1) (argsText[switchedArgumentIndexInArgs + 1].first() != '{') else false
+        val newArgText = rewriteArg(argsText[switchedArgumentIndexInArgs], nextArgExplicit)
+        val newSwitchedArgument = createArgument(newArgText.ifEmpty { "dummy" })
 
         if (!existsInArgList) {
             val anchor = getCallingParameters(call)[switchedArgumentIndexInArgs]
-            call.addBeforeWithNotification(newSwitchedArgument, anchor)
-
+            val anchorInsertedArg = call.addBeforeWithNotification(newSwitchedArgument, anchor)
             val psiWs = factory.createWhitespace(" ")
-            val anchorInsertedArg = getCallingParameters(call)[switchedArgumentIndexInArgs]
             call.addAfterWithNotification(psiWs, anchorInsertedArg)
         } else {
             val isNextArgExplicit =
@@ -403,7 +398,7 @@ abstract class SwitchParamImplicitnessApplier {
             } else (paramRef as ArendRefIdentifier).resolve
 
             if (resolved == def) {
-                val argumentInBraces = factory.createArgument("(${parameter.text})")
+                val argumentInBraces = createArgument("(${parameter.text})")
                 val ithArg = getCallingParameters(call)[i]
                 ithArg.replaceWithNotification(argumentInBraces)
             }
@@ -462,6 +457,8 @@ abstract class SwitchParamImplicitnessApplier {
     abstract fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiElement?
 
     abstract fun getCallingParametersWithPhantom(call: PsiElement): List<String>
+
+    abstract fun createArgument(arg: String): PsiElement
 }
 
 class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier() {
@@ -505,6 +502,10 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         longName ?: return null
         return getRefToFunFromLongName(longName)
     }
+
+    override fun createArgument(arg: String): PsiElement =
+        factory.createExpression("dummy $arg").childOfType<ArendArgumentAppExpr>()?.argumentList?.first()
+            ?: error("Failed to create argument ")
 }
 
 class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
@@ -545,6 +546,9 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
         longName ?: return null
         return getRefToFunFromLongName(longName)
     }
+
+    override fun createArgument(arg: String): PsiElement =
+        factory.createCoClause("dummy $arg").lamParamList.first()
 }
 
 private fun createSwitchedTele(factory: ArendPsiFactory, tele: ArendCompositeElement): ArendCompositeElement? {
@@ -592,25 +596,6 @@ private fun rewriteArg(text: String, isNextArgExplicit: Boolean): String {
     }
 
     return "{$text}"
-}
-
-private fun buildFunctionCallingText(
-    functionName: String,
-    argsText: List<String>,
-    indices: List<Int>,
-    switchedArgIndex: Int
-): String {
-    return buildString {
-        append("$functionName ")
-        for ((i, arg) in argsText.withIndex()) {
-            if (indices[i] != switchedArgIndex) {
-                append("$arg ")
-            } else {
-                val isNextArgExplicit = if (i != indices.size - 1) (argsText[i + 1].first() != '{') else false
-                append(rewriteArg(arg, isNextArgExplicit) + " ")
-            }
-        }
-    }.replace("\\s+".toRegex(), " ")
 }
 
 private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement): Int {
@@ -661,10 +646,6 @@ private fun tryResolveFunctionName(element: PsiElement): PsiElement? =
     } else {
         element.reference?.resolve()
     }
-
-private fun ArendPsiFactory.createArgument(arg: String): PsiElement =
-    createExpression("dummy $arg").childOfType<ArendArgumentAppExpr>()?.argumentList?.first()
-        ?: error("Failed to create argument ")
 
 private fun needToWrapInBrackets(expr: String): Boolean {
     val stack = ArrayDeque<Char>()
