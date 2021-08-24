@@ -432,7 +432,6 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
     )
 
 
-    // TODO: check this test
     fun testFunctionImToExInfixChain() = doTest(
         """
         \func \infixl 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)

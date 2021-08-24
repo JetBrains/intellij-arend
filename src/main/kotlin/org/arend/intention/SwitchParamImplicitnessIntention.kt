@@ -110,7 +110,9 @@ abstract class SwitchParamImplicitnessApplier {
         }
 
         for (ref in ReferencesSearch.search(def)) {
-            replaceWithSubTerms(ref.element, def, switchedArgIndexInDef)
+            if (!inOpenDeclaration(ref.element)) {
+                replaceWithSubTerms(ref.element, def, switchedArgIndexInDef)
+            }
         }
 
         return rewriteFunctionDef(element, switchedArgIndexInTele)
@@ -137,10 +139,12 @@ abstract class SwitchParamImplicitnessApplier {
             val firstChild = getTopChildOnPath(first, call)
             val lastChild = getTopChildOnPath(last, call)
 
-            val isAlreadyWrapped = wrapped.contains(call)
-                    || "(${call.text})" == call.ancestor<ArendTuple>()?.text
-                    && call.firstChild == firstChild
-                    && call.lastChild == lastChild
+            val isAlreadyWrapped =
+                wrapped.contains(call) ||
+                        call == first || // call is dummy; check this condition
+                        ("(${call.text})" == call.ancestor<ArendTuple>()?.text &&
+                                call.firstChild == firstChild &&
+                                call.lastChild == lastChild)
 
             if (isAlreadyWrapped) return null
 
@@ -660,7 +664,7 @@ private fun needToWrapInBrackets(expr: String): Boolean {
 }
 
 private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
-    val scope = (call as ArendArgumentAppExpr).scope
+    val scope = (call as? ArendArgumentAppExpr)?.scope ?: return null
 
     return ConcreteBuilder.convertExpression(call as Abstract.Expression)
         .accept(
@@ -699,3 +703,5 @@ private fun getTextForRange(first: PsiElement, last: PsiElement) = buildString {
         append(current.text)
     }
 }
+
+private fun inOpenDeclaration(usage: PsiElement): Boolean = usage.ancestor<ArendStatCmd>()?.openKw != null
