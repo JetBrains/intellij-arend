@@ -276,17 +276,13 @@ abstract class SwitchParamImplicitnessApplier {
         return tele.replaceWithNotification(newTele)
     }
 
-    private fun rewriteFunctionCalling(
-        call: PsiElement,
-        def: PsiElement,
-        switchedArgumentIndexInDef: Int
-    ): PsiElement {
+    private fun rewriteFunctionCalling(call: PsiElement, def: PsiElement, indexInDef: Int): PsiElement {
         val argsText = getCallingParameters(call).map { it.text } as MutableList<String>
         val indices = getParametersIndices(def, call) as MutableList<Int>
         val lastIndex = indices.maxOrNull() ?: -1
-        val needRewriteToLambda = (lastIndex < switchedArgumentIndexInDef)
+        val notEnoughArguments = (lastIndex < indexInDef)
 
-        if (needRewriteToLambda) {
+        if (notEnoughArguments) {
             /////////////////////////////
             val teleExplicitness = mutableListOf<Boolean>()
             for (tele in getTelesFromDef(def)) {
@@ -302,61 +298,33 @@ abstract class SwitchParamImplicitnessApplier {
                 return createPsiFromText("${call.text} _", call)
             }
             /////////////////////////////
-            return rewriteToLambda(call, def, switchedArgumentIndexInDef, lastIndex)
+            return rewriteToLambda(call, def, indexInDef, lastIndex)
         }
 
-        val existsInArgList = (indices.indexOf(switchedArgumentIndexInDef) != -1)
+        val existsInArgList = (indices.indexOf(indexInDef) != -1)
         if (!existsInArgList) {
-            val insertAfterIndex = -indices.binarySearch(switchedArgumentIndexInDef) - 1
-            argsText.add(insertAfterIndex, "{_}")
-            indices.add(insertAfterIndex, switchedArgumentIndexInDef)
+            val insertAfterIndex = -indices.binarySearch(indexInDef) - 1
+            val underscoreArg = createArgument("_")
+            insertArgumentInIndex(call, underscoreArg, insertAfterIndex)
+            return call
         }
 
-        val switchedArgumentIndexInArgs = indices.indexOf(switchedArgumentIndexInDef)
-        val nextArgExplicit =
-            if (switchedArgumentIndexInArgs != indices.size - 1) (argsText[switchedArgumentIndexInArgs + 1].first() != '{') else false
-        val newArgText = rewriteArg(argsText[switchedArgumentIndexInArgs], nextArgExplicit)
-        val newSwitchedArgument = createArgument(newArgText.ifEmpty { "dummy" })
+        val indexInArgs = indices.indexOf(indexInDef)
+        val isNextArgExplicit =
+            if (indexInArgs != indices.size - 1) (argsText[indexInArgs + 1].first() != '{') else true
+        val needToRemoveArg = (argsText[indexInArgs] == "_") && isNextArgExplicit
 
-        if (!existsInArgList) {
-            val anchor = getCallingParameters(call)[switchedArgumentIndexInArgs]
-            val anchorInsertedArg = call.addBeforeWithNotification(newSwitchedArgument, anchor)
-            val psiWs = factory.createWhitespace(" ")
-            call.addAfterWithNotification(psiWs, anchorInsertedArg)
+        if (needToRemoveArg) {
+            deleteArgumentInIndex(call, indexInArgs)
         } else {
-            val isNextArgExplicit =
-                if (switchedArgumentIndexInArgs != indices.size - 1) (argsText[switchedArgumentIndexInArgs + 1].first() != '{') else true
-            val needToRemoveArg = (argsText[switchedArgumentIndexInArgs] == "_") && isNextArgExplicit
-            var oldArg = getCallingParameters(call)[switchedArgumentIndexInArgs]
-
-            if (needToRemoveArg) {
-                val prevWs = oldArg.prevSibling
-                prevWs?.deleteWithNotification()
-                oldArg.deleteWithNotification()
-            } else {
-                // from explicit to implicit
-                // need to add all omitted previous implicit args
-                oldArg = oldArg.replaceWithNotification(newSwitchedArgument)
-
-                if (newSwitchedArgument.text.first() == '{') {
-                    val paramsBefore =
-                        if (switchedArgumentIndexInArgs == 0) indices[switchedArgumentIndexInArgs] else (indices[switchedArgumentIndexInArgs] - indices[switchedArgumentIndexInArgs - 1] - 1)
-
-                    if (paramsBefore > 0) {
-                        addArgumentSequenceBefore(factory, "{_} ".repeat(paramsBefore), call, oldArg)
-                    }
-                }
-            }
+            val newArgText = rewriteArg(argsText[indexInArgs])
+            val newArgument = createArgument(newArgText)
+            changeArgumentInIndex(call, newArgument, def, indexInArgs)
         }
         return call
     }
 
-    private fun rewriteToLambda(
-        call: PsiElement,
-        def: PsiElement,
-        switchedArgIndexInDef: Int,
-        startFromIndex: Int
-    ): ArendLamExpr {
+    private fun rewriteToLambda(call: PsiElement, def: PsiElement, indexInDef: Int, startFromIndex: Int): ArendLamExpr {
         val teleList = mutableListOf<String>()
         val referables = getContext(call) as MutableList
 
@@ -372,7 +340,7 @@ abstract class SwitchParamImplicitnessApplier {
 
         val teleListCut = teleList.subList(startFromIndex + 1, teleList.size)
         val callingArgs = teleList.toMutableList()
-        callingArgs[switchedArgIndexInDef] = rewriteArg(callingArgs[switchedArgIndexInDef], false)
+        callingArgs[indexInDef] = rewriteArg(callingArgs[indexInDef])
 
         val callingArgsCut = callingArgs.subList(startFromIndex + 1, callingArgs.size)
         val newCallText = call.text + callingArgsCut.joinToString(" ", " ")
@@ -387,11 +355,8 @@ abstract class SwitchParamImplicitnessApplier {
        converts to:
        \func suc ({-caret-}a : Nat) => a Nat.+ 1
        \func foo (f : (Nat -> Nat) -> Nat) => f (suc)
-   */
-    private fun tryProcessPartialUsageWithoutArguments(
-        call: PsiElement,
-        def: PsiElement
-    ) {
+    */
+    private fun tryProcessPartialUsageWithoutArguments(call: PsiElement, def: PsiElement) {
         val parameters = getCallingParameters(call)
         for ((i, parameter) in parameters.withIndex()) {
             if (parameter.text == "_" || parameter.text.contains(" ")) continue
@@ -408,6 +373,35 @@ abstract class SwitchParamImplicitnessApplier {
                 ithArg.replaceWithNotification(argumentInBraces)
             }
         }
+    }
+
+    private fun insertArgumentInIndex(call: PsiElement, argument: PsiElement, index: Int) {
+        val previousArgument = getCallingParameters(call)[index]
+        val anchor = call.addBeforeWithNotification(argument, previousArgument)
+        val ws = factory.createWhitespace(" ")
+        call.addAfterWithNotification(ws, anchor)
+    }
+
+    private fun changeArgumentInIndex(call: PsiElement, argument: PsiElement, def: PsiElement, index: Int) {
+        val indices = getParametersIndices(def, call)
+        val oldArgument = getCallingParameters(call)[index]
+        val anchor = oldArgument.replaceWithNotification(argument)
+
+        // if new argument is implicit, then the previous implicit arguments must be inserted
+        val isExplicit = argument.text.first() != '{'
+        if (!isExplicit) {
+            val parametersBefore = if (index == 0) indices[index] else (indices[index] - indices[index - 1] - 1)
+            if (parametersBefore > 0) {
+                addArgumentSequenceBefore(factory, "{_} ".repeat(parametersBefore), call, anchor)
+            }
+        }
+    }
+
+    private fun deleteArgumentInIndex(call: PsiElement, index: Int) {
+        val argument = getCallingParameters(call)[index]
+        val previousWs = argument.prevSibling
+        previousWs?.deleteWithNotification()
+        argument.deleteWithNotification()
     }
 
     protected fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String =
@@ -584,7 +578,7 @@ private fun createSwitchedTele(factory: ArendPsiFactory, tele: ArendCompositeEle
     }
 }
 
-private fun rewriteArg(text: String, isNextArgExplicit: Boolean): String {
+private fun rewriteArg(text: String): String {
     var newText: String
     val toExplicit = (text.first() == '{')
 
@@ -594,10 +588,6 @@ private fun rewriteArg(text: String, isNextArgExplicit: Boolean): String {
             newText = "($newText)"
         }
         return newText
-    }
-
-    if (text == "_" && isNextArgExplicit) {
-        return ""
     }
 
     return "{$text}"
@@ -694,10 +684,9 @@ private fun getRangeForConcrete(concrete: Concrete.Expression): Pair<PsiElement,
         argumentsSequence: List<ConcreteExpression>,
         comp: (List<ConcreteExpression>) -> ConcreteExpression?
     ): ConcreteExpression? {
-        val argumentOrAppExpr = comp(argumentsSequence) ?: return null
-        return if (argumentOrAppExpr is Concrete.AppExpression) {
-            comp(argumentOrAppExpr.argumentsSequence.map { it.expression })
-        } else argumentOrAppExpr
+        val argOrAppExpr = comp(argumentsSequence) ?: return null
+        return if (argOrAppExpr is Concrete.AppExpression) comp(argOrAppExpr.argumentsSequence.map { it.expression })
+        else argOrAppExpr
     }
 
     val argumentsSequence = concrete.argumentsSequence.map { it.expression }
