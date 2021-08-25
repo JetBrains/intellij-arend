@@ -116,7 +116,7 @@ abstract class SwitchParamImplicitnessApplier {
             }
         }
 
-        return rewriteFunctionDef(element, switchedArgIndexInTele)
+        return rewriteDef(element, switchedArgIndexInTele)
     }
 
     private fun wrapCallIntoParens(concreteAppExpr: Concrete.AppExpression, def: PsiElement): PsiElement? {
@@ -180,11 +180,7 @@ abstract class SwitchParamImplicitnessApplier {
         which contains references to `def` and
         then converts the current to the prefix form and rewrites this
     */
-    private fun replaceWithSubTerms(
-        usage: PsiElement,
-        def: PsiElement,
-        switchedArgIndexInDef: Int,
-    ) {
+    private fun replaceWithSubTerms(usage: PsiElement, def: PsiElement, indexInDef: Int) {
         // this element has already been replaced
         if (!usage.isValid) return
 
@@ -193,9 +189,7 @@ abstract class SwitchParamImplicitnessApplier {
         val needUnwrap = wrapped.contains(call)
 
         // TODO: don't compare strings
-        if (processed.contains(call.text)) {
-            return
-        }
+        if (processed.contains(call.text)) return
 
         val updatedCall = call.replaceWithNotification(callPrefix)
         tryProcessPartialUsageWithoutArguments(updatedCall, def)
@@ -206,43 +200,19 @@ abstract class SwitchParamImplicitnessApplier {
         val callerRef = extractRefIdFromCalling(def, updatedCall)
         for (ref in refs) {
             if (ref.element != callerRef) {
-                replaceWithSubTerms(ref.element, def, switchedArgIndexInDef)
+                replaceWithSubTerms(ref.element, def, indexInDef)
             }
         }
 
         // after wrapping in parens it should be true for most cases
         if (def == resolveCaller(updatedCall)) {
-            val rewrittenCall = rewriteFunctionCalling(
-                updatedCall,
-                def,
-                switchedArgIndexInDef
-            )
-
+            val rewrittenCall = rewriteCall(updatedCall, def, indexInDef)
             if (needUnwrap && rewrittenCall !is ArendLamExpr) {
-                val tuple = updatedCall.ancestor<ArendTuple>()!!
-                val parentCall = getParentPsiFunctionCall(tuple)
-                val child = getTopChildOnPath(tuple, parentCall)
-
-                val (first, last) =
-                    if (child is ArendAtomFieldsAcc) {
-                        Pair(rewrittenCall.firstChild, rewrittenCall.lastChild)
-                    } else {
-                        assert(child is ArendAtomArgument)
-                        val dummyExpr =
-                            factory.createExpression("dummy ${rewrittenCall.text}")
-                                .childOfType<ArendArgumentAppExpr>()!!
-                        Pair(dummyExpr.children[1], dummyExpr.lastChild)
-                    }
-
-                parentCall.addRangeAfterWithNotification(first, last, child)
-                child.deleteWithNotification()
+                unwrapCall(rewrittenCall)
             } else {
-                val psiToBeReplace =
-                    if (rewrittenCall is ArendLamExpr) {
-                        updatedCall.ancestor<ArendNewExpr>() ?: updatedCall
-                    } else updatedCall
-
-                psiToBeReplace.replaceWithNotification(rewrittenCall)
+                val psiWillBeReplaced = if (rewrittenCall is ArendLamExpr) updatedCall.ancestor<ArendNewExpr>()
+                    ?: updatedCall else updatedCall
+                psiWillBeReplaced.replaceWithNotification(rewrittenCall)
             }
 
             processed.add(rewrittenCall.text)
@@ -264,7 +234,7 @@ abstract class SwitchParamImplicitnessApplier {
         return argsIndices.subList(cntPhantomArgs, argsIndices.size)
     }
 
-    private fun rewriteFunctionDef(tele: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
+    private fun rewriteDef(tele: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
         val teleSize = getTele(tele)?.size
         if (teleSize != null && teleSize > 1) {
             splitTele(tele, switchedArgIndexInTele)
@@ -276,7 +246,7 @@ abstract class SwitchParamImplicitnessApplier {
         return tele.replaceWithNotification(newTele)
     }
 
-    private fun rewriteFunctionCalling(call: PsiElement, def: PsiElement, indexInDef: Int): PsiElement {
+    private fun rewriteCall(call: PsiElement, def: PsiElement, indexInDef: Int): PsiElement {
         val argsText = getCallingParameters(call).map { it.text } as MutableList<String>
         val indices = getParametersIndices(def, call) as MutableList<Int>
         val lastIndex = indices.maxOrNull() ?: -1
@@ -303,16 +273,15 @@ abstract class SwitchParamImplicitnessApplier {
 
         val existsInArgList = (indices.indexOf(indexInDef) != -1)
         if (!existsInArgList) {
-            val insertAfterIndex = -indices.binarySearch(indexInDef) - 1
+            val insertInIndex = -indices.binarySearch(indexInDef) - 1
             val underscoreArg = createArgument("_")
-            insertArgumentInIndex(call, underscoreArg, insertAfterIndex)
+            insertArgumentInIndex(call, underscoreArg, insertInIndex)
             return call
         }
 
         val indexInArgs = indices.indexOf(indexInDef)
-        val isNextArgExplicit =
-            if (indexInArgs != indices.size - 1) (argsText[indexInArgs + 1].first() != '{') else true
-        val needToRemoveArg = (argsText[indexInArgs] == "_") && isNextArgExplicit
+        val isNextExplicit = if (indexInArgs != indices.size - 1) (argsText[indexInArgs + 1].first() != '{') else true
+        val needToRemoveArg = (argsText[indexInArgs] == "_") && isNextExplicit
 
         if (needToRemoveArg) {
             deleteArgumentInIndex(call, indexInArgs)
@@ -402,6 +371,23 @@ abstract class SwitchParamImplicitnessApplier {
         val previousWs = argument.prevSibling
         previousWs?.deleteWithNotification()
         argument.deleteWithNotification()
+    }
+
+    private fun unwrapCall(call: PsiElement) {
+        fun callToRange(call: PsiElement, firstChild: PsiElement): Pair<PsiElement, PsiElement> =
+            if (firstChild is ArendAtomFieldsAcc) {
+                Pair(call.firstChild, call.lastChild)
+            } else {
+                val dummyExpr = createPsiFromText("dummy ${call.text}", call)
+                Pair(dummyExpr.children[1], dummyExpr.lastChild)
+            }
+
+        val tuple = call.ancestor<ArendTuple>() ?: return
+        val parentCall = getParentPsiFunctionCall(tuple)
+        val child = getTopChildOnPath(tuple, parentCall)
+        val (first, last) = callToRange(call, child)
+        parentCall.addRangeAfterWithNotification(first, last, child)
+        child.deleteWithNotification()
     }
 
     protected fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String =
@@ -608,13 +594,8 @@ private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement): Int {
     return -1
 }
 
-private fun addArgumentSequenceBefore(
-    factory: ArendPsiFactory,
-    argSequence: String,
-    call: PsiElement,
-    anchor: PsiElement
-) {
-    val exprPsi = factory.createExpression("dummy $argSequence").childOfType<ArendArgumentAppExpr>()!!
+private fun addArgumentSequenceBefore(factory: ArendPsiFactory, argSeq: String, call: PsiElement, anchor: PsiElement) {
+    val exprPsi = factory.createExpression("dummy $argSeq").childOfType<ArendArgumentAppExpr>()!!
     val (first, last) = Pair(exprPsi.argumentList.first(), exprPsi.argumentList.last())
 
     val psiWs = factory.createWhitespace(" ")
