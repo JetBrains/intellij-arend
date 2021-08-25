@@ -133,43 +133,8 @@ abstract class SwitchParamImplicitnessApplier {
         }
 
         val resolve = tryResolveFunctionName(concrete.function.data as PsiElement)
-
         if (def == resolve) {
-            val call = getParentPsiFunctionCall(concrete.function.data as PsiElement)
-            val (first, last) = getRangeForConcrete(concrete) ?: return null
-            val firstChild = getTopChildOnPath(first, call)
-            val lastChild = getTopChildOnPath(last, call)
-
-            val isAlreadyWrapped =
-                wrapped.contains(call) ||
-                        call == first || // call is dummy; check this condition
-                        ("(${call.text})" == call.ancestor<ArendTuple>()?.text &&
-                                call.firstChild == firstChild &&
-                                call.lastChild == lastChild)
-
-            if (isAlreadyWrapped) return null
-
-            val callText = buildPrefixTextFromConcrete(concrete)
-            val newCall = buildString {
-                for (child in call.children) {
-                    when (child) {
-                        firstChild -> {
-                            append("($callText) ")
-                            break
-                        }
-                        else -> {
-                            append("${child.text} ")
-                        }
-                    }
-                }
-            }.trimEnd()
-
-            val wrappedCall = factory.createExpression(newCall).childOfType<ArendArgumentAppExpr>()!!.children.last()
-            val insertedCall = call.addAfterWithNotification(wrappedCall, lastChild)
-            call.deleteChildRangeWithNotification(firstChild, lastChild)
-
-            wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
-            return call
+            return wrapCall(concrete)
         }
 
         return null
@@ -371,6 +336,44 @@ abstract class SwitchParamImplicitnessApplier {
         val previousWs = argument.prevSibling
         previousWs?.deleteWithNotification()
         argument.deleteWithNotification()
+    }
+
+    private fun wrapCall(concrete: Concrete.AppExpression): PsiElement? {
+        val call = getParentPsiFunctionCall(concrete.function.data as PsiElement)
+        val (first, last) = getRangeForConcrete(concrete) ?: return null
+        val firstChild = getTopChildOnPath(first, call)
+        val lastChild = getTopChildOnPath(last, call)
+
+        val isAlreadyWrapped =
+            wrapped.contains(call) ||
+                    call == first || // call is dummy; check this condition
+                    ("(${call.text})" == call.ancestor<ArendTuple>()?.text &&
+                            call.firstChild == firstChild &&
+                            call.lastChild == lastChild)
+
+        if (isAlreadyWrapped) return null
+
+        val callText = buildPrefixTextFromConcrete(concrete)
+        val newCall = buildString {
+            for (child in call.children) {
+                when (child) {
+                    firstChild -> {
+                        append("($callText) ")
+                        break
+                    }
+                    else -> {
+                        append("${child.text} ")
+                    }
+                }
+            }
+        }.trimEnd()
+
+        val wrappedCall = factory.createExpression(newCall).childOfType<ArendArgumentAppExpr>()!!.children.last()
+        val insertedCall = call.addAfterWithNotification(wrappedCall, lastChild)
+        call.deleteChildRangeWithNotification(firstChild, lastChild)
+        wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
+
+        return call
     }
 
     private fun unwrapCall(call: PsiElement) {
