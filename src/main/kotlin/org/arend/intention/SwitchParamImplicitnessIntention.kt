@@ -8,6 +8,7 @@ import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.concrete.expr.ConcreteExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.renamer.StringRenamer
@@ -134,8 +135,8 @@ abstract class SwitchParamImplicitnessApplier {
         val resolve = tryResolveFunctionName(concrete.function.data as PsiElement)
 
         if (def == resolve) {
+            val call = getParentPsiFunctionCall(concrete.function.data as PsiElement)
             val (first, last) = getRangeForConcrete(concrete) ?: return null
-            val call = getParentPsiFunctionCall(first)
             val firstChild = getTopChildOnPath(first, call)
             val lastChild = getTopChildOnPath(last, call)
 
@@ -209,7 +210,7 @@ abstract class SwitchParamImplicitnessApplier {
             }
         }
 
-        // after wrapping in parens it should be always true
+        // after wrapping in parens it should be true for most cases
         if (def == resolveCaller(updatedCall)) {
             val rewrittenCall = rewriteFunctionCalling(
                 updatedCall,
@@ -689,10 +690,25 @@ private fun getTopChildOnPath(element: PsiElement, parent: PsiElement): PsiEleme
 }
 
 private fun getRangeForConcrete(concrete: Concrete.Expression): Pair<PsiElement, PsiElement>? {
-    val argumentsSequence = concrete.argumentsSequence.map { it.expression.data as PsiElement }
-    val first = argumentsSequence.minByOrNull { it.textOffset } ?: return null
-    val last = argumentsSequence.maxByOrNull { it.textOffset } ?: return null
-    return Pair(first, last)
+    fun getTopExprByComparator(
+        argumentsSequence: List<ConcreteExpression>,
+        comp: (List<ConcreteExpression>) -> ConcreteExpression?
+    ): ConcreteExpression? {
+        val argumentOrAppExpr = comp(argumentsSequence) ?: return null
+        return if (argumentOrAppExpr is Concrete.AppExpression) {
+            comp(argumentOrAppExpr.argumentsSequence.map { it.expression })
+        } else argumentOrAppExpr
+    }
+
+    val argumentsSequence = concrete.argumentsSequence.map { it.expression }
+    val first =
+        getTopExprByComparator(argumentsSequence) { seq -> seq.minByOrNull { (it.data as PsiElement).textOffset } }
+            ?: return null
+    val last =
+        getTopExprByComparator(argumentsSequence) { seq -> seq.maxByOrNull { (it.data as PsiElement).textOffset } }
+            ?: return null
+
+    return Pair(first.data as PsiElement, last.data as PsiElement)
 }
 
 private fun getTextForRange(first: PsiElement, last: PsiElement) = buildString {
