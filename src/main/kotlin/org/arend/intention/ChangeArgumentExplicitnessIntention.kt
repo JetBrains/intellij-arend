@@ -63,29 +63,24 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
     }
 
     private fun switchTeleExplicitness(tele: ArendCompositeElement) {
-        val psiFunctionDef = tele.ancestor<PsiReferable>() as PsiElement
-        val teleIndex = psiFunctionDef.children.indexOf(tele)
-        val anchor = psiFunctionDef.children[teleIndex - 1]
+        val def = tele.ancestor<PsiReferable>() as PsiElement
+        val teleIndex = def.children.indexOf(tele)
+        val anchor = def.children[teleIndex - 1]
         val factory = ArendPsiFactory(tele.project)
-
-        val newTele = createSwitchedTele(factory, tele)
-        newTele ?: return
+        val newTele = createSwitchedTele(factory, tele) ?: return
 
         var curElement = tele
         val teleSize = getTele(tele)?.size ?: return
         for (i in 0..teleSize) {
-            val splittedTele = chooseApplier(curElement)?.applyTo(curElement, 0)
-            splittedTele ?: continue
+            val splittedTele = chooseApplier(curElement)?.applyTo(curElement, 0) ?: continue
             curElement = splittedTele.nextSibling as? ArendCompositeElement ?: break
         }
 
-        val first = psiFunctionDef.children[teleIndex]
-        val last = psiFunctionDef.children[teleIndex + teleSize - 1]
-
-        psiFunctionDef.deleteChildRangeWithNotification(first, last)
-        val inserted = psiFunctionDef.addAfterWithNotification(newTele, anchor)
-        val psiWs = factory.createWhitespace(" ")
-        psiFunctionDef.addBeforeWithNotification(psiWs, inserted)
+        val (first, last) = Pair(def.children[teleIndex], def.children[teleIndex + teleSize - 1])
+        def.deleteChildRangeWithNotification(first, last)
+        val inserted = def.addAfterWithNotification(newTele, anchor)
+        val ws = factory.createWhitespace(" ")
+        def.addBeforeWithNotification(ws, inserted)
     }
 }
 
@@ -480,8 +475,7 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
 
     override fun resolveCaller(call: PsiElement): PsiElement? {
         val psiFunctionCall = call as ArendArgumentAppExpr
-        val longName = psiFunctionCall.atomFieldsAcc?.childOfType<ArendLongName>()
-        longName ?: return null
+        val longName = psiFunctionCall.atomFieldsAcc?.childOfType<ArendLongName>() ?: return null
         return getRefToFunFromLongName(longName)
     }
 
@@ -515,8 +509,7 @@ class TypeApplier : ChangeArgumentExplicitnessApplier() {
 
     override fun resolveCaller(call: PsiElement): PsiElement? {
         val coClause = call as ArendLocalCoClause
-        val longName = coClause.longName
-        longName ?: return null
+        val longName = coClause.longName ?: return null
         return getRefToFunFromLongName(longName)
     }
 
