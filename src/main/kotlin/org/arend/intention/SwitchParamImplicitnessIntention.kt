@@ -375,7 +375,7 @@ abstract class SwitchParamImplicitnessApplier {
             }
         }.trimEnd()
 
-        val wrappedCall = factory.createExpression(newCall).childOfType<ArendArgumentAppExpr>()!!.children.last()
+        val wrappedCall = factory.createArgumentAppExpr(newCall).children.last()
         val insertedCall = call.addAfterWithNotification(wrappedCall, lastChild)
         call.deleteChildRangeWithNotification(firstChild, lastChild)
         wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
@@ -388,7 +388,7 @@ abstract class SwitchParamImplicitnessApplier {
             if (firstChild is ArendAtomFieldsAcc) {
                 Pair(call.firstChild, call.lastChild)
             } else {
-                val dummyExpr = createPsiFromText("dummy ${call.text}", call)
+                val dummyExpr = factory.createArgumentAppExpr("dummy ${call.text}")
                 Pair(dummyExpr.children[1], dummyExpr.lastChild)
             }
 
@@ -445,8 +445,6 @@ abstract class SwitchParamImplicitnessApplier {
 
     abstract fun resolveCaller(call: PsiElement): PsiElement?
 
-    abstract fun createPsiFromText(expr: String, call: PsiElement): PsiElement
-
     abstract fun getContext(element: PsiElement): List<Variable>
 
     abstract fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiElement?
@@ -463,17 +461,10 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
     override fun convertFunctionCallToPrefix(call: PsiElement): PsiElement? {
         val concrete = convertCallToConcrete(call) ?: return null
         val functionCallText = buildPrefixTextFromConcrete(concrete)
-        return createPsiFromText(functionCallText, call)
+        return factory.createArgumentAppExpr(functionCallText)
     }
 
-    override fun getCallingParameters(call: PsiElement): List<PsiElement> {
-        val psiFunctionCall = call as ArendArgumentAppExpr
-        return psiFunctionCall.argumentList
-    }
-
-    override fun createPsiFromText(expr: String, call: PsiElement): PsiElement {
-        return factory.createExpression(expr).childOfType<ArendArgumentAppExpr>()!!
-    }
+    override fun getCallingParameters(call: PsiElement): List<PsiElement> = (call as ArendArgumentAppExpr).argumentList
 
     override fun getContext(element: PsiElement): List<Variable> {
         val argumentAppExpr = element as ArendArgumentAppExpr
@@ -499,8 +490,7 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
     }
 
     override fun createArgument(arg: String): PsiElement =
-        factory.createExpression("dummy $arg").childOfType<ArendArgumentAppExpr>()?.argumentList?.first()
-            ?: error("Failed to create argument ")
+        factory.createArgumentAppExpr("dummy $arg").argumentList.firstOrNull() ?: error("Failed to create argument ")
 }
 
 class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
@@ -510,15 +500,7 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
 
     override fun convertFunctionCallToPrefix(call: PsiElement): PsiElement = call
 
-    override fun getCallingParameters(call: PsiElement): List<PsiElement> {
-        val psiFunctionCall = call as ArendLocalCoClause
-        return psiFunctionCall.lamParamList
-    }
-
-    override fun createPsiFromText(expr: String, call: PsiElement): PsiElement {
-        val body = (call as ArendLocalCoClause).expr?.text
-        return factory.createLocalCoClause(expr, body)
-    }
+    override fun getCallingParameters(call: PsiElement): List<PsiElement> = (call as ArendLocalCoClause).lamParamList
 
     override fun getContext(element: PsiElement): List<Variable> {
         val localCoClause = element as ArendLocalCoClause
@@ -542,8 +524,7 @@ class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
         return getRefToFunFromLongName(longName)
     }
 
-    override fun createArgument(arg: String): PsiElement =
-        factory.createCoClause("dummy $arg").lamParamList.first()
+    override fun createArgument(arg: String): PsiElement = factory.createCoClause("dummy $arg").lamParamList.first()
 }
 
 private fun createSwitchedTele(factory: ArendPsiFactory, tele: ArendCompositeElement): ArendCompositeElement? {
@@ -613,9 +594,9 @@ private fun addArgumentSequenceBefore(factory: ArendPsiFactory, argSeq: String, 
     call.addBeforeWithNotification(psiWs, anchor)
 }
 
-/*
-    Returns list of all references to `def` in `element` scope
-*/
+private fun ArendPsiFactory.createArgumentAppExpr(expr: String): ArendArgumentAppExpr =
+    createExpression(expr).childOfType() ?: error("Failed to create argument app expr: `$expr`")
+
 private fun searchRefsInPsiElement(def: PsiElement, element: PsiElement): List<PsiReference> {
     val scope = LocalSearchScope(element)
     return ReferencesSearch.search(def, scope).findAll().toList()
