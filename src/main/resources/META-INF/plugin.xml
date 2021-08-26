@@ -217,7 +217,7 @@
         </intentionAction>
 
         <intentionAction>
-            <className>org.arend.intention.SwitchParamImplicitnessIntention</className>
+            <className>org.arend.intention.ChangeArgumentExplicitnessIntention</className>
             <category>Arend</category>
         </intentionAction>
 

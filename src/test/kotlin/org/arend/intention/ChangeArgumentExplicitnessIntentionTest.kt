@@ -3,8 +3,8 @@ package org.arend.intention
 import org.arend.quickfix.QuickFixTestBase
 import org.arend.util.ArendBundle
 
-class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
-    private val fixName = ArendBundle.message("arend.coClause.switchParamImplicitness")
+class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
+    private val fixName = ArendBundle.message("arend.coClause.changeArgumentExplicitness")
     private fun doTest(contents: String, result: String) = simpleQuickFixTest(fixName, contents, result)
 
     fun testFunctionImToExRemoveBraces() = doTest(
@@ -756,6 +756,23 @@ class SwitchParamImplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func foo (a : Nat) {b{-caret-} : Nat} (b1 : Nat) => a
         \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => (\lam b2 b3 => foo 0 {b2} b3)
+        """
+    )
+
+    fun testDummy() = doTest(
+        """
+        \func mp {A B : \Type} (a : A) (b : B) => (a, b)
+
+        \func \infixl 6 <!> {{-caret-}A B : \Type} (p1 p2 : \Sigma A B) => (p1.1, p2.2)
+
+        \func test => mp 1 2 <!> mp 3 4
+        """,
+        """
+        \func mp {A B : \Type} (a : A) (b : B) => (a, b)
+
+        \func \infixl 6 <!> ({-caret-}A : \Type) {B : \Type} (p1 p2 : \Sigma A B) => (p1.1, p2.2)
+
+        \func test => <!> _ (mp 1 2) (mp 3 4)
         """
     )
 }

@@ -25,9 +25,9 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 
-class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
+class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
     ArendCompositeElement::class.java,
-    ArendBundle.message("arend.coClause.switchParamImplicitness")
+    ArendBundle.message("arend.coClause.changeArgumentExplicitness")
 ) {
     override fun isApplicableTo(element: ArendCompositeElement, caretOffset: Int, editor: Editor): Boolean {
         return when (element) {
@@ -48,10 +48,10 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
         }
     }
 
-    private fun chooseApplier(element: ArendCompositeElement): SwitchParamImplicitnessApplier? {
+    private fun chooseApplier(element: ArendCompositeElement): ChangeArgumentExplicitnessApplier? {
         return when (element) {
-            is ArendNameTele, is ArendFieldTele -> SwitchParamImplicitnessNameFieldApplier()
-            is ArendTypeTele -> SwitchParamImplicitnessTypeApplier()
+            is ArendNameTele, is ArendFieldTele -> NameFieldApplier()
+            is ArendTypeTele -> TypeApplier()
             else -> null
         }
     }
@@ -89,16 +89,16 @@ class SwitchParamImplicitnessIntention : SelfTargetingIntention<ArendCompositeEl
     }
 }
 
-abstract class SwitchParamImplicitnessApplier {
+abstract class ChangeArgumentExplicitnessApplier {
     protected lateinit var factory: ArendPsiFactory
     private val processed = mutableSetOf<String>()
     private val wrapped = mutableSetOf<PsiElement>()
 
-    fun applyTo(element: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
+    fun applyTo(element: ArendCompositeElement, indexInTele: Int): PsiElement {
         factory = ArendPsiFactory(element.project)
 
         val def = element.ancestor<PsiReferable>() as? PsiElement ?: return element
-        val switchedArgIndexInDef = getTeleIndexInDef(def, element) + switchedArgIndexInTele
+        val indexInDef = getTeleIndexInDef(def, element) + indexInTele
 
         if (element !is ArendTypeTele) {
             for (ref in ReferencesSearch.search(def)) {
@@ -112,11 +112,11 @@ abstract class SwitchParamImplicitnessApplier {
 
         for (ref in ReferencesSearch.search(def)) {
             if (!inOpenDeclaration(ref.element)) {
-                replaceWithSubTerms(ref.element, def, switchedArgIndexInDef)
+                replaceWithSubTerms(ref.element, def, indexInDef)
             }
         }
 
-        return rewriteDef(element, switchedArgIndexInTele)
+        return rewriteDef(element, indexInTele)
     }
 
     private fun wrapCallIntoParens(concreteAppExpr: Concrete.AppExpression, def: PsiElement): PsiElement? {
@@ -187,10 +187,8 @@ abstract class SwitchParamImplicitnessApplier {
     private fun getParametersIndices(def: PsiElement, call: PsiElement): List<Int> {
         val parameterHandler = ArendParameterInfoHandler()
         val parameters = parameterHandler.getAllParametersForReferable(def as PsiReferable)
-
         val argsExplicitness = getCallingParametersWithPhantom(call).map { it.first() != '{' }
         val argsIndices = mutableListOf<Int>()
-
         for (i in argsExplicitness.indices) {
             argsIndices.add(parameterHandler.findParamIndex(parameters, argsExplicitness.subList(0, i + 1)))
         }
@@ -284,10 +282,8 @@ abstract class SwitchParamImplicitnessApplier {
     /*
        wrap the function, when its in arguments, in parens.
        case:
-       \func suc ({-caret-}a : Nat) => a Nat.+ 1
        \func foo (f : (Nat -> Nat) -> Nat) => f suc
        converts to:
-       \func suc ({-caret-}a : Nat) => a Nat.+ 1
        \func foo (f : (Nat -> Nat) -> Nat) => f (suc)
     */
     private fun tryProcessPartialUsageWithoutArguments(call: PsiElement, def: PsiElement) {
@@ -454,7 +450,7 @@ abstract class SwitchParamImplicitnessApplier {
     abstract fun createArgument(arg: String): PsiElement
 }
 
-class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier() {
+class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement =
         element.parent?.ancestor<ArendArgumentAppExpr>() ?: element
 
@@ -493,7 +489,7 @@ class SwitchParamImplicitnessNameFieldApplier : SwitchParamImplicitnessApplier()
         factory.createArgumentAppExpr("dummy $arg").argumentList.firstOrNull() ?: error("Failed to create argument ")
 }
 
-class SwitchParamImplicitnessTypeApplier : SwitchParamImplicitnessApplier() {
+class TypeApplier : ChangeArgumentExplicitnessApplier() {
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement {
         return element.parent?.ancestor<ArendLocalCoClause>() ?: element
     }
