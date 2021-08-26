@@ -199,10 +199,10 @@ abstract class SwitchParamImplicitnessApplier {
         return argsIndices.subList(cntPhantomArgs, argsIndices.size)
     }
 
-    private fun rewriteDef(tele: ArendCompositeElement, switchedArgIndexInTele: Int): PsiElement {
+    private fun rewriteDef(tele: ArendCompositeElement, indexInTele: Int): PsiElement {
         val teleSize = getTele(tele)?.size
         if (teleSize != null && teleSize > 1) {
-            splitTele(tele, switchedArgIndexInTele)
+            splitTele(tele, indexInTele)
         }
 
         val newTele = createSwitchedTele(factory, tele)
@@ -218,21 +218,10 @@ abstract class SwitchParamImplicitnessApplier {
         val notEnoughArguments = (lastIndex < indexInDef)
 
         if (notEnoughArguments) {
-            /////////////////////////////
-            val teleExplicitness = mutableListOf<Boolean>()
-            for (tele in getTelesFromDef(def)) {
-                for (_param in getTele(tele)!!) {
-                    teleExplicitness.add(tele.text.first() != '{')
-                }
+            if (lastImplicitArgumentsAreOmitted(def, lastIndex)) {
+                insertArgumentInIndex(call, createArgument("_"), argsText.size)
+                return call
             }
-
-            val omittedParametersExplicitness = teleExplicitness.subList(lastIndex + 1, teleExplicitness.size)
-            val allOmitted = omittedParametersExplicitness.all { !it }
-
-            if (allOmitted) {
-                return createPsiFromText("${call.text} _", call)
-            }
-            /////////////////////////////
             return rewriteToLambda(call, def, indexInDef, lastIndex)
         }
 
@@ -256,6 +245,17 @@ abstract class SwitchParamImplicitnessApplier {
             changeArgumentInIndex(call, newArgument, def, indexInArgs)
         }
         return call
+    }
+
+    private fun lastImplicitArgumentsAreOmitted(def: PsiElement, lastIndexInCall: Int): Boolean {
+        val teleExplicitness = mutableListOf<Boolean>()
+        for (tele in getTelesFromDef(def)) {
+            val teleSize = getTele(tele)?.size ?: continue
+            teleExplicitness.addAll(List(teleSize) { tele.text.first() != '{' })
+        }
+
+        val omittedParametersExplicitness = teleExplicitness.subList(lastIndexInCall + 1, teleExplicitness.size)
+        return omittedParametersExplicitness.all { !it }
     }
 
     private fun rewriteToLambda(call: PsiElement, def: PsiElement, indexInDef: Int, startFromIndex: Int): ArendLamExpr {
@@ -310,9 +310,16 @@ abstract class SwitchParamImplicitnessApplier {
     }
 
     private fun insertArgumentInIndex(call: PsiElement, argument: PsiElement, index: Int) {
-        val previousArgument = getCallingParameters(call)[index]
-        val anchor = call.addBeforeWithNotification(argument, previousArgument)
+        val parameters = getCallingParameters(call)
         val ws = factory.createWhitespace(" ")
+
+        if (index == parameters.size) {
+            val anchor = call.addAfterWithNotification(ws, call.lastChild)
+            call.addAfterWithNotification(argument, anchor)
+            return
+        }
+        val previousArgument = parameters[index]
+        val anchor = call.addBeforeWithNotification(argument, previousArgument)
         call.addAfterWithNotification(ws, anchor)
     }
 
