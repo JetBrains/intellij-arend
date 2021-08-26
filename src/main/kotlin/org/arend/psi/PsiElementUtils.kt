@@ -76,29 +76,24 @@ val PsiFile.libraryConfig: LibraryConfig?
     }
 
 inline fun <reified T : PsiElement> PsiElement.parentOfType(
-    strict: Boolean = true,
-    minStartOffset: Int = -1
+        strict: Boolean = true,
+        minStartOffset: Int = -1
 ): T? = PsiTreeUtil.getParentOfType(this, T::class.java, strict, minStartOffset)
 
 inline fun <reified T : PsiElement> PsiElement.childOfType(
-    strict: Boolean = true
+        strict: Boolean = true
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 
 fun ArendGroup.findGroupByFullName(fullName: List<String>): ArendGroup? =
-    if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] }
-        ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(
-        fullName.drop(
-            1
-        )
-    )
+        if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] }
+                ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))
 
 fun PsiElement.findNextSibling(): PsiElement? = findNextSibling(null)
 
 fun PsiElement.findNextSibling(punctuationType: IElementType?): PsiElement? {
     var sibling: PsiElement? = nextSibling
     while (sibling is PsiComment || sibling is PsiWhiteSpace ||
-        (punctuationType != null && sibling != null && sibling.node.elementType == punctuationType)
-    ) sibling = sibling.nextSibling
+            (punctuationType != null && sibling != null && sibling.node.elementType == punctuationType)) sibling = sibling.nextSibling
     return sibling
 }
 
@@ -118,8 +113,7 @@ fun PsiElement.findPrevSibling(): PsiElement? = findPrevSibling(null)
 fun PsiElement.findPrevSibling(punctuationType: IElementType?): PsiElement? {
     var sibling: PsiElement? = prevSibling
     while (sibling is PsiComment || sibling is PsiWhiteSpace ||
-        (punctuationType != null && sibling != null && sibling.node.elementType == punctuationType)
-    ) sibling = sibling.prevSibling
+            (punctuationType != null && sibling != null && sibling.node.elementType == punctuationType)) sibling = sibling.prevSibling
     return sibling
 }
 
@@ -255,16 +249,9 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
     return result
 }
 
-private fun notify(
-    child: PsiElement?,
-    oldChild: PsiElement?,
-    newChild: PsiElement?,
-    parent: PsiElement?,
-    additionOrRemoval: Boolean
-) {
+private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
     val file = (parent ?: child ?: oldChild)?.containingFile as? ArendFile ?: return
-    file.project.service<ArendPsiChangeService>()
-        .processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)
+    file.project.service<ArendPsiChangeService>().processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)
 }
 
 private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
@@ -309,21 +296,13 @@ fun PsiElement.deleteChildRangeWithNotification(firstChild: PsiElement, lastChil
     notify(this, null, null, parent, true)
 }
 
-fun PsiElement.addRangeAfterWithNotification(
-    firstElement: PsiElement,
-    lastElement: PsiElement,
-    anchor: PsiElement
-): PsiElement {
+fun PsiElement.addRangeAfterWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
     val result = this.addRangeAfter(firstElement, lastElement, anchor)
     notify(this, null, null, parent, true)
     return result
 }
 
-fun PsiElement.addRangeBeforeWithNotification(
-    firstElement: PsiElement,
-    lastElement: PsiElement,
-    anchor: PsiElement
-): PsiElement {
+fun PsiElement.addRangeBeforeWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
     val result = this.addRangeBefore(firstElement, lastElement, anchor)
     notify(this, null, null, parent, true)
     return result
