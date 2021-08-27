@@ -528,7 +528,7 @@ private fun createSwitchedTele(factory: ArendPsiFactory, tele: ArendCompositeEle
 
         is ArendFieldTele -> {
             val type = tele.expr!!.text
-            factory.createNameTele(params, type, !isExplicit)
+            factory.createFieldTele(params, type, !isExplicit)
         }
 
         is ArendTypeTele -> {
@@ -566,11 +566,9 @@ private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement): Int {
     var i = 0
     for (parameter in parameters) {
         if (parameter == tele) return i
-        val teles = getTele(parameter as PsiElement)
-        teles ?: continue
+        val teles = getTele(parameter as PsiElement) ?: continue
         i += teles.size
     }
-
     return -1
 }
 
