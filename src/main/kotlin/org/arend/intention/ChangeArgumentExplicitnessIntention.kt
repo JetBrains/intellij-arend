@@ -114,6 +114,11 @@ abstract class ChangeArgumentExplicitnessApplier {
         return rewriteDef(element, indexInTele)
     }
 
+    /*
+        Before rewriting calls, it's helpful to wrap into parens each call.
+        It makes all rewriting locally, so it's not necessary to go up to the topmost call.
+        After rewriting the parens will be removed.
+    */
     private fun wrapCallIntoParens(concreteAppExpr: Concrete.AppExpression, def: PsiElement): PsiElement? {
         var concrete = concreteAppExpr
         val cntArguments = concrete.arguments.size
@@ -136,20 +141,18 @@ abstract class ChangeArgumentExplicitnessApplier {
     }
 
     /*
-        Initially, this function replaces all children of given element `usage`,
-        which contains references to `def` and
-        then converts the current to the prefix form and rewrites this
+        Initially, this function replaces all children of given element `usage`, which contains references to `def`.
+        Then it converts the current to the prefix form (optional) and rewrites this.
     */
     private fun replaceWithSubTerms(usage: PsiElement, def: PsiElement, indexInDef: Int) {
         // this element has already been replaced
         if (!usage.isValid) return
 
         val call = getParentPsiFunctionCall(usage)
+        if (processed.contains(call.text)) return
+
         val callPrefix = convertFunctionCallToPrefix(call) ?: call
         val needUnwrap = wrapped.contains(call)
-
-        // TODO: don't compare strings
-        if (processed.contains(call.text)) return
 
         val updatedCall = call.replaceWithNotification(callPrefix)
         tryProcessPartialUsageWithoutArguments(updatedCall, def)
