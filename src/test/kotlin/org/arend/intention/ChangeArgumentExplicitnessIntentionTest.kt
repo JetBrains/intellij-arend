@@ -7,7 +7,10 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     private val fixName = ArendBundle.message("arend.coClause.changeArgumentExplicitness")
     private fun doTest(contents: String, result: String) = simpleQuickFixTest(fixName, contents, result)
 
-    fun testFunctionImToExRemoveBraces() = doTest(
+    // `IE` means changing from implicit to explicit
+    // `EI` means changing from explicit to implicit
+
+    fun testFunctionIESimple1() = doTest(
         """
         \func f (a b : Int) {p{-caret-} : a = b} => 0
         \func g => f 1 1 {idp}
@@ -18,18 +21,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionImToExLambdaInArg() = doTest(
-        """
-        \func f {A{-caret-} : \Type} {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => f 42 (\lam n => n + 1)
-        """,
-        """
-        \func f (A{-caret-} : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => f _ 42 (\lam n => n + 1)
-        """
-    )
-
-    fun testFunctionExToImAddBraces() = doTest(
+    fun testFunctionIESimple2() = doTest(
         """
         \func f (a: b: : Int) (p{-caret-} : a: = b:) => 0
         \func g => f 1 1 idp
@@ -40,30 +32,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionImToExAddParam() = doTest(
-        """
-        \func id {A{-caret-} : \Type} => \lam (x : A) => x
-        \func g => id 1
-        """,
-        """
-        \func id (A{-caret-} : \Type) => \lam (x : A) => x
-        \func g => id _ 1
-        """
-    )
-
-    // Param after underscore is implicit
-    fun testFunctionExToImUnderscore() = doTest(
-        """
-        \func id (A{-caret-} : \Type) => \lam (x : A) => x
-        \func g => id _ 1
-        """,
-        """
-        \func id {A{-caret-} : \Type} => \lam (x : A) => x
-        \func g => id 1
-        """
-    )
-
-    fun testFunctionExToImWithOmittedArgs() = doTest(
+    fun testFunctionEIOmittedImplicit() = doTest(
         """
         \func f {A B : \Type} ({-caret-}a : A) (b : B) => a
         \func test (a b : Nat) => f a b
@@ -74,7 +43,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionExToImLastParameter() = doTest(
+    fun testFunctionEILastImplicit() = doTest(
         """
         \data D (a b : Nat) | con
         \func foo (a {-caret-}b : Nat) : D a b => con
@@ -87,8 +56,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    // Param after underscore is explicit
-    fun testFunctionImToExUnderscore() = doTest(
+    fun testFunctionIESaveUnderscore() = doTest(
         """
         \func kComb (A{-caret-} : \Type) {B : \Type} => \lam (a : A) (b : B) => a
         \func f => kComb _ {\Sigma Nat Nat} 1 (4, 2)
@@ -99,188 +67,95 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionExToImParens() = doTest(
+    fun testFunctionIESplitTele() = doTest(
         """
-        \func f (P{-caret-} : \Type) (p : P) => p
-        \func g => f (\Sigma Nat Nat) (4, 2)
+        \func k {A {-caret-}B : \Type} (a : A) (b : B) => a
+        \func f => k {_} 1 (1, 2)
         """,
         """
-        \func f {P{-caret-} : \Type} (p : P) => p
-        \func g => f {(\Sigma Nat Nat)} (4, 2)
+        \func k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => a
+        \func f => k {_} _ 1 (1, 2)
         """
     )
 
-    fun testFieldImToExRemoveBraces() = doTest(
+    fun testFunctionIEAllTele1() = doTest(
+        """
+        \func k {A B : {-caret-}\Type} (a : A) (b : B) => a
+        \func test => k 1 2 Nat.+ k 3 4
+        """,
+        """
+        \func k (A B : \Type) {-caret-}(a : A) (b : B) => a
+        \func test => k _ _ 1 2 Nat.+ k _ _ 3 4
+        """
+    )
+
+    fun testFunctionEIAllTele() = doTest(
+        """
+        \func k (A B : {-caret-}\Type) (a : A) (b : B) => a
+        \func test => k Nat _ 1 2 Nat.+ k _ Nat 3 4
+        """,
+        """
+        \func k {A B : \Type} {-caret-}(a : A) (b : B) => a
+        \func test => k {Nat} 1 2 Nat.+ k {_} {Nat} 3 4
+        """
+    )
+
+    fun testFieldIESimple1() = doTest(
         """
         \class Test {X{-caret-} : \Type} (x : X)
         \func f => Test {\Sigma Nat Nat} (4, 2)
         """,
         """
-        \class Test (X{-caret-} : \Type) (x : X)
+        \class Test ({-caret-}X : \Type) (x : X)
         \func f => Test (\Sigma Nat Nat) (4, 2)
         """
     )
 
-    fun testFieldExToImAddBraces() = doTest(
+    fun testFieldEISimple2() = doTest(
         """
         \class Test (X{-caret-} : \Type) (x : X)
         \func f => Test (\Sigma Nat Nat) (4, 2)
         """,
         """
-        \class Test {X{-caret-} : \Type} (x : X)
+        \class Test {{-caret-}X : \Type} (x : X)
         \func f => Test {(\Sigma Nat Nat)} (4, 2)
         """
     )
 
-    fun testFieldImToExAddParam() = doTest(
+    fun testFieldIESimple3() = doTest(
         """
         \class Test {X{-caret-} : \Type} (x : X)
         \func f => Test 42
         """,
         """
-        \class Test (X{-caret-} : \Type) (x : X)
+        \class Test ({-caret-}X : \Type) (x : X)
         \func f => Test _ 42
         """
     )
 
-    fun testFieldExToImUnderscore() = doTest(
+    fun testFieldEISimple4() = doTest(
         """
         \class Test (X{-caret-} : \Type) (x : X)
         \func f => Test _ 42
         """,
         """
-        \class Test {X{-caret-} : \Type} (x : X)
+        \class Test {{-caret-}X : \Type} (x : X)
         \func f => Test 42
         """
     )
 
-    fun testFieldImToExUnderscore() = doTest(
+    fun testFieldIEAllTele() = doTest(
         """
-        \class Test {X{-caret-} : \Type} (x : X)
-        \func f => Test 42
+        \class Test (A B :{-caret-} \Type) (a : A) (b : B)
+        \func test => Test Nat _ 4 2
         """,
         """
-        \class Test (X{-caret-} : \Type) (x : X)
-        \func f => Test _ 42
+        \class Test {A B : \Type} {-caret-}(a : A) (b : B)
+        \func test => Test {Nat} 4 2
         """
     )
 
-    fun testTypeExToImAddBraces() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd Nat n => 2
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {{-caret-}X : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd {Nat} n => 2
-        }
-        """
-    )
-
-    fun testTypeImToExRemoveBraces() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd {Nat} n => 2
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd ({-caret-}X : \Type) (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd Nat n => 2
-        }
-        """
-    )
-
-    fun testTypeImToExAddParam() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {X{-caret-} : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd n => 2
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd ({-caret-}X : \Type) (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd _ n => 2
-        }
-        """
-    )
-
-    fun testTypeExToImUnderscore() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd _ n => 2
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {{-caret-}X : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd n => 2
-        }
-        """
-    )
-
-    fun testTypeImToExUnderscore() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd (X{-caret-} : \Type) (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd _ n => 2
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | fst (X : T) : Nat
-          | snd {{-caret-}X : \Type} (n : X) : Nat
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | fst X => 1
-          | snd n => 2
-        }
-        """
-    )
-
-//    TODO
+//    TODO: this is related with implicit arguments in the end
 //    fun testTypeImToExUnderscoreEnd() = doTest(
 //        """
 //        \record testRecord (T : \Type)
@@ -300,29 +175,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 //        """
 //    )
 
-    fun testFunctionImToExSplitTeleA() = doTest(
-        """
-        \func k {{-caret-}A B : \Type} (a : A) (b : B) => a
-        \func f => k {_} 1 (1, 2)
-        """,
-        """
-        \func k ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => a
-        \func f => k _ 1 (1, 2)
-        """
-    )
-
-    fun testFunctionImToExSplitTeleB() = doTest(
-        """
-        \func k {A {-caret-}B : \Type} (a : A) (b : B) => a
-        \func f => k {_} 1 (1, 2)
-        """,
-        """
-        \func k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => a
-        \func f => k {_} _ 1 (1, 2)
-        """
-    )
-
-    fun testFieldImToExSplitTeleA() = doTest(
+    fun testFieldIESplitTele() = doTest(
         """
         \class Test {{-caret-}A B : \Type} (a : A) (b : B)
         \func f => Test {Nat} 1 (4, 2)
@@ -333,24 +186,13 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFieldImToExSplitTeleB() = doTest(
-        """
-        \class Test {A {-caret-}B : \Type} (a : A) (b : B)
-        \func f => Test {Nat} 1 (4, 2)
-        """,
-        """
-        \class Test {A  : \Type} (B : \Type) (a : A) (b : B)
-        \func f => Test {Nat} _ 1 (4, 2)
-        """
-    )
-
-    fun testTypeImToExSplitA() = doTest(
+    fun testTypeEISimple1() = doTest(
         """
         \record testRecord (T : \Type)
           | k {{-caret-}A B : \Type} (a : A) (b : B) : A
 
         \func h => \new testRecord (\Sigma Nat Nat) {
-          | k {_} a b => a
+          | k a b => a
         }
         """,
         """
@@ -363,26 +205,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testTypeImToExSplitB() = doTest(
-        """
-        \record testRecord (T : \Type)
-          | k {A {-caret-}B : \Type} (a : A) (b : B) : A
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | k {_} a b => a
-        }
-        """,
-        """
-        \record testRecord (T : \Type)
-          | k {A : \Type} ({-caret-}B : \Type) (a : A) (b : B) : A
-
-        \func h => \new testRecord (\Sigma Nat Nat) {
-          | k {_} _ a b => a
-        }
-        """
-    )
-
-    fun testTypeExToImParamAfterEx() = doTest(
+    fun testTypeEIOmittedImplicit() = doTest(
         """
         \record testRecord (T : \Type)
           | k {A B : \Type} ({-caret-}a : A) (b : B) : A
@@ -401,7 +224,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testTypeImToExAllTele() = doTest(
+    fun testTypeIEAllTele() = doTest(
         """
         \record testRecord (T : \Type)
           | k {A B : {-caret-}\Type} (a : A) (b : B) : A
@@ -420,7 +243,26 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionImToExInfixSimple() = doTest(
+    fun testTypeEIAllTele() = doTest(
+        """
+        \record testRecord (T : \Type)
+          | k (A B : {-caret-}\Type) (a : A) (b : B) : A
+
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k _ _ a b => a
+        }
+        """,
+        """
+        \record testRecord (T : \Type)
+          | k {A B : \Type} {-caret-}(a : A) (b : B) : A
+
+        \func h => \new testRecord (\Sigma Nat Nat) {
+          | k a b => a
+        }
+        """
+    )
+
+    fun testInfixIESimple() = doTest(
         """
         \func mp {{-caret-}A B : \Type} (a : A) (b : B) => a
         \func g => 42 `mp` 41
@@ -432,7 +274,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     )
 
 
-    fun testFunctionImToExInfixChain() = doTest(
+    fun testInfixIEChain() = doTest(
         """
         \func \infixl 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
         \func f => ((1, 2) !+! (3, 4)) !+! (5, 6)
@@ -443,7 +285,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionImToExOtherInfixOnTop() = doTest(
+    fun testFunctionIESaveInfix() = doTest(
         """
         \open Nat (+)
         \func f (a {-caret-}b : Nat) => a
@@ -456,7 +298,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionImToExSaveModule() = doTest(
+    fun testFunctionIESaveFullNames() = doTest(
         """
         \func f {A B : \Type} ({-caret-}a : A) (b : B) => a
         \func test (a b : Nat) => (f 1 2 Nat.+ 42) Nat.* 43
@@ -467,18 +309,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionExToImInfixAddBraces() = doTest(
-        """
-        \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (ab : A -> B) => ab a
-        \func g => (Nat `mp` 42) (\lam n => n + 1)
-        """,
-        """
-        \func mp {{-caret-}A : \Type} {B : \Type} (a : A) (ab : A -> B) => ab a
-        \func g => (mp {Nat} 42) (\lam n => n + 1)
-        """
-    )
-
-    fun testFunctionImToExInfixAddUnderscore() = doTest(
+    fun testFunctionIEToPrefix() = doTest(
         """
         \func mp (A : \Type) {{-caret-}B : \Type} (a : A) (ab : A -> B) => ab a
         \func g => (Nat `mp` 42) (\lam n => n + 1)
@@ -489,18 +320,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionImToExInfixRemoveBraces() = doTest(
-        """
-        \func mp {{-caret-}A B : \Type} (a : A) (ab : A -> B) => ab a
-        \func g => 42 `mp` {Nat} {\Sigma Nat Nat} (\lam n => (n, n + 1))
-        """,
-        """
-        \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (ab : A -> B) => ab a
-        \func g => mp Nat {\Sigma Nat Nat} 42 (\lam n => (n, n + 1))
-        """
-    )
-
-    fun testFunctionImToExAddUnderscore1() = doTest(
+    fun testFunctionIEInfixWithImplicit() = doTest(
         """
         \func f {A B : \Type} (a : A) {{-caret-}C : \Type} (b : B) (c : C) => (a, (b, c))
         \func g => (1 `f` {_} {_} 2) 3
@@ -511,18 +331,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testOperatorImToExAddBraces() = doTest(
-        """
-        \func \infix 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
-        \func g => 1 !+! 2
-        """,
-        """
-        \func \infix 6 !+! ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => !+! _ 1 2
-        """
-    )
-
-    fun testOperatorImToExWithImplicitA() = doTest(
+    fun testInfixIEWithImplicit1() = doTest(
         """
         \func \infix 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
         \func g => 1 !+! {Nat} 2
@@ -533,7 +342,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testOperatorImToExWithImplicitB() = doTest(
+    fun testInfixIEWithImplicit2() = doTest(
         """
         \func \infix 6 !+! {A {-caret-}B : \Type} (a : A) (b : B) => (a, b)
         \func g => 1 !+! {Nat} 2
@@ -544,44 +353,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testOperatorExToImAddUnderscore() = doTest(
-        """
-        \func \infix 6 !+! ({-caret-}A B : \Type) (a : A) (b : B) => (a, b)
-        \func g => (Nat !+! Nat) 1 2
-        """,
-        """
-        \func \infix 6 !+! {{-caret-}A : \Type} (B : \Type) (a : A) (b : B) => (a, b)
-        \func g => (!+! {Nat} Nat) 1 2
-        """
-    )
-
-    fun testFunctionImToExComposition1() = doTest(
-        """
-        \func id {{-caret-}A : \Type} (a : A) => a
-        \func p {A : \Type} (a : A) => (a, a)
-        \func g => p (id 42)
-        """,
-        """
-        \func id ({-caret-}A : \Type) (a : A) => a
-        \func p {A : \Type} (a : A) => (a, a)
-        \func g => p (id _ 42)
-        """
-    )
-
-    fun testFunctionImToExComposition2() = doTest(
-        """
-        \func id {A : \Type} (a : A) => a
-        \func p {{-caret-}A : \Type} (a : A) => (a, a)
-        \func g => p (id 42)
-        """,
-        """
-        \func id {A : \Type} (a : A) => a
-        \func p ({-caret-}A : \Type) (a : A) => (a, a)
-        \func g => p _ (id 42)
-        """
-    )
-
-    fun testFunctionImToExPair() = doTest(
+    fun testFunctionIEPair() = doTest(
         """
         \func id {A{-caret-} : \Type} (a : A) => a
         \func g => (id 42, id {Nat} 43)
@@ -592,18 +364,18 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionImToExCallChain() = doTest(
+    fun testFunctionIENested() = doTest(
         """
         \func p {A{-caret-} : \Type} (a : A) => (a, a)
-        \func g => (p (p 42), p 43)
+        \func g => (p (p 42), p 42)
         """,
         """
         \func p (A{-caret-} : \Type) (a : A) => (a, a)
-        \func g => (p _ (p _ 42), p _ 43)
+        \func g => (p _ (p _ 42), p _ 42)
         """
     )
 
-    fun testOperatorImToExPair() = doTest(
+    fun testOperatorIEPair() = doTest(
         """
         \func \infix 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
         \func g => (1 !+! 2, 3 !+! {Nat} 4)
@@ -614,7 +386,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testOperatorImToExMixStyle() = doTest(
+    fun testInfixIEMixStyle() = doTest(
         """
         \func p {A{-caret-} : \Type} {B : \Type} (a : A) (b : B) => (a, b)
         \func g => p 1 (p 2 (3 `p` {Nat} (p {_} 4 5)))
@@ -625,62 +397,29 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testOperatorImToExInfixrChain() = doTest(
+    fun testOperatorIEInfixr() = doTest(
         """
         \func \infixr 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
-        \func g => 1 !+! 2 !+! 3
+        \func g => 1 !+! (2 Nat.+ 3) !+! 4
         """,
         """
         \func \infixr 6 !+! ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => !+! _ 1 (!+! _ 2 3)
+        \func g => !+! _ 1 (!+! _ (2 Nat.+ 3) 4)
         """
     )
 
-    fun testOperatorImToExInfixlChain() = doTest(
+    fun testOperatorIEInfixl() = doTest(
         """
         \func \infixl 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
-        \func g => 1 !+! 2 !+! 3
+        \func g => 1 !+! (2 Nat.+ 3) !+! 4
         """,
         """
         \func \infixl 6 !+! ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => !+! _ (!+! _ 1 2) 3
+        \func g => !+! _ (!+! _ 1 (2 Nat.+ 3)) 4
         """
     )
 
-    fun testOperatorSameArguments() = doTest(
-        """
-        \func k {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
-        \func g => k (k 2 3) (k (k 2 3) 3)
-        """,
-        """
-        \func k ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => k _ (k _ 2 3) (k _ (k _ 2 3) 3)
-        """
-    )
-
-    fun testFunctionImToExPartialApp1() = doTest(
-        """
-        \func f {A {-caret-}B : \Type} (a : A) (b : B) => (a, b)
-        \func g => f {Nat}
-        """,
-        """
-        \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
-        \func g => (\lam {B} a b => f {Nat} B a b)
-        """
-    )
-
-    fun testFunctionImToExPartialApp2() = doTest(
-        """
-        \func f {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
-        \func g => f {Nat}
-        """,
-        """
-        \func f ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => f Nat
-        """
-    )
-
-    fun testFunctionImToExPartialApp3() = doTest(
+    fun testPartialAppIESimple() = doTest(
         """
         \func f {A {-caret-}B : \Type} (a : A) (b : B) => (a, b)
         \func id {A : \Type} (a : A) => a
@@ -693,7 +432,18 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionExToImPartialApp1() = doTest(
+    fun testPartialAppIENotToLambda() = doTest(
+        """
+        \func f {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
+        \func g => f {Nat}
+        """,
+        """
+        \func f ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
+        \func g => f Nat
+        """
+    )
+
+    fun testPartialAppEISimple() = doTest(
         """
         \func f (A {-caret-}B : \Type) (a : A) (b : B) => (a, b)
         \func g => f Nat
@@ -704,18 +454,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFunctionExToImPartialApp2() = doTest(
-        """
-        \func p (a {-caret-}b : Nat) => a
-        \func test (f : (Nat -> Nat -> Nat) -> Nat) => f (p)
-        """,
-        """
-        \func p (a : Nat) {b{-caret-} : Nat} => a
-        \func test (f : (Nat -> Nat -> Nat) -> Nat) => f (\lam a b => p a {b})
-        """
-    )
-
-    fun testFunctionExToImPartialApp3() = doTest(
+    fun testPartialAppEINoArguments() = doTest(
         """
         \func p (a {-caret-}b : Nat) => a
         \func test (f : (Nat -> Nat -> Nat) -> Nat) => f p
@@ -726,7 +465,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testOperatorImToExPartialApp1() = doTest(
+    fun testPartialAppIEOperator() = doTest(
         """
         \func \infixl 6 !+! {A B : \Type} (a : A) ({-caret-}b : B) => (a, b)
         \func g => 1 !+! {Nat} {Nat}
@@ -737,18 +476,18 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testFieldImToExPartialApp1() = doTest(
+    fun testPartialAppIEField() = doTest(
         """
         \class Test {A {-caret-}B : \Type} (a : A) (b : B)
         \func f => Test {Nat}
         """,
         """
-        \class Test {A  : \Type} (B{-caret-} : \Type) (a : A) (b : B)
+        \class Test {A  : \Type} ({-caret-}B : \Type) (a : A) (b : B)
         \func f => (\lam {B} a b => Test {Nat} B a b)
         """
     )
 
-    fun testFunctionImToExPartialAppCorrectNaming() = doTest(
+    fun testPartialAppEIFreshNames() = doTest(
         """
         \func foo (a {-caret-}b b1 : Nat) => a
         \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => foo 0
@@ -759,20 +498,20 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testDummy() = doTest(
+    fun testInfixIEArgumentsIsAppExpr() = doTest(
         """
         \func mp {A B : \Type} (a : A) (b : B) => (a, b)
 
         \func \infixl 6 <!> {{-caret-}A B : \Type} (p1 p2 : \Sigma A B) => (p1.1, p2.2)
 
-        \func test => mp 1 2 <!> mp 3 4
+        \func test => mp (1 Nat.+ 2) 3 <!> mp 4 (5 Nat.* 6)
         """,
         """
         \func mp {A B : \Type} (a : A) (b : B) => (a, b)
 
         \func \infixl 6 <!> ({-caret-}A : \Type) {B : \Type} (p1 p2 : \Sigma A B) => (p1.1, p2.2)
 
-        \func test => <!> _ (mp 1 2) (mp 3 4)
+        \func test => <!> _ (mp (1 Nat.+ 2) 3) (mp 4 (5 Nat.* 6))
         """
     )
 }
