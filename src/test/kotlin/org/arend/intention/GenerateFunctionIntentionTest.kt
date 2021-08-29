@@ -188,4 +188,19 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         
         \func bar-lemma (a : Nat) (c : Nat) : \Sigma Nat Nat => (a, c) 
     """)
+
+    fun `test projections 2`() = doTest("""
+        \func f : \Sigma Nat Nat => (1, 2)
+        
+        \func g : Nat -> Nat => \lam x => x
+        
+        \func foo : Nat => \let rr => f \in {-selection-}g {-caret-}rr.1{-end_selection-}
+    """, """
+        \func f : \Sigma Nat Nat => (1, 2)
+        
+        \func g : Nat -> Nat => \lam x => x
+        
+        \func foo : Nat => \let rr => f \in foo-lemma rr
+        
+        \func foo-lemma (rr : \Sigma Nat Nat) : Nat => g rr.1""")
 }

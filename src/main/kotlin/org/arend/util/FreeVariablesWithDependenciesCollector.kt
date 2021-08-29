@@ -111,7 +111,13 @@ class FreeVariablesWithDependenciesCollector private constructor() : VoidExpress
     }
 
     override fun visitProj(expr: ProjExpression, state: ParameterExplicitnessState): Void? {
-        freeBindings.add(TypedBinding(expr.toString(), expr.type) to state)
+        val representation = expr.toString()
+        if (representation.contains(".")) {
+            expr.expression.accept(this, state)
+        } else {
+            // this is a decomposition of tuple/record
+            freeBindings.add(TypedBinding(expr.toString(), expr.type) to state)
+        }
         return null
     }
 }
