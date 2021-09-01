@@ -86,7 +86,6 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                 val mySourceContainer = enclosingDefinition?.parentGroup
                 if (mySourceContainer != null) {
                     val psiFactory = ArendPsiFactory(project)
-                    var psiModified = false
 
                     for (element in chosenElement) {
                         val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
@@ -98,24 +97,21 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                             val openedName: List<String> = importData.second
                             importData.first?.execute()
                             if (openedName.size > 1 && elementReferable is ArendGroup)
-                                psiModified = psiModified || doAddIdToOpen(psiFactory, openedName, longName, elementReferable, instanceMode = true)
+                                doAddIdToOpen(psiFactory, openedName, longName, elementReferable, instanceMode = true)
                         }
                     }
 
-                    if (psiModified) {
-                        val tcService = project.service<TypeCheckingService>()
-                        val file = mySourceContainer.containingFile as? ArendFile ?: return@runWriteCommandAction
-                        tcService.updateDefinition(enclosingDefinition, file, true)
-                        for ((error,element) in project.service<ErrorService>().getTypecheckingErrors(file)) {
-                            if (error is InstanceInferenceError) {
-                                element.ancestor<ArendDefinition>()?.let {
-                                    tcService.updateDefinition(it, file, true)
-                                }
+                    val tcService = project.service<TypeCheckingService>()
+                    val file = mySourceContainer.containingFile as? ArendFile ?: return@runWriteCommandAction
+                    tcService.updateDefinition(enclosingDefinition, file, true)
+                    for ((error,element) in project.service<ErrorService>().getTypecheckingErrors(file)) {
+                        if (error is InstanceInferenceError) {
+                            element.ancestor<ArendDefinition>()?.let {
+                                tcService.updateDefinition(it, file, true)
                             }
                         }
-                        project.service<ArendPsiChangeService>().incModificationCount()
                     }
-
+                    project.service<ArendPsiChangeService>().incModificationCount()
                 }
             }, longName.containingFile)
         }
