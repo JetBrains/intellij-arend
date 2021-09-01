@@ -341,16 +341,14 @@ abstract class ChangeArgumentExplicitnessApplier {
 
     private fun wrapCall(concrete: Concrete.AppExpression): PsiElement? {
         val call = getParentPsiFunctionCall(concrete.function.data as PsiElement)
-        val (first, last) = getRangeForConcrete(concrete) ?: return null
-        val firstChild = getTopChildOnPath(first, call)
-        val lastChild = getTopChildOnPath(last, call)
+        val (first, last) = getRangeForConcrete(concrete, call) ?: return null
 
         val isAlreadyWrapped =
             wrapped.contains(call) ||
-                    call == first || // call is dummy; check this condition
+                    !call.isValid ||
                     ("(${call.text})" == call.ancestor<ArendTuple>()?.text &&
-                            call.firstChild == firstChild &&
-                            call.lastChild == lastChild)
+                            call.firstChild == first &&
+                            call.lastChild == last)
 
         if (isAlreadyWrapped) return null
 
@@ -358,7 +356,7 @@ abstract class ChangeArgumentExplicitnessApplier {
         val newCall = buildString {
             for (child in call.children) {
                 when (child) {
-                    firstChild -> {
+                    first -> {
                         append("($callText) ")
                         break
                     }
@@ -370,8 +368,8 @@ abstract class ChangeArgumentExplicitnessApplier {
         }.trimEnd()
 
         val wrappedCall = factory.createArgumentAppExpr(newCall).children.last()
-        val insertedCall = call.addAfterWithNotification(wrappedCall, lastChild)
-        call.deleteChildRangeWithNotification(firstChild, lastChild)
+        val insertedCall = call.addAfterWithNotification(wrappedCall, last)
+        call.deleteChildRangeWithNotification(first, last)
         wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
 
         return call
@@ -407,10 +405,8 @@ abstract class ChangeArgumentExplicitnessApplier {
                     if (concreteArg !is Concrete.AppExpression) {
                         (concreteArg.data as PsiElement).text
                     } else {
-                        val (first, last) = getRangeForConcrete(concreteArg) ?: continue
-                        val firstChild = getTopChildOnPath(first, call)
-                        val lastChild = getTopChildOnPath(last, call)
-                        getTextForRange(firstChild, lastChild)
+                        val (first, last) = getRangeForConcrete(concreteArg, call) ?: continue
+                        getTextForRange(first, last)
                     }
 
                 // avoid duplication in case R.foo <=> foo {R}
@@ -641,7 +637,7 @@ private fun getTopChildOnPath(element: PsiElement, parent: PsiElement): PsiEleme
     return current
 }
 
-private fun getRangeForConcrete(concrete: Concrete.Expression): Pair<PsiElement, PsiElement>? {
+private fun getRangeForConcrete(concrete: Concrete.Expression, topCall: PsiElement): Pair<PsiElement, PsiElement>? {
     fun getTopExprByComparator(
         argumentsSequence: List<ConcreteExpression>,
         comp: (List<ConcreteExpression>) -> ConcreteExpression?
@@ -659,7 +655,10 @@ private fun getRangeForConcrete(concrete: Concrete.Expression): Pair<PsiElement,
         getTopExprByComparator(argumentsSequence) { seq -> seq.maxByOrNull { (it.data as PsiElement).textOffset } }
             ?: return null
 
-    return Pair(first.data as PsiElement, last.data as PsiElement)
+    return Pair(
+        getTopChildOnPath(first.data as PsiElement, topCall),
+        getTopChildOnPath(last.data as PsiElement, topCall)
+    )
 }
 
 private fun getTextForRange(first: PsiElement, last: PsiElement) = buildString {
