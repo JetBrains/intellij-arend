@@ -3,6 +3,7 @@ package org.arend.intention
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -20,6 +21,8 @@ import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.extImpl.definitionRenamer.ScopeDefinitionRenamer
+import org.arend.inspection.mayBeUnwrappedFromParentheses
+import org.arend.inspection.unwrapTuple
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.*
@@ -28,7 +31,6 @@ import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.TCDefinition
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
-import org.arend.refactoring.replaceExprSmart
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
@@ -62,7 +64,8 @@ class GenerateFunctionIntention : BaseIntentionAction() {
 
     private data class SelectionResult(
         val expectedType: Expression,
-        val replaceablePsi: ArendCompositeElement,
+        val contextPsi: ArendCompositeElement,
+        val rangeOfReplacement: TextRange,
         val identifier: String?,
         val body: Expression?
     )
@@ -90,7 +93,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         val goalExpr = goal.expr?.let {
             tryCorrespondedSubExpr(it.textRange, file, project, editor)
         }?.subCore
-        return SelectionResult(goalType, goal, goal.defIdentifier?.name, goalExpr)
+        return SelectionResult(goalType, goal, goal.textRange, goal.defIdentifier?.name, goalExpr)
     }
 
     private fun extractSelectionData(file : PsiFile, editor: Editor, project: Project, range : TextRange) : SelectionResult? {
@@ -103,15 +106,15 @@ class GenerateFunctionIntention : BaseIntentionAction() {
                 .filterIsInstance<ArendExpr>()
                 .lastOrNull { enclosingRange.contains(it.textRange) }
                 ?: subexprResult.subPsi
-        return SelectionResult(subexprResult.subCore.type, enclosingPsi, null, subexprResult.subCore)
+        return SelectionResult(subexprResult.subCore.type, enclosingPsi, enclosingRange, null, subexprResult.subCore)
     }
 
     private fun performRefactoring(
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, selection : SelectionResult,
         editor: Editor, project: Project
     ) {
-        val enclosingFunctionDefinition = selection.replaceablePsi.parentOfType<ArendFunctionalDefinition>() ?: return
-        val enclosingDefinitionReferable = selection.replaceablePsi.parentOfType<TCDefinition>()!!
+        val enclosingFunctionDefinition = selection.contextPsi.parentOfType<ArendFunctionalDefinition>() ?: return
+        val enclosingDefinitionReferable = selection.contextPsi.parentOfType<TCDefinition>()!!
         val (newFunctionCall, newFunctionDefinition) = buildRepresentations(
                 enclosingDefinitionReferable, selection,
                 enclosingFunctionDefinition,
@@ -119,7 +122,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         ) ?: return
 
         val globalOffsetOfNewDefinition =
-            modifyDocument(editor, newFunctionCall, selection.replaceablePsi, newFunctionDefinition, enclosingFunctionDefinition, project)
+                modifyDocument(editor, newFunctionCall, selection.rangeOfReplacement, newFunctionDefinition, enclosingFunctionDefinition, project)
 
         invokeRenamer(editor, globalOffsetOfNewDefinition, project)
     }
@@ -135,7 +138,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
 
         val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {
             val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
-            val renamer = CachingDefinitionRenamer(ScopeDefinitionRenamer(selection.replaceablePsi.parentOfType<ArendStatement>()!!.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }));
+            val renamer = CachingDefinitionRenamer(ScopeDefinitionRenamer(selection.contextPsi.parentOfType<ArendStatement>()!!.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }));
 
             { expr, useReturnType ->
                 try {
@@ -164,32 +167,39 @@ class GenerateFunctionIntention : BaseIntentionAction() {
 
     private fun modifyDocument(
         editor: Editor,
-        newCall: String,
-        replaceablePsi: ArendCompositeElement,
+        newCallRepresentation: String,
+        rangeOfReplacement: TextRange,
         newFunctionDefinition: String,
         oldFunction: PsiElement,
         project: Project
     ) : Int {
         val document = editor.document
-        val startGoalOffset = replaceablePsi.startOffset
-        val positionOfNewDefinition = oldFunction.endOffset - replaceablePsi.textLength + newCall.length + 4
+        val positionOfNewDefinition = oldFunction.endOffset - rangeOfReplacement.length + newCallRepresentation.length + 4 // 4 is for two parens and newlines
         document.insertString(oldFunction.endOffset, "\n\n$newFunctionDefinition")
-        val parenthesizedNewCall = replaceExprSmart(document, replaceablePsi, null, replaceablePsi.textRange, null, null, newCall, false)
+        document.replaceString(rangeOfReplacement.startOffset, rangeOfReplacement.endOffset, "($newCallRepresentation)")
         PsiDocumentManager.getInstance(project).commitDocument(document)
         val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return positionOfNewDefinition
-        val callElementPointer =
-            psiFile.findElementAt(startGoalOffset + 1)!!.let(SmartPointerManager::createPointer)
-        val newDefinitionPointer =
-            psiFile.findElementAt(positionOfNewDefinition)!!.let(SmartPointerManager::createPointer)
+        val pointerToNewDefinition = psiFile.findElementAt(positionOfNewDefinition)!!.let(SmartPointerManager::createPointer)
+        val newPositionOfCall = unwrapParentheses(psiFile, document, rangeOfReplacement)
         CodeStyleManager.getInstance(project).reformatText(
-            psiFile,
-            listOf(
-                TextRange(startGoalOffset, startGoalOffset + parenthesizedNewCall.length),
-                TextRange(positionOfNewDefinition - 2, positionOfNewDefinition + newFunctionDefinition.length)
-            )
+                psiFile,
+                listOf(TextRange(newPositionOfCall, newPositionOfCall + newCallRepresentation.length),
+                        TextRange(positionOfNewDefinition, positionOfNewDefinition + newFunctionDefinition.length))
         )
-        editor.caretModel.moveToOffset(callElementPointer.element!!.startOffset)
-        return newDefinitionPointer.element!!.startOffset
+        editor.caretModel.moveToOffset(newPositionOfCall)
+        return pointerToNewDefinition.element!!.startOffset
+    }
+
+    private fun unwrapParentheses(psiFile: PsiFile, document: Document, rangeOfReplacement: TextRange): Int {
+        val newCallElement = psiFile.findElementAt(rangeOfReplacement.startOffset)?.parentOfType<ArendTuple>(true)
+                ?: return rangeOfReplacement.startOffset + 1
+        return if (mayBeUnwrappedFromParentheses(newCallElement)) {
+            unwrapTuple(newCallElement, psiFile)
+            PsiDocumentManager.getInstance(psiFile.project).commitDocument(document)
+            rangeOfReplacement.startOffset
+        } else {
+            rangeOfReplacement.startOffset + 1
+        }
     }
 
     private fun invokeRenamer(editor: Editor, functionOffset: Int, project: Project) {

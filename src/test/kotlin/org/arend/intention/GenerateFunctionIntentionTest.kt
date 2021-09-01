@@ -203,4 +203,12 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         \func foo : Nat => \let rr => f \in foo-lemma rr
         
         \func foo-lemma (rr : \Sigma Nat Nat) : Nat => g rr.1""")
+
+    fun `test complex infix`() = doTest("""
+        \func foo (x y : Nat) => {-selection-}x Nat{-caret-}.+ x{-end_selection-} Nat.+ y
+    """, """
+        \func foo (x y : Nat) => (foo-lemma x) Nat.+ y
+        
+        \func foo-lemma (x : Nat) : Nat => x Nat.+ x
+    """)
 }
