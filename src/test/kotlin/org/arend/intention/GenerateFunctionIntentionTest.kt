@@ -211,4 +211,13 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         
         \func foo-lemma (x : Nat) : Nat => x Nat.+ x
     """)
+
+
+    fun `test empty goal`() = doTest("""
+        \func foo => {?{-caret-}}
+    """, """
+        \func foo => foo-lemma
+        
+        \func foo-lemma => {?}
+    """)
 }

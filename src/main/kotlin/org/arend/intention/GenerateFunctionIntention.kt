@@ -63,7 +63,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
     }
 
     private data class SelectionResult(
-        val expectedType: Expression,
+        val expectedType: Expression?,
         val contextPsi: ArendCompositeElement,
         val rangeOfReplacement: TextRange,
         val identifier: String?,
@@ -89,7 +89,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         val errorService = project.service<ErrorService>()
         val arendError = errorService.errors[goal.containingFile]?.firstOrNull { it.cause == goal }?.error as? GoalError
             ?: return null
-        val goalType = (arendError as? GoalError)?.expectedType ?: return null
+        val goalType = (arendError as? GoalError)?.expectedType
         val goalExpr = goal.expr?.let {
             tryCorrespondedSubExpr(it.textRange, file, project, editor)
         }?.subCore
@@ -161,7 +161,8 @@ class GenerateFunctionIntention : BaseIntentionAction() {
 
         val actualBody = selection.body?.let { prettyPrinter(it, true) } ?: "{?}"
         val newFunctionCall = "$newFunctionName$explicitVariableNames"
-        val newFunctionDefinition = "\\func $newFunctionName$parameters : ${prettyPrinter(selection.expectedType, false)} => $actualBody"
+        val newFunctionDefinitionType = if (selection.expectedType != null) " : ${prettyPrinter(selection.expectedType, false)}" else ""
+        val newFunctionDefinition = "\\func $newFunctionName$parameters$newFunctionDefinitionType => $actualBody"
         return newFunctionCall to newFunctionDefinition
     }
 
