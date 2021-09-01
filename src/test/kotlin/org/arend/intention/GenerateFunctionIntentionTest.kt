@@ -220,4 +220,17 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
         
         \func foo-lemma => {?}
     """)
+
+    fun `test non-standard name`() = doTest("""
+        \func foo => {?{-caret-}}
+        
+        \func foo-lemma : Nat => 1
+    """,
+    """
+       \func foo => foo-lemma'
+       
+       \func foo-lemma' => {?}
+       
+       \func foo-lemma : Nat => 1
+    """)
 }

@@ -26,6 +26,7 @@ import org.arend.inspection.mayBeUnwrappedFromParentheses
 import org.arend.inspection.unwrapTuple
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
@@ -43,7 +44,6 @@ import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
 import org.arend.util.FreeVariablesWithDependenciesCollector
 import org.arend.util.ParameterExplicitnessState
-import kotlin.math.exp
 
 class GenerateFunctionIntention : BaseIntentionAction() {
     companion object {
@@ -135,8 +135,9 @@ class GenerateFunctionIntention : BaseIntentionAction() {
             functionDefinition: ArendFunctionalDefinition,
             freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
     ): Pair<String, String>? {
-        val newFunctionName = selection.identifier ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" }
+        val baseName = selection.identifier ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" }
         ?: return null
+        val newFunctionName = generateFreeName(baseName, selection.contextPsi.scope)
 
         val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {
             val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
@@ -158,7 +159,7 @@ class GenerateFunctionIntention : BaseIntentionAction() {
                 .joinToString("") { " " + it.first.name }
 
         val parameters = freeVariables.collapseTelescopes().joinToString("") { (bindings, explicitness) ->
-            " ${explicitness.openingBrace}${bindings.joinToString(" ") {it.name}} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
+            " ${explicitness.openingBrace}${bindings.joinToString(" ") { it.name }} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
         }
 
         val actualBody = selection.body?.let { prettyPrinter(it, true) } ?: "{?}"
@@ -168,27 +169,35 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         return newFunctionCall to newFunctionDefinition
     }
 
-    private fun List<Pair<Binding, ParameterExplicitnessState>>.collapseTelescopes() : List<Pair<List<Binding>, ParameterExplicitnessState>> = fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
-       if (collector.isEmpty() || collector.last().second == ParameterExplicitnessState.IMPLICIT) {
-           collector.add(SmartList(binding) to explicitness)
-       } else {
-           val lastEntry = collector.last()
-           if (lastEntry.first.first().type == binding.type) {
-               lastEntry.first.add(binding)
-           } else {
-               collector.add(SmartList(binding) to explicitness)
-           }
-       }
-        collector
-    }
+    private tailrec fun generateFreeName(baseName: String, scope: Scope): String =
+            if (scope.resolveName(baseName) == null) {
+                baseName
+            } else {
+                generateFreeName("$baseName'", scope)
+            }
+
+    private fun List<Pair<Binding, ParameterExplicitnessState>>.collapseTelescopes(): List<Pair<List<Binding>, ParameterExplicitnessState>> =
+        fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
+            if (collector.isEmpty() || collector.last().second == ParameterExplicitnessState.IMPLICIT) {
+                collector.add(SmartList(binding) to explicitness)
+            } else {
+                val lastEntry = collector.last()
+                if (lastEntry.first.first().type == binding.type) {
+                    lastEntry.first.add(binding)
+                } else {
+                    collector.add(SmartList(binding) to explicitness)
+                }
+            }
+            collector
+        }
 
     private fun modifyDocument(
-        editor: Editor,
-        newCallRepresentation: String,
-        rangeOfReplacement: TextRange,
-        newFunctionDefinition: String,
-        oldFunction: PsiElement,
-        project: Project
+            editor: Editor,
+            newCallRepresentation: String,
+            rangeOfReplacement: TextRange,
+            newFunctionDefinition: String,
+            oldFunction: PsiElement,
+            project: Project
     ) : Int {
         val document = editor.document
         val positionOfNewDefinition = oldFunction.endOffset - rangeOfReplacement.length + newCallRepresentation.length + 4 // 4 is for two parens and newlines
