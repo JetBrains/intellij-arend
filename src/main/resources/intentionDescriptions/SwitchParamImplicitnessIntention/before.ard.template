@@ -1,3 +1,0 @@
-\func id {A : \Type} => \lam (x : A) => x
-
-\func g => id 1

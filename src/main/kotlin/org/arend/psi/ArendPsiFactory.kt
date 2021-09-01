@@ -41,6 +41,12 @@ class ArendPsiFactory(
                 ?: error("Failed to create name tele " + (name ?: ""))
     }
 
+    fun createFieldTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendFieldTele {
+        val lparen = if (isExplicit) "(" else "{"
+        val rparen = if (isExplicit) ")" else "}"
+        return createFromText("\\class Dummy $lparen ${name ?: "_"} : $typeExpr $rparen")!!.childOfType()!!
+    }
+
     fun createTypeTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendTypeTele {
         val lparen = if (isExplicit) "(" else "{"
         val rparen = if (isExplicit) ")" else "}"
@@ -129,7 +135,7 @@ class ArendPsiFactory(
             append(" => ")
             append(expr)
         }.trimEnd()
-        return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
+        return createFromText(code)?.childOfType() ?: error("Failed to create lambda: `$code`")
     }
 
     fun createPairOfBraces(): Pair<PsiElement, PsiElement> {

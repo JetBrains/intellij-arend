@@ -42,7 +42,7 @@ class ArendExtensionChangeListener : ExternalSystemTaskNotificationListenerAdapt
     }
 
     private fun createNotification(project: Project) =
-        NotificationGroupManager.getInstance().getNotificationGroup("Arend Reload").createNotification("Arend extension changed", "", NotificationType.INFORMATION, null).apply {
+        NotificationGroupManager.getInstance().getNotificationGroup("Arend Reload").createNotification("Arend extension changed", "", NotificationType.INFORMATION).apply {
             val action = ReloadLibrariesAction()
             addAction(object : NotificationAction("Reload Arend libraries") {
                 override fun actionPerformed(e: AnActionEvent, notification: Notification) {

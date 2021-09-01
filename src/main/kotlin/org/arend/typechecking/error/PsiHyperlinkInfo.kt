@@ -16,15 +16,15 @@ import org.arend.highlight.BasePass
 import org.arend.psi.navigate
 
 private class PsiHyperlinkInfo(private val sourceElement: SmartPsiElementPointer<out PsiElement>) : HyperlinkInfo {
-    override fun navigate(project: Project?) {
+    override fun navigate(project: Project) {
         runReadAction { sourceElement.element }?.navigate()
     }
 }
 
 private class FixedHyperlinkInfo(private val error: GeneralError) : HyperlinkInfo {
-    override fun navigate(project: Project?) {
+    override fun navigate(project: Project) {
         val cause = BasePass.getCauseElement(error.cause) ?: return
-        val desc = OpenFileDescriptor(project ?: cause.project, cause.containingFile.virtualFile, BasePass.getImprovedTextOffset(error, cause))
+        val desc = OpenFileDescriptor(project, cause.containingFile.virtualFile, BasePass.getImprovedTextOffset(error, cause))
         desc.isUseCurrentWindow = FileEditorManager.USE_CURRENT_WINDOW.isIn(cause)
         if (desc.canNavigate()) {
             desc.navigate(true)

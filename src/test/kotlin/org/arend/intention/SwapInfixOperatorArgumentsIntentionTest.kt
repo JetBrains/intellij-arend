@@ -116,4 +116,14 @@ class SwapInfixOperatorArgumentsIntentionTest : QuickFixTestBase() {
         | \infixr 5 && A B
       \func f : Nat And Int => 1 &&{-caret-} 0
     """)
+
+    fun `test class field alias`() = doTest("""
+      \class A
+        | \infixl 7 op \alias \infixl 7 ∧ : Nat -> Nat -> Nat
+      \func f (a : A) => 1 ∧{-caret-} 2
+    """, """
+      \class A
+        | \infixl 7 op \alias \infixl 7 ∧ : Nat -> Nat -> Nat
+      \func f (a : A) => 2 ∧ 1
+    """)
 }

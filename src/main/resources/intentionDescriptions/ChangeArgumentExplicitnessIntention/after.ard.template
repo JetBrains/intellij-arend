@@ -1,0 +1,5 @@
+\func mp {A B :<spot><\spot> \Type} (a : A) (b : B) => (a, b)
+
+\func \infixl 6 <!> {A B : \Type} (p1 p2 : \Sigma A B) => (p1.1, p2.2)
+
+\func test => mp 1 2 <!> mp 3 4

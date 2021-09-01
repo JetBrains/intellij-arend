@@ -1,0 +1,4 @@
+\func test1 => (Nat -> Nat) -> Nat
+-- False negatives. But removing parens might hurt readability, especially in the second case.
+\func test2 => (0 = 1) -> Nat
+\func test3 => (\Sigma Nat Nat) -> Nat

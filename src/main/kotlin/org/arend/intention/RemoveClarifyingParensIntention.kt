@@ -3,7 +3,6 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import org.arend.ext.reference.Precedence
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.intention.binOp.BinOpSeqProcessor
 import org.arend.intention.binOp.CaretHelper
@@ -12,6 +11,7 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.surroundingTupleExpr
+import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.order.PartialComparator
 import org.arend.util.ArendBundle
@@ -100,11 +100,6 @@ private fun findBinOpInParens(expression: Concrete.HoleExpression): Concrete.App
 private fun unwrapAppExprInParens(tuple: ArendTuple): ArendArgumentAppExpr? {
     val expr = unwrapParens(tuple) ?: return null
     return (expr as? ArendNewExpr)?.appExpr as? ArendArgumentAppExpr ?: return null
-}
-
-private fun unwrapParens(tuple: ArendTuple): ArendExpr? {
-    val tupleExpr = tuple.tupleExprList.singleOrNull() ?: return null
-    return if (tupleExpr.colon == null) tupleExpr.exprList.singleOrNull() else null
 }
 
 private fun doesNotNeedParens(childBinOp: Concrete.AppExpression, parentBinOp: Concrete.AppExpression): Boolean {

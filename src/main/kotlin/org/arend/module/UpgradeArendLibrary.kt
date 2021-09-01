@@ -61,14 +61,14 @@ private fun downloadArendLib(project: Project, indicator: ProgressIndicator, pat
         }
         true
     } catch (e: IOException) {
-        NotificationErrorReporter.errorNotifications.createNotification("An exception happened during downloading of $AREND_LIB", null, e.toString(), NotificationType.ERROR, null).notify(project)
+        NotificationErrorReporter.errorNotifications.createNotification("An exception happened during downloading of $AREND_LIB", e.toString(), NotificationType.ERROR).notify(project)
         false
     }
 
 fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
     val libRoot = project.service<ArendProjectSettings>().librariesRoot.let { if (it.isNotEmpty()) Paths.get(it) else FileUtils.defaultLibrariesRoot() }
     val notification = NotificationGroupManager.getInstance().getNotificationGroup("Arend Library Update")
-        .createNotification(if (isNewVersion) "$AREND_LIB has a wrong version" else "$AREND_LIB is missing", "", NotificationType.ERROR, null)
+        .createNotification(if (isNewVersion) "'$AREND_LIB' has a wrong version" else "'$AREND_LIB' is missing", "", NotificationType.ERROR)
 
     notification.addAction(object : NotificationAction("Download $AREND_LIB") {
         override fun actionPerformed(e: AnActionEvent, notification: Notification) {
@@ -91,10 +91,10 @@ fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
                         }
                     })
                 } else {
-                    NotificationErrorReporter.errorNotifications.createNotification(null, null, "Cannot open $zipFile", NotificationType.ERROR, null).notify(project)
+                    NotificationErrorReporter.errorNotifications.createNotification("", "Cannot open $zipFile", NotificationType.ERROR).notify(project)
                 }
             } else {
-                NotificationErrorReporter.errorNotifications.createNotification(null, null, "Cannot create directory $libRoot", NotificationType.ERROR, null).notify(project)
+                NotificationErrorReporter.errorNotifications.createNotification("", "Cannot create directory $libRoot", NotificationType.ERROR).notify(project)
             }
         }
     })
