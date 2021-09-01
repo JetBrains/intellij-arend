@@ -16,6 +16,7 @@ import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parents
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
+import com.intellij.util.SmartList
 import org.arend.core.context.binding.Binding
 import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
@@ -42,6 +43,7 @@ import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
 import org.arend.util.FreeVariablesWithDependenciesCollector
 import org.arend.util.ParameterExplicitnessState
+import kotlin.math.exp
 
 class GenerateFunctionIntention : BaseIntentionAction() {
     companion object {
@@ -155,8 +157,8 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         val explicitVariableNames = freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }
                 .joinToString("") { " " + it.first.name }
 
-        val parameters = freeVariables.joinToString("") { (binding, explicitness) ->
-            " ${explicitness.openingBrace}${binding.name} : ${prettyPrinter(binding.typeExpr, false)}${explicitness.closingBrace}"
+        val parameters = freeVariables.collapseTelescopes().joinToString("") { (bindings, explicitness) ->
+            " ${explicitness.openingBrace}${bindings.joinToString(" ") {it.name}} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
         }
 
         val actualBody = selection.body?.let { prettyPrinter(it, true) } ?: "{?}"
@@ -164,6 +166,20 @@ class GenerateFunctionIntention : BaseIntentionAction() {
         val newFunctionDefinitionType = if (selection.expectedType != null) " : ${prettyPrinter(selection.expectedType, false)}" else ""
         val newFunctionDefinition = "\\func $newFunctionName$parameters$newFunctionDefinitionType => $actualBody"
         return newFunctionCall to newFunctionDefinition
+    }
+
+    private fun List<Pair<Binding, ParameterExplicitnessState>>.collapseTelescopes() : List<Pair<List<Binding>, ParameterExplicitnessState>> = fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
+       if (collector.isEmpty() || collector.last().second == ParameterExplicitnessState.IMPLICIT) {
+           collector.add(SmartList(binding) to explicitness)
+       } else {
+           val lastEntry = collector.last()
+           if (lastEntry.first.first().type == binding.type) {
+               lastEntry.first.add(binding)
+           } else {
+               collector.add(SmartList(binding) to explicitness)
+           }
+       }
+        collector
     }
 
     private fun modifyDocument(

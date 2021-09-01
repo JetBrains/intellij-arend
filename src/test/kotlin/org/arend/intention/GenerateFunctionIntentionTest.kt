@@ -14,7 +14,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func lorem {A : \Type} (x y : A) : x = y => lorem-lemma x y
         
-        \func lorem-lemma {A : \Type} (x : A) (y : A) : x = y => {?}
+        \func lorem-lemma {A : \Type} (x y : A) : x = y => {?}
         """
     )
 
@@ -23,7 +23,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func lorem {A : \Type} {B : A -> \Type} {a : A} (x y : B a) : x = y => lorem-lemma B x y
         
-        \func lorem-lemma {A : \Type} (B : A -> \Type) {a : A} (x : B a) (y : B a) : x = y => {?}
+        \func lorem-lemma {A : \Type} (B : A -> \Type) {a : A} (x y : B a) : x = y => {?}
         """
     )
 
@@ -32,7 +32,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func lorem {A : \Type} {B : A -> \Type} (c d : \Sigma (a : A) (B a)) : c = d => lorem-lemma B c d
 
-        \func lorem-lemma {A : \Type} (B : A -> \Type) (c : \Sigma (a : A) (B a)) (d : \Sigma (a : A) (B a)) : c = d => {?}
+        \func lorem-lemma {A : \Type} (B : A -> \Type) (c d : \Sigma (a : A) (B a)) : c = d => {?}
         """
     )
 
@@ -47,7 +47,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
 
         \func lorem (a b c d : Nat) (eq1 : a = b) (eq2 : c = d) : a = d => eq1 *> (lorem-lemma b c) *> eq2
 
-        \func lorem-lemma (b : Nat) (c : Nat) : b = c => {?}
+        \func lorem-lemma (b c : Nat) : b = c => {?}
         """
     )
 
@@ -60,7 +60,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
 
         \func lorem (x y : Nat) : x = x => foo x y (lorem-lemma x y)
 
-        \func lorem-lemma (x : Nat) (y : Nat) : x = y => {?}
+        \func lorem-lemma (x y : Nat) : x = y => {?}
         """
     )
 
@@ -101,7 +101,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func lorem {A : \Prop} (x y : A) : x = y => lorem-lemma x y
         
-        \func lorem-lemma {A : \Prop} (x : A) (y : A) : x = y => Path.inProp x y
+        \func lorem-lemma {A : \Prop} (x y : A) : x = y => Path.inProp x y
     """)
 
     fun `test goal with name`() = doTest("""
@@ -109,7 +109,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func lorem {A : \Prop} (x y : A) : x = y => my-lemma x y
         
-        \func my-lemma {A : \Prop} (x : A) (y : A) : x = y => {?}""")
+        \func my-lemma {A : \Prop} (x y : A) : x = y => {?}""")
 
     fun `test extract from selection`() = doTest("""
         \func bar (n : Nat) : Nat => n Nat.+ 1
@@ -128,7 +128,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func bar {A : \Prop} (x y : A) : x = y => bar-lemma x y
 
-        \func bar-lemma {A : \Prop} (x : A) (y : A) : x = y => Path.inProp x y
+        \func bar-lemma {A : \Prop} (x y : A) : x = y => Path.inProp x y
     """)
 
     fun `test extract from selection 3`() = doTest("""
@@ -186,7 +186,7 @@ class GenerateFunctionIntentionTest : QuickFixTestBase() {
 
         \func bar : \Sigma Nat Nat => \let ((a, b), c) => foo \in bar-lemma a c
         
-        \func bar-lemma (a : Nat) (c : Nat) : \Sigma Nat Nat => (a, c) 
+        \func bar-lemma (a c : Nat) : \Sigma Nat Nat => (a, c) 
     """)
 
     fun `test projections 2`() = doTest("""
