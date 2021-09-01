@@ -119,25 +119,31 @@ abstract class ChangeArgumentExplicitnessApplier {
         It makes all rewriting locally, so it's not necessary to go up to the topmost call.
         After rewriting the parens will be removed.
     */
-    private fun wrapCallIntoParens(concreteAppExpr: Concrete.AppExpression, def: PsiElement): PsiElement? {
-        var concrete = concreteAppExpr
-        val cntArguments = concrete.arguments.size
+    private fun wrapCallIntoParens(appExpr: Concrete.AppExpression, def: PsiElement) {
+        fun wrapCallInArguments(appExpr: Concrete.AppExpression, def: PsiElement, index: Int): Concrete.AppExpression? {
+            var concrete = appExpr
+            val cntArguments = concrete.arguments.size
 
-        // It's important to update concrete, because its `data` becomes dummy after rewriting
-        for (i in 0 until cntArguments) {
-            val argument = concrete.arguments[i].expression
-            if (argument is Concrete.AppExpression) {
-                val parentCallWithWrappedArgument = wrapCallIntoParens(argument, def) ?: continue
-                concrete = convertCallToConcrete(parentCallWithWrappedArgument) ?: continue
+            // It's important to update concrete, because its `data` becomes dummy after rewriting
+            for (i in 0 until cntArguments) {
+                val argument = concrete.arguments[i].expression
+                if (argument is Concrete.AppExpression) {
+                    val currentCall = wrapCallInArguments(argument, def, i) ?: continue
+                    concrete = if (currentCall.toString() != appExpr.toString()) {
+                        currentCall.arguments.getOrNull(index)?.expression as? Concrete.AppExpression ?: continue
+                    } else {
+                        currentCall
+                    }
+                }
             }
+            val resolve = tryResolveFunctionName(concrete.function.data as PsiElement)
+            if (def == resolve) {
+                return wrapCall(concrete)
+            }
+            return null
         }
 
-        val resolve = tryResolveFunctionName(concrete.function.data as PsiElement)
-        if (def == resolve) {
-            return wrapCall(concrete)
-        }
-
-        return null
+        wrapCallInArguments(appExpr, def, -1)
     }
 
     /*
@@ -151,7 +157,7 @@ abstract class ChangeArgumentExplicitnessApplier {
         val call = getParentPsiFunctionCall(usage)
         if (processed.contains(call.text)) return
 
-        val callPrefix = convertFunctionCallToPrefix(call) ?: call
+        val callPrefix = convertCallToPrefix(call) ?: call
         val needUnwrap = wrapped.contains(call)
 
         val updatedCall = call.replaceWithNotification(callPrefix)
@@ -339,40 +345,35 @@ abstract class ChangeArgumentExplicitnessApplier {
         argument.deleteWithNotification()
     }
 
-    private fun wrapCall(concrete: Concrete.AppExpression): PsiElement? {
+    private fun wrapCall(concrete: Concrete.AppExpression): Concrete.AppExpression? {
         val call = getParentPsiFunctionCall(concrete.function.data as PsiElement)
         val (first, last) = getRangeForConcrete(concrete, call) ?: return null
-
+        val isCurrentCallOnTop = (call.firstChild == first && call.lastChild == last)
         val isAlreadyWrapped =
             wrapped.contains(call) ||
                     !call.isValid ||
-                    ("(${call.text})" == call.ancestor<ArendTuple>()?.text &&
-                            call.firstChild == first &&
-                            call.lastChild == last)
+                    ("(${call.text})" == call.ancestor<ArendTuple>()?.text && isCurrentCallOnTop)
 
         if (isAlreadyWrapped) return null
 
         val callText = buildPrefixTextFromConcrete(concrete)
         val newCall = buildString {
             for (child in call.children) {
-                when (child) {
-                    first -> {
-                        append("($callText) ")
-                        break
-                    }
-                    else -> {
-                        append("${child.text} ")
-                    }
+                if (child == first) {
+                    append("($callText) ")
+                    break
+                } else {
+                    append("${child.text} ")
                 }
             }
         }.trimEnd()
 
-        val wrappedCall = factory.createArgumentAppExpr(newCall).children.last()
+        val wrappedCall = factory.createArgumentAppExpr(newCall).lastChild
         val insertedCall = call.addAfterWithNotification(wrappedCall, last)
         call.deleteChildRangeWithNotification(first, last)
         wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
 
-        return call
+        return convertCallToConcrete(call)
     }
 
     private fun unwrapCall(call: PsiElement) {
@@ -429,7 +430,7 @@ abstract class ChangeArgumentExplicitnessApplier {
 
     abstract fun getParentPsiFunctionCall(element: PsiElement): PsiElement
 
-    abstract fun convertFunctionCallToPrefix(call: PsiElement): PsiElement?
+    abstract fun convertCallToPrefix(call: PsiElement): PsiElement?
 
     abstract fun getCallingParameters(call: PsiElement): List<PsiElement>
 
@@ -446,9 +447,9 @@ abstract class ChangeArgumentExplicitnessApplier {
 
 class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement =
-        element.parent?.ancestor<ArendArgumentAppExpr>() ?: element
+        element.ancestor<ArendArgumentAppExpr>() ?: element
 
-    override fun convertFunctionCallToPrefix(call: PsiElement): PsiElement? {
+    override fun convertCallToPrefix(call: PsiElement): PsiElement? {
         val concrete = convertCallToConcrete(call) ?: return null
         val functionCallText = buildPrefixTextFromConcrete(concrete)
         return factory.createArgumentAppExpr(functionCallText)
@@ -483,11 +484,10 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
 }
 
 class TypeApplier : ChangeArgumentExplicitnessApplier() {
-    override fun getParentPsiFunctionCall(element: PsiElement): PsiElement {
-        return element.parent?.ancestor<ArendLocalCoClause>() ?: element
-    }
+    override fun getParentPsiFunctionCall(element: PsiElement): PsiElement =
+        element.ancestor<ArendLocalCoClause>() ?: element
 
-    override fun convertFunctionCallToPrefix(call: PsiElement): PsiElement = call
+    override fun convertCallToPrefix(call: PsiElement): PsiElement = call
 
     override fun getCallingParameters(call: PsiElement): List<PsiElement> = (call as ArendLocalCoClause).lamParamList
 

@@ -70,11 +70,11 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     fun testFunctionIESplitTele() = doTest(
         """
         \func k {A {-caret-}B : \Type} (a : A) (b : B) => a
-        \func f => k {_} 1 (1, 2)
+        \func f => k {_} 1 (2, 3) Nat.+ k 4 5
         """,
         """
         \func k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => a
-        \func f => k {_} _ 1 (1, 2)
+        \func f => k {_} _ 1 (2, 3) Nat.+ k _ 4 5
         """
     )
 
@@ -512,6 +512,17 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func \infixl 6 <!> ({-caret-}A : \Type) {B : \Type} (p1 p2 : \Sigma A B) => (p1.1, p2.2)
 
         \func test => <!> _ (mp (1 Nat.+ 2) 3) (mp 4 (5 Nat.* 6))
+        """
+    )
+
+    fun testInfixEISaveInfix() = doTest(
+        """
+        \func f ({-caret-}a b : Nat) => a
+        \func test => f 1 2 Nat.+ f 1 3 Nat.+ 1
+        """,
+        """
+        \func f {{-caret-}a : Nat} (b : Nat) => a
+        \func test => f {1} 2 Nat.+ f {1} 3 Nat.+ 1
         """
     )
 }
