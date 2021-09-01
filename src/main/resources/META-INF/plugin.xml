@@ -187,7 +187,12 @@
         </intentionAction>
 
         <intentionAction>
-            <className>org.arend.intention.GenerateFunctionIntention</className>
+            <className>org.arend.intention.GenerateFunctionFromGoalIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.ExtractExpressionToFunctionIntention</className>
             <category>Arend</category>
         </intentionAction>
 

@@ -1,0 +1,1 @@
+\func foo (x y : Nat) : Nat => <spot>x + y</spot>

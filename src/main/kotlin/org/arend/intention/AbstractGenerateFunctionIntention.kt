@@ -1,7 +1,6 @@
 package org.arend.intention
 
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
-import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
@@ -13,7 +12,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.parentOfType
-import com.intellij.psi.util.parents
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.SmartList
@@ -27,44 +25,32 @@ import org.arend.inspection.unwrapTuple
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.*
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendStatement
+import org.arend.psi.ArendTuple
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.TCDefinition
-import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
-import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.MinimizedRepresentation
 import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.PsiInstanceProviderSet
-import org.arend.typechecking.error.ErrorService
-import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
 import org.arend.util.FreeVariablesWithDependenciesCollector
 import org.arend.util.ParameterExplicitnessState
 
-class GenerateFunctionIntention : BaseIntentionAction() {
+abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     companion object {
-        val log = logger<GenerateFunctionIntention>()
+        val log = logger<AbstractGenerateFunctionIntention>()
     }
 
-    override fun getText(): String = ArendBundle.message("arend.generate.function")
-    override fun getFamilyName() = text
+    override fun getFamilyName() = ArendBundle.message("arend.generate.function")
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
-        editor ?: return false
-        file ?: return false
-        if (!canModify(file) || !BaseArendIntention.canModify(file)) {
-            return false
-        }
-        val selection = editor.getSelectionWithoutErrors() ?: return false
-        return !selection.isEmpty ||
-                file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) != null
-    }
+    protected abstract fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult?
 
-    private data class SelectionResult(
+    protected data class SelectionResult(
         val expectedType: Expression?,
         val contextPsi: ArendCompositeElement,
         val rangeOfReplacement: TextRange,
@@ -75,40 +61,10 @@ class GenerateFunctionIntention : BaseIntentionAction() {
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         editor ?: return
         file ?: return
-        val selection = editor.getSelectionWithoutErrors() ?: return
-        val selectionResult = if (selection.isEmpty) {
-            extractGoalData(file, editor, project)
-        } else {
-            extractSelectionData(file, editor, project, selection)
-        } ?: return
+        val selectionResult = extractSelectionData(file, editor, project) ?: return
         val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body)
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expressions)
         performRefactoring(freeVariables, selectionResult, editor, project)
-    }
-
-    private fun extractGoalData(file : PsiFile, editor: Editor, project: Project): SelectionResult? {
-        val goal = file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) ?: return null
-        val errorService = project.service<ErrorService>()
-        val arendError = errorService.errors[goal.containingFile]?.firstOrNull { it.cause == goal }?.error as? GoalError
-            ?: return null
-        val goalType = (arendError as? GoalError)?.expectedType
-        val goalExpr = goal.expr?.let {
-            tryCorrespondedSubExpr(it.textRange, file, project, editor)
-        }?.subCore
-        return SelectionResult(goalType, goal, goal.textRange, goal.defIdentifier?.name, goalExpr)
-    }
-
-    private fun extractSelectionData(file : PsiFile, editor: Editor, project: Project, range : TextRange) : SelectionResult? {
-        val subexprResult = tryCorrespondedSubExpr(range, file, project, editor) ?: return null
-        val enclosingRange = rangeOfConcrete(subexprResult.subConcrete)
-        val enclosingPsi =
-            subexprResult
-                .subPsi
-                .parents(true)
-                .filterIsInstance<ArendExpr>()
-                .lastOrNull { enclosingRange.contains(it.textRange) }
-                ?: subexprResult.subPsi
-        return SelectionResult(subexprResult.subCore.type, enclosingPsi, enclosingRange, null, subexprResult.subCore)
     }
 
     private fun performRefactoring(
