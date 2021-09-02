@@ -1,0 +1,3 @@
+\func foo (x y : Nat) : Nat => <spot>foo-lemma x y
+
+\func foo-lemma (x y : Nat) : Nat => x + y</spot>
