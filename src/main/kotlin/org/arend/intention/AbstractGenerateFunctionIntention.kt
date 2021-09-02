@@ -162,7 +162,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val newCallRepresentation = newCall.toString()
         val positionOfNewDefinition = oldFunction.endOffset - rangeOfReplacement.length + newCallRepresentation.length + 4
         document.insertString(oldFunction.endOffset, "\n\n$newFunctionDefinition")
-        val parenthesizedNewCall = replaceExprSmart(document, replaceablePsi, replacedConcrete, expandRangeOfReplacement(document, rangeOfReplacement), null, newCall, newCallRepresentation, false)
+        val parenthesizedNewCall = replaceExprSmart(document, replaceablePsi, replacedConcrete, rangeOfReplacement, null, newCall, newCallRepresentation, false)
         PsiDocumentManager.getInstance(project).commitDocument(document)
         val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return positionOfNewDefinition
         val callElementPointer =
@@ -178,16 +178,6 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         )
         editor.caretModel.moveToOffset(callElementPointer.element!!.startOffset)
         return newDefinitionPointer.element!!.startOffset
-    }
-
-    private fun expandRangeOfReplacement(document: Document, rangeOfReplacement: TextRange): TextRange {
-        val wideRange = TextRange(rangeOfReplacement.startOffset - 1, rangeOfReplacement.endOffset + 1)
-        val substring = document.getText(wideRange)
-        return if (substring.startsWith('(') && substring.endsWith(')')) {
-            wideRange
-        } else {
-            rangeOfReplacement
-        }
     }
 
     private fun invokeRenamer(editor: Editor, functionOffset: Int, project: Project) {
