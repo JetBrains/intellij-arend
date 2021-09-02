@@ -15,7 +15,7 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func bar (n : Nat) : Nat => n Nat.+ 1
 
-        \func foo : Nat => bar (foo-lemma)
+        \func foo : Nat => bar foo-lemma
     
         \func foo-lemma : Fin 21 => 20
     """)
@@ -104,7 +104,7 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
     fun `test complex infix`() = doTest("""
         \func foo (x y : Nat) => {-selection-}x Nat{-caret-}.+ x{-end_selection-} Nat.+ y
     """, """
-        \func foo (x y : Nat) => (foo-lemma x) Nat.+ y
+        \func foo (x y : Nat) => foo-lemma x Nat.+ y
         
         \func foo-lemma (x : Nat) : Nat => x Nat.+ x
     """)

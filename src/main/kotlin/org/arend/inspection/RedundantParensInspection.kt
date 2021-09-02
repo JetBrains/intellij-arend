@@ -21,17 +21,13 @@ class RedundantParensInspection : LocalInspectionTool() {
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : ArendVisitor() {
         override fun visitTuple(tuple: ArendTuple) {
             super.visitTuple(tuple)
-            if (mayBeUnwrappedFromParentheses(tuple)) {
+            val expression = unwrapParens(tuple) ?: return
+            if (neverNeedsParens(expression) || neverNeedsParensInParent(tuple)) {
                 val message = ArendBundle.message("arend.inspection.redundant.parentheses.message")
                 holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
             }
         }
     }
-}
-
-fun mayBeUnwrappedFromParentheses(tuple: ArendTuple) : Boolean {
-    val expression = unwrapParens(tuple) ?: return false
-    return neverNeedsParens(expression) || neverNeedsParensInParent(tuple)
 }
 
 private fun neverNeedsParens(expression: ArendExpr): Boolean =
@@ -108,12 +104,8 @@ private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tup
 
     override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
         val tuple = startElement as ArendTuple
-        unwrapTuple(tuple, file)
+        val unwrapped = unwrapParens(tuple) ?: return
+        val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return
+        document.replaceString(tuple.startOffset, tuple.endOffset, unwrapped.text)
     }
-}
-
-fun unwrapTuple(tuple: ArendTuple, file : PsiFile) {
-    val unwrapped = unwrapParens(tuple) ?: return
-    val document = PsiDocumentManager.getInstance(tuple.project).getDocument(file) ?: return
-    document.replaceString(tuple.startOffset, tuple.endOffset, unwrapped.text)
 }

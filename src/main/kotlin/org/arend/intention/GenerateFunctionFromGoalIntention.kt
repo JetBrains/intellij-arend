@@ -33,6 +33,6 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
         val goalExpr = goal.expr?.let {
             tryCorrespondedSubExpr(it.textRange, file, project, editor)
         }?.subCore
-        return SelectionResult(goalType, goal, goal.textRange, goal.defIdentifier?.name, goalExpr)
+        return SelectionResult(goalType, goal, goal.textRange, null, goal.defIdentifier?.name, goalExpr)
     }
 }

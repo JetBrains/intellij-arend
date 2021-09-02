@@ -36,6 +36,6 @@ class ExtractExpressionToFunctionIntention : AbstractGenerateFunctionIntention()
                         .filterIsInstance<ArendExpr>()
                         .lastOrNull { enclosingRange.contains(it.textRange) }
                         ?: subexprResult.subPsi
-        return SelectionResult(subexprResult.subCore.type, enclosingPsi, enclosingRange, null, subexprResult.subCore)
+        return SelectionResult(subexprResult.subCore.type, enclosingPsi, enclosingRange, subexprResult.subConcrete, null, subexprResult.subCore)
     }
 }

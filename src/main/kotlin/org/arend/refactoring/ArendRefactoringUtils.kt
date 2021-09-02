@@ -735,7 +735,7 @@ fun needParentheses(deletedPsi: ArendCompositeElement?, deletedRange: TextRange,
 
     // if the range differs, then we do not know where the expression will be inserted,
     // so we add parentheses to be sure the result is correct
-    if (deletedRange != deletedPsi?.textRange) {
+    if (deletedPsi == null || (insertedPrec < APP_PREC && deletedRange != deletedPsi.textRange)) {
         return true
     }
 
