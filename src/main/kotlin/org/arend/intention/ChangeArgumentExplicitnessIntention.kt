@@ -87,7 +87,6 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
 abstract class ChangeArgumentExplicitnessApplier {
     protected lateinit var factory: ArendPsiFactory
     private val processed = mutableSetOf<String>()
-    private val wrapped = mutableSetOf<PsiElement>()
 
     fun applyTo(element: ArendCompositeElement, indexInTele: Int): PsiElement {
         factory = ArendPsiFactory(element.project)
@@ -100,8 +99,7 @@ abstract class ChangeArgumentExplicitnessApplier {
                 val usage = ref.element
                 if (!usage.isValid) continue
                 val call = getParentPsiFunctionCall(usage)
-                val concrete = convertCallToConcrete(call) ?: continue
-                wrapCallIntoParens(concrete, def)
+                CallWrapper.wrapWithSubTerms(call, def)
             }
         }
 
@@ -112,38 +110,6 @@ abstract class ChangeArgumentExplicitnessApplier {
         }
 
         return rewriteDef(element, indexInTele)
-    }
-
-    /*
-        Before rewriting calls, it's helpful to wrap into parens each call.
-        It makes all rewriting locally, so it's not necessary to go up to the topmost call.
-        After rewriting the parens will be removed.
-    */
-    private fun wrapCallIntoParens(appExpr: Concrete.AppExpression, def: PsiElement) {
-        fun wrapCallInArguments(appExpr: Concrete.AppExpression, def: PsiElement, index: Int): Concrete.AppExpression? {
-            var concrete = appExpr
-            val cntArguments = concrete.arguments.size
-
-            // It's important to update concrete, because its `data` becomes dummy after rewriting
-            for (i in 0 until cntArguments) {
-                val argument = concrete.arguments[i].expression
-                if (argument is Concrete.AppExpression) {
-                    val currentCall = wrapCallInArguments(argument, def, i) ?: continue
-                    concrete = if (currentCall.toString() != appExpr.toString()) {
-                        currentCall.arguments.getOrNull(index)?.expression as? Concrete.AppExpression ?: continue
-                    } else {
-                        currentCall
-                    }
-                }
-            }
-            val resolve = tryResolveFunctionName(concrete.function.data as PsiElement)
-            if (def == resolve) {
-                return wrapCall(concrete)
-            }
-            return null
-        }
-
-        wrapCallInArguments(appExpr, def, -1)
     }
 
     /*
@@ -158,7 +124,7 @@ abstract class ChangeArgumentExplicitnessApplier {
         if (processed.contains(call.text)) return
 
         val callPrefix = convertCallToPrefix(call) ?: call
-        val needUnwrap = wrapped.contains(call)
+        val needUnwrap = CallWrapper.needUnwrap(call)
 
         val updatedCall = call.replaceWithNotification(callPrefix)
         tryProcessPartialUsageWithoutArguments(updatedCall, def)
@@ -177,7 +143,7 @@ abstract class ChangeArgumentExplicitnessApplier {
         if (def == resolveCaller(updatedCall)) {
             val rewrittenCall = rewriteCall(updatedCall, def, indexInDef)
             if (needUnwrap && rewrittenCall !is ArendLamExpr) {
-                unwrapCall(rewrittenCall)
+                CallWrapper.unwrapCall(rewrittenCall)
             } else {
                 val psiWillBeReplaced = if (rewrittenCall is ArendLamExpr) updatedCall.ancestor<ArendNewExpr>()
                     ?: updatedCall else updatedCall
@@ -345,89 +311,6 @@ abstract class ChangeArgumentExplicitnessApplier {
         argument.deleteWithNotification()
     }
 
-    private fun wrapCall(concrete: Concrete.AppExpression): Concrete.AppExpression? {
-        val call = getParentPsiFunctionCall(concrete.function.data as PsiElement)
-        val (first, last) = getRangeForConcrete(concrete, call) ?: return null
-        val isCurrentCallOnTop = (call.firstChild == first && call.lastChild == last)
-        val isAlreadyWrapped =
-            wrapped.contains(call) ||
-                    !call.isValid ||
-                    ("(${call.text})" == call.ancestor<ArendTuple>()?.text && isCurrentCallOnTop)
-
-        if (isAlreadyWrapped) return null
-
-        val callText = buildPrefixTextFromConcrete(concrete)
-        val newCall = buildString {
-            for (child in call.children) {
-                if (child == first) {
-                    append("($callText) ")
-                    break
-                } else {
-                    append("${child.text} ")
-                }
-            }
-        }.trimEnd()
-
-        val wrappedCall = factory.createArgumentAppExpr(newCall).lastChild
-        val insertedCall = call.addAfterWithNotification(wrappedCall, last)
-        call.deleteChildRangeWithNotification(first, last)
-        wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
-
-        return convertCallToConcrete(call)
-    }
-
-    private fun unwrapCall(call: PsiElement) {
-        fun callToRange(call: PsiElement, firstChild: PsiElement): Pair<PsiElement, PsiElement> =
-            if (firstChild is ArendAtomFieldsAcc) {
-                Pair(call.firstChild, call.lastChild)
-            } else {
-                val dummyExpr = factory.createArgumentAppExpr("dummy ${call.text}")
-                Pair(dummyExpr.children[1], dummyExpr.lastChild)
-            }
-
-        val tuple = call.ancestor<ArendTuple>() ?: return
-        val parentCall = getParentPsiFunctionCall(tuple)
-        val child = getTopChildOnPath(tuple, parentCall)
-        val (first, last) = callToRange(call, child)
-        parentCall.addRangeAfterWithNotification(first, last, child)
-        child.deleteWithNotification()
-    }
-
-    protected fun buildPrefixTextFromConcrete(concrete: Concrete.AppExpression): String =
-        buildString {
-            val psiFunction = concrete.function.data as PsiElement
-            val call = getParentPsiFunctionCall(psiFunction)
-            val functionText = psiFunction.text.replace("`", "")
-            append("$functionText ")
-
-            for (arg in concrete.arguments) {
-                val concreteArg = arg.expression
-                val argText =
-                    if (concreteArg !is Concrete.AppExpression) {
-                        (concreteArg.data as PsiElement).text
-                    } else {
-                        val (first, last) = getRangeForConcrete(concreteArg, call) ?: continue
-                        getTextForRange(first, last)
-                    }
-
-                // avoid duplication in case R.foo <=> foo {R}
-                // functionText is `R.foo`, argText is `R.foo`
-                if (functionText == argText) {
-                    continue
-                }
-
-                if (arg.isExplicit) {
-                    if (needToWrapInBrackets(argText)) {
-                        append("($argText) ")
-                    } else {
-                        append("$argText ")
-                    }
-                } else {
-                    append("{$argText} ")
-                }
-            }
-        }.trimEnd()
-
     abstract fun getParentPsiFunctionCall(element: PsiElement): PsiElement
 
     abstract fun convertCallToPrefix(call: PsiElement): PsiElement?
@@ -451,7 +334,7 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
 
     override fun convertCallToPrefix(call: PsiElement): PsiElement? {
         val concrete = convertCallToConcrete(call) ?: return null
-        val functionCallText = buildPrefixTextFromConcrete(concrete)
+        val functionCallText = textOfConcreteAppExpression(concrete)
         return factory.createArgumentAppExpr(functionCallText)
     }
 
@@ -514,6 +397,126 @@ class TypeApplier : ChangeArgumentExplicitnessApplier() {
 
     override fun createArgument(arg: String): PsiElement = factory.createCoClause("dummy $arg").lamParamList.first()
 }
+
+private object CallWrapper {
+    private val wrapped = mutableSetOf<PsiElement>()
+    private lateinit var factory: ArendPsiFactory
+
+    /*
+        wraps into parens all calls in `call`-element where resolve of function equals `def`
+    */
+    fun wrapWithSubTerms(call: PsiElement, def: PsiElement) {
+        fun wrapInArguments(appExpr: Concrete.AppExpression, def: PsiElement, index: Int): Concrete.AppExpression {
+            var concrete = appExpr
+            val cntArguments = concrete.arguments.size
+            val function = concrete.function.data as PsiElement
+
+            // It's important to update concrete, because its `data` becomes dummy after rewriting
+            for (i in 0 until cntArguments) {
+                val argument = concrete.arguments[i].expression
+                if (argument is Concrete.AppExpression) {
+                    val currentCall = wrapInArguments(argument, def, i)
+                    concrete = if (currentCall.toString() != appExpr.toString()) {
+                        currentCall.arguments.getOrNull(index)?.expression as? Concrete.AppExpression ?: continue
+                    } else {
+                        currentCall
+                    }
+                }
+            }
+            val resolve = tryResolveFunctionName(function)
+            return if (def == resolve) wrapCall(concrete) else concrete
+        }
+
+        factory = ArendPsiFactory(def.project)
+        val concrete = convertCallToConcrete(call) ?: return
+        wrapInArguments(concrete, def, -1)
+    }
+
+    fun wrapCall(concrete: Concrete.AppExpression): Concrete.AppExpression {
+        val call = (concrete.function.data as PsiElement).ancestor<ArendArgumentAppExpr>() ?: return concrete
+        val (first, last) = getRangeForConcrete(concrete, call) ?: return concrete
+        val isCurrentCallOnTop = (call.firstChild == first && call.lastChild == last)
+        val isAlreadyWrapped =
+            wrapped.contains(call) ||
+                    !call.isValid ||
+                    ("(${call.text})" == call.ancestor<ArendTuple>()?.text && isCurrentCallOnTop)
+
+        if (isAlreadyWrapped) return concrete
+
+        val callText = textOfConcreteAppExpression(concrete)
+        val newCall = buildString {
+            for (child in call.children) {
+                if (child == first) {
+                    append("($callText) ")
+                    break
+                } else {
+                    append("${child.text} ")
+                }
+            }
+        }.trimEnd()
+
+        val wrappedCall = factory.createArgumentAppExpr(newCall).lastChild
+        val insertedCall = call.addAfterWithNotification(wrappedCall, last)
+        call.deleteChildRangeWithNotification(first, last)
+        wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
+
+        return convertCallToConcrete(insertedCall.ancestor<ArendArgumentAppExpr>() ?: insertedCall) ?: concrete
+    }
+
+    fun unwrapCall(call: PsiElement) {
+        fun convertCallToRange(call: PsiElement, firstChild: PsiElement): Pair<PsiElement, PsiElement> =
+            if (firstChild is ArendAtomFieldsAcc) {
+                Pair(call.firstChild, call.lastChild)
+            } else {
+                val dummyExpr = factory.createArgumentAppExpr("dummy ${call.text}")
+                Pair(dummyExpr.children[1], dummyExpr.lastChild)
+            }
+
+        val tuple = call.ancestor<ArendTuple>() ?: return
+        val parentCall = tuple.ancestor<ArendArgumentAppExpr>() ?: tuple
+        val child = getTopChildOnPath(tuple, parentCall)
+        val (first, last) = convertCallToRange(call, child)
+        parentCall.addRangeAfterWithNotification(first, last, child)
+        child.deleteWithNotification()
+    }
+
+    fun needUnwrap(call: PsiElement): Boolean = wrapped.contains(call)
+}
+
+private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression): String =
+    buildString {
+        val function = concrete.function.data as PsiElement
+        val call = function.ancestor<ArendArgumentAppExpr>() ?: function
+        val functionText = function.text.replace("`", "")
+        append("$functionText ")
+
+        for (arg in concrete.arguments) {
+            val concreteArg = arg.expression
+            val argText =
+                if (concreteArg !is Concrete.AppExpression) {
+                    (concreteArg.data as PsiElement).text
+                } else {
+                    val (first, last) = getRangeForConcrete(concreteArg, call) ?: continue
+                    getTextForRange(first, last)
+                }
+
+            // avoid duplication in case R.foo <=> foo {R}
+            // functionText is `R.foo`, argText is `R.foo`
+            if (functionText == argText) {
+                continue
+            }
+
+            if (arg.isExplicit) {
+                if (needToWrapInBrackets(argText)) {
+                    append("($argText) ")
+                } else {
+                    append("$argText ")
+                }
+            } else {
+                append("{$argText} ")
+            }
+        }
+    }.trimEnd()
 
 private fun createSwitchedTele(factory: ArendPsiFactory, tele: ArendCompositeElement): ArendCompositeElement? {
     val isExplicit = (tele.text.first() == '(')
