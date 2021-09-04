@@ -151,7 +151,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             preludeLibrary.prelude?.let {
                 fillAdditionalNames(it, additionalNames)
             }
-            Prelude.initializeArray((preludeScope.resolveName(Prelude.ARRAY_NAME) as MetaAdapter).metaRef)
 
             // Set the listener that updates typechecked definitions
             project.service<ArendPsiChangeService>().addListener(this)
