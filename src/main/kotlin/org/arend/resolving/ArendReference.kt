@@ -86,7 +86,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         val element = element
         val parent = element.parent
         val pParent = parent?.parent
-        if (pParent is ArendDefClass) {
+        if (pParent is ArendSuperClass) {
             clazz = ArendDefClass::class.java
         } else {
             val atomFieldsAcc = ((pParent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
@@ -101,18 +101,24 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             }
         }
 
-        val expr = if (element is ArendIPName && element.longName.size > 1 || parent is ArendLongName && pParent !is ArendLocalCoClause && pParent !is ArendCoClause && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null) {
+        val expr = if (element is ArendIPName && element.longName.size > 1 || parent is ArendLongName && pParent !is ArendLocalCoClause && pParent !is ArendCoClause && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null || element is ArendRefIdentifier && parent is ArendAtomLevelExpr) {
             element.ancestor<ArendExpr>()
         } else null
         val def = expr?.ancestor<PsiConcreteReferable>()
         var elements = if (expr == null) element.scope.elements else emptyList()
         val resolverListener = if (expr == null) null else object : ResolverListener {
-                override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
-                    if (refExpr.data == parent || refExpr.data == element) {
-                        elements = scope.elements
-                    }
+            override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
+                if (refExpr.data == parent || refExpr.data == element) {
+                    elements = scope.elements
                 }
             }
+
+            override fun levelResolved(originalRef: Referable?, refExpr: Concrete.IdLevelExpression, resolvedRef: Referable?, availableRefs: Collection<Referable>) {
+                if (refExpr.data == parent || refExpr.data == element) {
+                    elements = ArrayList(availableRefs)
+                }
+            }
+        }
         when {
             def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ArendIdReferableConverter).getConcrete(def)
             expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)

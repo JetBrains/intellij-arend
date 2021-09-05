@@ -183,7 +183,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
             if (nodePsi is ArendDefClass) when (prevET) {
-                DEF_IDENTIFIER, LONG_NAME -> return ChildAttributes(Indent.getNormalIndent(), null)
+                SUPER_CLASS, LONG_NAME -> return ChildAttributes(Indent.getNormalIndent(), null)
                 CLASS_STAT -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
             }
 

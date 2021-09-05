@@ -41,6 +41,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
             is ArendReferenceElement -> listOf(data)
             is ArendPattern -> data.defIdentifier?.let { listOf<ArendReferenceElement>(it) } ?: data.longName?.refIdentifierList ?: return
             is ArendAtomPatternOrPrefix -> data.defIdentifier?.let { listOf(it) } ?: return
+            is ArendAtomLevelExpr -> data.refIdentifier?.let { listOf(it) } ?: return
             else -> return
         }
 
@@ -55,6 +56,10 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
 
     override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
         resolveReference(refExpr.data, refExpr.referent, resolvedRefs)
+    }
+
+    override fun levelResolved(originalRef: Referable?, refExpr: Concrete.IdLevelExpression, resolvedRef: Referable, availableRefs: MutableCollection<Referable>?) {
+        resolveReference(refExpr.data, refExpr.referent, listOf(resolvedRef))
     }
 
     override fun patternResolved(originalRef: Referable, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
@@ -96,5 +101,19 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
 
     override fun beforeDefinitionResolved(definition: Concrete.ResolvableDefinition?) {
         resetDefinition = false
+    }
+
+    private fun levelParametersResolved(params: Concrete.LevelParameters?) {
+        if (params == null) return
+        for (ref in params.referables) {
+            val refId = (ref as? DataContainer)?.data as? ArendRefIdentifier ?: continue
+            resolverCache.replaceCache(refId, refId)
+        }
+    }
+
+    override fun definitionResolved(definition: Concrete.ResolvableDefinition) {
+        if (definition !is Concrete.Definition) return
+        levelParametersResolved(definition.pLevelParameters)
+        levelParametersResolved(definition.hLevelParameters)
     }
 }

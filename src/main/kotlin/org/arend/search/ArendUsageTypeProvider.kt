@@ -27,7 +27,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
         when {
             pParent is ArendStatCmd -> return nsUsage
             pParent is CoClauseBase -> return usagesInCoClauses
-            pParent is ArendDefClass -> return extendsUsages
+            pParent is ArendSuperClass -> return extendsUsages
             element.rightSibling<ArendRefIdentifier>() != null || parent is ArendLongName && (pParent as? ArendLiteral)?.ipName != null -> return leftUsage
         }
 

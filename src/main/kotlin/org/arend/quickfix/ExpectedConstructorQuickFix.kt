@@ -18,10 +18,10 @@ import org.arend.core.definition.DataDefinition
 import org.arend.core.expr.*
 import org.arend.core.pattern.*
 import org.arend.core.subst.ExprSubstitution
-import org.arend.core.subst.LevelSubstitution
 import org.arend.core.subst.SubstVisitor
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.core.level.LevelSubstitution
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.prettyprinting.DefinitionRenamer
