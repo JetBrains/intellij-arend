@@ -518,7 +518,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     fun testInfixEISaveInfix() = doTest(
         """
         \func f ({-caret-}a b : Nat) => a
-        \func test => (f 1 2) Nat.+ (f 1 3) Nat.+ 1
+        \func test => f 1 2 Nat.+ f 1 3 Nat.+ 1
         """,
         """
         \func f {{-caret-}a : Nat} (b : Nat) => a
