@@ -518,11 +518,28 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     fun testInfixEISaveInfix() = doTest(
         """
         \func f ({-caret-}a b : Nat) => a
-        \func test => f 1 2 Nat.+ f 1 3 Nat.+ 1
+        \func test => (f 1 2) Nat.+ (f 1 3) Nat.+ 1
         """,
         """
         \func f {{-caret-}a : Nat} (b : Nat) => a
         \func test => f {1} 2 Nat.+ f {1} 3 Nat.+ 1
+        """
+    )
+
+    fun testFunctionEINested() = doTest(
+        """
+        \func \infixl 7 <> {A B : \Type} (a : A) (b : B) => a
+
+        \func k {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
+
+        \func test => k (k 0 1 <> k 2 3) 4
+        """,
+        """
+        \func \infixl 7 <> {A B : \Type} (a : A) (b : B) => a
+
+        \func k ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
+
+        \func test => k _ ((k _ 0 1) <> (k _ 2 3)) 4
         """
     )
 }
