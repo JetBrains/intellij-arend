@@ -162,9 +162,9 @@ OCT_DIGIT           = [0-8]
     "\\oo"                  { return OO_KW; }
     "\\suc"                 { return SUC_KW; }
     "\\level"               { return LEVEL_KW; }
-    "\\levels"              { yybegin(LEVEL_PARAMETERS); return LEVELS_KW; }
+    "\\levels"              { return LEVELS_KW; }
     "\\plevels"             { yybegin(LEVEL_PARAMETERS); return PLEVELS_KW; }
-    "\\hlevels"             { return HLEVELS_KW; }
+    "\\hlevels"             { yybegin(LEVEL_PARAMETERS); return HLEVELS_KW; }
     "\\max"                 { return MAX_KW; }
 
     {STRING}                { return STRING; }
