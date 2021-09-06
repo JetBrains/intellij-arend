@@ -7,7 +7,7 @@ import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.6.1"
+version = "1.7.0"
 
 plugins {
     idea
@@ -55,7 +55,7 @@ idea {
 }
 
 intellij {
-    version.set("2021.2")
+    version.set("2021.2.1")
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
