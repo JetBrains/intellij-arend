@@ -26,9 +26,9 @@ class ArendCommenter : CodeDocumentationAwareCommenter {
 
     override fun getBlockCommentTokenType(): IElementType = ArendElementTypes.BLOCK_COMMENT
 
-    override fun getDocumentationCommentLinePrefix(): String? = "-"
+    override fun getDocumentationCommentLinePrefix(): String = "-"
 
-    override fun getDocumentationCommentPrefix(): String? = "{- |"
+    override fun getDocumentationCommentPrefix(): String = "{- |"
 
-    override fun getDocumentationCommentSuffix(): String? = "-}"
+    override fun getDocumentationCommentSuffix(): String = "-}"
 }

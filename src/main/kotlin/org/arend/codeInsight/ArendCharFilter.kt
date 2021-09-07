@@ -6,7 +6,7 @@ import org.arend.ArendLanguage
 import org.arend.search.ArendWordScanner
 
 class ArendCharFilter : CharFilter() {
-    override fun acceptChar(c: Char, prefixLength: Int, lookup: Lookup): CharFilter.Result? =
+    override fun acceptChar(c: Char, prefixLength: Int, lookup: Lookup): Result? =
         if (lookup.psiFile?.language?.isKindOf(ArendLanguage.INSTANCE) == true) {
             if (ArendWordScanner.isArendIdentifierPart(c)) {
                 Result.ADD_TO_PREFIX

@@ -3,7 +3,6 @@ package org.arend.ui
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.ScrollPaneFactory
-import org.arend.ui.impl.session.LabeledComponent
 import javax.swing.JComponent
 import javax.swing.JLabel
 

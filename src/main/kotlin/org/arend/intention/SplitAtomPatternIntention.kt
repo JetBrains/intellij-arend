@@ -543,7 +543,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 if (longNameTail.isEmpty()) {
                     substitutedExpression
                 } else {
-                    "($substitutedExpression)${longNameTail.foldRight("", {ref, acc -> "$acc.${ref.referenceName}"})}"
+                    "($substitutedExpression)${longNameTail.foldRight("") { ref, acc -> "$acc.${ref.referenceName}" }}"
                 }
             }
         }

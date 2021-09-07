@@ -44,7 +44,6 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
-import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.ext.impl.fillAdditionalNames
 import org.arend.psi.listener.ArendDefinitionChangeListener

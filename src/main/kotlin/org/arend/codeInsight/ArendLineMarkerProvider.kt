@@ -8,8 +8,6 @@ import com.intellij.codeInsight.daemon.impl.MarkerType
 import com.intellij.codeInsight.daemon.impl.PsiElementListNavigator
 import com.intellij.codeInsight.navigation.BackgroundUpdaterTask
 import com.intellij.icons.AllIcons
-import com.intellij.ide.util.PsiClassListCellRenderer
-import com.intellij.ide.util.PsiClassRenderingInfo
 import com.intellij.ide.util.PsiElementListCellRenderer
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.markup.GutterIconRenderer
@@ -60,8 +58,7 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
             return fullName.longName.toString() + " in " + fullName.modulePath.toString()
         }
 
-        override fun getContainerText(element: ArendDefinition, name: String) =
-            PsiClassRenderingInfo.getContainerTextStatic(element)
+        override fun getContainerText(element: ArendDefinition, name: String): String? = null
 
         override fun getIconFlags() = 0
     }

@@ -1,10 +1,9 @@
 package org.arend.injection
 
 import com.intellij.codeHighlighting.TextEditorHighlightingPass
-import com.intellij.codeInsight.daemon.impl.AnnotationHolderImpl
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
-import com.intellij.lang.annotation.AnnotationSession
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
@@ -18,11 +17,12 @@ import com.intellij.refactoring.suggested.startOffset
 import org.arend.highlight.ArendHighlightingColors
 import org.arend.psi.*
 import org.arend.psi.ext.impl.ReferableAdapter
+import java.util.ArrayList
 
 class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val editor: Editor)
     : TextEditorHighlightingPass(file.project, editor.document, false) {
 
-    private val holder = AnnotationHolderImpl(AnnotationSession(file))
+    private val highlights = ArrayList<HighlightInfo>()
 
     override fun doCollectInformation(progress: ProgressIndicator) {
         val manager = InjectedLanguageManager.getInstance(file.project)
@@ -31,8 +31,15 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
             val visitor = object : ArendVisitor() {
                 private fun toHostTextRange(range: TextRange) = manager.injectedToHost(pair.first, range)
 
+                private fun addHighlightInfo(range: TextRange, colors: ArendHighlightingColors) {
+                    val info = HighlightInfo.newHighlightInfo(HighlightInfoType.INFORMATION).range(toHostTextRange(range)).textAttributes(colors.textAttributesKey).create()
+                    if (info != null) {
+                        highlights.add(info)
+                    }
+                }
+
                 override fun visitIPName(o: ArendIPName) {
-                    holder.createInfoAnnotation(toHostTextRange(o.textRange), null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                    addHighlightInfo(o.textRange, ArendHighlightingColors.OPERATORS)
                 }
 
                 override fun visitLongName(o: ArendLongName) {
@@ -44,13 +51,13 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
                         if (resolved != null) {
                             val alias = resolved.getAlias()
                             if (ReferableAdapter.calcPrecedence(alias?.prec).isInfix || alias == null && ReferableAdapter.calcPrecedence(resolved.getPrec()).isInfix) {
-                                holder.createInfoAnnotation(toHostTextRange(ref.textRange), null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                                addHighlightInfo(ref.textRange, ArendHighlightingColors.OPERATORS)
                             }
                         }
                         if (refs.size > 1) ref?.prevSibling else null
                     }
                     if (last != null) {
-                        holder.createInfoAnnotation(toHostTextRange(TextRange(o.startOffset, last.endOffset)), null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
+                        addHighlightInfo(TextRange(o.startOffset, last.endOffset), ArendHighlightingColors.LONG_NAME)
                     }
                 }
             }
@@ -59,7 +66,6 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
     }
 
     override fun doApplyInformationToEditor() {
-        val highlights = holder.map { HighlightInfo.fromAnnotation(it) }
         if (highlights.isEmpty()) {
             return
         }

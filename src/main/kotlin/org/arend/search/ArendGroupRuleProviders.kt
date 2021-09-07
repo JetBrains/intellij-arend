@@ -14,38 +14,31 @@ import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiReferable
 
 class ArendDefClassGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<ArendDefClass>()
+    override fun getUsageGroupingRule(project: Project) = createGroupingRule<ArendDefClass>()
 }
 
 class ArendDefDataGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<ArendDefData>()
+    override fun getUsageGroupingRule(project: Project) = createGroupingRule<ArendDefData>()
 }
 
 class ArendDefFunctionGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<ArendDefFunction>()
+    override fun getUsageGroupingRule(project: Project) = createGroupingRule<ArendDefFunction>()
 }
 
 class ArendClassFieldGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<ArendClassField>()
+    override fun getUsageGroupingRule(project: Project) = createGroupingRule<ArendClassField>()
 }
 
 class ArendDefInstanceGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<ArendDefInstance>()
+    override fun getUsageGroupingRule(project: Project) = createGroupingRule<ArendDefInstance>()
 }
 
 class ArendConstructorGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<ArendConstructor>()
+    override fun getUsageGroupingRule(project: Project) = createGroupingRule<ArendConstructor>()
 }
 
 class ArendDefGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project): UsageGroupingRule? =
-            createGroupingRule<PsiConcreteReferable>()
+    override fun getUsageGroupingRule(project: Project) = createGroupingRule<PsiConcreteReferable>()
 }
 
 private inline fun <reified T : PsiReferable> createGroupingRule(): UsageGroupingRule {

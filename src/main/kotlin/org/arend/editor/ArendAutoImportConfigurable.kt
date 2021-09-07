@@ -26,7 +26,7 @@ class ArendAutoImportConfigurable : AutoImportOptionsProvider {
         myOpenCmdBox?.isSelected = arendSettings.autoImportWriteOpenCommands
     }
 
-    override fun createComponent(): JComponent? {
+    override fun createComponent(): JComponent {
         val onTheFlyBox = JBCheckBox("Add unambiguous imports on the fly")
         val openCmdBox = JBCheckBox("Prefer \\open commands to long names")
         myOnTheFlyBox = onTheFlyBox

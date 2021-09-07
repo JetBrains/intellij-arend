@@ -4,7 +4,6 @@ import com.intellij.psi.PsiElement
 import org.arend.psi.ArendCoClause
 import org.arend.psi.ArendElim
 import org.arend.psi.ArendExpr
-import org.arend.psi.ArendFunctionClauses
 
 interface ArendFunctionalBody : ArendCompositeElement {
     val coClauseList: List<ArendCoClause>

@@ -109,9 +109,9 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
                 val caretElementText = getArendNameText(caretElement)
 
                 if (caretElement != null) {
-                    val aliasUnderCaret = when {
-                        caretElementText == elementToRename.aliasName -> true
-                        caretElementText == elementToRename.refName -> false
+                    val aliasUnderCaret = when (caretElementText) {
+                        elementToRename.aliasName -> true
+                        elementToRename.refName -> false
                         else -> null
                     }
                     if (aliasUnderCaret != null) {
@@ -141,7 +141,7 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
             val alias = element.getAlias()
             val aliasIdentifier = alias?.aliasIdentifier
             if (aliasIdentifier != null) collection.add(object: PsiReferenceBase<ArendAlias>(alias, aliasIdentifier.textRangeInParent) {
-                override fun resolve(): PsiElement? = element
+                override fun resolve() = element
             })
         }
         return collection
@@ -174,7 +174,7 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
     }
 
     override fun createRenameProcessor(element: PsiElement, newName: String): RenameProcessor =
-            ArendRenameProcessor(myProject, element, newName, oldName, aliasUnderCaret, Runnable { restoreCaretOffsetAfterRename() })
+            ArendRenameProcessor(myProject, element, newName, oldName, aliasUnderCaret) { restoreCaretOffsetAfterRename() }
 }
 
 class ArendRenameProcessor(project: Project, val element: PsiElement, newName: String, val oldName: String, val isAlias: Boolean, val restoreCaretCallBack: Runnable?) :

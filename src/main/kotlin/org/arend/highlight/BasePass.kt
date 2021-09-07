@@ -1,9 +1,7 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.*
-import com.intellij.codeInspection.ProblemHighlightType
-import com.intellij.lang.annotation.Annotation
-import com.intellij.lang.annotation.AnnotationSession
+import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
@@ -57,15 +55,12 @@ import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
 import org.arend.util.ArendBundle
 import java.util.*
-import kotlin.collections.ArrayList
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
-    protected val holder = AnnotationHolderImpl(AnnotationSession(file))
+    private val highlights = ArrayList<HighlightInfo>()
     private val errorList = ArrayList<GeneralError>()
-
-    override fun getDocument(): Document = super.getDocument()
 
     override fun applyInformationWithProgress() {
         val errorService = myProject.service<ErrorService>()
@@ -81,7 +76,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             }
         }
 
-        val highlights = holder.map { HighlightInfo.fromAnnotation(it) }
         ApplicationManager.getApplication().invokeLater({
             if (isValid) {
                 UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
@@ -89,10 +83,30 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         }, ModalityState.stateForComponent(editor.component))
     }
 
-    private fun createAnnotation(error: GeneralError, range: TextRange): Annotation {
+    protected fun addHighlightInfo(builder: HighlightInfo.Builder): HighlightInfo? {
+        val info = builder.create()
+        if (info != null) {
+            highlights.add(info)
+        }
+        return info
+    }
+
+    protected fun addHighlightInfo(range: TextRange, colors: ArendHighlightingColors) {
+        addHighlightInfo(HighlightInfo.newHighlightInfo(HighlightInfoType.INFORMATION).range(range).textAttributes(colors.textAttributesKey))
+    }
+
+    private fun createHighlightInfoBuilder(error: GeneralError, range: TextRange, type: HighlightInfoType? = null): HighlightInfo.Builder {
         val ppConfig = PrettyPrinterConfigWithRenamer(EmptyScope.INSTANCE)
         ppConfig.expressionFlags = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)
-        return holder.createAnnotation(levelToSeverity(error.level), range, error.shortMessage, XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
+        return HighlightInfo.newHighlightInfo(type ?: levelToHighlightInfoType(error.level))
+            .range(range)
+            .severity(levelToSeverity(error.level))
+            .description(error.shortMessage)
+            .escapedToolTip(XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
+    }
+
+    private fun registerFix(info: HighlightInfo, fix: IntentionAction) {
+        info.registerFix(fix, null, fix.text, null, null)
     }
 
     fun reportToEditor(error: GeneralError, cause: PsiElement) {
@@ -108,37 +122,95 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 else -> null
             }
             when (val resolved = ref?.reference?.resolve()) {
-                is PsiDirectory -> holder.createErrorAnnotation(ref, "Unexpected reference to a directory")
-                is PsiFile -> holder.createErrorAnnotation(ref, "Unexpected reference to a file")
+                is PsiDirectory -> addHighlightInfo(HighlightInfo.newHighlightInfo(HighlightInfoType.ERROR).range(ref).descriptionAndTooltip("Unexpected reference to a directory"))
+                is PsiFile -> addHighlightInfo(HighlightInfo.newHighlightInfo(HighlightInfoType.ERROR).range(ref).descriptionAndTooltip("Unexpected reference to a file"))
                 else -> {
-                    val annotation = createAnnotation(error, ref?.textRange ?: getImprovedTextRange(error, cause))
-                    if (resolved == null) {
-                        annotation.highlightType = ProblemHighlightType.ERROR
-                        if (ref != null && error.index == 0) {
-                            val fix = ArendImportHintAction(ref)
-                            if (fix.isAvailable(myProject, null, file)) {
-                                annotation.registerFix(fix)
-                            }
+                    val info = addHighlightInfo(createHighlightInfoBuilder(error, ref?.textRange ?: getImprovedTextRange(error, cause), if (resolved == null) HighlightInfoType.WRONG_REF else null))
+                    if (resolved == null && ref != null && error.index == 0 && info != null) {
+                        val fix = ArendImportHintAction(ref)
+                        if (fix.isAvailable(myProject, null, file)) {
+                            registerFix(info, fix)
                         }
                     }
                 }
             }
         } else {
             val textRange = getImprovedTextRange(error, cause)
-            val annotation = createAnnotation(error, textRange)
-            if (error.level == GeneralError.Level.WARNING_UNUSED) {
-                annotation.highlightType = ProblemHighlightType.LIKE_UNUSED_SYMBOL
-            }
+            val builder = createHighlightInfoBuilder(error, textRange)
             if (textRange.endOffset == textRange.startOffset + 1 && document.charsSequence[textRange.startOffset] == '\n') {
-                annotation.isAfterEndOfLine = true
+                builder.endOfLine()
             }
 
+            if (error is GoalError) {
+                val incomplete = isIncomplete(cause)
+                if (incomplete && cause !is LeafPsiElement) {
+                    val next = cause.nextElement
+                    if (next == null || next is PsiWhiteSpace && next.text.firstOrNull().let { it == '\n' || it == '\r' }) {
+                        builder.endOfLine()
+                    }
+                }
+                val info = addHighlightInfo(builder) ?: return
+                val coClauseBase = cause.ancestor<CoClauseBase>()
+                val coClauseBaseFixData = coClauseBase?.getUserData(CoClausesKey)
+                if (coClauseBaseFixData != null) registerFix(info, object : ImplementFieldsQuickFix(SmartPointerManager.createPointer(coClauseBase), true, coClauseBaseFixData) {
+                    override fun getText(): String = ArendBundle.getMessage("arend.coClause.replaceWithEmptyImplementation")
+                })
+
+                if (error.errors.all { it.level != GeneralError.Level.ERROR }) when {
+                    error.goalSolver != null -> cause.ancestor<ArendExpr>()?.let {
+                        val expr = when (it) {
+                            is ArendLongNameExpr -> it.parent as? ArendArgumentAppExpr ?: it
+                            is ArendLiteral -> (it.topmostEquivalentSourceNode as? ArendAtomFieldsAcc)?.parent as? ArendArgumentAppExpr
+                                ?: it
+                            else -> it
+                        }
+                        val action: (Document, Concrete.Expression, String) -> Unit = { doc, concrete, text ->
+                            if (incomplete) {
+                                var offset = cause.textRange.endOffset
+                                var reformat = false
+                                if (cause is LeafPsiElement) {
+                                    val next = cause.nextSibling
+                                    if (next is PsiWhiteSpace) {
+                                        val whitespaces = next.text
+                                        val first = whitespaces.indexOf('\n')
+                                        if (first != -1) {
+                                            val second = whitespaces.indexOf('\n', first + 1)
+                                            offset = next.textRange.startOffset + if (second == -1) first + 1 else second
+                                            reformat = true
+                                        }
+                                    }
+                                }
+                                val prefix = when {
+                                    cause is ArendLetExpr && cause.inKw == null -> " \\in "
+                                    cause is ArendLamExpr && cause.fatArrow == null -> " => "
+                                    cause is LeafPsiElement -> ""
+                                    else -> " "
+                                }
+                                doc.insertString(offset, "$prefix$text")
+
+                                if (reformat) {
+                                    val file = cause.containingFile
+                                    CodeStyleManager.getInstance(file.project).reformatText(file, offset, offset + prefix.length + text.length)
+                                }
+                            } else replaceExprSmart(doc, expr, null, expr.textRange, null, concrete, text)
+                        }
+                        registerFix(info, GoalSolverFillingQuickFix(expr, error, action))
+                        for (solver in error.goalSolver.additionalSolvers) {
+                            registerFix(info, InteractiveGoalSolverQuickFix(expr, error, solver, action))
+                        }
+                    }
+                    cause is ArendGoal && cause.expr != null -> registerFix(info, GoalFillingQuickFix(cause))
+                }
+                return
+            }
+
+            val info = addHighlightInfo(builder) ?: return
             when (error) {
                 is ParsingError -> when (error.kind) {
                     MISPLACED_IMPORT -> {
                         val errorCause = error.cause
                         if (errorCause is ArendStatCmd && errorCause.isValid) {
-                            annotation.registerFix(MisplacedImportQuickFix(SmartPointerManager.createPointer(errorCause)))
+                            registerFix(info, MisplacedImportQuickFix(SmartPointerManager.createPointer(errorCause)))
                         }
                     }
                     else -> {
@@ -148,16 +220,16 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is DuplicateOpenedNameError -> {
                     val errorCause = error.cause
                     if (errorCause is PsiElement && errorCause.isValid) {
-                        annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), error.referable))
-                        annotation.registerFix(HideImportQuickFix(SmartPointerManager.createPointer(errorCause), error.referable))
+                        registerFix(info, RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), error.referable))
+                        registerFix(info, HideImportQuickFix(SmartPointerManager.createPointer(errorCause), error.referable))
                     }
                 }
 
                 is ExistingOpenedNameError -> {
                     val errorCause = error.cause
                     if (errorCause is PsiElement && errorCause.isValid) {
-                        annotation.registerFix(RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), null))
-                        annotation.registerFix(HideImportQuickFix(SmartPointerManager.createPointer(errorCause), null))
+                        registerFix(info, RenameDuplicateNameQuickFix(SmartPointerManager.createPointer(errorCause), null))
+                        registerFix(info, HideImportQuickFix(SmartPointerManager.createPointer(errorCause), null))
                     }
                 }
 
@@ -165,13 +237,13 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     if (error.alreadyImplemented) {
                         val errorCause = error.cause.data
                         if (errorCause is ArendCoClause && errorCause.isValid) {
-                            annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(errorCause)))
+                            registerFix(info, RemoveCoClauseQuickFix(SmartPointerManager.createPointer(errorCause)))
                         }
                     } else {
                         val ref = error.classRef
                         val classRef = if (ref is Referable) ref.underlyingReferable else ref
                         if (classRef is ClassReferable) {
-                            annotation.registerFix(ImplementFieldsQuickFix(SmartPointerManager.createPointer(cause), false, makeFieldList(error.fields, classRef)))
+                            registerFix(info, ImplementFieldsQuickFix(SmartPointerManager.createPointer(cause), false, makeFieldList(error.fields, classRef)))
                         }
                         if (cause is ArendNewExprImplMixin) {
                             cause.putUserData(CoClausesKey, null)
@@ -179,77 +251,16 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     }
 
                 is MissingClausesError -> if (cause is ArendCompositeElement)
-                    annotation.registerFix(ImplementMissingClausesQuickFix(error, SmartPointerManager.createPointer(cause)))
+                    registerFix(info, ImplementMissingClausesQuickFix(error, SmartPointerManager.createPointer(cause)))
 
                 is ExpectedConstructorError -> if (cause is ArendCompositeElement)
-                    annotation.registerFix(ExpectedConstructorQuickFix(error, SmartPointerManager.createPointer(cause)))
+                    registerFix(info, ExpectedConstructorQuickFix(error, SmartPointerManager.createPointer(cause)))
 
                 is ImpossibleEliminationError -> if (cause is ArendCompositeElement)
-                    annotation.registerFix(ImpossibleEliminationQuickFix(error, SmartPointerManager.createPointer(cause)))
+                    registerFix(info, ImpossibleEliminationQuickFix(error, SmartPointerManager.createPointer(cause)))
 
                 is DataTypeNotEmptyError -> if (cause is ArendCompositeElement)
-                    annotation.registerFix(ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
-
-                is GoalError -> {
-                    val incomplete = isIncomplete(cause)
-                    if (incomplete && cause !is LeafPsiElement) {
-                        val next = cause.nextElement
-                        if (next == null || next is PsiWhiteSpace && next.text.firstOrNull().let { it == '\n' || it == '\r' }) {
-                            annotation.isAfterEndOfLine = true
-                        }
-                    }
-                    val coClauseBase = cause.ancestor<CoClauseBase>()
-                    val coClauseBaseFixData = coClauseBase?.getUserData(CoClausesKey)
-                    if (coClauseBaseFixData != null) annotation.registerFix(object : ImplementFieldsQuickFix(SmartPointerManager.createPointer(coClauseBase), true, coClauseBaseFixData) {
-                        override fun getText(): String = ArendBundle.getMessage("arend.coClause.replaceWithEmptyImplementation")
-                    })
-
-                    if (error.errors.all { it.level != GeneralError.Level.ERROR }) when {
-                        error.goalSolver != null -> cause.ancestor<ArendExpr>()?.let {
-                            val expr = when (it) {
-                                is ArendLongNameExpr -> it.parent as? ArendArgumentAppExpr ?: it
-                                is ArendLiteral -> (it.topmostEquivalentSourceNode as? ArendAtomFieldsAcc)?.parent as? ArendArgumentAppExpr
-                                        ?: it
-                                else -> it
-                            }
-                            val action: (Document, Concrete.Expression, String) -> Unit = { doc, concrete, text ->
-                                if (incomplete) {
-                                    var offset = cause.textRange.endOffset
-                                    var reformat = false
-                                    if (cause is LeafPsiElement) {
-                                        val next = cause.nextSibling
-                                        if (next is PsiWhiteSpace) {
-                                            val whitespaces = next.text
-                                            val first = whitespaces.indexOf('\n')
-                                            if (first != -1) {
-                                                val second = whitespaces.indexOf('\n', first + 1)
-                                                offset = next.textRange.startOffset + if (second == -1) first + 1 else second
-                                                reformat = true
-                                            }
-                                        }
-                                    }
-                                    val prefix = when {
-                                        cause is ArendLetExpr && cause.inKw == null -> " \\in "
-                                        cause is ArendLamExpr && cause.fatArrow == null -> " => "
-                                        cause is LeafPsiElement -> ""
-                                        else -> " "
-                                    }
-                                    doc.insertString(offset, "$prefix$text")
-
-                                    if (reformat) {
-                                        val file = cause.containingFile
-                                        CodeStyleManager.getInstance(file.project).reformatText(file, offset, offset + prefix.length + text.length)
-                                    }
-                                } else replaceExprSmart(doc, expr, null, expr.textRange, null, concrete, text)
-                            }
-                            annotation.registerFix(GoalSolverFillingQuickFix(expr, error, action))
-                            for (solver in error.goalSolver.additionalSolvers) {
-                                annotation.registerFix(InteractiveGoalSolverQuickFix(expr, error, solver, action))
-                            }
-                        }
-                        cause is ArendGoal && cause.expr != null -> annotation.registerFix(GoalFillingQuickFix(cause))
-                    }
-                }
+                    registerFix(info, ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
                 is CertainTypecheckingError -> when (error.kind) {
                     TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> if (cause is ArendPatternImplMixin) {
@@ -257,41 +268,41 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         if (error.kind != TOO_MANY_PATTERNS) {
                             cause.atomPattern?.let {
                                 if (it.isValid) {
-                                    annotation.registerFix(MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
+                                    registerFix(info, MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
                                 }
                             }
                         }
 
                         if (!single || cause.nextSibling.findNextSibling { it is ArendPatternImplMixin } != null) {
-                            annotation.registerFix(RemovePatternsQuickFix(SmartPointerManager.createPointer(cause), single))
+                            registerFix(info, RemovePatternsQuickFix(SmartPointerManager.createPointer(cause), single))
                         }
                     }
-                    AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) annotation.registerFix(RemoveAsPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                    AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) registerFix(info, RemoveAsPatternQuickFix(SmartPointerManager.createPointer(cause)))
                     BODY_IGNORED ->
                         cause.ancestor<ArendClause>()?.let {
                             if (it.isValid) {
-                                annotation.registerFix(RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
+                                registerFix(info, RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
                             }
                         }
-                    PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) annotation.registerFix(ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                    PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) registerFix(info, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
                     else -> {}
                 }
 
-                is RedundantClauseError -> if (cause is ArendClause) annotation.registerFix(RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
+                is RedundantClauseError -> if (cause is ArendClause) registerFix(info, RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
 
-                is RedundantCoclauseError -> if (cause is ArendLocalCoClause) annotation.registerFix(RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
+                is RedundantCoclauseError -> if (cause is ArendLocalCoClause) registerFix(info, RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
 
                 is InstanceInferenceError -> if (cause is ArendLongName) {
                     val classifyingExpression = error.classifyingExpression
                     val isLocal = (classifyingExpression is ReferenceExpression) && DependentLink.Helper.toList(((error as LocalError).definition as DataLocatedReferable).typechecked.parameters).contains(classifyingExpression.binding)
-                    if (isLocal) annotation.registerFix(ReplaceWithLocalInstanceQuickFix(error, SmartPointerManager.createPointer(cause))) else annotation.registerFix(InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
-                    annotation.registerFix(AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
+                    if (isLocal) registerFix(info, ReplaceWithLocalInstanceQuickFix(error, SmartPointerManager.createPointer(cause))) else registerFix(info, InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
+                    registerFix(info, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
                 }
 
                 is IgnoredArgumentError -> {
                     when (val parent = cause.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
-                        is ArendArgument -> annotation.registerFix(RemoveArgumentQuickFix(SmartPointerManager.createPointer(parent)))
-                        is ArendTupleExpr -> annotation.registerFix(RemoveTupleExprQuickFix(SmartPointerManager.createPointer(parent), true))
+                        is ArendArgument -> registerFix(info, RemoveArgumentQuickFix(SmartPointerManager.createPointer(parent)))
+                        is ArendTupleExpr -> registerFix(info, RemoveTupleExprQuickFix(SmartPointerManager.createPointer(parent), true))
                     }
                 }
             }
@@ -304,13 +315,22 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
     companion object {
         fun levelToSeverity(level: GeneralError.Level): HighlightSeverity =
-                when (level) {
-                    GeneralError.Level.ERROR -> HighlightSeverity.ERROR
-                    GeneralError.Level.WARNING -> HighlightSeverity.WARNING
-                    GeneralError.Level.WARNING_UNUSED -> HighlightSeverity.WEAK_WARNING
-                    GeneralError.Level.GOAL -> HighlightSeverity.WARNING
-                    GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
-                }
+            when (level) {
+                GeneralError.Level.ERROR -> HighlightSeverity.ERROR
+                GeneralError.Level.WARNING -> HighlightSeverity.WARNING
+                GeneralError.Level.WARNING_UNUSED -> HighlightSeverity.WEAK_WARNING
+                GeneralError.Level.GOAL -> HighlightSeverity.WARNING
+                GeneralError.Level.INFO -> HighlightSeverity.INFORMATION
+            }
+
+        fun levelToHighlightInfoType(level: GeneralError.Level): HighlightInfoType =
+            when (level) {
+                GeneralError.Level.ERROR -> HighlightInfoType.ERROR
+                GeneralError.Level.WARNING -> HighlightInfoType.WARNING
+                GeneralError.Level.WARNING_UNUSED -> HighlightInfoType.UNUSED_SYMBOL
+                GeneralError.Level.GOAL -> HighlightInfoType.WARNING
+                GeneralError.Level.INFO -> HighlightInfoType.INFORMATION
+            }
 
         fun getCauseElement(data: Any?): PsiElement? {
             val cause = data?.let { (it as? DataContainer)?.data ?: it }
