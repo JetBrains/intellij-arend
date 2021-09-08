@@ -50,7 +50,7 @@ private fun getParentBinOpSkippingParens(binOp: Concrete.AppExpression): Concret
 private fun parentParensExpression(appExpr: ArendArgumentAppExpr): ArendTuple? =
         surroundingTupleExpr(appExpr)
                 ?.let { if (it.colon == null && it.exprList.size == 1) it.parent as? ArendTuple else null }
-                ?.let { if (it.tupleExprList.size == 1) it else null }
+                ?.takeIf { it.tupleExprList.size == 1 }
 
 private fun parentArgumentAppExpr(tuple: ArendTuple): ArendArgumentAppExpr? =
         tuple.parentOfType<ArendAtomFieldsAcc>()?.let { parentArgumentAppExpr(it) }
