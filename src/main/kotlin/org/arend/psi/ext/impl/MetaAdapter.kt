@@ -44,11 +44,13 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
 
     override fun getParameters(): MutableList<ArendNameTeleUntyped> = nameTeleUntypedList
 
-    override fun getLevelParamsList(): List<ArendLevelParams> = emptyList()
+    override fun getPLevelParams(): ArendPLevelParams? = null
 
-    override fun getPLevelParameters(): Abstract.LevelParameters? = metaLevelsList.getOrNull(0)?.let { MetaLevelParameters(it) }
+    override fun getHLevelParams(): ArendHLevelParams? = null
 
-    override fun getHLevelParameters(): Abstract.LevelParameters? = metaLevelsList.getOrNull(1)?.let { MetaLevelParameters(it) }
+    override fun getPLevelParameters(): Abstract.LevelParameters? = metaPLevels?.metaLevels?.let { MetaLevelParameters(it) }
+
+    override fun getHLevelParameters(): Abstract.LevelParameters? = metaHLevels?.metaLevels?.let { MetaLevelParameters(it) }
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R =
         visitor.visitMeta(this)

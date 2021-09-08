@@ -260,13 +260,17 @@ defModule ::= MODULE_KW defIdentifier_module where? {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-defMeta ::= META_KW prec? defIdentifier_func [PLEVELS_KW metaLevels] [HLEVELS_KW metaLevels] alias? [nameTeleUntyped* functionTermBody] where? {
+defMeta ::= META_KW prec? defIdentifier_func metaPLevels? metaHLevels? alias? [nameTeleUntyped* functionTermBody] where? {
     pin = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.MetaAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefMetaStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+metaPLevels ::= PLEVELS_KW metaLevels { pin = 1 }
+
+metaHLevels ::= HLEVELS_KW metaLevels { pin = 1 }
 
 metaLevels ::= <<comma_separated_sequence defIdentifier>>? {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
@@ -281,7 +285,7 @@ private defIdentifier_module ::= defIdentifier {
 
 private defIdentifier_module_recover ::= !ALIAS_KW & statement_recover
 
-defFunction ::= functionKw prec? defIdentifier_func [PLEVELS_KW levelParams] [HLEVELS_KW levelParams] alias? nameTele* functionType? functionBody? where? {
+defFunction ::= functionKw prec? defIdentifier_func pLevelParams? hLevelParams? alias? nameTele* functionType? functionBody? where? {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
@@ -291,6 +295,10 @@ defFunction ::= functionKw prec? defIdentifier_func [PLEVELS_KW levelParams] [HL
     stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+pLevelParams ::= PLEVELS_KW levelParams { pin = 1 }
+
+hLevelParams ::= HLEVELS_KW levelParams { pin = 1 }
 
 functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | useMod
 
@@ -322,7 +330,7 @@ private defIdentifier_func ::= defIdentifier {
 
 private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE | ALIAS_KW | PLEVELS_KW | HLEVELS_KW) & nameTele_first & statement_recover
 
-defInstance ::= instanceOrCons prec? defIdentifier_func [PLEVELS_KW levelParams] [HLEVELS_KW levelParams] alias? nameTele* functionType? instanceBody? where? {
+defInstance ::= instanceOrCons prec? defIdentifier_func pLevelParams? hLevelParams? alias? nameTele* functionType? instanceBody? where? {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
@@ -335,7 +343,7 @@ defInstance ::= instanceOrCons prec? defIdentifier_func [PLEVELS_KW levelParams]
 
 instanceOrCons ::= INSTANCE_KW | CONS_KW
 
-defData ::= dataKw prec? defIdentifier_top [PLEVELS_KW levelParams] [HLEVELS_KW levelParams] alias? typeTele* dataUniverse? dataBody? where? {
+defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody? where? {
     pin = 1
     implements = "org.arend.psi.ext.TCDefinition"
     mixin = "org.arend.psi.ext.impl.DataDefinitionAdapter"
@@ -376,7 +384,7 @@ private defClassClass ::= CLASS_KW defClassHeader classStats { pin = 1 }
 
 private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
 
-private defClassHeader ::= prec? defIdentifier [PLEVELS_KW levelParams] [HLEVELS_KW levelParams] alias? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence superClass>>]
+private defClassHeader ::= prec? defIdentifier pLevelParams? hLevelParams? alias? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence superClass>>]
 
 superClass ::= longName [maybeAtomLevelExprs maybeAtomLevelExprs?] {
     pin = 1

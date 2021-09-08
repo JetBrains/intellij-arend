@@ -79,9 +79,11 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): TCReferable =
         DataLocatedReferable(data, this, parent)
 
-    abstract fun getLevelParamsList(): List<ArendLevelParams>
+    abstract fun getPLevelParams(): ArendPLevelParams?
 
-    override fun getPLevelParameters(): Abstract.LevelParameters? = getLevelParamsList().getOrNull(0)
+    abstract fun getHLevelParams(): ArendHLevelParams?
 
-    override fun getHLevelParameters(): Abstract.LevelParameters? = getLevelParamsList().getOrNull(1)
+    override fun getPLevelParameters(): Abstract.LevelParameters? = getPLevelParams()?.levelParams
+
+    override fun getHLevelParameters(): Abstract.LevelParameters? = getHLevelParams()?.levelParams
 }
