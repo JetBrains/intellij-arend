@@ -39,8 +39,7 @@ class RemoveClarifyingParensIntention : BaseArendIntention(ArendBundle.message("
 private fun getParentBinOpSkippingParens(binOp: Concrete.AppExpression): Concrete.AppExpression? {
     val binOpPsi = binOp.data as? ArendArgumentAppExpr ?: throw IllegalArgumentException("Unexpected PSI for bin op")
     val tuple = parentParensExpression(binOpPsi) ?: return null
-    val arg = parentArgumentExpression(tuple) ?: return null
-    val parentAppExprPsi = arg.parent as? ArendArgumentAppExpr ?: return null
+    val parentAppExprPsi = parentArgumentAppExpr(tuple) ?: return null
     if (parentAppExprPsi.argumentList.isEmpty()) {
         return null
     }
@@ -48,17 +47,13 @@ private fun getParentBinOpSkippingParens(binOp: Concrete.AppExpression): Concret
     return getParentBinOpSkippingParens(parentAppExpr) ?: parentAppExpr
 }
 
-private fun parentParensExpression(appExpr: ArendArgumentAppExpr): ArendTuple? {
-    return surroundingTupleExpr(appExpr)
-            ?.let { if (it.colon == null && it.exprList.size == 1) it.parent as? ArendTuple else null }
-            ?.let { if (it.tupleExprList.size == 1) it else null }
-}
+private fun parentParensExpression(appExpr: ArendArgumentAppExpr): ArendTuple? =
+        surroundingTupleExpr(appExpr)
+                ?.let { if (it.colon == null && it.exprList.size == 1) it.parent as? ArendTuple else null }
+                ?.let { if (it.tupleExprList.size == 1) it else null }
 
-private fun parentArgumentExpression(tuple: ArendTuple): PsiElement? {
-    return tuple.parentOfType<ArendAtomFieldsAcc>()?.let {
-        if (it.parent is ArendAtomArgument) it.parent else it
-    }
-}
+private fun parentArgumentAppExpr(tuple: ArendTuple): ArendArgumentAppExpr? =
+        tuple.parentOfType<ArendAtomFieldsAcc>()?.let { parentArgumentAppExpr(it) }
 
 private fun hasClarifyingParens(binOpSeq: Concrete.AppExpression): Boolean {
     if ((binOpSeq.data as? PsiElement)?.textContains('(') == false) {

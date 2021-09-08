@@ -36,6 +36,8 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
 
     fun testMetaDefCallWithClauses() = doTest()
 
+    fun testApplicationUsedAsBinOpArgument() = doTest()
+
     fun `test fix for atomic expression in function body`() = doTypedQuickFixTest("""
       \func test => (2){-caret-}
     """, """
