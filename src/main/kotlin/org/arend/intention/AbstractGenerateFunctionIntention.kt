@@ -55,7 +55,8 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val rangeOfReplacement: TextRange,
         val selectedConcrete : Concrete.Expression?,
         val identifier: String?,
-        val body: Expression?
+        val body: Expression?,
+        val additionalArguments: List<Pair<TypedBinding, ParameterExplicitnessState>> = emptyList()
     )
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
@@ -111,7 +112,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             }
         }
 
-        val parameters = freeVariables.collapseTelescopes().joinToString("") { (bindings, explicitness) ->
+        val parameters = (freeVariables + selection.additionalArguments).collapseTelescopes().joinToString("") { (bindings, explicitness) ->
             " ${explicitness.openingBrace}${bindings.joinToString(" ") { it.name }} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
         }
 
