@@ -9,9 +9,12 @@ import org.arend.core.context.binding.TypedBinding
 import org.arend.core.expr.DefCallExpression
 import org.arend.core.expr.Expression
 import org.arend.core.expr.PiExpression
+import org.arend.core.expr.ReferenceExpression
+import org.arend.extImpl.UncheckedExpressionImpl
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendGoal
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.refactoring.binding
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
@@ -39,8 +42,9 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
         val goalType = (arendError as? GoalError)?.expectedType
         val appParent = goal.parentOfType<ArendArgumentAppExpr>()?.takeIf { it.atomFieldsAcc?.atom?.literal?.goal === goal }
         val additionalArguments = mutableListOf<Pair<TypedBinding, ParameterExplicitnessState>>()
-        var currentGoalType : Expression? = goalType
+        var targetCodomain = goalType?.deepCodomain()
         if (appParent != null && goalType is PiExpression) {
+            var currentGoalType : Expression? = goalType
             val forbiddenNames = mutableSetOf<String>()
             val typecheckedUserArguments = appParent.argumentList.map { tryCorrespondedSubExpr(it.textRange, file, project, editor) to it.isExplicit }
             for ((argResult, explicitness) in typecheckedUserArguments) {
@@ -50,7 +54,16 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
                 if (argResult == null) {
                     additionalArguments.add(TypedBinding("_", expectedType) to explicitnessState)
                 } else {
-                    additionalArguments.add(TypedBinding(suggestParameterName(forbiddenNames, goal, expectedType), expectedType) to explicitnessState)
+                    val newBinding = TypedBinding(suggestParameterName(forbiddenNames, goal, expectedType), expectedType)
+                    additionalArguments.add(newBinding to explicitnessState)
+                    val uncheckedTargetExpression = targetCodomain?.replaceSubexpressions { expr ->
+                        if (expr == argResult.subCore) {
+                            ReferenceExpression(newBinding)
+                        } else {
+                            null
+                        }
+                    }
+                    targetCodomain = UncheckedExpressionImpl.extract(uncheckedTargetExpression)
                 }
                 currentGoalType = currentGoalType.codomain
             }
@@ -58,8 +71,11 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
         val goalExpr = goal.expr?.let {
             tryCorrespondedSubExpr(it.textRange, file, project, editor)
         }?.subCore
-        return SelectionResult(currentGoalType, goal, goal.textRange, null, goal.defIdentifier?.name, goalExpr, additionalArguments)
+        return SelectionResult(targetCodomain, goal, goal.textRange, null, goal.defIdentifier?.name, goalExpr, additionalArguments)
     }
+
+    private fun Expression.deepCodomain() : Expression =
+        if (this is PiExpression) codomain.deepCodomain() else this
 
     private fun suggestParameterName(forbiddenNames: MutableSet<String>, context : ArendCompositeElement, type : Expression) : String {
         var candidate = if (type is DefCallExpression) {

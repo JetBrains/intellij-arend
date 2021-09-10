@@ -64,7 +64,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         file ?: return
         val selectionResult = extractSelectionData(file, editor, project) ?: return
         val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body)
-        val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expressions)
+        val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expressions).filter { freeArg -> freeArg.first.name !in selectionResult.additionalArguments.map { it.first.name } }
         performRefactoring(freeVariables, selectionResult, editor, project)
     }
 
