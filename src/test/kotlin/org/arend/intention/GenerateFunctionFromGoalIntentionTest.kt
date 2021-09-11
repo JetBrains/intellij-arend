@@ -163,4 +163,12 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
          
          \func foo-lemma (n : Nat) (d : D n) : Nat => {?}
     """)
+
+    fun `test goal with arguments, inside binop`() = doTest("""
+        \func foo : Nat => {?{-caret-}} 1 Nat.+ 2
+    """, """
+        \func foo : Nat => foo-lemma 1 Nat.+ 2
+        
+        \func foo-lemma (n : Nat) : Nat => {?} 
+    """)
 }
