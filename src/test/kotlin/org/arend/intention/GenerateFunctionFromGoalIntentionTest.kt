@@ -150,5 +150,17 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
         \func foo (f : Unit -> Unit) (u : Unit) : f u = unit => foo-lemma (f u)
         
         \func foo-lemma (u' : Unit) : u' = unit => {?}
-""")
+    """)
+
+    fun `test goal with arguments, dependency on argument`() = doTest("""
+        \data D (n : Nat) 
+        
+        \func foo (n : Nat) (d : D n) : Nat => {?{-caret-}} d
+    """, """
+         \data D (n : Nat) 
+        
+         \func foo (n : Nat) (d : D n) : Nat => (foo-lemma n) d
+         
+         \func foo-lemma (n : Nat) (d : D n) : Nat => {?}
+    """)
 }
