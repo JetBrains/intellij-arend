@@ -14,6 +14,7 @@ import org.arend.extImpl.UncheckedExpressionImpl
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendGoal
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.refactoring.binding
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.typechecking.error.ErrorService
@@ -54,7 +55,8 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
                 if (argResult == null) {
                     additionalArguments.add(TypedBinding("_", expectedType) to explicitnessState)
                 } else {
-                    val newBinding = TypedBinding(suggestParameterName(forbiddenNames, goal, expectedType), expectedType)
+                    val contextElement = goal.parentOfType<ArendFunctionalDefinition>() ?: goal
+                    val newBinding = TypedBinding(suggestParameterName(forbiddenNames, contextElement, expectedType), expectedType)
                     additionalArguments.add(newBinding to explicitnessState)
                     val uncheckedTargetExpression = targetCodomain?.replaceSubexpressions { expr ->
                         if (expr == argResult.subCore) {
@@ -84,7 +86,7 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
         } else {
             "x"
         }
-        while(context.scope.resolveName(candidate) != null) {
+        while (context.scope.resolveName(candidate) != null) {
             candidate += '\''
         }
         forbiddenNames.add(candidate)
