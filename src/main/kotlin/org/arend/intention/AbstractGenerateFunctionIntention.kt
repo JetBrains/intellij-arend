@@ -16,6 +16,7 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.SmartList
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.binding.TypedBinding
+import org.arend.core.context.param.TypedSingleDependentLink
 import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.extImpl.ConcreteFactoryImpl
@@ -50,22 +51,22 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     protected abstract fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult?
 
     protected data class SelectionResult(
-        val expectedType: Expression?,
-        val contextPsi: ArendCompositeElement,
-        val rangeOfReplacement: TextRange,
-        val selectedConcrete : Concrete.Expression?,
-        val identifier: String?,
-        val body: Expression?,
-        val additionalArguments: List<Pair<TypedBinding, ParameterExplicitnessState>> = emptyList()
+            val expectedType: Expression?,
+            val contextPsi: ArendCompositeElement,
+            val rangeOfReplacement: TextRange,
+            val selectedConcrete : Concrete.Expression?,
+            val identifier: String?,
+            val body: Expression?,
+            val additionalArguments: List<TypedSingleDependentLink> = emptyList()
     )
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         editor ?: return
         file ?: return
         val selectionResult = extractSelectionData(file, editor, project) ?: return
-        val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body, *selectionResult.additionalArguments.map { it.first.typeExpr }.toTypedArray())
+        val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body, *selectionResult.additionalArguments.map { it.typeExpr }.toTypedArray())
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expressions)
-                .filter { freeArg -> freeArg.first.name !in selectionResult.additionalArguments.map { it.first.name } }
+                .filter { freeArg -> freeArg.first.name !in selectionResult.additionalArguments.map { it.name } }
         performRefactoring(freeVariables, selectionResult, editor, project)
     }
 
@@ -113,9 +114,12 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             }
         }
 
-        val parameters = (freeVariables + selection.additionalArguments).collapseTelescopes().joinToString("") { (bindings, explicitness) ->
-            " ${explicitness.openingBrace}${bindings.joinToString(" ") { it.name }} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
-        }
+        val mappedAdditionalArguments = selection.additionalArguments.map { TypedBinding(it.name, it.typeExpr) to it.isExplicit.toExplicitnessState() }
+        val parameters = (freeVariables + mappedAdditionalArguments)
+                .collapseTelescopes()
+                .joinToString("") { (bindings, explicitness) ->
+                    " ${explicitness.openingBrace}${bindings.joinToString(" ") { it.name }} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
+                }
 
         val actualBody = selection.body?.let { prettyPrinter(it, true) } ?: "{?}"
         val newFunctionCall = with(ConcreteFactoryImpl(null)) {
@@ -126,6 +130,8 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         return newFunctionCall to newFunctionDefinition
     }
 
+    private fun Boolean.toExplicitnessState(): ParameterExplicitnessState = if (this) ParameterExplicitnessState.EXPLICIT else ParameterExplicitnessState.IMPLICIT
+
     private tailrec fun generateFreeName(baseName: String, scope: Scope): String =
             if (scope.resolveName(baseName) == null) {
                 baseName
@@ -134,7 +140,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             }
 
     private fun List<Pair<Binding, ParameterExplicitnessState>>.collapseTelescopes(): List<Pair<List<Binding>, ParameterExplicitnessState>> =
-        fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
+            fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
             if (collector.isEmpty() || collector.last().second == ParameterExplicitnessState.IMPLICIT) {
                 collector.add(SmartList(binding) to explicitness)
             } else {
