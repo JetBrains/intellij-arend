@@ -630,4 +630,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => \\new f a b c {-caret-}",
             "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => \\eval f a b c {-caret-}",
             "\\func f (a b c : Nat) => 101\n\\func bar (a b c : Nat) => \\eval f a b c {} {-caret-}")
+
+    fun test_as_pattern() = checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.CONTAINS,
+            "\\func f (x : Nat) : Nat\n  | 0 => 0\n  | suc x {-caret-} => x'")
 }

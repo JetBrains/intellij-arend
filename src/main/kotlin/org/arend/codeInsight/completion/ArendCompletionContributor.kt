@@ -495,6 +495,8 @@ class ArendCompletionContributor : CompletionContributor() {
                     it != null && it.withBody == null && (it.argumentAppExpr?.atomFieldsAcc?.atom?.literal?.longName != null || it.argumentAppExpr?.longNameExpr != null)
                 }}), WITH_KW_LIST, KeywordCompletionBehavior.ADD_BRACES)
 
+        basic(after(withGrandParent(ArendAtomPatternOrPrefix::class.java)), AS_KW_LIST)
+
         //basic(PlatformPatterns.psiElement(), Logger())
     }
 
