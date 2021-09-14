@@ -16,7 +16,7 @@ abstract class ArendOnlyLevelExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(
                 visitor.visitMax(this, levelExprs.getOrNull(0), levelExprs.getOrNull(1), params)
             }
             else -> {
-                val lp = atomOnlyLevelExpr ?: error("Incomplete expression: " + this)
+                val lp = atomOnlyLevelExpr ?: error("Incomplete expression: $this")
                 lp.accept(visitor, params)
             }
         }

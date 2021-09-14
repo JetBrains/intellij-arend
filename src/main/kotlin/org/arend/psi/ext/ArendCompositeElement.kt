@@ -51,10 +51,11 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
 
     var isExtends = false
     val parentScope = sourceNode.parentSourceNode?.let {
-        if (it is ArendDefClass && sourceNode is ArendLongName) {
+        val classDef = if (sourceNode is ArendLongName) (it as? ArendSuperClass)?.parent as? ArendDefClass else null
+        if (classDef != null) {
             isExtends = true
             // The last parameters is set to ONLY_EXTERNAL to prevent infinite recursion during resolving of references in \\extends
-            LexicalScope.insideOf(it, it.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(it, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
+            LexicalScope.insideOf(classDef, classDef.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
         } else it.scope
     } ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
 
@@ -72,10 +73,10 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
         element is ArendDefIdentifier && sourceNode is Abstract.Pattern -> ConstructorFilteredScope(scope.globalSubscope)
         isExtends -> object : Scope { // exclude Array
             override fun find(pred: Predicate<Referable?>): Referable? =
-                scope.find { ref -> !(ref == Prelude.ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.ARRAY.ref) && pred.test(ref) }
+                scope.find { ref -> !(ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref) && pred.test(ref) }
             override fun resolveName(name: String?): Referable? {
                 val ref = scope.resolveName(name)
-                return if (ref == Prelude.ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.ARRAY.ref) null else ref
+                return if (ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref) null else ref
             }
             override fun resolveNamespace(name: String?, onlyInternal: Boolean) = scope.resolveNamespace(name, onlyInternal)
             override fun getGlobalSubscope() = scope.globalSubscope

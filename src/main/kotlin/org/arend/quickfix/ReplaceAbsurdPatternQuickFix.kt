@@ -5,7 +5,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.core.definition.Constructor
 import org.arend.core.definition.Definition
 import org.arend.intention.SplitAtomPatternIntention
 import org.arend.psi.ext.ArendCompositeElement

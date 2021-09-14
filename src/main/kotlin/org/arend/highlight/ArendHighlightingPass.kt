@@ -1,6 +1,8 @@
 package org.arend.highlight
 
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
+import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -75,9 +77,9 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
                 if ((lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
                     when {
                         (((referent as? RedirectingReferable)?.originalReferable ?: referent) as? MetaReferable)?.resolver != null ->
-                            holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.META_RESOLVER.textAttributesKey
+                            addHighlightInfo(lastReference.textRange, ArendHighlightingColors.META_RESOLVER)
                         referent is GlobalReferable && referent.precedence.isInfix ->
-                            holder.createInfoAnnotation(lastReference, null).textAttributes = ArendHighlightingColors.OPERATORS.textAttributesKey
+                            addHighlightInfo(lastReference.textRange, ArendHighlightingColors.OPERATORS)
                     }
                 }
 
@@ -103,7 +105,7 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
                     }
 
                     if (textRange != null) {
-                        holder.createInfoAnnotation(textRange, null).textAttributes = ArendHighlightingColors.LONG_NAME.textAttributesKey
+                        addHighlightInfo(textRange, ArendHighlightingColors.LONG_NAME)
                     }
                 }
             }
@@ -118,7 +120,7 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
                             else -> null
                         }
                         for (id in list ?: emptyList()) {
-                            holder.createInfoAnnotation(id, null).textAttributes = ArendHighlightingColors.CLASS_PARAMETER.textAttributesKey
+                            addHighlightInfo(id.textRange, ArendHighlightingColors.CLASS_PARAMETER)
                         }
                     }
                 }
@@ -136,10 +138,10 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
                 (definition.data.underlyingReferable as? PsiLocatedReferable)?.let { ref ->
                     if (ref.containingFile == myFile) {
                         ref.nameIdentifier?.let {
-                            holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                            addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
                         }
                         (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
-                            holder.createInfoAnnotation(it, null).textAttributes = ArendHighlightingColors.DECLARATION.textAttributesKey
+                            addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
                         }
                     }
                 }
@@ -153,7 +155,7 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
                     }
                 }
 
-                definition.accept(IntentionBackEndVisitor(holder), null)
+                definition.accept(IntentionBackEndVisitor(), null)
                 if (definition is Concrete.Definition) {
                     definitions.add(definition)
                 }

@@ -126,9 +126,9 @@ class TypeCheckProcessHandler(
                                 val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
                                 val moduleScopeProvider = if (module.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST) {
                                     val testsModuleScopeProvider = library.testsModuleScopeProvider
-                                    ModuleScopeProvider {
-                                        sourcesModuleScopeProvider.forModule(it)
-                                            ?: testsModuleScopeProvider.forModule(it)
+                                    ModuleScopeProvider { modulePath ->
+                                        sourcesModuleScopeProvider.forModule(modulePath)
+                                            ?: testsModuleScopeProvider.forModule(modulePath)
                                     }
                                 } else sourcesModuleScopeProvider
                                 DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))

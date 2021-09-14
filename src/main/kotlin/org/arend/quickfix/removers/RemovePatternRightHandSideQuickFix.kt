@@ -7,7 +7,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendClause
 import org.arend.psi.deleteChildRangeWithNotification
-import org.arend.psi.extendLeft
 import org.arend.util.ArendBundle
 
 class RemovePatternRightHandSideQuickFix (private val clauseRef: SmartPsiElementPointer<ArendClause>) : IntentionAction {

@@ -26,7 +26,7 @@ class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
             in AREND_KEYWORDS -> ArendHighlightingColors.KEYWORD
             ArendElementTypes.UNDERSCORE, ArendElementTypes.APPLY_HOLE -> ArendHighlightingColors.IMPLICIT
 
-            ArendElementTypes.INFIX, ArendElementTypes.POSTFIX -> ArendHighlightingColors.OPERATORS
+            ArendElementTypes.INFIX, ArendElementTypes.POSTFIX, ArendElementTypes.LESS_OR_EQUALS, ArendElementTypes.GREATER_OR_EQUALS -> ArendHighlightingColors.OPERATORS
             ArendElementTypes.DOT -> ArendHighlightingColors.DOT
             ArendElementTypes.COMMA -> ArendHighlightingColors.COMMA
             ArendElementTypes.COLON -> ArendHighlightingColors.COLON

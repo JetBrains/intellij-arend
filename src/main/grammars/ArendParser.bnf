@@ -94,6 +94,10 @@
         SUC_KW              = '\suc'
         LEVEL_KW            = '\level'
         LEVELS_KW           = '\levels'
+        PLEVELS_KW          = '\plevels'
+        HLEVELS_KW          = '\hlevels'
+        LESS_OR_EQUALS      = '<='
+        GREATER_OR_EQUALS   = '>='
         MAX_KW              = '\max'
         INVALID_KW          = '\invalid'
 
@@ -256,12 +260,23 @@ defModule ::= MODULE_KW defIdentifier_module where? {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-defMeta ::= META_KW prec? defIdentifier_func alias? [nameTeleUntyped* functionTermBody] where? {
+defMeta ::= META_KW prec? defIdentifier_func metaPLevels? metaHLevels? alias? [nameTeleUntyped* functionTermBody] where? {
     pin = 1
     implements = "org.arend.psi.ext.impl.ArendGroup"
     mixin = "org.arend.psi.ext.impl.MetaAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefMetaStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
+
+metaPLevels ::= PLEVELS_KW metaLevels { pin = 1 }
+
+metaHLevels ::= HLEVELS_KW metaLevels { pin = 1 }
+
+metaLevels ::= <<comma_separated_sequence defIdentifier>>? {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LevelParameters"
+                 ]
+    mixin = "org.arend.psi.ext.ArendMetaLevelsImplMixin"
 }
 
 private defIdentifier_module ::= defIdentifier {
@@ -270,7 +285,7 @@ private defIdentifier_module ::= defIdentifier {
 
 private defIdentifier_module_recover ::= !ALIAS_KW & statement_recover
 
-defFunction ::= functionKw prec? defIdentifier_func alias? nameTele* functionType? functionBody? where? {
+defFunction ::= functionKw prec? defIdentifier_func pLevelParams? hLevelParams? alias? nameTele* functionType? functionBody? where? {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
@@ -281,7 +296,22 @@ defFunction ::= functionKw prec? defIdentifier_func alias? nameTele* functionTyp
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
+pLevelParams ::= PLEVELS_KW levelParams { pin = 1 }
+
+hLevelParams ::= HLEVELS_KW levelParams { pin = 1 }
+
 functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | useMod
+
+levelCmp ::= LESS_OR_EQUALS | GREATER_OR_EQUALS
+
+levelParams ::= [levelParam (levelCmp levelParam)*] {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LevelParameters"
+                 ]
+    mixin = "org.arend.psi.ext.ArendLevelParamsImplMixin"
+}
+
+levelParam ::= defIdentifier
 
 private functionType ::= COLON returnExprWOB { pin = 1 }
 
@@ -298,9 +328,9 @@ private defIdentifier_func ::= defIdentifier {
     recoverWhile = defIdentifier_func_recover
 }
 
-private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE | ALIAS_KW) & nameTele_first & statement_recover
+private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE | ALIAS_KW | PLEVELS_KW | HLEVELS_KW) & nameTele_first & statement_recover
 
-defInstance ::= instanceOrCons prec? defIdentifier_func alias? nameTele* functionType? instanceBody? where? {
+defInstance ::= instanceOrCons prec? defIdentifier_func pLevelParams? hLevelParams? alias? nameTele* functionType? instanceBody? where? {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
                    "org.arend.term.abs.Abstract.FunctionDefinition"
@@ -313,13 +343,19 @@ defInstance ::= instanceOrCons prec? defIdentifier_func alias? nameTele* functio
 
 instanceOrCons ::= INSTANCE_KW | CONS_KW
 
-defData ::= dataKw prec? defIdentifier_typeTele alias? typeTele* dataUniverse? dataBody? where? {
+defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody? where? {
     pin = 1
     implements = "org.arend.psi.ext.TCDefinition"
     mixin = "org.arend.psi.ext.impl.DataDefinitionAdapter"
     stubClass = "org.arend.psi.stubs.ArendDefDataStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+private defIdentifier_top ::= defIdentifier {
+    recoverWhile = defIdentifier_top_recover
+}
+
+private defIdentifier_top_recover ::= !(PLEVELS_KW | HLEVELS_KW) & typeTele_recover
 
 private dataUniverse ::= COLON universeExpr {
     pin = 1
@@ -348,7 +384,14 @@ private defClassClass ::= CLASS_KW defClassHeader classStats { pin = 1 }
 
 private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
 
-private defClassHeader ::= prec? defIdentifier alias? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence longName>>]
+private defClassHeader ::= prec? defIdentifier pLevelParams? hLevelParams? alias? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence superClass>>]
+
+superClass ::= longName [maybeAtomLevelExprs maybeAtomLevelExprs?] {
+    pin = 1
+    implements = [ "org.arend.psi.ext.ArendSourceNode"
+                   "org.arend.term.abs.Abstract.ReferenceExpression" ]
+    mixin = "org.arend.psi.ext.ArendSuperClassImplMixin"
+}
 
 functionBody ::= functionTermBody
     | COWITH_KW coClauses?
@@ -734,12 +777,14 @@ levelExpr ::= atomLevelExpr
     recoverWhile = levelExpr_recover
 }
 
-private levelExpr_recover ::= !RPAREN & statement_recover
+private levelExpr_recover ::= !(RPAREN | COMMA) & statement_recover
 
 atomLevelExpr ::= LP_KW
     | LH_KW
     | OO_KW
     | NUMBER
+    | NEGATIVE_NUMBER
+    | refIdentifier
     | LPAREN levelExpr RPAREN {
     pin(".*") = 1
     implements = [ "org.arend.psi.ext.ArendSourceNode"
@@ -775,7 +820,9 @@ levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
 maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
 
-private levelsLevels ::= LEVELS_KW (PROP_KW | maybeAtomLevelExpr maybeAtomLevelExpr) { pin = 1 }
+maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | maybeAtomLevelExpr
+
+private levelsLevels ::= LEVELS_KW maybeAtomLevelExprs maybeAtomLevelExprs { pin = 1 }
 
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW

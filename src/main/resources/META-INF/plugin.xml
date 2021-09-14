@@ -187,6 +187,16 @@
         </intentionAction>
 
         <intentionAction>
+            <className>org.arend.intention.GenerateFunctionFromGoalIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.ExtractExpressionToFunctionIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
             <className>org.arend.intention.SplitAtomPatternIntention</className>
             <category>Arend</category>
         </intentionAction>

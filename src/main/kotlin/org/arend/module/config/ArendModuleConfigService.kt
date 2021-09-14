@@ -74,11 +74,8 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         get() = root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let { PsiManager.getInstance(project).findFile(it) as? YAMLFile }
 
     val librariesRootDef: String?
-        get() {
-            val librariesRoot = librariesRoot
-            return if (librariesRoot.isEmpty()) {
-                root?.parent?.path?.let { FileUtil.toSystemDependentName(it) }
-            } else librariesRoot
+        get() = librariesRoot.ifEmpty {
+            root?.parent?.path?.let { FileUtil.toSystemDependentName(it) }
         }
 
     val library = ArendRawLibrary(this)

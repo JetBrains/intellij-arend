@@ -4,8 +4,6 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.core.definition.Definition
-import org.arend.core.definition.FunctionDefinition
-import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendFile

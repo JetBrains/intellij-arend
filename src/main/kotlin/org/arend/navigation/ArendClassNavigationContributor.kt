@@ -1,7 +1,6 @@
 package org.arend.navigation
 
 import com.intellij.openapi.project.Project
-import org.arend.core.definition.Definition
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.stubs.index.ArendGotoClassIndex

@@ -13,6 +13,6 @@ abstract class ArendAtomOnlyLevelExprImplMixin(node: ASTNode) : ArendSourceNodeI
         lhKw?.let { return visitor.visitLH(this, params) }
         ooKw?.let { return visitor.visitInf(this, params) }
         onlyLevelExpr?.let { return it.accept(visitor, params) }
-        return visitor.visitError(this)
+        return visitor.visitError(this, params)
     }
 }

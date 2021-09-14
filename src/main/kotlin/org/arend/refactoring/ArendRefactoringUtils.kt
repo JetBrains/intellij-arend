@@ -700,7 +700,7 @@ fun collectDefinedVariables(startElement: ArendCompositeElement): List<Variable>
  * @param deleting the full range of everything needs to be deleted
  * @return the replaced expression, w/ or w/o the parenthesis
  */
-fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement, deletedConcrete: Concrete.Expression?, deleting: TextRange, aExpr: Abstract.Expression?, cExpr: Concrete.Expression?, inserting: String): String {
+fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement, deletedConcrete: Concrete.Expression?, deleting: TextRange, aExpr: Abstract.Expression?, cExpr: Concrete.Expression?, inserting: String, reformatAfter : Boolean = true): String {
     assert(document.isWritable)
     document.deleteString(deleting.startOffset, deleting.endOffset)
     val psiFile = deletedPsi.containingFile
@@ -716,7 +716,9 @@ fun replaceExprSmart(document: Document, deletedPsi: ArendCompositeElement, dele
         } else deletedConcrete?.data as? ArendExpr
     val str = if (needParentheses(correctDeletedPsi ?: deletedPsi, deleting, aExpr, cExpr)) "($inserting)" else inserting
     document.insertString(deleting.startOffset, str)
-    CodeStyleManager.getInstance(project).reformatText(psiFile, deleting.startOffset, deleting.startOffset + str.length)
+    if (reformatAfter) {
+        CodeStyleManager.getInstance(project).reformatText(psiFile, deleting.startOffset, deleting.startOffset + str.length)
+    }
     return str
 }
 
@@ -734,7 +736,7 @@ fun needParentheses(deletedPsi: ArendCompositeElement?, deletedRange: TextRange,
 
     // if the range differs, then we do not know where the expression will be inserted,
     // so we add parentheses to be sure the result is correct
-    if (deletedRange != deletedPsi?.textRange) {
+    if (deletedPsi == null || (insertedPrec < APP_PREC && deletedRange != deletedPsi.textRange)) {
         return true
     }
 
@@ -779,8 +781,8 @@ private const val APP_PREC = 10
 private const val MIN_PREC = 0
 
 private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
-    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, level1: Abstract.LevelExpression?, level2: Abstract.LevelExpression?, params: Void?) =
-        if (level1 != null || level2 != null) APP_PREC else MAX_PREC
+    override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) =
+        if (pLevels != null || hLevels != null) APP_PREC else MAX_PREC
 
     override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, params: Void?) =
         if (pLevel != null || hLevel != null) APP_PREC else MAX_PREC
@@ -806,7 +808,7 @@ private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
 
 private object ConcretePrecVisitor : ConcreteExpressionVisitor<Void?, Int> {
     override fun visitReference(expr: Concrete.ReferenceExpression, params: Void?) =
-        if (expr.pLevel != null || expr.hLevel != null) APP_PREC else MAX_PREC
+        if (expr.pLevels != null || expr.hLevels != null) APP_PREC else MAX_PREC
 
     override fun visitUniverse(expr: Concrete.UniverseExpression, params: Void?) =
         if ((expr.pLevel == null || expr.pLevel is Concrete.NumberLevelExpression) && (expr.hLevel == null || expr.hLevel is Concrete.NumberLevelExpression || expr.hLevel is Concrete.InfLevelExpression)) MAX_PREC else APP_PREC

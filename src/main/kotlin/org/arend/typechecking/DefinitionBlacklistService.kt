@@ -1,7 +1,6 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.components.service
-import com.intellij.openapi.progress.ProgressIndicator
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.computation.CancellationIndicator
 import java.util.*

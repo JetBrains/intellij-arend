@@ -51,7 +51,7 @@ class ArendMoveMembersDialog(project: Project,
     private val sourceIsDynamic: Boolean?
 
     init {
-        title = "Move Arend static members"
+        title = "Move Arend Static Members"
         containerRef = SmartPointerManager.createPointer(container)
         val memberInfos = ArrayList<ArendMemberInfo>()
 
@@ -183,13 +183,13 @@ class ArendMoveMembersDialog(project: Project,
             if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.getRefactoringName(), getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
     }
 
-    override fun getPreferredFocusedComponent(): JComponent? = targetFileTextField
+    override fun getPreferredFocusedComponent() = targetFileTextField
 
     override fun getRefactoringId() = "Move Arend static member"
 
-    override fun createCenterPanel(): JComponent? = centerPanel
+    override fun createCenterPanel() = centerPanel
 
-    override fun getDimensionServiceKey(): String? = "#org.arend.refactoring.move.ArendMoveMembersDialog"
+    override fun getDimensionServiceKey() = "#org.arend.refactoring.move.ArendMoveMembersDialog"
 
     enum class LocateResult {
         LOCATE_OK, CANT_FIND_FILE, CANT_FIND_MODULE, TARGET_EQUALS_SOURCE, TARGET_IS_SUBMODULE_OF_SOURCE, CLASSPART_UNSPECIFIED, OTHER_ERROR
@@ -297,9 +297,9 @@ class ArendMemberSelectionTable(memberInfos: Collection<ArendMemberInfo>) :
 
     override fun setVisibilityIcon(memberInfo: ArendMemberInfo?, icon: RowIcon?) {}
 
-    override fun getAbstractColumnValue(memberInfo: ArendMemberInfo?): Any? = false
+    override fun getAbstractColumnValue(memberInfo: ArendMemberInfo?) = false
 
-    override fun isAbstractColumnEditable(rowIndex: Int): Boolean = true
+    override fun isAbstractColumnEditable(rowIndex: Int) = true
 }
 
 class ArendMemberInfo(member: ArendGroup) : MemberInfoBase<ArendGroup>(member) {

@@ -7,7 +7,6 @@ import org.arend.ArendLanguage
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.Precedence
-import org.arend.ext.ui.ArendUI
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
@@ -45,7 +44,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
     override fun mustBeLoaded() = !isExternal
 
-    override fun getUI(): ArendUI? = ArendGeneralUI(config.project)
+    override fun getUI() = ArendGeneralUI(config.project)
 
     override fun loadHeader(errorReporter: ErrorReporter) =
         LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.classLoaderDelegate, config.extensionMainClass)
@@ -95,7 +94,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
     }
 
     override fun getPersistableBinarySource(modulePath: ModulePath?): PersistableBinarySource? {
-        // We do not persists binary files with VirtualFiles because it takes forever for some reason
+        // We do not persist binary files with VirtualFiles because it takes forever for some reason
         val root = config.root ?: return null
         val binDir = config.binariesDir ?: return null
         val path = root.fileSystem.getNioPath(root) ?: return null

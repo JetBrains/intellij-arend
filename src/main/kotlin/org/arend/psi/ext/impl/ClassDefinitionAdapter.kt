@@ -23,7 +23,9 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun withoutClassifying(): Boolean = noClassifyingKw != null
 
-    override fun getSuperClassReferences(): List<ClassReferable> = longNameList.mapNotNull { it.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
+    override fun getSuperClassReferences(): List<ClassReferable> = superClassList.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
+
+    override fun hasLevels(index: Int) = superClassList.getOrNull(index)?.maybeAtomLevelExprsList?.isNotEmpty() ?: false
 
     override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.definition ?: (it.coClause as? ArendCoClauseImplMixin)?.functionReference ?: it.defModule }
 
@@ -48,7 +50,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
 
     override fun getParameters(): List<Abstract.FieldParameter> = fieldTeleList
 
-    override fun getSuperClasses(): List<ArendLongName> = longNameList
+    override fun getSuperClasses(): List<ArendSuperClass> = superClassList
 
     override fun getClassElements(): List<Abstract.ClassElement> = children.mapNotNull {
         when (it) {

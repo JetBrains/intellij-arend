@@ -1,7 +1,6 @@
 package org.arend.module
 
 import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.ext.module.ModulePath
 import org.arend.library.SourceLibrary

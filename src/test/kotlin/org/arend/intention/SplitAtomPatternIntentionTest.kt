@@ -459,10 +459,10 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """)
 
     fun test_arrays() = doTest("""
-       \func foo (a : Array) : Nat
+       \func foo (a : Array Nat) : Nat
          | a{-caret-} => {?} 
     """, """
-       \func foo (a : Array) : Nat
+       \func foo (a : Array Nat) : Nat
          | nil => {?}
          | :: a a1 => {?} 
     """)

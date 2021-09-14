@@ -105,7 +105,7 @@ class ErrorService : ErrorReporter {
 
     fun getErrors(file: ArendFile): List<ArendError> =
         if (checkValid(file)) {
-            (nameResolverErrors[file] ?: emptyList<ArendError>()) + (typecheckingErrors[file] ?: emptyList())
+            (nameResolverErrors[file] ?: emptyList()) + (typecheckingErrors[file] ?: emptyList())
         } else {
             emptyList()
         }

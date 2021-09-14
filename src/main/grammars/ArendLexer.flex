@@ -27,9 +27,10 @@ import static org.arend.psi.ArendElementTypes.*;
     private int commentStart;
     private int commentDepth;
     private boolean isInsideDocComment;
+    private int originalState = YYINITIAL;
 %}
 
-%state BLOCK_COMMENT_INNER
+%state BLOCK_COMMENT_INNER, LEVEL_PARAMETERS
 
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
@@ -65,9 +66,28 @@ OCT_DIGIT           = [0-8]
 
 %%
 
-<YYINITIAL> {
+<YYINITIAL,LEVEL_PARAMETERS> {
     {WHITE_SPACE}           { return WHITE_SPACE; }
 
+    {LINE_COMMENT}          { return LINE_COMMENT; }
+    {BLOCK_COMMENT_START}   {
+                                originalState = yystate();
+                                yybegin(BLOCK_COMMENT_INNER);
+                                isInsideDocComment = false;
+                                commentDepth = 0;
+                                commentStart = getTokenStart();
+                            }
+    {BLOCK_DOC_COMMENT_START} {
+                                originalState = yystate();
+                                yybegin(BLOCK_COMMENT_INNER);
+                                isInsideDocComment = true;
+                                commentDepth = 0;
+                                commentStart = getTokenStart();
+                            }
+    {LINE_DOC}              { return DOC_COMMENT; }
+}
+
+<YYINITIAL> {
     "{"                     { return LBRACE; }
     "}"                     { return RBRACE; }
     "{?}"                   { return TGOAL; }
@@ -143,24 +163,11 @@ OCT_DIGIT           = [0-8]
     "\\suc"                 { return SUC_KW; }
     "\\level"               { return LEVEL_KW; }
     "\\levels"              { return LEVELS_KW; }
+    "\\plevels"             { yybegin(LEVEL_PARAMETERS); return PLEVELS_KW; }
+    "\\hlevels"             { yybegin(LEVEL_PARAMETERS); return HLEVELS_KW; }
     "\\max"                 { return MAX_KW; }
 
     {STRING}                { return STRING; }
-
-    {LINE_COMMENT}          { return LINE_COMMENT; }
-    {BLOCK_COMMENT_START}   {
-                                yybegin(BLOCK_COMMENT_INNER);
-                                isInsideDocComment = false;
-                                commentDepth = 0;
-                                commentStart = getTokenStart();
-                            }
-    {BLOCK_DOC_COMMENT_START} {
-                                yybegin(BLOCK_COMMENT_INNER);
-                                isInsideDocComment = true;
-                                commentDepth = 0;
-                                commentStart = getTokenStart();
-                            }
-    {LINE_DOC}              { return DOC_COMMENT; }
 
     {SET}                   { return SET; }
     {UNIVERSE}              { return UNIVERSE; }
@@ -176,6 +183,18 @@ OCT_DIGIT           = [0-8]
     // For REPL
     :{ID}                   { return getTokenStart() == 0 ? REPL_COMMAND : ID; }
     {ID}                    { return ID; }
+
+    [^]                     { return BAD_CHARACTER; }
+}
+
+<LEVEL_PARAMETERS> {
+    "<="                    { return LESS_OR_EQUALS; }
+    ">="                    { return GREATER_OR_EQUALS; }
+    ","                     { return COMMA; }
+    "|" | ":" | "_"         { yypushback(1); yybegin(YYINITIAL); }
+    "=>" | "->" | "__"      { yypushback(2); yybegin(YYINITIAL); }
+    {ID}                    { return ID; }
+    [^]                     { yypushback(1); yybegin(YYINITIAL); }
 }
 
 <BLOCK_COMMENT_INNER> {
@@ -192,18 +211,16 @@ OCT_DIGIT           = [0-8]
             commentDepth--;
         } else {
              zzStartRead = commentStart;
-             yybegin(YYINITIAL);
+             yybegin(originalState);
              return isInsideDocComment ? DOC_COMMENT : BLOCK_COMMENT;
         }
     }
 
     <<EOF>> {
         zzStartRead = commentStart;
-        yybegin(YYINITIAL);
+        yybegin(originalState);
         return isInsideDocComment ? DOC_COMMENT : BLOCK_COMMENT;
     }
 
     [^] {}
 }
-
-[^] { return BAD_CHARACTER; }

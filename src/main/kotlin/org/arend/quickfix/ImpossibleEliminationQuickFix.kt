@@ -15,8 +15,8 @@ import org.arend.core.expr.DataCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.subst.ExprSubstitution
-import org.arend.core.subst.LevelSubstitution
 import org.arend.core.subst.SubstVisitor
+import org.arend.ext.core.level.LevelSubstitution
 import org.arend.ext.variable.Variable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement

@@ -49,7 +49,7 @@ class RenameDuplicateNameQuickFix(private val causeRef: SmartPsiElementPointer<P
     companion object {
         fun doRenameDuplicateName(statCmd: ArendStatCmd, oldName: String, newName: String?) {
             val referables = statCmd.scope.elements.map { VariableImpl(it.textRepresentation()) }
-            val variable = object : Variable { override fun getName(): String = newName ?: oldName }
+            val variable = Variable { newName ?: oldName }
             val freshName = StringRenamer().generateFreshName(variable, referables)
             val renamings = ArrayList<Pair<String, String?>>(); renamings.add(Pair(oldName, freshName))
             doAddIdToUsing(statCmd, renamings)

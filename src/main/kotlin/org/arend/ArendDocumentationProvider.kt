@@ -185,7 +185,11 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         is ArendDefModule -> "module"
         is ArendDefMeta -> "meta"
         is ArendLetClause -> "let"
-        is ArendDefIdentifier -> if (element.parent is ArendLetClause) "let" else "variable"
+        is ArendDefIdentifier -> when (element.parent) {
+            is ArendLetClause -> "let"
+            is ArendLevelParams, is ArendMetaLevels -> "level parameter"
+            else -> "variable"
+        }
         is PsiFile -> "file"
         else -> null
     }

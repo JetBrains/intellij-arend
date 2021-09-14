@@ -24,6 +24,6 @@ class ArendConsoleImpl(private val project: Project, marker: Any?) : ArendConsol
         object : PrettyPrinterConfig {
             override fun getExpressionFlags() = project.service<ArendProjectSettings>().consolePrintingOptionsFilterSet
 
-            override fun getNormalizationMode(): NormalizationMode? = NormalizationMode.ENF
+            override fun getNormalizationMode() = NormalizationMode.ENF
         }
 }

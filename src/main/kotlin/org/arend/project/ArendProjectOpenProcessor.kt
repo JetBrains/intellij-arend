@@ -3,12 +3,11 @@ package org.arend.project
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.projectImport.ProjectOpenProcessor
-import javax.swing.Icon
 
 class ArendProjectOpenProcessor : ProjectOpenProcessor() {
-    override fun getName(): String = ArendOpenProjectProvider.builder.name
+    override fun getName() = ArendOpenProjectProvider.builder.name
 
-    override fun getIcon(): Icon? = ArendOpenProjectProvider.builder.icon
+    override fun getIcon() = ArendOpenProjectProvider.builder.icon
 
     override fun canOpenProject(file: VirtualFile): Boolean = ArendOpenProjectProvider.canOpenProject(file)
 

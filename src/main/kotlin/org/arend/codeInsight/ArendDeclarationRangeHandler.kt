@@ -13,7 +13,7 @@ class ArendDeclarationRangeHandler : DeclarationRangeHandler<PsiElement> {
         when (container) {
             is ArendDefFunction -> container.returnExpr ?: container.nameTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
             is ArendDefData -> container.universeExpr ?: container.typeTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
-            is ArendDefClass -> container.longNameList.lastOrNull() ?: container.fieldTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
+            is ArendDefClass -> container.superClassList.lastOrNull()?.longName ?: container.fieldTeleList.lastOrNull() as PsiElement? ?: container.defIdentifier
             is ArendDefInstance -> container.nameTeleList.lastOrNull() ?: container.defIdentifier
             else -> null
         }?.let { TextRange(container.textRange.startOffset, it.textRange.endOffset) } ?: container.textRange

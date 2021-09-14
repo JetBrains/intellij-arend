@@ -685,7 +685,7 @@ class ArendMoveRefactoringProcessor(project: Project,
     }
 
     private class ReferableTargetReference(private val myReferable: PsiLocatedReferable) : TargetReference {
-        override fun resolve(): PsiLocatedReferable? = myReferable
+        override fun resolve() = myReferable
     }
 
     private inner class DescriptorTargetReference(val myDescriptor: LocationDescriptor) : TargetReference {

@@ -40,7 +40,7 @@ private fun YAMLFile.setProp(name: String, value: String?) {
         val keyValue = mapping.getKeyValueByKey(name) ?: return
         mapping.deleteKeyValue(keyValue)
     } else {
-        val fixedValue = if (value.isEmpty()) "\"\"" else value
+        val fixedValue = value.ifEmpty { "\"\"" }
         val keyValue = (createFromText("$name: $fixedValue", project)?.documents?.firstOrNull()?.topLevelValue as? YAMLMapping)?.getKeyValueByKey(name) ?: return
         mapping.putKeyValue(keyValue)
     }
