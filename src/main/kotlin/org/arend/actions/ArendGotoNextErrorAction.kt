@@ -53,7 +53,7 @@ fun selectErrorFromEditor(project: Project, editor: Editor, file: ArendFile?, al
     for (arendError in arendErrors) {
         if (always || arendError.error.satisfies(service.autoScrollFromSource)) {
             val textRange = BasePass.getImprovedTextRange(arendError.error) ?: continue
-            if (textRange.contains(offset)) {
+            if (textRange.containsOffset(offset)) {
                 val messagesService = project.service<ArendMessagesService>()
                 messagesService.view?.tree?.select(arendError.error)
                 if (activate) {
