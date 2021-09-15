@@ -116,37 +116,40 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         }
 
         val text = builder.toString()
-        val document = editor.document
-        runWriteAction {
-            document.setText(text)
-        }
+        ApplicationManager.getApplication().invokeLater {
+            if (editor.isDisposed) return@invokeLater
+            val document = editor.document
+            runWriteAction {
+                document.setText(text)
+            }
+            val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
+            (psi as? PsiInjectionTextFile)?.apply {
+                injectionRanges = visitor.textRanges
+                scope = fileScope
+                injectedExpressions = visitor.expressions
+            }
 
-        val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
-        (psi as? PsiInjectionTextFile)?.apply {
-            injectionRanges = visitor.textRanges
-            scope = fileScope
-            injectedExpressions = visitor.expressions
-        }
-
-        val support = EditorHyperlinkSupport.get(editor)
-        support.clearHyperlinks()
-        for (hyperlink in visitor.hyperlinks) {
-            support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
+            val support = EditorHyperlinkSupport.get(editor)
+            support.clearHyperlinks()
+            for (hyperlink in visitor.hyperlinks) {
+                support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
+            }
         }
     }
 
     fun addDoc(doc: Doc, docScope: Scope) {
         if (editor == null) return
 
-        val document = editor.document
         val builder = StringBuilder()
         val visitor = CollectingDocStringBuilder(builder, treeElement?.sampleError?.error)
         doc.accept(visitor, false)
         builder.append('\n')
         val text = builder.toString()
-        val file = runReadAction { PsiDocumentManager.getInstance(project).getPsiFile(document) } as? PsiInjectionTextFile
+        val file = runReadAction { PsiDocumentManager.getInstance(project).getPsiFile(editor.document) } as? PsiInjectionTextFile
 
         ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
+            if (editor.isDisposed) return@runUndoTransparentWriteAction
+            val document = editor.document
             val length = document.textLength
             document.insertString(length, text)
             editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
@@ -165,13 +168,16 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
     }
 
     fun clearText() {
-        editor?.document?.let {
-            (PsiDocumentManager.getInstance(project).getPsiFile(it) as? PsiInjectionTextFile)?.apply {
+        editor ?: return
+        ApplicationManager.getApplication().invokeLater {
+            if (editor.isDisposed) return@invokeLater
+            val document = editor.document
+            (PsiDocumentManager.getInstance(project).getPsiFile(document) as? PsiInjectionTextFile)?.apply {
                 injectionRanges.clear()
                 injectedExpressions.clear()
             }
             runWriteAction {
-                it.setText("")
+                document.setText("")
             }
         }
     }
