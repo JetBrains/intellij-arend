@@ -11,8 +11,10 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import org.arend.InjectionTextLanguage
 import org.arend.ext.error.GeneralError
@@ -52,7 +54,7 @@ class InjectedArendEditor(val project: Project, name: String, val treeElement: A
         }
 
     init {
-        val psi = PsiFileFactory.getInstance(project).createFileFromText(name, InjectionTextLanguage.INSTANCE, "")
+        val psi = createInjectedEditorFile(project, name)
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let { document ->
@@ -189,5 +191,16 @@ class InjectedArendEditor(val project: Project, name: String, val treeElement: A
         private val flags = ArendPrintOptionsFilterAction.getFilterSet(project, printOptionsKind)
 
         override fun getExpressionFlags() = flags
+    }
+
+    companion object {
+        private val KEY = Key.create<Any?>("AREND_INJECTED_EDITOR_FILE")
+
+        private fun createInjectedEditorFile(project: Project, name: String): PsiFile {
+            val file = PsiFileFactory.getInstance(project).createFileFromText(name, InjectionTextLanguage.INSTANCE, "")
+            return file.apply { KEY[this] = Unit }
+        }
+
+        fun isInjectedEditorFile(file: PsiFile?) = KEY[file] != null
     }
 }

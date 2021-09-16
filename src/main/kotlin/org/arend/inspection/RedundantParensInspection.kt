@@ -11,6 +11,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
+import org.arend.injection.InjectedArendEditor
 import org.arend.refactoring.unwrapParens
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
@@ -18,13 +19,18 @@ import org.arend.util.ArendBundle
 import org.arend.util.isBinOp
 
 class RedundantParensInspection : LocalInspectionTool() {
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : ArendVisitor() {
-        override fun visitTuple(tuple: ArendTuple) {
-            super.visitTuple(tuple)
-            val expression = unwrapParens(tuple) ?: return
-            if (neverNeedsParens(expression) || neverNeedsParensInParent(tuple)) {
-                val message = ArendBundle.message("arend.inspection.redundant.parentheses.message")
-                holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
+    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
+        val injectionContextFile = holder.file.castSafelyTo<ArendFile>()?.injectionContext?.containingFile
+        return if (InjectedArendEditor.isInjectedEditorFile(injectionContextFile))
+            PsiElementVisitor.EMPTY_VISITOR
+        else object : ArendVisitor() {
+            override fun visitTuple(tuple: ArendTuple) {
+                super.visitTuple(tuple)
+                val expression = unwrapParens(tuple) ?: return
+                if (neverNeedsParens(expression) || neverNeedsParensInParent(tuple)) {
+                    val message = ArendBundle.message("arend.inspection.redundant.parentheses.message")
+                    holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
+                }
             }
         }
     }
