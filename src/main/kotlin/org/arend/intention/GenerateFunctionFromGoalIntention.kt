@@ -136,7 +136,7 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
         } else {
             "x"
         }
-        while (context.scope.resolveName(candidate) != null) {
+        while (forbiddenNames.contains(candidate) || context.scope.resolveName(candidate) != null) {
             candidate += '\''
         }
         forbiddenNames.add(candidate)

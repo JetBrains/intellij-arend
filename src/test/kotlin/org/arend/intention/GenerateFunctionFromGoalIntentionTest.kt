@@ -171,4 +171,12 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
         
         \func foo-lemma (n : Nat) : Nat => {?} 
     """)
+
+    fun `test goal with arguments, arguments with similar type`() = doTest("""
+       \func foo : Nat => {?{-caret-}} 1 1 
+    """, """
+       \func foo : Nat => foo-lemma 1 1
+       
+       \func foo-lemma (n n' : Nat) : Nat => {?} 
+    """)
 }
