@@ -62,7 +62,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         get() = flaggedExtensionMainClass
 
     override val langVersion: Range<Version>
-        get() = Range.parseVersionRange(langVersionString) ?: Range.unbound()
+        get() = VersionRange.parseVersionRange(langVersionString) ?: Range.unbound()
 
     override val root: VirtualFile?
         get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file

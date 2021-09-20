@@ -2,6 +2,7 @@ package org.arend.module.config
 
 import org.arend.util.Range
 import org.arend.util.Version
+import org.arend.util.VersionRange
 import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLFile
 
@@ -15,7 +16,7 @@ class ExternalLibraryConfig(override val name: String, yaml: YAMLFile) : Library
     override val modules = yaml.modules
     override val dependencies = yaml.dependencies
     override val langVersion: Range<Version> = yaml.langVersion.let {
-        if (it.isEmpty()) Range.unbound() else Range.parseVersionRange(it)
+        if (it.isEmpty()) Range.unbound() else VersionRange.parseVersionRange(it)
     }
 
     override val isExternal: Boolean

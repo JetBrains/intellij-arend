@@ -31,7 +31,7 @@ private fun getVersion(): String? {
             val str = reader.readLine() ?: break
             val index = str.indexOf("->")
             if (index < 0) continue
-            val range = Range.parseVersionRange(str.substring(0, index)) ?: continue
+            val range = VersionRange.parseVersionRange(str.substring(0, index)) ?: continue
             if (!range.inRange(Prelude.VERSION)) continue
             val result = str.substring(index + 2, str.length).trim()
             val version = Version.fromString(result)
