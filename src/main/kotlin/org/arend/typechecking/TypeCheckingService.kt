@@ -50,6 +50,7 @@ import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
+import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
@@ -139,7 +140,15 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 val tcRefMap = preludeLibrary.prelude?.tcRefMap
                 if (tcRefMap != null) {
                     Prelude.forEach {
-                        tcRefMap[it.referable.refLongName] = it.referable
+                        val name = it.referable.refLongName
+                        tcRefMap[name] = it.referable
+                        val dataRef = it.referable
+                        if (dataRef is DataLocatedReferable) {
+                            val ref = Scope.Utils.resolveName(preludeScope, name.toList())
+                            if (ref is PsiLocatedReferable) {
+                                dataRef.setPointer(ref)
+                            }
+                        }
                     }
                 }
             }

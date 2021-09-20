@@ -3,6 +3,7 @@ package org.arend.resolving
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.error.SourceInfo
 import org.arend.ext.reference.Precedence
@@ -55,6 +56,10 @@ open class DataLocatedReferable(
 
     override fun positionTextRepresentation(): String? =
         psiElementPointer?.let { runReadAction { it.element?.positionTextRepresentationImpl() } }
+
+    fun setPointer(ref: PsiLocatedReferable) {
+        psiElementPointer = SmartPointerManager.createPointer(ref)
+    }
 
     fun fixPointer(project: Project) =
         if (psiElementPointer == null) {
