@@ -179,4 +179,24 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
        
        \func foo-lemma (n n' : Nat) : Nat => {?} 
     """)
+
+    fun `test in class`() = doTest("""
+      \class Foo {
+        | foo : Nat
+      }
+        
+      \class Bar \extends Foo {
+        | foo => {?{-caret-}}
+      }
+    """, """
+      \class Foo {
+        | foo : Nat
+      }
+        
+      \class Bar \extends Foo {
+        | foo => Bar-lemma
+      }
+       
+      \func Bar-lemma : Nat => {?}
+    """)
 }

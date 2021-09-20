@@ -25,6 +25,7 @@ import org.arend.extImpl.definitionRenamer.ScopeDefinitionRenamer
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.ArendCompositeElement
@@ -74,28 +75,49 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, selection : SelectionResult,
         editor: Editor, project: Project
     ) {
-        val enclosingFunctionDefinition = selection.contextPsi.parentOfType<ArendFunctionalDefinition>() ?: return
+        val (enclosingDefinition, name) = getEnclosingDefinitionWithName(selection.contextPsi) ?: return
         val enclosingDefinitionReferable = selection.contextPsi.parentOfType<TCDefinition>()!!
         val (newFunctionCall, newFunctionDefinition) = buildRepresentations(
                 enclosingDefinitionReferable, selection,
-                enclosingFunctionDefinition,
+                name,
                 freeVariables,
         ) ?: return
 
         val globalOffsetOfNewDefinition =
-                modifyDocument(editor, newFunctionCall, selection.rangeOfReplacement, selection.selectedConcrete, selection.contextPsi, newFunctionDefinition, enclosingFunctionDefinition, project)
+                modifyDocument(editor,
+                        newFunctionCall,
+                        selection.rangeOfReplacement,
+                        selection.selectedConcrete,
+                        selection.contextPsi,
+                        newFunctionDefinition,
+                        enclosingDefinition,
+                        project)
 
         invokeRenamer(editor, globalOffsetOfNewDefinition, project)
     }
 
+    private fun getEnclosingDefinitionWithName(context: PsiElement): Pair<ArendCompositeElement, String>? {
+        val parentFunction = context.parentOfType<ArendFunctionalDefinition>()
+        if (parentFunction != null) {
+            val name = parentFunction.defIdentifier?.name ?: return null
+            return parentFunction to name
+        }
+        val parentClass = context.parentOfType<ArendDefClass>()
+        if (parentClass != null) {
+            val name = parentClass.name ?: return null
+            return parentClass to name
+        }
+        return null
+    }
+
+
     protected open fun buildRepresentations(
             enclosingDefinitionReferable: TCDefinition,
             selection: SelectionResult,
-            functionDefinition: ArendFunctionalDefinition,
+            enclosingDefinitionName: String,
             freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
     ): Pair<Concrete.Expression, String>? {
-        val baseName = selection.identifier ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" }
-        ?: return null
+        val baseName = selection.identifier ?: enclosingDefinitionName.let { "$it-lemma" }
         val newFunctionName = generateFreeName(baseName, selection.contextPsi.scope)
 
         val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {
