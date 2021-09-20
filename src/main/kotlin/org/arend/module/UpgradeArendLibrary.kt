@@ -13,13 +13,8 @@ import org.arend.prelude.Prelude
 import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.util.FileUtils
-import org.arend.util.arendModules
-import org.arend.util.findExternalLibrary
-import org.arend.util.refreshLibrariesDirectory
-import java.io.BufferedInputStream
-import java.io.FileOutputStream
-import java.io.IOException
+import org.arend.util.*
+import java.io.*
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
@@ -28,9 +23,34 @@ import java.nio.file.Paths
 
 const val AREND_LIB = "arend-lib"
 
-private fun downloadArendLib(project: Project, indicator: ProgressIndicator, path: Path): Boolean =
+@Throws(IOException::class)
+private fun getVersion(): String? {
+    val versionsConn = URL("https://raw.githubusercontent.com/JetBrains/$AREND_LIB/master/versions").openConnection()
+    BufferedReader(InputStreamReader(versionsConn.getInputStream())).use { reader ->
+        while (true) {
+            val str = reader.readLine() ?: break
+            val index = str.indexOf("->")
+            if (index < 0) continue
+            val range = Range.parseVersionRange(str.substring(0, index)) ?: continue
+            if (!range.inRange(Prelude.VERSION)) continue
+            val result = str.substring(index + 2, str.length).trim()
+            val version = Version.fromString(result)
+            if (version != null) return version.longString
+            if (result.isNotEmpty()) return result
+        }
+        return Prelude.VERSION.longString
+    }
+}
+
+private fun downloadArendLib(project: Project, indicator: ProgressIndicator, path: Path): Boolean {
     try {
-        val conn = URL("https://github.com/JetBrains/$AREND_LIB/releases/download/v${Prelude.VERSION.longString}/$AREND_LIB.zip").openConnection()
+        val version = getVersion()
+        if (version == null) {
+            NotificationErrorReporter.errorNotifications.createNotification("$AREND_LIB does not support language version ${Prelude.VERSION}", NotificationType.ERROR).notify(project)
+            return false
+        }
+
+        val conn = URL("https://github.com/JetBrains/$AREND_LIB/releases/download/v${version}/$AREND_LIB.zip").openConnection()
         BufferedInputStream(conn.getInputStream()).use { input ->
             val size = conn.contentLengthLong
             if (size < 0) {
@@ -59,11 +79,12 @@ private fun downloadArendLib(project: Project, indicator: ProgressIndicator, pat
                 }
             }
         }
-        true
+        return true
     } catch (e: IOException) {
         NotificationErrorReporter.errorNotifications.createNotification("An exception happened during downloading of $AREND_LIB", e.toString(), NotificationType.ERROR).notify(project)
-        false
+        return false
     }
+}
 
 fun showDownloadNotification(project: Project, isNewVersion: Boolean) {
     val libRoot = project.service<ArendProjectSettings>().librariesRoot.let { if (it.isNotEmpty()) Paths.get(it) else FileUtils.defaultLibrariesRoot() }
