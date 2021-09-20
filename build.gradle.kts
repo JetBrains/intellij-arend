@@ -11,7 +11,7 @@ version = "1.7.0"
 
 plugins {
     idea
-    kotlin("jvm") version "1.5.0"
+    kotlin("jvm") version "1.5.21"
     id("org.jetbrains.intellij") version "1.1.4"
     id("org.jetbrains.grammarkit") version "2021.1.3"
 }
@@ -22,8 +22,8 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
-    implementation(kotlin("reflect"))
-    implementation(kotlin("stdlib-jdk8"))
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.21")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.21")
 }
 
 java {
@@ -55,7 +55,7 @@ idea {
 }
 
 intellij {
-    version.set("2021.2.1")
+    version.set("2021.2.2")
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
