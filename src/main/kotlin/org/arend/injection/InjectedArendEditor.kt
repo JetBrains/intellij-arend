@@ -121,14 +121,13 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
             val document = editor.document
             runWriteAction {
                 document.setText(text)
+                val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
+                (psi as? PsiInjectionTextFile)?.apply {
+                    injectionRanges = visitor.textRanges
+                    scope = fileScope
+                    injectedExpressions = visitor.expressions
+                }
             }
-            val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
-            (psi as? PsiInjectionTextFile)?.apply {
-                injectionRanges = visitor.textRanges
-                scope = fileScope
-                injectedExpressions = visitor.expressions
-            }
-
             val support = EditorHyperlinkSupport.get(editor)
             support.clearHyperlinks()
             for (hyperlink in visitor.hyperlinks) {
@@ -172,11 +171,11 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         ApplicationManager.getApplication().invokeLater {
             if (editor.isDisposed) return@invokeLater
             val document = editor.document
-            (PsiDocumentManager.getInstance(project).getPsiFile(document) as? PsiInjectionTextFile)?.apply {
-                injectionRanges.clear()
-                injectedExpressions.clear()
-            }
             runWriteAction {
+                (PsiDocumentManager.getInstance(project).getPsiFile(document) as? PsiInjectionTextFile)?.apply {
+                    injectionRanges.clear()
+                    injectedExpressions.clear()
+                }
                 document.setText("")
             }
         }
