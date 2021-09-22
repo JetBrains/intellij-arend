@@ -17,15 +17,14 @@ import com.intellij.ui.layout.panel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
-import org.arend.injection.InjectedArendEditor
+import org.arend.ext.error.MissingClausesError
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
-import org.arend.ext.error.MissingClausesError
-import org.arend.psi.ext.PsiConcreteReferable
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
@@ -40,9 +39,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private val splitter = JBSplitter(false, 0.25f)
     private val emptyPanel = JPanel()
-    private var activeEditor: InjectedArendEditor? = null
+    private var activeEditor: ArendMessagesViewEditor? = null
 
-    private val errorEditors = HashMap<GeneralError, InjectedArendEditor>()
+    private val errorEditors = HashMap<GeneralError, ArendMessagesViewEditor>()
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
@@ -108,7 +107,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 for (arendError in treeElement.errors) {
                     configureError(arendError.error)
                 }
-                InjectedArendEditor(project, "Arend Messages", treeElement)
+                ArendMessagesViewEditor(project, treeElement)
             }
 
             activeEditor?.let {
