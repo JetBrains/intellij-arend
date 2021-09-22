@@ -1,29 +1,23 @@
 package org.arend.inspection
 
-import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.LocalQuickFixOnPsiElement
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
-import org.arend.injection.InjectedArendEditor
-import org.arend.refactoring.unwrapParens
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
+import org.arend.refactoring.unwrapParens
 import org.arend.util.ArendBundle
 import org.arend.util.isBinOp
 
-class RedundantParensInspection : LocalInspectionTool() {
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
-        val injectionContextFile = holder.file.castSafelyTo<ArendFile>()?.injectionContext?.containingFile
-        return if (InjectedArendEditor.isInjectedEditorFile(injectionContextFile))
-            PsiElementVisitor.EMPTY_VISITOR
-        else object : ArendVisitor() {
+class RedundantParensInspection : ArendInspectionBase() {
+    override fun buildArendVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): ArendVisitor {
+        return object : ArendVisitor() {
             override fun visitTuple(tuple: ArendTuple) {
                 super.visitTuple(tuple)
                 val expression = unwrapParens(tuple) ?: return
