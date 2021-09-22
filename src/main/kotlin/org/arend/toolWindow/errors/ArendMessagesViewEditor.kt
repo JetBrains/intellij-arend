@@ -11,6 +11,19 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
         setupActions()
     }
 
+    fun update(newTreeElement: ArendErrorTreeElement) {
+        treeElement = newTreeElement
+        updateErrorText()
+        actionGroup.removeAll()
+        setupActions()
+    }
+
+    fun clear() {
+        clearText()
+        actionGroup.removeAll()
+        treeElement = null
+    }
+
     private fun setupActions() {
         actionGroup.add(ActionManager.getInstance().getAction("Arend.PinErrorMessage"))
         val enablePrintOptions = treeElement?.errors?.any { it.error.hasExpressions() } ?: false

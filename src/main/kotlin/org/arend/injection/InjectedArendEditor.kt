@@ -38,7 +38,7 @@ import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-abstract class InjectedArendEditor(val project: Project, name: String, val treeElement: ArendErrorTreeElement?) {
+abstract class InjectedArendEditor(val project: Project, name: String, var treeElement: ArendErrorTreeElement?) {
     protected val editor: Editor?
     private val panel: JPanel?
     protected val actionGroup: DefaultActionGroup = DefaultActionGroup()
