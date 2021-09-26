@@ -5,10 +5,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.parentOfType
 import com.intellij.refactoring.suggested.endOffset
@@ -26,7 +23,6 @@ import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefClass
-import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
@@ -71,9 +67,10 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         performRefactoring(freeVariables, selectionResult, editor, project)
     }
 
-    private fun performRefactoring(
-        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, selection : SelectionResult,
-        editor: Editor, project: Project
+    protected open fun performRefactoring(
+            freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
+            selection: SelectionResult,
+            editor: Editor, project: Project
     ) {
         val (enclosingDefinition, name) = getEnclosingDefinitionWithName(selection.contextPsi) ?: return
         val enclosingDefinitionReferable = selection.contextPsi.parentOfType<TCDefinition>()!!
@@ -148,8 +145,8 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             app(ref(TypedBinding(newFunctionName, null)), freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }.map { arg(ref(TypedBinding(it.first.name, null)), true) })
         } as Concrete.Expression
         val newFunctionDefinitionType = if (selection.expectedType != null) " : ${prettyPrinter(selection.expectedType, false)}" else ""
-        val newFunctionDefinition = "\\func $newFunctionName$parameters$newFunctionDefinitionType => $actualBody"
-        return newFunctionCall to newFunctionDefinition
+        val newFunctionDefinitionTail = "$newFunctionName$parameters$newFunctionDefinitionType => $actualBody"
+        return newFunctionCall to newFunctionDefinitionTail
     }
 
     private fun Boolean.toExplicitnessState(): ParameterExplicitnessState = if (this) ParameterExplicitnessState.EXPLICIT else ParameterExplicitnessState.IMPLICIT
@@ -185,12 +182,12 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             newFunctionDefinition: String,
             oldFunction: PsiElement,
             project: Project
-    ) : Int {
+    ): Int {
         val document = editor.document
         val startGoalOffset = replaceablePsi.startOffset
         val newCallRepresentation = newCall.toString()
         val positionOfNewDefinition = oldFunction.endOffset - rangeOfReplacement.length + newCallRepresentation.length + 4
-        document.insertString(oldFunction.endOffset, "\n\n$newFunctionDefinition")
+        document.insertString(oldFunction.endOffset, "\n\n\\func $newFunctionDefinition")
         val parenthesizedNewCall = replaceExprSmart(document, replaceablePsi, replacedConcrete, rangeOfReplacement, null, newCall, newCallRepresentation, false)
         PsiDocumentManager.getInstance(project).commitDocument(document)
         val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return positionOfNewDefinition
@@ -209,10 +206,10 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         return newDefinitionPointer.element!!.startOffset
     }
 
-    private fun invokeRenamer(editor: Editor, functionOffset: Int, project: Project) {
+    protected fun invokeRenamer(editor: Editor, functionOffset: Int, project: Project) {
         val newFunctionDefinition =
-            PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.findElementAt(functionOffset)
-                ?.parentOfType<ArendDefFunction>() ?: return
+                PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.findElementAt(functionOffset)
+                        ?.parentOfType<PsiNameIdentifierOwner>() ?: return
         ArendGlobalReferableRenameHandler().doRename(newFunctionDefinition, editor, null)
     }
 }

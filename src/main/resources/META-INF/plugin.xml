@@ -201,6 +201,11 @@
         </intentionAction>
 
         <intentionAction>
+            <className>org.arend.intention.generating.CreateLetBindingIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
             <className>org.arend.intention.SplitAtomPatternIntention</className>
             <category>Arend</category>
         </intentionAction>

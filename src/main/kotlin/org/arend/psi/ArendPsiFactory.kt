@@ -26,6 +26,10 @@ class ArendPsiFactory(
     fun createLongName(name: String): ArendLongName =
         createImportCommand(name, StatCmdKind.IMPORT).statCmd?.longName ?: error("Failed to create long name: `$name`")
 
+    fun createLetExpression(letClause : String, expressionToWrap : String) : ArendLetExpr =
+        createFromText("\\func foo => \\let $letClause \\in $expressionToWrap")?.childOfType<ArendFunctionBody>()?.childOfType<ArendLetExpr>()
+                ?: error("Failed to create let expression: `$letClause`, `$expressionToWrap`")
+
     private fun createIPName(name: String): ArendIPName =
         ((createFunction("dummy", emptyList(), name).returnExpr?.exprList?.firstOrNull() as? ArendNewExpr)?.appExpr as ArendArgumentAppExpr?)?.atomFieldsAcc?.atom?.literal?.ipName
             ?: error("Failed to create identifier: $name")

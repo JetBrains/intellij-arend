@@ -10,7 +10,7 @@ import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.util.ArendBundle
 
-class ExtractExpressionToFunctionIntention : AbstractGenerateFunctionIntention() {
+open class ExtractExpressionToFunctionIntention : AbstractGenerateFunctionIntention() {
 
     override fun getText(): String = ArendBundle.message("arend.generate.function.from.expression")
 
