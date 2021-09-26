@@ -5,14 +5,18 @@ package org.arend.intention.generating
 import com.intellij.codeInsight.unwrap.ScopeHighlighter
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.executeCommand
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.Pair
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.refactoring.suggested.startOffset
+import org.arend.psi.ext.ArendCompositeElement
 import java.util.concurrent.atomic.AtomicReference
 
 internal class LetWrappingOptionEditorRenderer(
@@ -39,12 +43,32 @@ internal class LetWrappingOptionEditorRenderer(
         highlighterReference.getAndSet(null)?.dropHighlight()
     }
 
-    fun renderOption(offset: Int) {
+    /**
+     * @param offset Global text offset of an expression that should be wrapped
+     */
+    fun renderOption(offset: Int, parentLet : TextRange?) {
         ApplicationManager.getApplication().assertIsDispatchThread()
         cleanup()
         val document = editor.document
+        if (parentLet == null) {
+            insertDummyLet(document, offset)
+        } else {
+            highightExistingLet(parentLet)
+        }
+
+    }
+
+    private fun highightExistingLet(parentLet: TextRange?) {
+        runReadAction {
+            val newHighlighter = ScopeHighlighter(editor)
+            highlighterReference.set(newHighlighter)
+            newHighlighter.highlight(Pair.create(parentLet, listOf(parentLet)))
+        }
+    }
+
+    private fun insertDummyLet(document: Document, offset: Int) {
         executeWriteCommand {
-            @NlsSafe val text = "\\let ... \\in "
+            @NlsSafe val text = "\\let … \\in "
             document.insertString(offset, text)
             PsiDocumentManager.getInstance(project).commitDocument(document)
             val range = TextRange(offset, offset + text.length)

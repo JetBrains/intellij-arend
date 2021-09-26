@@ -15,6 +15,7 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
+import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
 import org.arend.intention.ExtractExpressionToFunctionIntention
@@ -54,7 +55,12 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
 
     override fun getText(): String = ArendBundle.message("arend.create.let.binding")
 
-    private data class WrappableOption(val psi: SmartPsiElementPointer<ArendCompositeElement>, val offset: Int, val text: String)
+    private data class WrappableOption(
+            val psi: SmartPsiElementPointer<ArendCompositeElement>,
+            val offset: Int,
+            val text: String,
+            val parentLetExpression: TextRange?
+    )
 
     @Suppress("RemoveExplicitTypeArguments")
     override fun performRefactoring(freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
@@ -94,8 +100,8 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
         setTitle(ArendBundle.message("arend.create.let.binding.expression.to.wrap"))
         setItemSelectedCallback {
-            val offset = it?.offset ?: return@setItemSelectedCallback
-            optionRenderer.renderOption(offset)
+            val option = it ?: return@setItemSelectedCallback
+            optionRenderer.renderOption(option.offset, option.parentLetExpression)
         }
         setItemChosenCallback {
             optionRenderer.cleanup()
@@ -107,7 +113,15 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
 
     private fun collectWrappableOptions(rootPsi: ArendCompositeElement): List<WrappableOption> {
         val wrappableExpressions = rootPsi.parentsOfType<ArendAppExpr>().toList()
-        return wrappableExpressions.map { WrappableOption(SmartPointerManager.createPointer(it), it.textOffset, it.text) }
+        val parentLetExpressionRanges = wrappableExpressions.map { expr ->
+            val let = expr.parentOfType<ArendLetExpr>()?.takeIf { it.expr?.textRange == expr.textRange }
+            if (let != null && let.inKw != null) {
+                TextRange(let.startOffset, let.inKw!!.endOffset)
+            } else {
+                null
+            }
+        }
+        return wrappableExpressions.mapIndexed { ind, it -> WrappableOption(SmartPointerManager.createPointer(it), it.textOffset, it.text, parentLetExpressionRanges[ind]) }
     }
 
     private fun runDocumentChanges(wrappableOption: WrappableOption, project: Project, editor: Editor, selection: SelectionResult, callConcrete : Concrete.Expression, callText : String) {
