@@ -43,15 +43,16 @@ internal class LetWrappingOptionEditorRenderer(
         ApplicationManager.getApplication().assertIsDispatchThread()
         cleanup()
         val document = editor.document
-        val highlighter = highlighterReference.get()
         executeWriteCommand {
             @NlsSafe val text = "\\let ... \\in "
             document.insertString(offset, text)
             PsiDocumentManager.getInstance(project).commitDocument(document)
             val range = TextRange(offset, offset + text.length)
             insertedRangeReference.set(range)
+            val newHighlighter = ScopeHighlighter(editor)
+            highlighterReference.set(newHighlighter)
             val rangeToHighlight = range.grown(-1)
-            highlighter?.highlight(Pair.create(rangeToHighlight, listOf(rangeToHighlight)))
+            newHighlighter.highlight(Pair.create(rangeToHighlight, listOf(rangeToHighlight)))
         }
     }
 
