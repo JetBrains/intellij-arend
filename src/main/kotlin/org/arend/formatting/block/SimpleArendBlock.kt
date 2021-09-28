@@ -10,7 +10,9 @@ import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
+import com.intellij.psi.util.siblings
 import org.arend.parser.ParserMixin.DOC_COMMENT
 import org.arend.parser.ParserMixin.DOC_TEXT
 import org.arend.psi.*
@@ -37,6 +39,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         }
 
         if (nodePsi is ArendFunctionBody) {
+            if (child1 is AbstractArendBlock && child2 is AbstractArendBlock && shouldWrapLetExpression(child1.node.elementType, child2.node.psi)) return oneCrlf
             if (child1 is AbstractArendBlock && child1.node.elementType == FAT_ARROW) return oneSpaceWrap
             if (needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
             return super.getSpacing(child1, child2)
@@ -100,6 +103,8 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (myNode.psi is ArendCoClauseDef && (psi1 is ArendNameTele || psi1 is ArendReturnExpr) && psi2 is ArendCoClauseBody) return oneSpaceWrap
 
+            if (shouldWrapLetExpression(c1et, psi2)) return oneCrlf
+
             if (myNode.psi is ArendPattern && (c1et == DEF_IDENTIFIER || c1et == ATOM_PATTERN_OR_PREFIX) && c2et == ATOM_PATTERN_OR_PREFIX) return oneSpaceWrap
 
             if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
@@ -136,6 +141,17 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         }
 
         return null
+    }
+
+    private fun shouldWrapLetExpression(c1et: IElementType, psi2: PsiElement): Boolean {
+        val let = if (c1et == LPAREN && psi2 is ArendTupleExpr) {
+            psi2.exprList.singleOrNull() as? ArendLetExpr
+        } else if (c1et == FAT_ARROW && psi2 is ArendLetExpr) {
+            psi2
+        } else {
+            null
+        }
+        return let?.inKw?.siblings(false)?.any { it is PsiWhiteSpace && it.text.contains("\n")} == true
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
