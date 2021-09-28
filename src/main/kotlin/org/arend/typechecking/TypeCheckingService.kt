@@ -53,6 +53,7 @@ import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
+import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
@@ -79,7 +80,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this) {
         override fun showLibraryNotFoundError(libraryName: String) {
             if (libraryName == AREND_LIB) {
-                showDownloadNotification(project, false)
+                showDownloadNotification(project, Reason.MISSING)
             } else {
                 super.showLibraryNotFoundError(libraryName)
             }
@@ -87,7 +88,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         override fun showIncorrectLanguageVersionError(libraryName: String?, range: Range<Version>?) {
             if (libraryName == AREND_LIB) {
-                showDownloadNotification(project, true)
+                showDownloadNotification(project, Reason.WRONG_VERSION)
             } else {
                 super.showIncorrectLanguageVersionError(libraryName, range)
             }
@@ -101,6 +102,16 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 }
             }
             return super.getRegisteredLibraries()
+        }
+
+        override fun afterLibraryLoading(library: Library, successful: Boolean) {
+            if (!successful || !service<ArendSettings>().checkForUpdates) return
+            for (dependency in library.dependencies) {
+                if (dependency.name == AREND_LIB) {
+                    checkForUpdates(project, getRegisteredLibrary(AREND_LIB)?.version)
+                    break
+                }
+            }
         }
     }
 

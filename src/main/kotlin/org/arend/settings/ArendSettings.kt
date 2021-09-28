@@ -38,6 +38,8 @@ class ArendSettings : PersistentStateComponent<ArendSettings> {
     var withClauseLimit = true
     var clauseLimit = 10
 
+    var checkForUpdates = true
+
     var pathToArendJar = ""
 
     var librariesRoot = FileUtils.defaultLibrariesRoot().toString()

@@ -35,6 +35,7 @@ class ArendSettingsView {
 
     // Other settings
     private val clauseLimitSwitch = JBCheckBox("Limit the maximum number of clauses generated at once: ", true)
+    private val checkForUpdatesSwitch = JBCheckBox("Check for updates of arend-lib", true)
     private val clauseLimit = JBIntSpinner(10, 1, 1000)
 
     private val arendJarTextField = TextFieldWithBrowseButton().apply {
@@ -52,6 +53,7 @@ class ArendSettingsView {
             // Other settings
             clauseLimitSwitch.isSelected != arendSettings.withClauseLimit ||
             clauseLimit.number != arendSettings.clauseLimit ||
+            checkForUpdatesSwitch.isSelected != arendSettings.checkForUpdates ||
             arendJarTextField.text != arendSettings.pathToArendJar
 
     fun apply() {
@@ -66,6 +68,7 @@ class ArendSettingsView {
         // Other settings
         arendSettings.withClauseLimit = clauseLimitSwitch.isSelected
         arendSettings.clauseLimit = clauseLimit.number
+        arendSettings.checkForUpdates = checkForUpdatesSwitch.isSelected
         arendSettings.pathToArendJar = arendJarTextField.text
     }
 
@@ -79,11 +82,12 @@ class ArendSettingsView {
         // Other settings
         clauseLimitSwitch.isSelected = arendSettings.withClauseLimit
         clauseLimit.value = arendSettings.clauseLimit
+        checkForUpdatesSwitch.isSelected = arendSettings.checkForUpdates
         arendJarTextField.text = arendSettings.pathToArendJar
     }
 
     fun createComponent() = panel {
-        titledRow("Background typechecking") {
+        titledRow("Background Typechecking") {
             labeled("Typechecking mode: ", typecheckingMode)
             cellRow {
                 timeLimitSwitch().enableIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART))
@@ -93,8 +97,9 @@ class ArendSettingsView {
             cellRow { typecheckOnlyLastSwitch().enableIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART)) }
         }
 
-        titledRow("Other settings") {
+        titledRow("Other Settings") {
             checked(clauseLimitSwitch, clauseLimit)
+            cellRow { checkForUpdatesSwitch() }
             cellRow {
                 label("Path to Arend jar for debugger: ")
                 arendJarTextField()
