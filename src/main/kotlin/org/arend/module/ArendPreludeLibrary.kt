@@ -22,6 +22,7 @@ import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.util.FileUtils
+import org.arend.util.Version
 import java.nio.charset.StandardCharsets
 
 
@@ -32,6 +33,8 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
     private var scope: Scope? = null
 
     override fun getName() = Prelude.LIBRARY_NAME
+
+    override fun getVersion(): Version = Prelude.VERSION
 
     override fun getLoadedModules(): List<ModulePath> = if (prelude == null) emptyList() else listOf(Prelude.MODULE_PATH)
 
@@ -56,7 +59,7 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
 
     override fun load(libraryManager: LibraryManager, typechecking: TypecheckingOrderingListener?): Boolean {
         if (prelude == null) {
-            val text = String(ArendPreludeLibrary::class.java.getResourceAsStream("/lib/Prelude" + FileUtils.EXTENSION).readBytes(), StandardCharsets.UTF_8)
+            val text = String(ArendPreludeLibrary::class.java.getResourceAsStream("/lib/Prelude" + FileUtils.EXTENSION)!!.readBytes(), StandardCharsets.UTF_8)
             prelude = PsiFileFactory.getInstance(project).createFileFromText(PRELUDE_FILE_NAME, ArendLanguage.INSTANCE, text) as? ArendFile
             prelude?.virtualFile?.isWritable = false
         }

@@ -50,6 +50,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override var extensionMainClassData = ""
     override var modules: List<ModulePath>? = null
     override var dependencies: List<LibraryDependency> = emptyList()
+    override var versionString: String = ""
     override var langVersionString: String = ""
 
     override val binariesDir: String?
@@ -60,6 +61,9 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     override val extensionMainClass: String?
         get() = flaggedExtensionMainClass
+
+    override val version: Version?
+        get() = Version.fromString(versionString)
 
     override val langVersion: Range<Version>
         get() = VersionRange.parseVersionRange(langVersionString) ?: Range.unbound()
@@ -149,6 +153,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             extensionMainClassData = extMain
         }
         sourcesDir = yaml.sourcesDir ?: ""
+        versionString = yaml.version
         langVersionString = yaml.langVersion
     }
 
@@ -199,6 +204,12 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         extensionsDirectory = config.extensionsDirectory
         extensionMainClassData = config.extensionMainClassData
 
+        val newVersion = config.versionString
+        if (versionString != newVersion) {
+            versionString = newVersion
+            updateYAML = true
+        }
+
         val newLangVersion = config.langVersionString
         if (langVersionString != newLangVersion) {
             langVersionString = newLangVersion
@@ -207,6 +218,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         if (updateYAML) yamlFile?.write {
             langVersion = newLangVersion
+            version = newVersion
             sourcesDir = newSourcesDir
             binariesDir = newBinariesDir
             testsDir = newTestsDir

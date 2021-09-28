@@ -15,6 +15,14 @@
       ],
       "description": "The version of Arend toolchain."
     },
+    "version": {
+      "$id": "#/properties/version",
+      "type": [
+        "string",
+        "number"
+      ],
+      "description": "The version of this library."
+    },
     "sourcesDir": {
       "$id": "#/properties/sourcesDir",
       "type": "string",

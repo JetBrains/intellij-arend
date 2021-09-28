@@ -23,9 +23,10 @@ const val EXTENSIONS = "extensionsDir"
 const val EXTENSION_MAIN = "extensionMainClass"
 const val MODULES = "modules"
 const val DEPENDENCIES = "dependencies"
+const val VERSION = "version"
 const val LANG_VERSION = "langVersion"
 
-val KEYS = setOf(SOURCES, BINARIES, TESTS, EXTENSIONS, EXTENSION_MAIN, MODULES, DEPENDENCIES, LANG_VERSION)
+val KEYS = setOf(SOURCES, BINARIES, TESTS, EXTENSIONS, EXTENSION_MAIN, MODULES, DEPENDENCIES, LANG_VERSION, VERSION)
 
 private fun YAMLFile.getProp(name: String) = (documents?.firstOrNull()?.topLevelValue as? YAMLMapping)?.getKeyValueByKey(name)?.value
 
@@ -105,6 +106,12 @@ var YAMLFile.langVersion
     get() = (getProp(LANG_VERSION) as? YAMLScalar)?.textValue ?: ""
     set(value) {
         setPropIfNonEmpty(LANG_VERSION, value)
+    }
+
+var YAMLFile.version
+    get() = (getProp(VERSION) as? YAMLScalar)?.textValue ?: ""
+    set(value) {
+        setPropIfNonEmpty(VERSION, value)
     }
 
 fun YAMLFile.write(block: YAMLFile.() -> Unit) {

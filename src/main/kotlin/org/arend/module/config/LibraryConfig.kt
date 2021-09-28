@@ -39,6 +39,8 @@ abstract class LibraryConfig(val project: Project) {
         get() = null
     open val dependencies: List<LibraryDependency>
         get() = emptyList()
+    open val version: Version?
+        get() = null
     open val langVersion: Range<Version>
         get() = Range.unbound()
 
