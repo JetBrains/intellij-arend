@@ -12,6 +12,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.util.castSafelyTo
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.psi.ArendElementTypes.*
@@ -348,3 +349,6 @@ fun Editor.getSelectionWithoutErrors(): TextRange? =
         val elementsWithErrors = nnProject.service<ErrorService>().errors[file]?.mapNotNull { it.cause } ?: return@takeIf true
         elementsWithErrors.all { !range.intersects(it.textRange) }
     }
+
+fun parentArgumentAppExpr(atomFieldsAcc: ArendAtomFieldsAcc?): ArendArgumentAppExpr? =
+        atomFieldsAcc?.parent?.let { if (it is ArendAtomArgument) it.parent else it }?.castSafelyTo()

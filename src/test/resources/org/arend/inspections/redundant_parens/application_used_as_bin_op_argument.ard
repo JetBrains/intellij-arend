@@ -1,0 +1,13 @@
+\open Nat (+)
+
+\func test1 => <weak_warning descr="Redundant parentheses">(f 1 2)</weak_warning> + 3
+\func test2 => 3 + <weak_warning descr="Redundant parentheses">(f 1 2)</weak_warning>
+\func test3 => 3 `f2` <weak_warning descr="Redundant parentheses">(f 1 2)</weak_warning>
+\func test5 => 3 `f2` (pair 0).1
+\func test4 => 3 `f2` (\new Unit)
+
+\func pair (n : Nat) => (n, n)
+\record Unit
+
+\func f (_ _ : Nat) : Nat => 0
+\func f2 {A : \Type} {B : \Type} (_ : A) (_ : B) => <warning descr="Goal">{?}</warning>

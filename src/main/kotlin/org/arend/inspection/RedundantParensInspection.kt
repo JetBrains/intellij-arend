@@ -11,9 +11,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
-import org.arend.refactoring.unwrapParens
+import org.arend.intention.binOp.BinOpIntentionUtil
+import org.arend.psi.parentArgumentAppExpr
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
+import org.arend.refactoring.unwrapParens
 import org.arend.util.ArendBundle
 import org.arend.util.isBinOp
 
@@ -22,7 +24,9 @@ class RedundantParensInspection : LocalInspectionTool() {
         override fun visitTuple(tuple: ArendTuple) {
             super.visitTuple(tuple)
             val expression = unwrapParens(tuple) ?: return
-            if (neverNeedsParens(expression) || neverNeedsParensInParent(tuple)) {
+            if (neverNeedsParens(expression) ||
+                    neverNeedsParensInParent(tuple) ||
+                    isApplicationUsedAsBinOpArgument(tuple, expression)) {
                 val message = ArendBundle.message("arend.inspection.redundant.parentheses.message")
                 holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
             }
@@ -30,17 +34,18 @@ class RedundantParensInspection : LocalInspectionTool() {
     }
 }
 
-private fun neverNeedsParens(expression: ArendExpr): Boolean =
-        expression is ArendNewExpr &&
-                // Excludes cases like `f (\new Unit) 1`
-                expression.appPrefix == null &&
+private fun neverNeedsParens(expression: ArendExpr): Boolean {
+    val childAppExpr = if (expression is ArendNewExpr && isAtomic(expression)) expression.argumentAppExpr else null
+    return childAppExpr != null && isAtomic(childAppExpr) && !isBinOp(childAppExpr.atomFieldsAcc!!)
+}
+
+private fun isAtomic(expression: ArendNewExpr) =
+        // Excludes cases like `f (\new Unit) 1`
+        expression.appPrefix == null &&
                 // Excludes cases like `f (Pair { | x => 1 }) 1`
                 expression.localCoClauseList.isEmpty() &&
                 // Excludes cases like `f (mcases \with {}) 1`
-                expression.withBody == null &&
-                expression.argumentAppExpr != null &&
-                isAtomic(expression.argumentAppExpr!!) &&
-                !isBinOp(expression.argumentAppExpr!!.atomFieldsAcc!!)
+                expression.withBody == null
 
 private fun isAtomic(argumentAppExpr: ArendArgumentAppExpr): Boolean {
     if (argumentAppExpr.argumentList.isNotEmpty()) {
@@ -63,10 +68,7 @@ private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
 }
 
 private fun neverNeedsParensInParent(tuple: ArendTuple): Boolean {
-    val parentNewExpr = tuple.parent.castSafelyTo<ArendAtom>()
-            ?.parent.castSafelyTo<ArendAtomFieldsAcc>()
-            // Excludes cases like `(f a).1`
-            ?.takeIf { it.fieldAccList.isEmpty() }
+    val parentNewExpr = getParentAtomFieldsAcc(tuple)
             ?.parent.castSafelyTo<ArendArgumentAppExpr>()
             // Excludes cases like `(f a) b`
             ?.takeIf { it.argumentList.isEmpty() }
@@ -95,6 +97,21 @@ private fun neverNeedsParensInParent(tuple: ArendTuple): Boolean {
             parent is ArendTypeAnnotation ||
             // Tuples
             parent is ArendTupleExpr && (parent.colon != null || parent.parent.let { it is ArendTuple && it.tupleExprList.size > 1 || it is ArendImplicitArgument })
+}
+
+private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
+        tuple.parent.castSafelyTo<ArendAtom>()
+                ?.parent.castSafelyTo<ArendAtomFieldsAcc>()
+                // Excludes cases like `(f a).1`
+                ?.takeIf { it.fieldAccList.isEmpty() }
+
+private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: ArendExpr): Boolean {
+    val parentAppExpr = getParentAtomFieldsAcc(tuple)?.let { parentArgumentAppExpr(it) }
+    if (parentAppExpr != null && BinOpIntentionUtil.toConcreteBinOpApp(parentAppExpr) != null) {
+        val childAppExpr = if (expression is ArendNewExpr && isAtomic(expression)) expression.argumentAppExpr else null
+        return childAppExpr != null && BinOpIntentionUtil.toConcreteBinOpApp(childAppExpr) == null
+    }
+    return false
 }
 
 private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tuple) {
