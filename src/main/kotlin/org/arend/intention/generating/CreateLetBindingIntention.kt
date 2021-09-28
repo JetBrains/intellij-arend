@@ -1,25 +1,33 @@
+@file:Suppress("UnstableApiUsage")
+
 package org.arend.intention.generating
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.executeCommand
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
+import com.intellij.psi.util.siblings
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
 import org.arend.intention.ExtractExpressionToFunctionIntention
 import org.arend.psi.ArendAppExpr
+import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendLetExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
@@ -131,7 +139,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
                 wrapInLet(selectedElement, callConcrete, selection.rangeOfReplacement, callText, project, editor, selection.selectedConcrete)
             } ?: return@executeCommand
             editor.caretModel.moveToOffset(identifiers.second)
-            invokeRenamer(editor, identifiers.first, project)
+//            invokeRenamer(editor, identifiers.first, project)
         }
     }
 
@@ -143,21 +151,51 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
             project: Project,
             editor: Editor,
             selectedConcrete: Concrete.Expression?): Pair<Int, Int>? {
-        val factory = ArendPsiFactory(project)
         val shiftedIdentifierOffset = rangeOfReplacement.startOffset - wrappedElement.startOffset
         val pointer = SmartPointerManager.createPointer(wrappedElement)
 
         replaceExprSmart(editor.document, wrappedElement, selectedConcrete, rangeOfReplacement, null, newFunctionCall, newFunctionCall.toString(), false)
         PsiDocumentManager.getInstance(project).commitDocument(editor.document)
         val wrappedElementReparsed = pointer.element ?: return null
-        val startOffset = wrappedElementReparsed.startOffset
-        val letExpr = factory.createLetExpression(newDefinitionTail, wrappedElementReparsed.text)
-        replaceExprSmart(editor.document, wrappedElementReparsed, null, wrappedElementReparsed.textRange, letExpr, null, letExpr.text, false)
-        PsiDocumentManager.getInstance(project).commitDocument(editor.document)
-        val letExprPsi = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.findElementAt(startOffset)?.parentOfType<ArendLetExpr>()
+        val offset = wrappedElementReparsed.startOffset
+
+        addToLetExpression(wrappedElementReparsed, newDefinitionTail, editor.document)
+
+        val letExprPsi = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.findElementAt(offset)?.parentOfType<ArendLetExpr>()
                 ?: return null
         val expressionStart = letExprPsi.expr?.startOffset ?: return null
         val letClauseIdentifier = letExprPsi.letClauseList.lastOrNull()?.defIdentifier?.startOffset ?: return null
         return letClauseIdentifier to (expressionStart + shiftedIdentifierOffset)
     }
+
+    private fun addToLetExpression(rootExpression: ArendCompositeElement, clause: String, document: Document) {
+        val enclosingLet = rootExpression
+                .parentOfType<ArendLetExpr>()
+                ?.takeIf { it.expr?.textRange == rootExpression.textRange }
+                ?: return insertEmptyLetExpression(rootExpression, clause, document)
+        enclosingLet.addNewClause(clause)
+    }
+
+    private fun insertEmptyLetExpression(rootExpression: ArendCompositeElement, clause: String, document: Document) {
+        val letExpr = ArendPsiFactory(rootExpression.project).createLetExpression(clause, rootExpression.text)
+        replaceExprSmart(document, rootExpression, null, rootExpression.textRange, letExpr, null, letExpr.text, true)
+    }
+
+    private fun ArendLetExpr.addNewClause(clause: String) {
+        val letClauses = letClauseList
+        when (letClauses.size) {
+            0 -> error("There is no empty let expressions in Arend")
+            else -> {
+                val texts = letClauses.map { it?.text ?: "" } + listOf(clause)
+                val exprText = expr?.text ?: ""
+                @NlsSafe val newLet = "${getKw().text} \n ${texts.joinToString("\n| ", "| ")} \n\\in $exprText"
+                val factory = ArendPsiFactory(project)
+                val newLetPsi = factory.createExpression(newLet)
+                this.replace(newLetPsi)
+            }
+        }
+    }
+
+    private fun ArendLetExpr.getKw(): PsiElement =
+            letKw ?: haveKw ?: letsKw ?: havesKw ?: error("At least one of the keywords should be provided")
 }

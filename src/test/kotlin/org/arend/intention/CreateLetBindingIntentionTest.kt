@@ -27,4 +27,18 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
 
         \func bar => foo (\let a-lemma : Fin 11 => 10 \in foo (foo a-lemma))
     """)
+
+    fun testExistingLet() = doTestLet("foo (foo 10)", """
+        \func foo (n : Nat) : Nat => n
+
+        \func bar (n : Nat) : Nat => foo (foo (\let a-lemma : Fin 11 => 10 \in foo (foo {-selection-}1{-caret-}0{-end_selection-})))
+    """, """
+        \func foo (n : Nat) : Nat => n
+
+        \func bar (n : Nat) : Nat => foo (foo (
+          \let 
+            | a-lemma : Fin 11 => 10 
+            | a-lemma' : Fin 11 => 10
+          \in foo (foo a-lemma')))
+        """)
 }
