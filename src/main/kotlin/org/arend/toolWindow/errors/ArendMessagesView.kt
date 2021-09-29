@@ -38,7 +38,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private val splitter = JBSplitter(false, 0.25f)
     private val emptyPanel = JPanel()
-    private var activeEditor: ArendMessagesViewEditor? = null
+    private var editor: ArendMessagesViewEditor? = null
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
@@ -78,36 +78,36 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         if (project == this.project) {
             root.removeAllChildren()
             splitter.secondComponent = emptyPanel
-            activeEditor?.release()
-            activeEditor = null
+            editor?.release()
+            editor = null
         }
     }
 
     override fun valueChanged(e: TreeSelectionEvent?) {
         if (!project.service<ArendMessagesService>().isErrorTextPinned) {
-            setActiveEditor()
+            updateEditor()
         }
     }
 
-    fun setActiveEditor() {
+    fun updateEditor() {
         val treeElement = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
         if (treeElement != null) {
-            if (activeEditor == null) {
-                activeEditor = ArendMessagesViewEditor(project, treeElement)
+            if (editor == null) {
+                editor = ArendMessagesViewEditor(project, treeElement)
             }
-            if (activeEditor?.treeElement != treeElement) {
+            if (editor?.treeElement != treeElement) {
                 for (arendError in treeElement.errors) {
                     configureError(arendError.error)
                 }
-                activeEditor?.update(treeElement)
+                editor?.update(treeElement)
             }
-            splitter.secondComponent = activeEditor?.component ?: emptyPanel
+            splitter.secondComponent = editor?.component ?: emptyPanel
         } else {
-            val activeError = activeEditor?.treeElement?.sampleError
+            val activeError = editor?.treeElement?.sampleError
             if (activeError != null) {
                 val def = activeError.definition
                 if (def == null || !tree.containsNode(def)) {
-                    activeEditor?.clear()
+                    editor?.clear()
                     splitter.secondComponent = emptyPanel
                 }
             }
@@ -115,7 +115,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     fun updateErrorText() {
-        activeEditor?.updateErrorText()
+        editor?.updateErrorText()
     }
 
     private fun configureError(error: GeneralError) {
