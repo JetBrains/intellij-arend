@@ -11,3 +11,14 @@
 
 \func f (_ _ : Nat) : Nat => 0
 \func f2 {A : \Type} {B : \Type} (_ : A) (_ : B) => <warning descr="Goal">{?}</warning>
+
+\func test6 => <weak_warning descr="Redundant parentheses">(suc 0)</weak_warning> + 1 + 2
+\func test7 => 0 + <weak_warning descr="Redundant parentheses">(suc 1)</weak_warning> + 2
+\func test8 => 0 + 1 + <weak_warning descr="Redundant parentheses">(suc 2)</weak_warning>
+
+\func test9 => suc (suc 0) + 1
+\func test10 => 0 + suc (suc 1)
+
+\func test12 => suc (suc 0) + 1 + 2
+\func test13 => 0 + suc (suc 1) + 2
+\func test14 => 0 + 1 + suc (suc 2)
