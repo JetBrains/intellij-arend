@@ -118,11 +118,9 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         val text = builder.toString()
         ApplicationManager.getApplication().invokeLater {
             if (editor.isDisposed) return@invokeLater
-            val document = editor.document
             runWriteAction {
-                document.setText(text)
-                val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
-                (psi as? PsiInjectionTextFile)?.apply {
+                editor.document.setText(text)
+                getInjectionFile()?.apply {
                     injectionRanges = visitor.textRanges
                     scope = fileScope
                     injectedExpressions = visitor.expressions
@@ -144,8 +142,6 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         doc.accept(visitor, false)
         builder.append('\n')
         val text = builder.toString()
-        val file = runReadAction { PsiDocumentManager.getInstance(project).getPsiFile(editor.document) } as? PsiInjectionTextFile
-
         ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
             if (editor.isDisposed) return@runUndoTransparentWriteAction
             val document = editor.document
@@ -153,7 +149,7 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
             document.insertString(length, text)
             editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
 
-            file?.apply {
+            getInjectionFile()?.apply {
                 scope = docScope
                 injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
                 injectedExpressions.addAll(visitor.expressions)
@@ -170,15 +166,18 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         editor ?: return
         ApplicationManager.getApplication().invokeLater {
             if (editor.isDisposed) return@invokeLater
-            val document = editor.document
             runWriteAction {
-                (PsiDocumentManager.getInstance(project).getPsiFile(document) as? PsiInjectionTextFile)?.apply {
+                getInjectionFile()?.apply {
                     injectionRanges.clear()
                     injectedExpressions.clear()
                 }
-                document.setText("")
+                editor.document.setText("")
             }
         }
+    }
+
+    private fun getInjectionFile(): PsiInjectionTextFile? = editor?.document?.let {
+        PsiDocumentManager.getInstance(project).getPsiFile(it) as? PsiInjectionTextFile
     }
 
     private class ProjectPrintConfig(project: Project, printOptionsKind: PrintOptionKind, scope: Scope?) : PrettyPrinterConfigWithRenamer(scope) {
