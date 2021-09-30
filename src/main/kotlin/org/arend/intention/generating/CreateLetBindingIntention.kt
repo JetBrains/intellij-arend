@@ -75,14 +75,11 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
                                     project: Project) {
         val wrappableOptions = collectWrappableOptions(selection.contextPsi)
 
+        val elementToReplace = SmartPointerManager.createPointer(selection.contextPsi)
         CommandProcessor.getInstance().currentCommandGroupId = COMMAND_GROUP_ID
         val optionRenderer = LetWrappingOptionEditorRenderer(editor, project, COMMAND_GROUP_ID)
-        val representation =
-                buildRepresentations(selection.contextPsi.parentOfType<TCDefinition>()!!, selection, "a", freeVariables)
 
-        representation ?: return
-
-        val popup = createPopup(wrappableOptions, optionRenderer, project, editor, representation, selection)
+        val popup = createPopup(wrappableOptions, optionRenderer, project, editor, freeVariables, selection, elementToReplace)
         DaemonCodeAnalyzer.getInstance(project).disableUpdateByTimer(popup)
         Disposer.register(popup, optionRenderer)
         popup.showInBestPositionFor(editor)
@@ -93,8 +90,9 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
             optionRenderer: LetWrappingOptionEditorRenderer,
             project: Project,
             editor: Editor,
-            representation: Pair<Concrete.Expression, String>,
-            selection: SelectionResult): JBPopup
+            freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
+            selection: SelectionResult,
+            elementToReplace: SmartPsiElementPointer<ArendCompositeElement>): JBPopup
     = with(JBPopupFactory.getInstance().createPopupChooserBuilder(options)) {
         setSelectedValue(options[0], true)
         setMovable(false)
@@ -111,11 +109,15 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         }
         setItemChosenCallback {
             optionRenderer.cleanup()
-            runDocumentChanges(it, project, editor, selection, representation.first, representation.second)
+            val newSelection = recreateSelection(selection, elementToReplace)
+            runDocumentChanges(it, project, editor, newSelection, freeVariables)
         }
         setRenderer(TrimmingListCellRenderer)
         createPopup()
     }
+
+    private fun recreateSelection(selection: SelectionResult, elementToReplace: SmartPsiElementPointer<ArendCompositeElement>) : SelectionResult =
+            selection.copy(contextPsi = elementToReplace.element!!)
 
     private fun collectWrappableOptions(rootPsi: ArendCompositeElement): List<WrappableOption> {
         val wrappableExpressions = rootPsi.parentsOfType<ArendAppExpr>().toList()
@@ -130,11 +132,16 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         return wrappableExpressions.mapIndexed { ind, it -> WrappableOption(SmartPointerManager.createPointer(it), it.textOffset, it.text, parentLetExpressionRanges[ind]) }
     }
 
-    private fun runDocumentChanges(wrappableOption: WrappableOption, project: Project, editor: Editor, selection: SelectionResult, callConcrete : Concrete.Expression, callText : String) {
+    private fun runDocumentChanges(wrappableOption: WrappableOption, project: Project, editor: Editor, selection: SelectionResult, freeVariables : List<Pair<Binding, ParameterExplicitnessState>>) {
         val selectedElement = wrappableOption.psi.element ?: return
+        val scope = selectedElement.scope
+        val necessaryFreeVariables = freeVariables.filter { scope.resolveName(it.first.name) == null }
+        val representation =
+                buildRepresentations(selection.contextPsi.parentOfType()!!, selection, "a", necessaryFreeVariables) ?: return
+
         executeCommand(project, null, COMMAND_GROUP_ID) {
             runWriteAction {
-                val identifiers = wrapInLet(selectedElement, callConcrete, selection.rangeOfReplacement, callText, project, editor, selection.selectedConcrete)
+                val identifiers = wrapInLet(selectedElement, representation.first, selection.rangeOfReplacement, representation.second, project, editor, selection.selectedConcrete, selection.contextPsi)
                         ?: return@runWriteAction
                 editor.caretModel.moveToOffset(identifiers.second)
                 invokeRenamer(editor, identifiers.first, project)
@@ -149,11 +156,12 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
             newDefinitionTail: String,
             project: Project,
             editor: Editor,
-            selectedConcrete: Concrete.Expression?): Pair<Int, Int>? {
+            selectedConcrete: Concrete.Expression?,
+            psiToExtract: ArendCompositeElement?): Pair<Int, Int>? {
         val shiftedIdentifierOffset = rangeOfReplacement.startOffset - wrappedElement.startOffset // offset of the new binding in the wrapped expression
         val pointer = SmartPointerManager.createPointer(wrappedElement)
-
-        replaceExprSmart(editor.document, wrappedElement, selectedConcrete, rangeOfReplacement, null, newFunctionCall, newFunctionCall.toString(), false)
+        val replaced = replaceExprSmart(editor.document, psiToExtract ?: wrappedElement, selectedConcrete, rangeOfReplacement, null, newFunctionCall, newFunctionCall.toString(), false)
+        val actualShiftedIdentifier = if (replaced.startsWith("(")) shiftedIdentifierOffset + 1 else shiftedIdentifierOffset
         PsiDocumentManager.getInstance(project).commitDocument(editor.document)
         val wrappedElementReparsed = pointer.element ?: return null
 
@@ -167,7 +175,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         val letExprPsi = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.findElementAt(offsetOfClause)?.parentOfType<ArendLetExpr>()
                 ?: return null
         val expressionStart = letExprPsi.expr?.startOffset ?: return null
-        return offsetOfClause to (expressionStart + shiftedIdentifierOffset)
+        return offsetOfClause to (expressionStart + actualShiftedIdentifier)
     }
 
     /**
