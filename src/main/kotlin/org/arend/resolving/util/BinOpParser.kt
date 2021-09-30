@@ -59,3 +59,16 @@ fun parseBinOp(data: Any?, left: Abstract.Expression, sequence: Collection<Abstr
     return BinOpParser(DummyErrorReporter.INSTANCE).parse(Concrete.BinOpSequenceExpression(data, concreteSeq, null))
 }
 
+/**
+ * Attempts to parse abstract expression assuming it is already a bin op sequence.
+ */
+fun parseBinOp(expr : Abstract.Expression) : Concrete.Expression? {
+    var result : Concrete.Expression? = null
+    expr.accept(object : BaseAbstractExpressionVisitor<Unit, Nothing?>(null){
+        override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, params: Unit?): Nothing? {
+            result = parseBinOp(left, sequence)
+            return null
+        }
+    }, Unit)
+    return result
+}
