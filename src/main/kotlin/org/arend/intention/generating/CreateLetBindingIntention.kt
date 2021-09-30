@@ -133,11 +133,12 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
     private fun runDocumentChanges(wrappableOption: WrappableOption, project: Project, editor: Editor, selection: SelectionResult, callConcrete : Concrete.Expression, callText : String) {
         val selectedElement = wrappableOption.psi.element ?: return
         executeCommand(project, null, COMMAND_GROUP_ID) {
-            val identifiers = runWriteAction {
-                wrapInLet(selectedElement, callConcrete, selection.rangeOfReplacement, callText, project, editor, selection.selectedConcrete)
-            } ?: return@executeCommand
-            editor.caretModel.moveToOffset(identifiers.second)
-            invokeRenamer(editor, identifiers.first, project)
+            runWriteAction {
+                val identifiers = wrapInLet(selectedElement, callConcrete, selection.rangeOfReplacement, callText, project, editor, selection.selectedConcrete)
+                        ?: return@runWriteAction
+                editor.caretModel.moveToOffset(identifiers.second)
+                invokeRenamer(editor, identifiers.first, project)
+            }
         }
     }
 
