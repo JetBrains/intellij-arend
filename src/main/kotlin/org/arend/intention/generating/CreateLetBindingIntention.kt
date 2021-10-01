@@ -26,10 +26,10 @@ import com.intellij.refactoring.suggested.startOffset
 import org.arend.core.context.binding.Binding
 import org.arend.intention.ExtractExpressionToFunctionIntention
 import org.arend.psi.ArendAppExpr
+import org.arend.psi.ArendExpr
 import org.arend.psi.ArendLetExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.TCDefinition
 import org.arend.refactoring.replaceExprSmart
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
@@ -50,10 +50,12 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
                 val rendererComponent = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
                 val expr: WrappableOption = value as WrappableOption
                 val text = expr.text
-                val firstNewLinePos = text.indexOf('\n')
-                var trimmedText = text.substring(0, if (firstNewLinePos != -1) firstNewLinePos else Math.min(100, text.length))
-                if (trimmedText.length != text.length) trimmedText += " ..."
-                setText(trimmedText)
+                val strippedText = if (text.length > 50) {
+                    expr.psi.element?.accept(ShrinkingAbstractVisitor(), Unit) ?: "INVALID"
+                } else {
+                    text.replace('\n', ' ')
+                }
+                setText(strippedText)
                 return rendererComponent
             }
         }
@@ -62,7 +64,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
     override fun getText(): String = ArendBundle.message("arend.create.let.binding")
 
     private data class WrappableOption(
-            val psi: SmartPsiElementPointer<ArendCompositeElement>,
+            val psi: SmartPsiElementPointer<ArendExpr>,
             val offset: Int,
             val text: String,
             val parentLetExpression: TextRange?
