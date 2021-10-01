@@ -4,7 +4,6 @@ package org.arend.intention.generating
 
 import com.intellij.codeInsight.unwrap.ScopeHighlighter
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.executeCommand
@@ -15,8 +14,6 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.Pair
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.refactoring.suggested.startOffset
-import org.arend.psi.ext.ArendCompositeElement
 import java.util.concurrent.atomic.AtomicReference
 
 internal class LetWrappingOptionEditorRenderer(
@@ -32,7 +29,6 @@ internal class LetWrappingOptionEditorRenderer(
     }
 
     fun cleanup() {
-        ApplicationManager.getApplication().assertIsDispatchThread()
         val range = insertedRangeReference.getAndSet(null)
         if (range != null) {
             executeWriteCommand {
@@ -46,19 +42,18 @@ internal class LetWrappingOptionEditorRenderer(
     /**
      * @param offset Global text offset of an expression that should be wrapped
      */
-    fun renderOption(offset: Int, parentLet : TextRange?) {
-        ApplicationManager.getApplication().assertIsDispatchThread()
+    fun renderOption(offset: Int, parentLet: TextRange?) {
         cleanup()
         val document = editor.document
         if (parentLet == null) {
             insertDummyLet(document, offset)
         } else {
-            highightExistingLet(parentLet)
+            highlightExistingLet(parentLet)
         }
 
     }
 
-    private fun highightExistingLet(parentLet: TextRange?) {
+    private fun highlightExistingLet(parentLet: TextRange?) {
         runReadAction {
             val newHighlighter = ScopeHighlighter(editor)
             highlighterReference.set(newHighlighter)

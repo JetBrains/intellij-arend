@@ -25,7 +25,10 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
     """, """
         \func foo (n : Nat) : Nat => n
 
-        \func bar => foo (\let a-lemma : Fin 11 => 10 \in foo (foo a-lemma))
+        \func bar => foo (
+          \let
+            a-lemma : Fin 11 => 10
+          \in foo (foo a-lemma))
     """)
 
     fun testExistingLet() = doTestLet("foo (foo 10)", """
@@ -66,6 +69,9 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
         \func \infixl 6 * : Nat -> Nat -> Nat => {?}
         \func \infixl 5 + : Nat -> Nat -> Nat => {?}
         
-        \func f => (\let xx => 4 ^ 10 \in (2 + 2) * x) + 12 + 13 + 14 
+        \func f => (
+          \let
+            a-lemma : Nat => 4 ^ 10
+          \in (2 + 2) * a-lemma) + 12 + 13 + 14
     """)
 }

@@ -1,5 +1,6 @@
 package org.arend.intention.generating
 
+import com.intellij.psi.PsiElement
 import org.arend.naming.reference.Referable
 import org.arend.resolving.util.parseBinOp
 import org.arend.term.Fixity
@@ -44,7 +45,7 @@ class ShrinkingAbstractVisitor : AbstractExpressionVisitor<Unit, String> {
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, params: Unit?): String {
         val parsed = parseBinOp(left, sequence)
         return if (parsed is Concrete.AppExpression) {
-            (parsed.function.data as Abstract.Expression).accept(this, Unit) + parsed.arguments.joinToString(", ") { "(...)" }
+            (parsed.function.data as PsiElement).text + parsed.arguments.joinToString(", ") { "(...)" }
         } else {
             left.accept(this, Unit)
         }

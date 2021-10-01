@@ -204,7 +204,7 @@ private fun resolve(reference: ArendReferenceContainer?): GlobalReferable? =
         reference?.resolve?.castSafelyTo<GlobalReferable>()
                 ?.let { if (it.hasAlias() && it.aliasName == reference.referenceName) AliasReferable(it) else it }
 
-fun forEachRange(concrete: Concrete.Expression, action: (TextRange) -> Boolean): TextRange? {
+fun forEachRange(concrete: Concrete.Expression, action: (TextRange, Concrete.Expression) -> Boolean): TextRange? {
     var result: TextRange? = null
 
     fun doVisit(concrete: Concrete.Expression): TextRange? {
@@ -213,7 +213,7 @@ fun forEachRange(concrete: Concrete.Expression, action: (TextRange) -> Boolean):
                 val childRanges = mutableListOf<TextRange>()
                 for (arg in concrete.arguments) {
                     val argRange = doVisit(arg.expression) ?: return null
-                    if (action(argRange)) {
+                    if (action(argRange, arg.expression)) {
                         result = argRange
                         return null
                     }

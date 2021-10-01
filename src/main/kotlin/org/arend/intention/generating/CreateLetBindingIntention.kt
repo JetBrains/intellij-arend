@@ -141,9 +141,9 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
 
     private fun unwrapBinOp(rootPsi : ArendCompositeElement, binop : ArendAppExpr, rootSelection : TextRange) : List<TextRange> {
         val parsed = parseBinOp(binop) ?: return listOf(rootPsi.textRange)
-        val ranges = mutableListOf<TextRange>()
-        forEachRange(parsed) {
-            if (it.contains(rootSelection) && it != rootSelection) ranges.add(it); false
+        val ranges = mutableListOf<TextRange>(binop.textRange)
+        forEachRange(parsed) { range, concrete ->
+            if (concrete is Concrete.AppExpression && range.contains(rootSelection) && range != rootSelection) ranges.add(range); false
         }
         return ranges
     }
@@ -209,7 +209,9 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
     }
 
     private fun insertEmptyLetExpression(rootExpression: ArendCompositeElement, rangeOfWrapping: TextRange, clause: String, document: Document): ArendLetExpr {
-        val letExpr = ArendPsiFactory(rootExpression.project).createLetExpression(clause, rootExpression.text)
+        val relativeRange = rangeOfWrapping.shiftLeft(rootExpression.startOffset)
+        val subExpr = rootExpression.text.substring(relativeRange.startOffset, relativeRange.endOffset)
+        val letExpr = ArendPsiFactory(rootExpression.project).createLetExpression(clause, subExpr)
         val offset = rangeOfWrapping.startOffset
         val documentManager = PsiDocumentManager.getInstance(rootExpression.project)
         replaceExprSmart(document, rootExpression, null, rangeOfWrapping, letExpr, null, letExpr.text, false)
