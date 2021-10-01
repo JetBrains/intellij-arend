@@ -104,12 +104,7 @@ class ArendSmartSelectProvider : SmartSelectProvider<ArendSmartSelectProvider.Co
                     childRanges.add((concrete.function.data as PsiElement).textRange)
                     return TextRange(childRanges.minOf { it.startOffset }, childRanges.maxOf { it.endOffset })
                 }
-                is Concrete.HoleExpression -> {
-                    return (concrete.data as PsiElement).textRange
-                }
-                else -> {
-                    return null
-                }
+                else -> return (concrete.data as? PsiElement)?.textRange
             }
         }
 
