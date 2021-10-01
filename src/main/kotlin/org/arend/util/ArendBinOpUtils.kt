@@ -203,3 +203,29 @@ fun isBinOp(binOpReference: ArendReferenceContainer?) =
 private fun resolve(reference: ArendReferenceContainer?): GlobalReferable? =
         reference?.resolve?.castSafelyTo<GlobalReferable>()
                 ?.let { if (it.hasAlias() && it.aliasName == reference.referenceName) AliasReferable(it) else it }
+
+fun forEachRange(concrete: Concrete.Expression, action: (TextRange) -> Boolean): TextRange? {
+    var result: TextRange? = null
+
+    fun doVisit(concrete: Concrete.Expression): TextRange? {
+        when (concrete) {
+            is Concrete.AppExpression -> {
+                val childRanges = mutableListOf<TextRange>()
+                for (arg in concrete.arguments) {
+                    val argRange = doVisit(arg.expression) ?: return null
+                    if (action(argRange)) {
+                        result = argRange
+                        return null
+                    }
+                    childRanges.add(argRange)
+                }
+                childRanges.add((concrete.function.data as PsiElement).textRange)
+                return TextRange(childRanges.minOf { it.startOffset }, childRanges.maxOf { it.endOffset })
+            }
+            else -> return (concrete.data as PsiElement).textRange
+        }
+    }
+
+    doVisit(concrete)
+    return result
+}

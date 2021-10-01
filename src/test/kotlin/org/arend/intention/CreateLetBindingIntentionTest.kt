@@ -9,7 +9,7 @@ import org.intellij.lang.annotations.Language
 
 class CreateLetBindingIntentionTest : QuickFixTestBase() {
     private fun doTestLet(expr: String, @Language("Arend") contents: String, @Language("Arend") result: String) {
-        UiInterceptors.register(ChooserInterceptor(null, ".*text=${StringUtil.escapeToRegexp(expr)}.*"))
+        UiInterceptors.register(ChooserInterceptor(null, StringUtil.escapeToRegexp(expr)))
         simpleQuickFixTest(ArendBundle.message("arend.create.let.binding"), contents.trimIndent(), result.trimIndent())
     }
 
@@ -53,5 +53,19 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
           \let
             a-lemma : Fin 13 => x
           \in foo a-lemma)))
+    """)
+
+    fun testBinOp() = doTestLet("(2 + 2) * 4 ^ 10", """
+        \func \infixr 7 ^ : Nat -> Nat -> Nat => {?}
+        \func \infixl 6 * : Nat -> Nat -> Nat => {?}
+        \func \infixl 5 + : Nat -> Nat -> Nat => {?}
+        
+        \func f => (2 + 2) * {-selection-}4 {-caret-}^ 10{-end_selection-} + 12 + 13 + 14 
+    """, """
+        \func \infixr 7 ^ : Nat -> Nat -> Nat => {?}
+        \func \infixl 6 * : Nat -> Nat -> Nat => {?}
+        \func \infixl 5 + : Nat -> Nat -> Nat => {?}
+        
+        \func f => (\let xx => 4 ^ 10 \in (2 + 2) * x) + 12 + 13 + 14 
     """)
 }

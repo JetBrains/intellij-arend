@@ -31,9 +31,11 @@ import org.arend.psi.ArendLetExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.refactoring.replaceExprSmart
+import org.arend.resolving.util.parseBinOp
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
 import org.arend.util.ParameterExplicitnessState
+import org.arend.util.forEachRange
 import org.jetbrains.annotations.NonNls
 import java.awt.Component
 import javax.swing.DefaultListCellRenderer
@@ -65,17 +67,19 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
 
     private data class WrappableOption(
             val psi: SmartPsiElementPointer<ArendExpr>,
-            val offset: Int,
+            val optionRange: TextRange,
             val text: String,
             val parentLetExpression: TextRange?
-    )
+    ) {
+        override fun toString(): String = text
+    }
 
     @Suppress("RemoveExplicitTypeArguments")
     override fun performRefactoring(freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
                                     selection: SelectionResult,
                                     editor: Editor,
                                     project: Project) {
-        val wrappableOptions = collectWrappableOptions(selection.contextPsi)
+        val wrappableOptions = collectWrappableOptions(selection.contextPsi, selection.rangeOfReplacement)
 
         val elementToReplace = SmartPointerManager.createPointer(selection.contextPsi)
         CommandProcessor.getInstance().currentCommandGroupId = COMMAND_GROUP_ID
@@ -107,7 +111,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         setTitle(ArendBundle.message("arend.create.let.binding.expression.to.wrap"))
         setItemSelectedCallback {
             val option = it ?: return@setItemSelectedCallback
-            optionRenderer.renderOption(option.offset, option.parentLetExpression)
+            optionRenderer.renderOption(option.optionRange.startOffset, option.parentLetExpression)
         }
         setItemChosenCallback {
             optionRenderer.cleanup()
@@ -121,17 +125,27 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
     private fun recreateSelection(selection: SelectionResult, elementToReplace: SmartPsiElementPointer<ArendCompositeElement>) : SelectionResult =
             selection.copy(contextPsi = elementToReplace.element!!)
 
-    private fun collectWrappableOptions(rootPsi: ArendCompositeElement): List<WrappableOption> {
-        val wrappableExpressions = rootPsi.parentsOfType<ArendAppExpr>().toList()
-        val parentLetExpressionRanges = wrappableExpressions.map { expr ->
-            val let = expr.parentOfType<ArendLetExpr>()?.takeIf { it.expr?.textRange == expr.textRange }
+    private fun collectWrappableOptions(rootPsi: ArendCompositeElement, rangeOfReplacement: TextRange): List<WrappableOption> {
+        val wrappableExpressions = rootPsi.parentsOfType<ArendAppExpr>().flatMap { expr -> unwrapBinOp(rootPsi, expr, rangeOfReplacement).map(expr::to) }.toList()
+        val parentLetExpressionRanges = wrappableExpressions.map { (expr, range) ->
+            val let = expr.takeIf { it.textRange == range }?.parentOfType<ArendLetExpr>()?.takeIf { it.expr?.textRange == expr.textRange }
             if (let != null && let.inKw != null) {
                 TextRange(let.startOffset, let.inKw!!.endOffset)
             } else {
                 null
             }
         }
-        return wrappableExpressions.mapIndexed { ind, it -> WrappableOption(SmartPointerManager.createPointer(it), it.textOffset, it.text, parentLetExpressionRanges[ind]) }
+
+        return wrappableExpressions.mapIndexed { ind, (expr, range) -> WrappableOption(SmartPointerManager.createPointer(expr), range, rootPsi.containingFile.text.substring(range.startOffset, range.endOffset), parentLetExpressionRanges[ind]) }
+    }
+
+    private fun unwrapBinOp(rootPsi : ArendCompositeElement, binop : ArendAppExpr, rootSelection : TextRange) : List<TextRange> {
+        val parsed = parseBinOp(binop) ?: return listOf(rootPsi.textRange)
+        val ranges = mutableListOf<TextRange>()
+        forEachRange(parsed) {
+            if (it.contains(rootSelection) && it != rootSelection) ranges.add(it); false
+        }
+        return ranges
     }
 
     private fun runDocumentChanges(wrappableOption: WrappableOption, project: Project, editor: Editor, selection: SelectionResult, freeVariables : List<Pair<Binding, ParameterExplicitnessState>>) {
@@ -143,7 +157,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
 
         executeCommand(project, null, COMMAND_GROUP_ID) {
             runWriteAction {
-                val identifiers = wrapInLet(selectedElement, representation.first, selection.rangeOfReplacement, representation.second, project, editor, selection.selectedConcrete, selection.contextPsi)
+                val identifiers = wrapInLet(selectedElement, wrappableOption.optionRange, representation.first, selection.rangeOfReplacement, representation.second, project, editor, selection.selectedConcrete, selection.contextPsi)
                         ?: return@runWriteAction
                 editor.caretModel.moveToOffset(identifiers.second)
                 invokeRenamer(editor, identifiers.first, project)
@@ -153,6 +167,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
 
     private fun wrapInLet(
             wrappedElement: ArendCompositeElement,
+            wrappedRange: TextRange,
             newFunctionCall: Concrete.Expression,
             rangeOfReplacement: TextRange,
             newDefinitionTail: String,
@@ -167,7 +182,9 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         PsiDocumentManager.getInstance(project).commitDocument(editor.document)
         val wrappedElementReparsed = pointer.element ?: return null
 
-        val newLetExpr = addToLetExpression(wrappedElementReparsed, newDefinitionTail, editor.document)
+        val newWrappedRange = wrappedRange.grown(replaced.length - rangeOfReplacement.length)
+
+        val newLetExpr = addToLetExpression(wrappedElementReparsed, newWrappedRange, newDefinitionTail, editor.document)
 
         val newLetPointer = SmartPointerManager.createPointer(newLetExpr)
         CodeStyleManager.getInstance(project).reformatText(newLetExpr.containingFile, newLetExpr.startOffset, newLetExpr.inKw!!.endOffset)
@@ -183,19 +200,19 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
     /**
      * Returns a modified let expression which is inserted to PSI tree
      */
-    private fun addToLetExpression(rootExpression: ArendCompositeElement, clause: String, document: Document): ArendLetExpr {
+    private fun addToLetExpression(rootExpression: ArendCompositeElement, rangeOfWrapping: TextRange, clause: String, document: Document): ArendLetExpr {
         val enclosingLet = rootExpression
                 .parentOfType<ArendLetExpr>()
                 ?.takeIf { it.expr?.textRange == rootExpression.textRange }
-                ?: return insertEmptyLetExpression(rootExpression, clause, document)
+                ?: return insertEmptyLetExpression(rootExpression, rangeOfWrapping, clause, document)
         return enclosingLet.addNewClause(clause)
     }
 
-    private fun insertEmptyLetExpression(rootExpression: ArendCompositeElement, clause: String, document: Document): ArendLetExpr {
+    private fun insertEmptyLetExpression(rootExpression: ArendCompositeElement, rangeOfWrapping: TextRange, clause: String, document: Document): ArendLetExpr {
         val letExpr = ArendPsiFactory(rootExpression.project).createLetExpression(clause, rootExpression.text)
-        val offset = rootExpression.textOffset
+        val offset = rangeOfWrapping.startOffset
         val documentManager = PsiDocumentManager.getInstance(rootExpression.project)
-        replaceExprSmart(document, rootExpression, null, rootExpression.textRange, letExpr, null, letExpr.text, false)
+        replaceExprSmart(document, rootExpression, null, rangeOfWrapping, letExpr, null, letExpr.text, false)
         val psiFile = documentManager.run {
             commitDocument(document)
             getPsiFile(document)
