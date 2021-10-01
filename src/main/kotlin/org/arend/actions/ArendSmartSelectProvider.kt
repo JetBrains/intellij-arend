@@ -50,12 +50,12 @@ class ArendSmartSelectProvider : SmartSelectProvider<ArendSmartSelectProvider.Co
 
         if (selectionOwner is ArendExpr) {
             val candidateRanges = mutableListOf<TextRange>()
-            val fallbackRange = findClosestNodeInBinOp(selectionOwner) {
+            findClosestNodeInBinOp(selectionOwner) {
                 if (selectionRange.strictlyContains(it) && it.contains(caretOffset)) candidateRanges.add(it)
                 false
             }
             val coarsestChild = candidateRanges.lastOrNull()
-            if (fallbackRange != selectionOwner.textRange && coarsestChild != null) {
+            if (coarsestChild != null) {
                 editor.selectionModel.setSelection(coarsestChild.startOffset, coarsestChild.endOffset)
                 return
             }
