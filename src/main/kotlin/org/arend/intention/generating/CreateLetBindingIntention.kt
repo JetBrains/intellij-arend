@@ -86,10 +86,14 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         CommandProcessor.getInstance().currentCommandGroupId = id
         val optionRenderer = LetWrappingOptionEditorRenderer(editor, project, id)
 
-        val popup = createPopup(wrappableOptions, optionRenderer, project, editor, freeVariables, selection, elementToReplace)
-        DaemonCodeAnalyzer.getInstance(project).disableUpdateByTimer(popup)
-        Disposer.register(popup, optionRenderer)
-        popup.showInBestPositionFor(editor)
+        if (wrappableOptions.size > 1) {
+            val popup = createPopup(wrappableOptions, optionRenderer, project, editor, freeVariables, selection, elementToReplace)
+            DaemonCodeAnalyzer.getInstance(project).disableUpdateByTimer(popup)
+            Disposer.register(popup, optionRenderer)
+            popup.showInBestPositionFor(editor)
+        } else {
+            runDocumentChanges(wrappableOptions.single(), project, editor, selection, freeVariables)
+        }
     }
 
     private fun createPopup(
