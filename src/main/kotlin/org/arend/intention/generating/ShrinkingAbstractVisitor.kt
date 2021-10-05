@@ -10,6 +10,10 @@ import org.arend.term.concrete.Concrete
 import java.math.BigInteger
 
 class ShrinkingAbstractVisitor : AbstractExpressionVisitor<Unit, String> {
+    companion object {
+        private const val DOTS = "…"
+    }
+
     override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: MutableCollection<out Abstract.LevelExpression>?, hLevels: MutableCollection<out Abstract.LevelExpression>?, params: Unit?): String =
             referent.refName
 
@@ -18,10 +22,10 @@ class ShrinkingAbstractVisitor : AbstractExpressionVisitor<Unit, String> {
     override fun visitThis(data: Any?, params: Unit?): String = "\\this"
 
     override fun visitLam(data: Any?, parameters: MutableCollection<out Abstract.LamParameter>, body: Abstract.Expression?, params: Unit?): String =
-            """\lam ... => ${body?.accept(this, Unit) ?: "INVALID"}"""
+            """\lam $DOTS => ${body?.accept(this, Unit) ?: "INVALID"}"""
 
     override fun visitPi(data: Any?, parameters: MutableCollection<out Abstract.Parameter>, codomain: Abstract.Expression?, params: Unit?): String =
-            """\Pi ... -> ${codomain?.accept(this, Unit) ?: "INVALID"}"""
+            """\Pi $DOTS -> ${codomain?.accept(this, Unit) ?: "INVALID"}"""
 
     override fun visitUniverse(data: Any?, pLevelNum: Int?, hLevelNum: Int?, pLevel: Abstract.LevelExpression?, hLevel: Abstract.LevelExpression?, params: Unit?): String =
             """\Type"""
@@ -36,23 +40,23 @@ class ShrinkingAbstractVisitor : AbstractExpressionVisitor<Unit, String> {
             if (fields.size == 1) {
                 "(${fields.single().accept(this, Unit)})"
             } else {
-                fields.joinToString(", ", "(", ")") { "..." }
+                fields.joinToString(", ", "(", ")") { DOTS }
             }
 
     override fun visitSigma(data: Any?, parameters: MutableCollection<out Abstract.Parameter>, params: Unit?): String =
-            """\Sigma (...) (...)"""
+            """\Sigma $DOTS $DOTS"""
 
     override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, params: Unit?): String {
         val parsed = parseBinOp(left, sequence)
         return if (parsed is Concrete.AppExpression) {
-            (parsed.function.data as PsiElement).text + parsed.arguments.joinToString(", ") { "(...)" }
+            (parsed.function.data as PsiElement).text + parsed.arguments.joinToString(" ", " ") { DOTS }
         } else {
             left.accept(this, Unit)
         }
     }
 
     override fun visitCase(data: Any?, isSFunc: Boolean, evalKind: Abstract.EvalKind?, arguments: MutableCollection<out Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: MutableCollection<out Abstract.FunctionClause>, params: Unit?): String {
-        return """\case ${arguments.map { it.expression?.accept(this, Unit) }.joinToString(", ")} \with { ... }"""
+        return """\case ${arguments.map { it.expression?.accept(this, Unit) }.joinToString(", ")} \with { $DOTS }"""
     }
 
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableCollection<Int>, params: Unit?): String {
@@ -69,7 +73,7 @@ class ShrinkingAbstractVisitor : AbstractExpressionVisitor<Unit, String> {
             false -> "\\let"
         }
         val actualKw = if (isStrict) "$kw!" else kw
-        return """$actualKw ... \in ${expression?.accept(this, Unit) ?: "INVALID"}"""
+        return """$actualKw $DOTS \in ${expression?.accept(this, Unit) ?: "INVALID"}"""
     }
 
     override fun visitNumericLiteral(data: Any?, number: BigInteger, params: Unit?): String {
@@ -81,6 +85,6 @@ class ShrinkingAbstractVisitor : AbstractExpressionVisitor<Unit, String> {
     }
 
     override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, params: Unit?): String {
-        return expr.accept(this, Unit) + " : ..."
+        return expr.accept(this, Unit) + " : $DOTS"
     }
 }
