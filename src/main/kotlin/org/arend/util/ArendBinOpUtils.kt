@@ -204,6 +204,9 @@ private fun resolve(reference: ArendReferenceContainer?): GlobalReferable? =
         reference?.resolve?.castSafelyTo<GlobalReferable>()
                 ?.let { if (it.hasAlias() && it.aliasName == reference.referenceName) AliasReferable(it) else it }
 
+/**
+ * [action] returns true if the processing should be stopped.
+ */
 fun forEachRange(concrete: Concrete.Expression, action: (TextRange, Concrete.Expression) -> Boolean): TextRange? {
     var result: TextRange? = null
 
@@ -225,7 +228,9 @@ fun forEachRange(concrete: Concrete.Expression, action: (TextRange, Concrete.Exp
             else -> return (concrete.data as PsiElement).textRange
         }
     }
-
-    doVisit(concrete)
+    val resultRange = doVisit(concrete)
+    if (resultRange != null && action(resultRange, concrete)) {
+        result = resultRange
+    }
     return result
 }

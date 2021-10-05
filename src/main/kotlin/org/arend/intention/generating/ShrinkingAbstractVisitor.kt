@@ -1,15 +1,19 @@
 package org.arend.intention.generating
 
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.util.containers.tail
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.resolving.util.parseBinOp
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
+import org.arend.util.forEachRange
 import java.math.BigInteger
 
-class ShrinkingAbstractVisitor : AbstractExpressionVisitor<Unit, String> {
+class ShrinkingAbstractVisitor(val textRange: TextRange) : AbstractExpressionVisitor<Unit, String> {
     companion object {
         private const val DOTS = "…"
     }
@@ -46,10 +50,20 @@ class ShrinkingAbstractVisitor : AbstractExpressionVisitor<Unit, String> {
     override fun visitSigma(data: Any?, parameters: MutableCollection<out Abstract.Parameter>, params: Unit?): String =
             """\Sigma $DOTS $DOTS"""
 
-    override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, params: Unit?): String {
+    override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Unit?): String {
         val parsed = parseBinOp(left, sequence)
-        return if (parsed is Concrete.AppExpression) {
-            (parsed.function.data as PsiElement).text + parsed.arguments.joinToString(" ", " ") { DOTS }
+        var requiredConcrete = parsed
+        forEachRange(parsed) { range, expr -> if (textRange.contains(range)) requiredConcrete = expr; false }
+        return if (requiredConcrete is Concrete.AppExpression) {
+            val concrete = requiredConcrete as Concrete.AppExpression
+            val tcRef =
+                    if (concrete.function is Concrete.ReferenceExpression && (concrete.function as Concrete.ReferenceExpression).referent is GlobalReferable) (concrete.function as Concrete.ReferenceExpression).referent as GlobalReferable else null
+            val functionRepr = (concrete.function.data as PsiElement).text
+            if (tcRef != null && tcRef.representablePrecedence.isInfix) {
+                "$DOTS " + functionRepr + concrete.arguments.tail().joinToString(" ", " ") { DOTS }
+            } else {
+                functionRepr + concrete.arguments.joinToString(" ", " ") { DOTS }
+            }
         } else {
             left.accept(this, Unit)
         }

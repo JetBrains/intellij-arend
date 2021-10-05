@@ -86,7 +86,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         CommandProcessor.getInstance().currentCommandGroupId = id
         val optionRenderer = LetWrappingOptionEditorRenderer(editor, project, id)
 
-        val popup = createPopup(wrappableOptions, optionRenderer, project, editor, freeVariables, selection, elementToReplace, id)
+        val popup = createPopup(wrappableOptions, optionRenderer, project, editor, freeVariables, selection, elementToReplace)
         DaemonCodeAnalyzer.getInstance(project).disableUpdateByTimer(popup)
         Disposer.register(popup, optionRenderer)
         popup.showInBestPositionFor(editor)
@@ -99,8 +99,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
             editor: Editor,
             freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
             selection: SelectionResult,
-            elementToReplace: SmartPsiElementPointer<ArendCompositeElement>,
-            id: String): JBPopup = with(JBPopupFactory.getInstance().createPopupChooserBuilder(options)) {
+            elementToReplace: SmartPsiElementPointer<ArendCompositeElement>): JBPopup = with(JBPopupFactory.getInstance().createPopupChooserBuilder(options)) {
         setSelectedValue(options[0], true)
         setMovable(false)
         setResizable(false)
@@ -117,7 +116,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         setItemChosenCallback {
             optionRenderer.cleanup()
             val newSelection = recreateSelection(selection, elementToReplace)
-            runDocumentChanges(it, project, editor, newSelection, freeVariables, id)
+            runDocumentChanges(it, project, editor, newSelection, freeVariables)
         }
         setRenderer(TrimmingListCellRenderer)
         createPopup()
@@ -150,7 +149,13 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         return wrappableExpressions.mapIndexed { ind, (expr, range) ->
             val basicText = rootPsi.containingFile.text.substring(range.startOffset, range.endOffset)
             val strippedText = if (basicText.length > 50) {
-                expr.accept(ShrinkingAbstractVisitor(), Unit) ?: "INVALID"
+                if (expr is ArendArgumentAppExpr) {
+                    val arglist = expr.argumentList
+                    ShrinkingAbstractVisitor(range).visitBinOpSequence(null, expr.atomFieldsAcc
+                            ?: expr.longNameExpr!!, arglist, null)
+                } else {
+                    expr.accept(ShrinkingAbstractVisitor(range), Unit) ?: "INVALID"
+                }
             } else {
                 basicText.replace('\n', ' ')
             }
@@ -164,11 +169,10 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         forEachRange(parsed) { range, concrete ->
             if (concrete is Concrete.AppExpression && range.contains(rootSelection) && range != rootSelection) ranges.add(range); false
         }
-        ranges.add(binop.textRange)
         return ranges
     }
 
-    private fun runDocumentChanges(wrappableOption: WrappableOption, project: Project, editor: Editor, selection: SelectionResult, freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, id: String) {
+    private fun runDocumentChanges(wrappableOption: WrappableOption, project: Project, editor: Editor, selection: SelectionResult, freeVariables: List<Pair<Binding, ParameterExplicitnessState>>) {
         val selectedElement = wrappableOption.psi.element ?: return
         val scope = selectedElement.scope
         val necessaryFreeVariables = freeVariables.filter { scope.resolveName(it.first.name) == null }
