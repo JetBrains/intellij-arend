@@ -11,8 +11,8 @@ version = "1.7.0.1"
 
 plugins {
     idea
-    kotlin("jvm") version "1.5.21"
-    id("org.jetbrains.intellij") version "1.1.4"
+    kotlin("jvm") version "1.5.31"
+    id("org.jetbrains.intellij") version "1.2.0"
     id("org.jetbrains.grammarkit") version "2021.1.3"
 }
 
@@ -22,8 +22,8 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.21")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.21")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.31")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.31")
 }
 
 java {
@@ -59,7 +59,7 @@ intellij {
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("yaml", "java", "IdeaVIM:0.69"))
+    plugins.set(listOf("yaml", "java", "IdeaVIM:1.7.2"))
 }
 
 tasks.named<JavaExec>("runIde") {
