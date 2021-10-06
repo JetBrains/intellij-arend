@@ -14,9 +14,11 @@ import org.arend.ext.module.ModulePath
 import org.arend.module.AREND_LIB
 import org.arend.module.ArendLibraryKind
 import org.arend.module.ArendRawLibrary
+import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.psi.ArendFile
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import org.arend.util.configFile
 
 class ArendProjectViewStructureProvider : TreeStructureProvider {
     override fun modify(parent: AbstractTreeNode<*>,
@@ -36,8 +38,9 @@ class ArendProjectViewStructureProvider : TreeStructureProvider {
     private fun findArendLibrary(parent: NamedLibraryElementNode): ArendRawLibrary? {
         val ideaLibrary = (parent.value?.orderEntry as? LibraryOrderEntry)?.library
         if (ideaLibrary is LibraryEx && ideaLibrary.kind is ArendLibraryKind) {
+            val configUrl = ideaLibrary.getUrls(ArendConfigOrderRootType).singleOrNull() ?: return null
             return parent.project?.service<TypeCheckingService>()?.libraryManager
-                    ?.getRegisteredLibrary(ideaLibrary.name)
+                    ?.getRegisteredLibrary { it is ArendRawLibrary && it.config.root?.configFile?.url == configUrl }
                     as? ArendRawLibrary
         }
         return null
