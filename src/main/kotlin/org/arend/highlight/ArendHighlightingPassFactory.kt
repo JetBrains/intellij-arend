@@ -20,7 +20,7 @@ class ArendHighlightingPassFactory : BasePassFactory<ArendFile>(ArendFile::class
     }
 
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange) =
-        ArendHighlightingPass(file, file, editor, textRange, DefaultHighlightInfoProcessor())
+        ArendHighlightingPass(file, editor, textRange, DefaultHighlightInfoProcessor())
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor) =
         if (file is ArendFile) {

@@ -41,8 +41,8 @@ class ArendMessagesService(private val project: Project) {
         }
     }
 
-    fun setActiveEditor() {
-        view?.setActiveEditor()
+    fun updateEditor() {
+        view?.updateEditor()
     }
 
     fun updateErrorText() {

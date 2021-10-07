@@ -4,7 +4,6 @@ import com.intellij.ide.CommonActionsManager
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -17,15 +16,14 @@ import com.intellij.ui.layout.panel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
-import org.arend.injection.InjectedArendEditor
+import org.arend.ext.error.MissingClausesError
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
-import org.arend.ext.error.MissingClausesError
-import org.arend.psi.ext.PsiConcreteReferable
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
@@ -40,9 +38,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private val splitter = JBSplitter(false, 0.25f)
     private val emptyPanel = JPanel()
-    private var activeEditor: InjectedArendEditor? = null
-
-    private val errorEditors = HashMap<GeneralError, InjectedArendEditor>()
+    private var editor: ArendMessagesViewEditor? = null
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
@@ -81,62 +77,45 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun projectClosing(project: Project) {
         if (project == this.project) {
             root.removeAllChildren()
-            for (arendEditor in errorEditors.values) {
-                arendEditor.release()
-                if (arendEditor == activeEditor) {
-                    activeEditor = null
-                }
-            }
-            errorEditors.clear()
-
             splitter.secondComponent = emptyPanel
-            activeEditor?.release()
-            activeEditor = null
+            editor?.release()
+            editor = null
         }
     }
 
     override fun valueChanged(e: TreeSelectionEvent?) {
         if (!project.service<ArendMessagesService>().isErrorTextPinned) {
-            setActiveEditor()
+            updateEditor()
         }
     }
 
-    fun setActiveEditor() {
+    fun updateEditor() {
         val treeElement = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
         if (treeElement != null) {
-            val arendEditor = errorEditors.computeIfAbsent(treeElement.sampleError.error) {
+            if (editor == null) {
+                editor = ArendMessagesViewEditor(project, treeElement)
+            }
+            if (editor?.treeElement != treeElement) {
                 for (arendError in treeElement.errors) {
                     configureError(arendError.error)
                 }
-                InjectedArendEditor(project, "Arend Messages", treeElement)
+                editor?.update(treeElement)
             }
-
-            activeEditor?.let {
-                if (!errorEditors.values.contains(it)) {
-                    it.release()
-                }
-            }
-
-            activeEditor = arendEditor
-            splitter.secondComponent = arendEditor.component ?: emptyPanel
+            splitter.secondComponent = editor?.component ?: emptyPanel
         } else {
-            val editor = activeEditor
             val activeError = editor?.treeElement?.sampleError
-            if (activeError != null && !errorEditors.containsKey(activeError.error)) {
+            if (activeError != null) {
                 val def = activeError.definition
                 if (def == null || !tree.containsNode(def)) {
-                    activeEditor = null
+                    editor?.clear()
                     splitter.secondComponent = emptyPanel
-                    invokeLater { // fixes "Editor is already disposed" exception
-                        editor.release()
-                    }
                 }
             }
         }
     }
 
     fun updateErrorText() {
-        activeEditor?.updateErrorText()
+        editor?.updateErrorText()
     }
 
     private fun configureError(error: GeneralError) {
@@ -146,11 +125,6 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     override fun errorRemoved(arendError: ArendError) {
-        val removed = errorEditors.remove(arendError.error) ?: return
-        if (removed != activeEditor) {
-            removed.release()
-        }
-
         if (autoScrollFromSource.isAutoScrollEnabled) {
             autoScrollFromSource.updateCurrentSelection()
         }

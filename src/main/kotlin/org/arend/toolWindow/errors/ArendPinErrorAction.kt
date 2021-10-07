@@ -15,7 +15,7 @@ class ArendPinErrorAction: ToggleAction("Pin message", "When the message is pinn
     override fun setSelected(e: AnActionEvent, state: Boolean) {
         val service = getMessagesService(e)
         service?.isErrorTextPinned = state
-        if (!state) service?.setActiveEditor()
+        if (!state) service?.updateEditor()
     }
 
     private fun getMessagesService(e: AnActionEvent): ArendMessagesService? =
