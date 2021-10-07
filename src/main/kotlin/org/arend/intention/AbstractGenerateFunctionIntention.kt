@@ -16,6 +16,7 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.SmartList
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.binding.TypedBinding
+import org.arend.core.context.param.TypedSingleDependentLink
 import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.extImpl.ConcreteFactoryImpl
@@ -24,6 +25,7 @@ import org.arend.extImpl.definitionRenamer.ScopeDefinitionRenamer
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.ArendCompositeElement
@@ -50,20 +52,22 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     protected abstract fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult?
 
     protected data class SelectionResult(
-        val expectedType: Expression?,
-        val contextPsi: ArendCompositeElement,
-        val rangeOfReplacement: TextRange,
-        val selectedConcrete : Concrete.Expression?,
-        val identifier: String?,
-        val body: Expression?
+            val expectedType: Expression?,
+            val contextPsi: ArendCompositeElement,
+            val rangeOfReplacement: TextRange,
+            val selectedConcrete : Concrete.Expression?,
+            val identifier: String?,
+            val body: Expression?,
+            val additionalArguments: List<TypedSingleDependentLink> = emptyList()
     )
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         editor ?: return
         file ?: return
         val selectionResult = extractSelectionData(file, editor, project) ?: return
-        val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body)
+        val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body, *selectionResult.additionalArguments.map { it.typeExpr }.toTypedArray())
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expressions)
+                .filter { freeArg -> freeArg.first.name !in selectionResult.additionalArguments.map { it.name } }
         performRefactoring(freeVariables, selectionResult, editor, project)
     }
 
@@ -71,28 +75,49 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>, selection : SelectionResult,
         editor: Editor, project: Project
     ) {
-        val enclosingFunctionDefinition = selection.contextPsi.parentOfType<ArendFunctionalDefinition>() ?: return
+        val (enclosingDefinition, name) = getEnclosingDefinitionWithName(selection.contextPsi) ?: return
         val enclosingDefinitionReferable = selection.contextPsi.parentOfType<TCDefinition>()!!
         val (newFunctionCall, newFunctionDefinition) = buildRepresentations(
                 enclosingDefinitionReferable, selection,
-                enclosingFunctionDefinition,
+                name,
                 freeVariables,
         ) ?: return
 
         val globalOffsetOfNewDefinition =
-                modifyDocument(editor, newFunctionCall, selection.rangeOfReplacement, selection.selectedConcrete, selection.contextPsi, newFunctionDefinition, enclosingFunctionDefinition, project)
+                modifyDocument(editor,
+                        newFunctionCall,
+                        selection.rangeOfReplacement,
+                        selection.selectedConcrete,
+                        selection.contextPsi,
+                        newFunctionDefinition,
+                        enclosingDefinition,
+                        project)
 
         invokeRenamer(editor, globalOffsetOfNewDefinition, project)
     }
 
+    private fun getEnclosingDefinitionWithName(context: PsiElement): Pair<ArendCompositeElement, String>? {
+        val parentFunction = context.parentOfType<ArendFunctionalDefinition>()
+        if (parentFunction != null) {
+            val name = parentFunction.defIdentifier?.name ?: return null
+            return parentFunction to name
+        }
+        val parentClass = context.parentOfType<ArendDefClass>()
+        if (parentClass != null) {
+            val name = parentClass.name ?: return null
+            return parentClass to name
+        }
+        return null
+    }
+
+
     protected open fun buildRepresentations(
             enclosingDefinitionReferable: TCDefinition,
             selection: SelectionResult,
-            functionDefinition: ArendFunctionalDefinition,
+            enclosingDefinitionName: String,
             freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
     ): Pair<Concrete.Expression, String>? {
-        val baseName = selection.identifier ?: functionDefinition.defIdentifier?.name?.let { "$it-lemma" }
-        ?: return null
+        val baseName = selection.identifier ?: enclosingDefinitionName.let { "$it-lemma" }
         val newFunctionName = generateFreeName(baseName, selection.contextPsi.scope)
 
         val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {
@@ -111,9 +136,12 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             }
         }
 
-        val parameters = freeVariables.collapseTelescopes().joinToString("") { (bindings, explicitness) ->
-            " ${explicitness.openingBrace}${bindings.joinToString(" ") { it.name }} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
-        }
+        val mappedAdditionalArguments = selection.additionalArguments.map { TypedBinding(it.name, it.typeExpr) to it.isExplicit.toExplicitnessState() }
+        val parameters = (freeVariables + mappedAdditionalArguments)
+                .collapseTelescopes()
+                .joinToString("") { (bindings, explicitness) ->
+                    " ${explicitness.openingBrace}${bindings.joinToString(" ") { it.name }} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
+                }
 
         val actualBody = selection.body?.let { prettyPrinter(it, true) } ?: "{?}"
         val newFunctionCall = with(ConcreteFactoryImpl(null)) {
@@ -124,6 +152,8 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         return newFunctionCall to newFunctionDefinition
     }
 
+    private fun Boolean.toExplicitnessState(): ParameterExplicitnessState = if (this) ParameterExplicitnessState.EXPLICIT else ParameterExplicitnessState.IMPLICIT
+
     private tailrec fun generateFreeName(baseName: String, scope: Scope): String =
             if (scope.resolveName(baseName) == null) {
                 baseName
@@ -132,7 +162,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             }
 
     private fun List<Pair<Binding, ParameterExplicitnessState>>.collapseTelescopes(): List<Pair<List<Binding>, ParameterExplicitnessState>> =
-        fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
+            fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
             if (collector.isEmpty() || collector.last().second == ParameterExplicitnessState.IMPLICIT) {
                 collector.add(SmartList(binding) to explicitness)
             } else {
