@@ -242,21 +242,21 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         ArendTypechecking.create(project).typecheckModules(targetFiles, null)
     }
 
-    protected fun withStdLib(test: () -> Unit) {
+    protected fun withStdLib(name: String = AREND_LIB, test: () -> Unit) {
         try {
-            createStdLib()
+            createStdLib(name)
             test()
         } finally {
-            removeStdLib()
+            removeStdLib(name)
         }
     }
 
-    private fun createStdLib() {
+    private fun createStdLib(name: String) {
         val libRoot = LocalFileSystem.getInstance().findFileByPath("${ArendTestCase.testResourcesPath}/org/arend")!!
         val arendLibConfig = project.findExternalLibrary(libRoot, AREND_LIB)
                 ?: throw IllegalStateException("Cannot find arend-lib")
         setupLibraryManager(arendLibConfig)
-        setupProjectModel(arendLibConfig)
+        setupProjectModel(arendLibConfig, name)
     }
 
     private fun setupLibraryManager(config: ExternalLibraryConfig) {
@@ -269,10 +269,10 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         TypeCheckingService.LibraryManagerTestingOptions.setStdLibrary(arendLib, testRootDisposable)
     }
 
-    private fun setupProjectModel(config: ExternalLibraryConfig) {
+    private fun setupProjectModel(config: ExternalLibraryConfig, libName: String) {
         runWriteAction {
             val projectModel = LibraryTablesRegistrar.getInstance().getLibraryTable(project).modifiableModel
-            val ideaLib = projectModel.createLibrary(AREND_LIB)
+            val ideaLib = projectModel.createLibrary(libName)
             projectModel.commit()
             ideaLib.modifiableModel.apply {
                 ModuleSynchronizer.setupFromConfig(this, config)
@@ -282,10 +282,10 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         }
     }
 
-    private fun removeStdLib() {
+    private fun removeStdLib(libName: String) {
         runWriteAction {
             val projectTable = LibraryTablesRegistrar.getInstance().getLibraryTable(project)
-            val arendLib = projectTable.getLibraryByName(AREND_LIB) ?: return@runWriteAction
+            val arendLib = projectTable.getLibraryByName(libName) ?: return@runWriteAction
             ModuleRootModificationUtil.updateModel(module) { model ->
                 model.findLibraryOrderEntry(arendLib)?.let { model.removeOrderEntry(it) }
             }
