@@ -118,7 +118,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \class Test {{-caret-}X : \Type} (x : X)
-        \func f => Test {(\Sigma Nat Nat)} (4, 2)
+        \func f => Test {\Sigma Nat Nat} (4, 2)
         """
     )
 
@@ -542,4 +542,81 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func test => k _ ((k _ 0 1) <> (k _ 2 3)) 4
         """
     )
+
+    fun testImplicitLambdas() = doTest(
+        """
+           \func foo ({-caret-}f : \Sigma Nat Nat -> Nat) => f (1, 1)
+
+           \func zoo (p : \Sigma Nat Nat) : Nat => foo __.1           
+        """, """
+           \func foo {f : \Sigma Nat Nat -> Nat} => f (1, 1)
+
+           \func zoo (p : \Sigma Nat Nat) : Nat => foo {__.1}
+        """)
+
+    fun testImplicitLambdas2() = doTest(
+        """
+           \func foo ({-caret-}f : \Sigma Nat Nat -> Nat) => f (1, 1)
+
+           \func zoo (p : \Sigma Nat Nat) (Z : \Sigma Nat Nat -> \Sigma Nat Nat) : Nat => foo (Z __).1
+        """, """
+           \func foo {f : \Sigma Nat Nat -> Nat} => f (1, 1)
+
+           \func zoo (p : \Sigma Nat Nat) (Z : \Sigma Nat Nat -> \Sigma Nat Nat) : Nat => foo {(Z __).1} 
+        """
+    )
+
+    fun testImplicitLambdas3() = doTest(
+        """
+           \func foo ({-caret-}f : \Sigma Nat Nat -> Nat) : Nat => f (1, 1)
+
+           \func zoo (p : \Sigma Nat Nat) : \Pi  (\Sigma Nat Nat -> Nat) -> Nat => \case foo __ \with {
+             | 0 => 1
+             | suc n => 2
+           }
+        """, """
+           \func foo {f : \Sigma Nat Nat -> Nat} : Nat => f (1, 1)
+
+           \func zoo (p : \Sigma Nat Nat) : \Pi  (\Sigma Nat Nat -> Nat) -> Nat => \case foo {__} \with {
+             | 0 => 1
+             | suc n => 2
+           } 
+        """
+    )
+
+    fun testImplicitLambdas4() = doTest(
+        """
+           \func foo ({-caret-}a : Nat -> Nat) (b : Nat) : Nat => a b
+
+           \func zoo : Nat -> Nat => foo (foo (\lam x => x) __) __ 
+        """, """
+           \func foo {a : Nat -> Nat} (b : Nat) : Nat => a b
+
+           \func zoo : Nat -> Nat => foo {foo {\lam x => x} __} __ 
+        """)
+
+    fun testExplicitLambdas() = doTest(
+        """
+           \func foo ({-caret-}f : \Sigma Nat Nat -> Nat) => f (1, 1)
+
+           \func zoo (p : \Sigma Nat Nat) : Nat => foo (\lam x => x.1)            
+        """, """
+           \func foo {f : \Sigma Nat Nat -> Nat} => f (1, 1)
+
+           \func zoo (p : \Sigma Nat Nat) : Nat => foo {\lam x => x.1}
+        """)
+
+    fun testImplicitArguments() = doTest("""
+       \func pmap {-caret-}{A B : \Type} {f : A -> B} {a a' : A} (p : a = a') : f a = f a' => path (\lam i => f (p @ i))
+
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a'' \elim q | idp => p
+
+       \func foo {A : \Type} (a : A) (h : \Pi (a : A) -> a = a) (p : idp = h a *> h a) => pmap {_} {_} {h a *>} p 
+    """, """
+       \func pmap (A B : \Type) {f : A -> B} {a a' : A} (p : a = a') : f a = f a' => path (\lam i => f (p @ i))
+
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a'' \elim q | idp => p
+
+       \func foo {A : \Type} (a : A) (h : \Pi (a : A) -> a = a) (p : idp = h a *> h a) => pmap _ _ {h a *>} p 
+    """)
 }

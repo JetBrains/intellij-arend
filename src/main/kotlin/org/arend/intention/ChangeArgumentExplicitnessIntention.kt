@@ -115,11 +115,9 @@ abstract class ChangeArgumentExplicitnessApplier {
         val indexInDef = getTeleIndexInDef(def, element) + indexInTele
 
         if (element !is ArendTypeTele) {
-            for (ref in ReferencesSearch.search(def)) {
-                val usage = ref.element
-                if (!usage.isValid) continue
-                val call = getParentPsiFunctionCall(usage)
-                CallWrapper.wrapWithSubTerms(call, def)
+            val fCalls = ReferencesSearch.search(def).map { it.element }.filter { it.isValid }.map { getParentPsiFunctionCall(it) }
+            for (fCall in fCalls.sortedBy { it.textLength }) {
+                CallWrapper.wrapWithSubTerms(fCall, def)
             }
         }
 
@@ -443,7 +441,8 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
     }
 
     override fun createArgument(arg: String): PsiElement =
-        factory.createArgumentAppExpr("dummy $arg").argumentList.firstOrNull() ?: error("Failed to create argument ")
+        factory.createArgumentAppExpr("dummy $arg").argumentList.firstOrNull() ?:
+        error("Failed to create argument ")
 }
 
 class TypeApplier : ChangeArgumentExplicitnessApplier() {
@@ -498,7 +497,9 @@ private object CallWrapper {
                     val currentCall = wrapInArguments(argument, def, i)
                     // it's hard to find after wrapping psi-call corresponding argument
                     concrete = if (currentCall.toString() != appExpr.toString()) {
-                        currentCall.arguments.getOrNull(index)?.expression as? Concrete.AppExpression ?: continue
+                        val newCall = currentCall.arguments.getOrNull(index)?.expression as? Concrete.AppExpression
+                        if (newCall == null || newCall.toString() != appExpr.toString()) continue
+                        newCall
                     } else {
                         currentCall
                     }
@@ -602,7 +603,8 @@ private fun createSwitchedTele(factory: ArendPsiFactory, tele: ArendCompositeEle
 
 private fun rewriteArg(text: String): String {
     var newText: String
-    val toExplicit = (text.first() == '{')
+    val toExplicit = (text.first() == '{' && text.last() == '}')
+    val toImplicit = (text.first() == '(' && text.last() == ')')
 
     if (toExplicit) {
         newText = text.substring(1, text.length - 1)
@@ -612,7 +614,12 @@ private fun rewriteArg(text: String): String {
         return newText
     }
 
-    return "{$text}"
+    return if (!toImplicit) {
+        if (text.isNotEmpty() && text.first() == '-') "{ $text}" else "{$text}"
+    } else {
+        newText = text.substring(1, text.length - 1)
+        if (newText.isNotEmpty() && newText.first() == '-') "{ $newText}" else "{$newText}"
+    }
 }
 
 /**
@@ -685,8 +692,7 @@ private fun needToWrapInBrackets(expr: String): Boolean {
 
 private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
     val scope = (call as? ArendArgumentAppExpr)?.scope ?: return null
-
-    return ConcreteBuilder.convertExpression(call as Abstract.Expression)
+    var convertedExpression = ConcreteBuilder.convertExpression(call as Abstract.Expression)
         .accept(
             ExpressionResolveNameVisitor(
                 ArendIdReferableConverter,
@@ -697,7 +703,9 @@ private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
             ), null
         )
         .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
-            as? Concrete.AppExpression ?: return null
+    if (convertedExpression is Concrete.LamExpression)
+        convertedExpression = convertedExpression.body // expression contained implicit lambda "__"
+    return convertedExpression as? Concrete.AppExpression ?: return null
 }
 
 /**
@@ -712,8 +720,12 @@ private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression): Strin
 
         for (arg in concrete.arguments) {
             val concreteArg = arg.expression
+            fun isLiteral (p : Any?) : Boolean = (p as? ArendLiteral)?.applyHole != null
             val argText =
-                if (concreteArg !is Concrete.AppExpression) {
+                if (concreteArg is Concrete.LamExpression &&
+                    (isLiteral(concreteArg.data) || (concreteArg.data as? ArendArgumentAppExpr)?.argumentList?.any { isLiteral((it as? ArendAtomArgument)?.atomFieldsAcc?.atom?.literal) } == true)) {
+                    (concreteArg.body.data as PsiElement).text
+                } else if (concreteArg !is Concrete.AppExpression) {
                     (concreteArg.data as PsiElement).text
                 } else {
                     val (first, last) = getRangeForConcrete(concreteArg, call) ?: continue
@@ -733,7 +745,12 @@ private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression): Strin
                     append("$argText ")
                 }
             } else {
-                append("{$argText} ")
+                val surroundedWithBrackets = argText.trim().let { it.isNotEmpty() && it.first() == '{' && it.last() == '}' }
+                if (!surroundedWithBrackets) {
+                    append("{$argText} ")
+                } else {
+                    append("$argText ")
+                }
             }
         }
     }.trimEnd()

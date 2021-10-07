@@ -72,13 +72,8 @@ class ArendPsiFactory(
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
     }
 
-    fun createExpressionMaybe(expr: String): ArendExpr? {
-        return createReplLine(expr)?.childOfType()
-    }
-
-    fun createReplLine(expr: String): ArendReplLine? {
-        return createFromText(expr)?.childOfType()
-    }
+    fun createExpressionMaybe(expr: String): ArendExpr? =
+        createFromText("\\func foo => $expr")?.childOfType()
 
     fun createExpression(expr: String) =
         createExpressionMaybe(expr) ?: error("Failed to create expr: `$expr`")
