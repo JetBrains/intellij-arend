@@ -60,6 +60,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.pool.GlobalInstancePool
+import org.arend.typechecking.instance.pool.LocalInstancePool
 import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.instance.provider.SimpleInstanceProvider
@@ -259,7 +260,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         if (isRecursive) {
             val visitor = CheckTypeVisitor(DummyErrorReporter.INSTANCE, pool, null)
-            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor)
+            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor, LocalInstancePool(visitor))
             val tcResult = visitor.checkExpr(result, null)
             if (tcResult != null && classifyingExpression != null && classDef.classifyingField != null) {
                 CompareVisitor.compare(visitor.equations, CMP.EQ, classifyingExpression, FieldCallExpression.make(classDef.classifyingField, tcResult.expression), null, null)
