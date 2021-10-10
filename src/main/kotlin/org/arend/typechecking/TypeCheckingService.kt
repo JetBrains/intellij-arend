@@ -242,6 +242,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         return result
     }
 
+    fun isInstanceAvailable(classRef: TCDefReferable): Boolean {
+        val classDef = classRef.typechecked as? ClassDefinition ?: return false
+        return classDef.classifyingField == null && instances[classRef].isNotEmpty()
+    }
+
     private fun getInstances(pool: GlobalInstancePool, classDef: ClassDefinition, classifyingExpression: Expression?, parameters: InstanceSearchParameters): List<FunctionDefinition> {
         fun getFunction(expr: Concrete.Expression?) =
             (((expr as? Concrete.ReferenceExpression)?.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let { listOf(it) }
