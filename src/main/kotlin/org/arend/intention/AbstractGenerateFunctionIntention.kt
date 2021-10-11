@@ -76,9 +76,8 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val enclosingDefinitionReferable = selection.contextPsi.parentOfType<TCDefinition>()!!
         val (newFunctionCall, newFunctionDefinition) = buildRepresentations(
                 enclosingDefinitionReferable, selection,
-                name,
-                freeVariables,
-        ) ?: return
+                freeVariables
+        ) { "$name-lemma" } ?: return
 
         val globalOffsetOfNewDefinition =
                 modifyDocument(editor,
@@ -111,10 +110,10 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     protected open fun buildRepresentations(
             enclosingDefinitionReferable: TCDefinition,
             selection: SelectionResult,
-            enclosingDefinitionName: String,
             freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
+            nameProducer : () -> String
     ): Pair<Concrete.Expression, String>? {
-        val baseName = selection.identifier ?: enclosingDefinitionName.let { "$it-lemma" }
+        val baseName = selection.identifier ?: nameProducer()
         val newFunctionName = generateFreeName(baseName, selection.contextPsi.scope)
 
         val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {

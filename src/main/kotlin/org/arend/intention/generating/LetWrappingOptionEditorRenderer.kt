@@ -21,6 +21,10 @@ internal class LetWrappingOptionEditorRenderer(
         private val project: Project,
         private val commandGroupId: String?
 ) : Disposable {
+    companion object {
+        @NlsSafe private const val TEXT = "\\let … \\in "
+    }
+
     private val insertedRangeReference: AtomicReference<TextRange?> = AtomicReference(null)
     private val highlighterReference: AtomicReference<ScopeHighlighter?> = AtomicReference(ScopeHighlighter(editor))
 
@@ -63,10 +67,9 @@ internal class LetWrappingOptionEditorRenderer(
 
     private fun insertDummyLet(document: Document, offset: Int) {
         executeWriteCommand {
-            @NlsSafe val text = "\\let … \\in "
-            document.insertString(offset, text)
+            document.insertString(offset, TEXT)
             PsiDocumentManager.getInstance(project).commitDocument(document)
-            val range = TextRange(offset, offset + text.length)
+            val range = TextRange(offset, offset + TEXT.length)
             insertedRangeReference.set(range)
             val newHighlighter = ScopeHighlighter(editor)
             highlighterReference.set(newHighlighter)

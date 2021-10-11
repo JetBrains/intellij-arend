@@ -27,22 +27,22 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
 
         \func bar => foo (
           \let
-            a-lemma : Fin 11 => 10
-          \in foo (foo a-lemma))
+            x : Fin 11 => 10
+          \in foo (foo x))
     """)
 
     fun testExistingLet() = doTestLet("foo (foo 10)", """
         \func foo (n : Nat) : Nat => n
 
-        \func bar (n : Nat) : Nat => foo (foo (\let a-lemma : Fin 11 => 10 \in foo (foo {-selection-}1{-caret-}0{-end_selection-})))
+        \func bar (n : Nat) : Nat => foo (foo (\let x : Fin 11 => 10 \in foo (foo {-selection-}1{-caret-}0{-end_selection-})))
     """, """
         \func foo (n : Nat) : Nat => n
 
         \func bar (n : Nat) : Nat => foo (foo (
           \let 
-            | a-lemma : Fin 11 => 10 
-            | a-lemma' : Fin 11 => 10
-          \in foo (foo a-lemma')))
+            | x : Fin 11 => 10 
+            | x' : Fin 11 => 10
+          \in foo (foo x')))
         """)
 
     fun testDependencyOnLocalBinding() = doTestLet("foo x", """
@@ -54,8 +54,8 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
      
         \func bar (n : Nat) : Nat => foo (foo (\let x => 12 \in foo (
           \let
-            a-lemma : Fin 13 => x
-          \in foo a-lemma)))
+            x' : Fin 13 => x
+          \in foo x')))
     """)
 
     fun testBinOp() = doTestLet("(2 + 2) * 4 ^ 10", """
@@ -71,7 +71,7 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
         
         \func f => (
           \let
-            a-lemma : Nat => 4 ^ 10
-          \in (2 + 2) * a-lemma) + 12 + 13 + 14
+            x : Nat => 4 ^ 10
+          \in (2 + 2) * x) + 12 + 13 + 14
     """)
 }

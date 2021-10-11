@@ -140,17 +140,25 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
             }
 
     private fun collectWrappableOptions(rootPsi: ArendCompositeElement, rangeOfReplacement: TextRange): List<WrappableOption> {
-        val wrappableExpressions = acceptableParents(rootPsi).flatMap { expr -> unwrapBinOp(rootPsi, expr, rangeOfReplacement).map(expr::to) }.toList()
-        val parentLetExpressionRanges = wrappableExpressions.map { (expr, range) ->
-            val let = expr.takeIf { it.textRange == range }?.parentOfType<ArendLetExpr>()?.takeIf { it.expr?.textRange == expr.textRange }
-            if (let != null && let.inKw != null) {
+        val rangeMap : MutableMap<TextRange, Pair<ArendExpr, TextRange?>> = mutableMapOf()
+        for (expression in acceptableParents(rootPsi)) {
+            val let = expression.parentOfType<ArendLetExpr>()?.takeIf { it.expr?.textRange == expression.textRange }
+            val letRange = if (let != null && let.inKw != null) {
                 TextRange(let.startOffset, let.inKw!!.endOffset)
             } else {
                 null
             }
+            val subRanges = unwrapBinOp(rootPsi, expression, rangeOfReplacement)
+            for ((i, subExprRange) in subRanges.withIndex()) {
+                if (i == subRanges.lastIndex) {
+                    rangeMap[expression.textRange] = expression to letRange
+                } else {
+                    rangeMap[subExprRange] = expression to null
+                }
+            }
         }
-
-        return wrappableExpressions.mapIndexed { ind, (expr, range) ->
+        return rangeMap.toList().map { (range, exprWithLet) ->
+            val (expr, let) = exprWithLet
             val basicText = rootPsi.containingFile.text.substring(range.startOffset, range.endOffset)
             val strippedText = if (basicText.length > 50) {
                 if (expr is ArendArgumentAppExpr) {
@@ -163,7 +171,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
             } else {
                 basicText.replace('\n', ' ')
             }
-            WrappableOption(SmartPointerManager.createPointer(expr), range, strippedText, parentLetExpressionRanges[ind])
+            WrappableOption(SmartPointerManager.createPointer(expr), range, strippedText, let)
         }
     }
 
@@ -181,7 +189,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
         val scope = selectedElement.scope
         val necessaryFreeVariables = freeVariables.filter { scope.resolveName(it.first.name) == null }
         val representation =
-                buildRepresentations(selection.contextPsi.parentOfType()!!, selection, "a", necessaryFreeVariables)
+                buildRepresentations(selection.contextPsi.parentOfType()!!, selection, necessaryFreeVariables) { "x" }
                         ?: return
 
         executeCommand(project, null, COMMAND_GROUP_ID) {
@@ -204,7 +212,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
             editor: Editor,
             selectedConcrete: Concrete.Expression?,
             psiToExtract: ArendCompositeElement?): Pair<Int, Int>? {
-        val shiftedIdentifierOffset = rangeOfReplacement.startOffset - wrappedElement.startOffset // offset of the new binding in the wrapped expression
+        val shiftedIdentifierOffset = rangeOfReplacement.startOffset - wrappedRange.startOffset // offset of the new binding in the wrapped expression
         val pointer = SmartPointerManager.createPointer(wrappedElement)
         val replaced = replaceExprSmart(editor.document, psiToExtract ?: wrappedElement, selectedConcrete, rangeOfReplacement, null, newFunctionCall, newFunctionCall.toString(), false)
         val actualShiftedIdentifier = if (replaced.startsWith("(")) shiftedIdentifierOffset + 1 else shiftedIdentifierOffset
@@ -254,7 +262,7 @@ class CreateLetBindingIntention : ExtractExpressionToFunctionIntention() {
     private fun ArendLetExpr.addNewClause(clause: String): ArendLetExpr {
         val letClauses = letClauseList
         when (letClauses.size) {
-            0 -> error("There is no empty let expressions in Arend")
+            0 -> error("There are no empty let expressions in Arend")
             else -> {
                 val texts = letClauses.map { it?.text ?: "" } + listOf(clause)
                 val exprText = expr?.text ?: ""
