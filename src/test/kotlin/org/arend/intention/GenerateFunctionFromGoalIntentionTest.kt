@@ -131,4 +131,72 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
        
        \func foo-lemma : Nat => 1
     """)
+
+    fun `test goal with arguments`() = doTest("""
+        \func foo : Nat => {?{-caret-}} 1
+        """, """
+        \func foo : Nat => foo-lemma 1
+        
+        \func foo-lemma (n : Nat) : Nat => {?}
+        """)
+
+    fun `test goal with arguments, replacing in type`() = doTest("""
+        \data Unit | unit
+
+        \func foo (f : Unit -> Unit) (u : Unit) : f u = unit => {?{-caret-}} (f u)
+    """, """
+        \data Unit | unit
+
+        \func foo (f : Unit -> Unit) (u : Unit) : f u = unit => foo-lemma (f u)
+        
+        \func foo-lemma (u : Unit) : u = unit => {?}
+    """)
+
+    fun `test goal with arguments, dependency on argument`() = doTest("""
+        \data D (n : Nat) 
+        
+        \func foo (n : Nat) (d : D n) : Nat => {?{-caret-}} d
+    """, """
+         \data D (n : Nat) 
+        
+         \func foo (n : Nat) (d : D n) : Nat => (foo-lemma n) d
+         
+         \func foo-lemma (n : Nat) (d : D n) : Nat => {?}
+    """)
+
+    fun `test goal with arguments, inside binop`() = doTest("""
+        \func foo : Nat => {?{-caret-}} 1 Nat.+ 2
+    """, """
+        \func foo : Nat => foo-lemma 1 Nat.+ 2
+        
+        \func foo-lemma (n : Nat) : Nat => {?} 
+    """)
+
+    fun `test goal with arguments, arguments with similar type`() = doTest("""
+       \func foo : Nat => {?{-caret-}} 1 1 
+    """, """
+       \func foo : Nat => foo-lemma 1 1
+       
+       \func foo-lemma (n n' : Nat) : Nat => {?} 
+    """)
+
+    fun `test in class`() = doTest("""
+      \class Foo {
+        | foo : Nat
+      }
+        
+      \class Bar \extends Foo {
+        | foo => {?{-caret-}}
+      }
+    """, """
+      \class Foo {
+        | foo : Nat
+      }
+        
+      \class Bar \extends Foo {
+        | foo => Bar-lemma
+      }
+       
+      \func Bar-lemma : Nat => {?}
+    """)
 }

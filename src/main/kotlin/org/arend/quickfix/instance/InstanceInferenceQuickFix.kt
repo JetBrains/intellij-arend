@@ -39,7 +39,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
     override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
-        error.classifyingExpression != null || project.service<TypeCheckingService>().findInstances(error.classRef, error.classifyingExpression).isNotEmpty() //if there is no classifying expression then findInstances is a cheap operation
+        error.classifyingExpression != null || project.service<TypeCheckingService>().isInstanceAvailable(error.classRef)
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         if (editor == null) return

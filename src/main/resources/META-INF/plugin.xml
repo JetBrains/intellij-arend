@@ -159,6 +159,10 @@
 
         <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 
+        <!-- Selection -->
+
+        <smartSelectProvider implementation="org.arend.actions.ArendSmartSelectProvider"/>
+
         <!-- Support arend.yaml -->
 
         <completion.contributor language="yaml" implementationClass="org.arend.yaml.codeInsight.YAMLCompletionContributor"/>
@@ -193,6 +197,11 @@
 
         <intentionAction>
             <className>org.arend.intention.ExtractExpressionToFunctionIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.generating.CreateLetBindingIntention</className>
             <category>Arend</category>
         </intentionAction>
 

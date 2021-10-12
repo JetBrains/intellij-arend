@@ -39,6 +39,8 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
     override fun getName() = config.name
 
+    override fun getVersion() = config.version
+
     override fun getModuleGroup(modulePath: ModulePath, inTests: Boolean) =
         config.findArendFile(modulePath, inTests)
 
@@ -47,7 +49,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
     override fun getUI() = ArendGeneralUI(config.project)
 
     override fun loadHeader(errorReporter: ErrorReporter) =
-        LibraryHeader(config.findModules(false), config.dependencies, config.langVersion, config.classLoaderDelegate, config.extensionMainClass)
+        LibraryHeader(config.findModules(false), config.dependencies, config.version, config.langVersion, config.classLoaderDelegate, config.extensionMainClass)
 
     fun addGeneratedModule(modulePath: ModulePath, scope: Scope) {
         val builder = StringBuilder()

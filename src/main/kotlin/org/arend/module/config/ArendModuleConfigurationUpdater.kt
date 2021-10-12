@@ -22,6 +22,7 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
     override var extensionsDirectory = ""
     override var extensionMainClassData = ""
     override var dependencies: List<LibraryDependency> = emptyList()
+    override var versionString = ""
     override var langVersionString = ""
 
     override fun update(module: Module, rootModel: ModifiableRootModel) {
@@ -31,13 +32,16 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
 
         if (isNewModule) {
             VfsUtil.saveText(moduleRoot.findOrCreateChildData(moduleRoot, FileUtils.LIBRARY_CONFIG_FILE),
-                (if (langVersionString.isNotEmpty()) "$LANG_VERSION: $langVersionString\n" else "") +
-                "$SOURCES: $sourcesDir" +
-                (if (testsDir != "") "\n$TESTS: $testsDir" else "") +
-                (if (withBinaries) "\n$BINARIES: $binariesDirectory" else "") +
-                (if (withExtensions) "\n$EXTENSIONS: $extensionsDirectory" else "") +
-                (if (withExtensions) "\n$EXTENSION_MAIN: $extensionMainClassData" else "") +
-                (if (dependencies.isNotEmpty()) "\n$DEPENDENCIES: ${yamlSeqFromList(dependencies.map { it.name })}" else ""))
+                buildString {
+                    if (langVersionString.isNotEmpty()) appendLine("$LANG_VERSION: $langVersionString")
+                    if (versionString.isNotEmpty()) appendLine("$VERSION: $versionString")
+                    append("$SOURCES: $sourcesDir")
+                    if (testsDir.isNotEmpty()) append("\n$TESTS: $testsDir")
+                    if (withBinaries) append("\n$BINARIES: $binariesDirectory")
+                    if (withExtensions) append("\n$EXTENSIONS: $extensionsDirectory")
+                    if (withExtensions) append("\n$EXTENSION_MAIN: $extensionMainClassData")
+                    if (dependencies.isNotEmpty()) append("\n$DEPENDENCIES: ${yamlSeqFromList(dependencies.map { it.name })}")
+                })
             configService.copyFrom(this)
         } else {
             val yaml = moduleRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let {

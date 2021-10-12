@@ -1,0 +1,1 @@
+\func foo (x : Nat) : Nat => <spot>\let a' => x + y \in</spot> bar (bar <spot>a'</spot>)

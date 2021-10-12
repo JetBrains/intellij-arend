@@ -28,9 +28,15 @@ interface ArendInternalReferable: Group.InternalReferable, PsiLocatedReferable {
 fun fillAdditionalNames(group: ArendGroup, names: HashMap<String, ArrayList<PsiLocatedReferable>>) {
     for (subgroup in group.subgroups) {
         names.computeIfAbsent(subgroup.refName) { ArrayList() }.add(subgroup)
+        subgroup.aliasName?.let {
+            names.computeIfAbsent(it) { ArrayList() }.add(subgroup)
+        }
         fillAdditionalNames(subgroup, names)
     }
     for (referable in group.internalReferables) {
         names.computeIfAbsent(referable.refName) { ArrayList() }.add(referable)
+        referable.aliasName?.let {
+            names.computeIfAbsent(it) { ArrayList() }.add(referable)
+        }
     }
 }

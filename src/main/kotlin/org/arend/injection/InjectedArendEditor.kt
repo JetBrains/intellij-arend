@@ -31,22 +31,20 @@ import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
-import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
-import org.arend.ui.console.ArendClearConsoleAction
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-class InjectedArendEditor(val project: Project, name: String, val treeElement: ArendErrorTreeElement?) {
-    private val editor: Editor?
+abstract class InjectedArendEditor(val project: Project, name: String, var treeElement: ArendErrorTreeElement?) {
+    protected val editor: Editor?
     private val panel: JPanel?
+    protected val actionGroup: DefaultActionGroup = DefaultActionGroup()
 
-    private val printOptionKind: PrintOptionKind
+    protected val printOptionKind: PrintOptionKind
         get() = when (treeElement?.highestError?.error?.level) {
-            null -> PrintOptionKind.CONSOLE_PRINT_OPTIONS
             GeneralError.Level.GOAL -> PrintOptionKind.GOAL_PRINT_OPTIONS
             else -> PrintOptionKind.ERROR_PRINT_OPTIONS
         }
@@ -64,13 +62,6 @@ class InjectedArendEditor(val project: Project, name: String, val treeElement: A
             panel = JPanel(BorderLayout())
             panel.add(editor.component, BorderLayout.CENTER)
 
-            val actionGroup = DefaultActionGroup()
-            if (treeElement != null) {
-                actionGroup.add(ActionManager.getInstance().getAction("Arend.PinErrorMessage"))
-            } else {
-                actionGroup.add(ArendClearConsoleAction(project, editor.contentComponent))
-            }
-            actionGroup.add(ArendPrintOptionsActionGroup(project, printOptionKind, treeElement?.errors?.any { it.error.hasExpressions() } ?: true))
             val toolbar = ActionManager.getInstance().createActionToolbar("ArendEditor.toolbar", actionGroup, false)
             toolbar.setTargetComponent(panel)
             panel.add(toolbar.component, BorderLayout.WEST)
@@ -125,42 +116,40 @@ class InjectedArendEditor(val project: Project, name: String, val treeElement: A
         }
 
         val text = builder.toString()
-        val document = editor.document
-        runWriteAction {
-            document.setText(text)
-        }
-
-        val psi = PsiDocumentManager.getInstance(project).getPsiFile(document)
-        (psi as? PsiInjectionTextFile)?.apply {
-            injectionRanges = visitor.textRanges
-            scope = fileScope
-            injectedExpressions = visitor.expressions
-        }
-
-        val support = EditorHyperlinkSupport.get(editor)
-        support.clearHyperlinks()
-        for (hyperlink in visitor.hyperlinks) {
-            support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
+        ApplicationManager.getApplication().invokeLater {
+            if (editor.isDisposed) return@invokeLater
+            runWriteAction {
+                editor.document.setText(text)
+                getInjectionFile()?.apply {
+                    injectionRanges = visitor.textRanges
+                    scope = fileScope
+                    injectedExpressions = visitor.expressions
+                }
+            }
+            val support = EditorHyperlinkSupport.get(editor)
+            support.clearHyperlinks()
+            for (hyperlink in visitor.hyperlinks) {
+                support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
+            }
         }
     }
 
     fun addDoc(doc: Doc, docScope: Scope) {
         if (editor == null) return
 
-        val document = editor.document
         val builder = StringBuilder()
         val visitor = CollectingDocStringBuilder(builder, treeElement?.sampleError?.error)
         doc.accept(visitor, false)
         builder.append('\n')
         val text = builder.toString()
-        val file = runReadAction { PsiDocumentManager.getInstance(project).getPsiFile(document) } as? PsiInjectionTextFile
-
         ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
+            if (editor.isDisposed) return@runUndoTransparentWriteAction
+            val document = editor.document
             val length = document.textLength
             document.insertString(length, text)
             editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
 
-            file?.apply {
+            getInjectionFile()?.apply {
                 scope = docScope
                 injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
                 injectedExpressions.addAll(visitor.expressions)
@@ -174,15 +163,21 @@ class InjectedArendEditor(val project: Project, name: String, val treeElement: A
     }
 
     fun clearText() {
-        editor?.document?.let {
-            (PsiDocumentManager.getInstance(project).getPsiFile(it) as? PsiInjectionTextFile)?.apply {
-                injectionRanges.clear()
-                injectedExpressions.clear()
-            }
+        editor ?: return
+        ApplicationManager.getApplication().invokeLater {
+            if (editor.isDisposed) return@invokeLater
             runWriteAction {
-                it.setText("")
+                getInjectionFile()?.apply {
+                    injectionRanges.clear()
+                    injectedExpressions.clear()
+                }
+                editor.document.setText("")
             }
         }
+    }
+
+    private fun getInjectionFile(): PsiInjectionTextFile? = editor?.document?.let {
+        PsiDocumentManager.getInstance(project).getPsiFile(it) as? PsiInjectionTextFile
     }
 
     private class ProjectPrintConfig(project: Project, printOptionsKind: PrintOptionKind, scope: Scope?) : PrettyPrinterConfigWithRenamer(scope) {

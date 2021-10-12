@@ -50,14 +50,17 @@ import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
+import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
+import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.pool.GlobalInstancePool
+import org.arend.typechecking.instance.pool.LocalInstancePool
 import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.instance.provider.SimpleInstanceProvider
@@ -78,7 +81,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this) {
         override fun showLibraryNotFoundError(libraryName: String) {
             if (libraryName == AREND_LIB) {
-                showDownloadNotification(project, false)
+                showDownloadNotification(project, Reason.MISSING)
             } else {
                 super.showLibraryNotFoundError(libraryName)
             }
@@ -86,7 +89,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         override fun showIncorrectLanguageVersionError(libraryName: String?, range: Range<Version>?) {
             if (libraryName == AREND_LIB) {
-                showDownloadNotification(project, true)
+                showDownloadNotification(project, Reason.WRONG_VERSION)
             } else {
                 super.showIncorrectLanguageVersionError(libraryName, range)
             }
@@ -100,6 +103,16 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 }
             }
             return super.getRegisteredLibraries()
+        }
+
+        override fun afterLibraryLoading(library: Library, successful: Boolean) {
+            if (!successful || !service<ArendSettings>().checkForUpdates) return
+            for (dependency in library.dependencies) {
+                if (dependency.name == AREND_LIB) {
+                    checkForUpdates(project, getRegisteredLibrary(AREND_LIB)?.version)
+                    break
+                }
+            }
         }
     }
 
@@ -139,7 +152,15 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 val tcRefMap = preludeLibrary.prelude?.tcRefMap
                 if (tcRefMap != null) {
                     Prelude.forEach {
-                        tcRefMap[it.referable.refLongName] = it.referable
+                        val name = it.referable.refLongName
+                        tcRefMap[name] = it.referable
+                        val dataRef = it.referable
+                        if (dataRef is DataLocatedReferable) {
+                            val ref = Scope.Utils.resolveName(preludeScope, name.toList())
+                            if (ref is PsiLocatedReferable) {
+                                dataRef.setPointer(ref)
+                            }
+                        }
                     }
                 }
             }
@@ -221,6 +242,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         return result
     }
 
+    fun isInstanceAvailable(classRef: TCDefReferable): Boolean {
+        val classDef = classRef.typechecked as? ClassDefinition ?: return false
+        return classDef.classifyingField == null && instances[classRef].isNotEmpty()
+    }
+
     private fun getInstances(pool: GlobalInstancePool, classDef: ClassDefinition, classifyingExpression: Expression?, parameters: InstanceSearchParameters): List<FunctionDefinition> {
         fun getFunction(expr: Concrete.Expression?) =
             (((expr as? Concrete.ReferenceExpression)?.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let { listOf(it) }
@@ -239,7 +265,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         if (isRecursive) {
             val visitor = CheckTypeVisitor(DummyErrorReporter.INSTANCE, pool, null)
-            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor)
+            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor, LocalInstancePool(visitor))
             val tcResult = visitor.checkExpr(result, null)
             if (tcResult != null && classifyingExpression != null && classDef.classifyingField != null) {
                 CompareVisitor.compare(visitor.equations, CMP.EQ, classifyingExpression, FieldCallExpression.make(classDef.classifyingField, tcResult.expression), null, null)

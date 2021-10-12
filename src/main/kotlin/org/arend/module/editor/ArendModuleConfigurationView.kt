@@ -36,21 +36,22 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
     }
 
     private val sourcesTextField = TextFieldWithBrowseButton().apply {
-        addBrowseFolderListener("Sources directory", "Select the directory in which the source files${if (name == null) "" else " of module $name"} are located", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
+        addBrowseFolderListener("Sources Directory", "Select the directory in which the source files${if (name == null) "" else " of module $name"} are located", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
     }
     private val testsTextField = TextFieldWithBrowseButton().apply {
-        addBrowseFolderListener("Tests directory", "Select the directory with test files${if (name == null) "" else " for module $name"}", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
+        addBrowseFolderListener("Tests Directory", "Select the directory with test files${if (name == null) "" else " for module $name"}", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
     }
     private val binariesSwitch = JBCheckBox("Save typechecker output to ", false)
     private val binariesTextField = TextFieldWithBrowseButton().apply {
-        addBrowseFolderListener("Binaries directory", "Select the directory in which the binary files${if (name == null) "" else " of module $name"} will be put", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
+        addBrowseFolderListener("Binaries Directory", "Select the directory in which the binary files${if (name == null) "" else " of module $name"} will be put", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
     }
     private val extensionsSwitch = JBCheckBox("Load language extensions", false)
     private val extensionsTextField = TextFieldWithBrowseButton().apply {
-        addBrowseFolderListener("Extensions directory", "Select the directory in which the language extensions${if (name == null) "" else " of module $name"} are located", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
+        addBrowseFolderListener("Extensions Directory", "Select the directory in which the language extensions${if (name == null) "" else " of module $name"} are located", project, FileChooserDescriptorFactory.createSingleFolderDescriptor(), textComponentAccessor)
     }
     private val extensionMainClassTextField = JTextField()
     private val langVersionField = JTextField()
+    private val versionField = JTextField()
 
     private val dualList = object : DualList<LibraryDependency>("Available libraries:", "Module dependencies:", true) {
         override fun isOK(t: LibraryDependency): Boolean {
@@ -127,6 +128,12 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
             dualList.availableList.content -= value
         }
 
+    override var versionString: String
+        get() = versionField.text
+        set(value) {
+            versionField.text = value
+        }
+
     override var langVersionString: String
         get() = langVersionField.text
         set(value) {
@@ -148,6 +155,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
 
     fun createComponent() = panel {
         labeled("Language version: ", langVersionField)
+        labeled("Library version: ", versionField)
         labeled("Sources directory: ", sourcesTextField)
         labeled("Tests directory: ", testsTextField)
         checked(binariesSwitch, binariesTextField)

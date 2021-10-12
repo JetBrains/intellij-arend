@@ -15,6 +15,7 @@ interface ArendModuleConfiguration {
     var extensionsDirectory: String
     var extensionMainClassData: String
     var dependencies: List<LibraryDependency>
+    var versionString: String
     var langVersionString: String
 
     var flaggedBinariesDir: String?
@@ -42,6 +43,7 @@ interface ArendModuleConfiguration {
         extensionsDirectory = another.extensionsDirectory
         extensionMainClassData = another.extensionMainClassData
         dependencies = ArrayList(another.dependencies)
+        versionString = another.versionString
         langVersionString = another.langVersionString
     }
 
@@ -55,6 +57,7 @@ interface ArendModuleConfiguration {
         extensionsDirectory == another.extensionsDirectory &&
         extensionMainClassData == another.extensionMainClassData &&
         dependencies == another.dependencies &&
+        versionString == another.versionString &&
         langVersionString == another.langVersionString
 
     fun toRelative(root: String?, str: String) = if (root == null || str.isEmpty()) str else {
