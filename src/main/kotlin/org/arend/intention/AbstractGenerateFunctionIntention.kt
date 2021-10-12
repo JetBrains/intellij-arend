@@ -45,9 +45,9 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
 
     override fun getFamilyName() = ArendBundle.message("arend.generate.function")
 
-    protected abstract fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult?
+    internal abstract fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult?
 
-    protected data class SelectionResult(
+    internal data class SelectionResult(
             val expectedType: Expression?,
             val contextPsi: ArendCompositeElement,
             val rangeOfReplacement: TextRange,
@@ -67,7 +67,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         performRefactoring(freeVariables, selectionResult, editor, project)
     }
 
-    protected open fun performRefactoring(
+    internal open fun performRefactoring(
             freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
             selection: SelectionResult,
             editor: Editor, project: Project
@@ -107,7 +107,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     }
 
 
-    protected open fun buildRepresentations(
+    internal open fun buildRepresentations(
             enclosingDefinitionReferable: TCDefinition,
             selection: SelectionResult,
             freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,

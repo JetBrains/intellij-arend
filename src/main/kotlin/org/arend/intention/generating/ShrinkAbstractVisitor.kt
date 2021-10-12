@@ -13,7 +13,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.util.forEachRange
 import java.math.BigInteger
 
-class ShrinkingAbstractVisitor(val textRange: TextRange) : AbstractExpressionVisitor<Unit, String> {
+class ShrinkAbstractVisitor(val textRange: TextRange) : AbstractExpressionVisitor<Unit, String> {
     companion object {
         private const val DOTS = "…"
     }
@@ -70,7 +70,7 @@ class ShrinkingAbstractVisitor(val textRange: TextRange) : AbstractExpressionVis
     }
 
     override fun visitCase(data: Any?, isSFunc: Boolean, evalKind: Abstract.EvalKind?, arguments: MutableCollection<out Abstract.CaseArgument>, resultType: Abstract.Expression?, resultTypeLevel: Abstract.Expression?, clauses: MutableCollection<out Abstract.FunctionClause>, params: Unit?): String {
-        return """\case ${arguments.map { it.expression?.accept(this, Unit) }.joinToString(", ")} \with { $DOTS }"""
+        return """\case ${arguments.joinToString(", ") { DOTS }} \with { $DOTS }"""
     }
 
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableCollection<Int>, params: Unit?): String {
