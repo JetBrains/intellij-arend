@@ -110,4 +110,26 @@ class ArendReformatTest : ArendFormatterTestBase() {
 
     fun test246() = checkReformat("\\func f (n : Nat) : Nat \\elim n\n  | _ => {?} -- asda",
         "\\func f (n : Nat) : Nat \\elim n\n  | _ => {?} -- asda")
+
+    fun testLetWithNewlinesAfterFatArrow() = checkReformat(
+    """
+        \func f : Nat => \let 
+          x => 1
+           \in 2""".trimIndent(),
+    """
+        \func f : Nat =>
+          \let
+            x => 1
+          \in 2""".trimIndent())
+
+    fun testLetWithNewlinesAfterCall() = checkReformat(
+    """
+        \func f : Nat -> Nat => f (\let
+         x => 1 
+         \in 2)""".trimIndent(),
+    """
+        \func f : Nat -> Nat => f (
+          \let
+            x => 1 
+          \in 2)""".trimIndent())
 }
