@@ -69,7 +69,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
     }
 
     fun findReferable(expr: Abstract.Expression?): Referable? {
-        val ref = expr?.accept(this, null)
+        val ref = expr?.accept(this, null)?.underlyingReferable
         if (ref is PsiReferable) {
             return ref
         }
