@@ -14,7 +14,10 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.parentArgumentAppExpr
 import org.arend.refactoring.unwrapParens
+import org.arend.term.concrete.Concrete
+import org.arend.typechecking.visitor.VoidConcreteVisitor
 import org.arend.util.ArendBundle
+import org.arend.util.appExprToConcrete
 import org.arend.util.isBinOp
 
 class RedundantParensInspection : ArendInspectionBase() {
@@ -106,12 +109,29 @@ private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
                 ?.takeIf { it.fieldAccList.isEmpty() }
 
 private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: ArendExpr): Boolean {
-    val parentAppExpr = getParentAtomFieldsAcc(tuple)?.let { parentArgumentAppExpr(it) }
-    if (parentAppExpr != null && BinOpIntentionUtil.toConcreteBinOpApp(parentAppExpr) != null) {
+    val parentAtomFieldsAcc = getParentAtomFieldsAcc(tuple) ?: return false
+    val parentAppExprPsi = parentArgumentAppExpr(parentAtomFieldsAcc) ?: return false
+    val parentAppExpr = directParentAppExpression(parentAppExprPsi, parentAtomFieldsAcc) ?: return false
+    if (BinOpIntentionUtil.isBinOpApp(parentAppExpr)) {
         val childAppExpr = if (expression is ArendNewExpr && isAtomic(expression)) expression.argumentAppExpr else null
         return childAppExpr != null && BinOpIntentionUtil.toConcreteBinOpApp(childAppExpr) == null
     }
     return false
+}
+
+private fun directParentAppExpression(parentAppExpr: ArendArgumentAppExpr, argument: PsiElement): Concrete.AppExpression? {
+    val concreteParentAppExpr = appExprToConcrete(parentAppExpr, true) ?: return null
+    var directParent: Concrete.AppExpression? = null
+    concreteParentAppExpr.accept(object : VoidConcreteVisitor<Void?, Void?>() {
+        override fun visitApp(app: Concrete.AppExpression?, params: Void?): Void? {
+            if (app != null && app.arguments.any { it.expression.data == argument }) {
+                directParent = app
+                return null
+            }
+            return super.visitApp(app, params)
+        }
+    }, null)
+    return directParent
 }
 
 private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tuple) {
