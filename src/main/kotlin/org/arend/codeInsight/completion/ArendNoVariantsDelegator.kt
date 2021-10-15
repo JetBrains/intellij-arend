@@ -4,12 +4,10 @@ import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionResult
 import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.openapi.components.service
-import com.intellij.psi.PsiElement
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
-import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.Consumer
 import org.arend.naming.scope.ScopeFactory.isGlobalScopeVisible
 import org.arend.psi.*
@@ -25,18 +23,11 @@ import org.arend.typechecking.TypeCheckingService
 class ArendNoVariantsDelegator : CompletionContributor() {
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
         val tracker = object : Consumer<CompletionResult> {
-            val variants = HashSet<PsiElement>()
+            var hasVariant: Boolean = false
             override fun consume(plainResult: CompletionResult) {
                 result.passResult(plainResult)
-                val elementPsi: PsiElement? = plainResult.lookupElement.psiElement
-                if (elementPsi != null) {
-                    val elementIsWithinFileBeingEdited = elementPsi.containingFile == parameters.position.containingFile
-                    if (!elementIsWithinFileBeingEdited) variants.add(elementPsi) else {
-                        val originalPosition = parameters.originalPosition
-                        if (originalPosition != null) parameters.originalFile.findElementAt(elementPsi.startOffset - parameters.position.startOffset + originalPosition.startOffset)?.ancestors?.
-                        firstOrNull {it.elementType == elementPsi.elementType }?.let { variants.add(it) }
-                    }
-                }
+                val element: LookupElement? = plainResult.lookupElement
+                hasVariant = hasVariant || element != null
             }
         }
         result.runRemainingContributors(parameters, tracker)
@@ -49,7 +40,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         val editor = parameters.editor
         val project = editor.project
 
-        if (project != null && allowedPosition) {
+        if (!tracker.hasVariant && project != null && allowedPosition) {
             val scope = ProjectAndLibrariesScope(project)
             val tcService = project.service<TypeCheckingService>()
 
@@ -57,7 +48,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 if (result.prefixMatcher.prefixMatches(name)) {
                     val locatedReferables = refs ?: StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
                     locatedReferables.forEach {
-                        if (it !is ArendFile && !tracker.variants.contains(it)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
+                        if (it !is ArendFile) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
                             result.addElement(
                                     run {
                                         val oldHandler = it.insertHandler
