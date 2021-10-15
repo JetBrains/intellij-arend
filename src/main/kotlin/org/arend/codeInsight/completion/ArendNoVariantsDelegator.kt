@@ -49,7 +49,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         val editor = parameters.editor
         val project = editor.project
 
-        if (project != null && allowedPosition) {
+        if (project != null && allowedPosition && (tracker.variants.isEmpty() || !parameters.isAutoPopup)) {
             val scope = ProjectAndLibrariesScope(project)
             val tcService = project.service<TypeCheckingService>()
 
@@ -89,7 +89,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 true // If only a limited number (say N) of variants is needed, return false after N added lookUpElements
             }
         } else {
-            result.restartCompletionWhenNothingMatches()
+            result.restartCompletionOnAnyPrefixChange()
         }
 
         super.fillCompletionVariants(parameters, result)
