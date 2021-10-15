@@ -45,6 +45,12 @@ class ArendPsiFactory(
                 ?: error("Failed to create name tele " + (name ?: ""))
     }
 
+    fun createFieldTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendFieldTele {
+        val lparen = if (isExplicit) "(" else "{"
+        val rparen = if (isExplicit) ")" else "}"
+        return createFromText("\\class Dummy $lparen ${name ?: "_"} : $typeExpr $rparen")!!.childOfType()!!
+    }
+
     fun createTypeTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendTypeTele {
         val lparen = if (isExplicit) "(" else "{"
         val rparen = if (isExplicit) ")" else "}"
@@ -70,13 +76,8 @@ class ArendPsiFactory(
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
     }
 
-    fun createExpressionMaybe(expr: String): ArendExpr? {
-        return createReplLine(expr)?.childOfType()
-    }
-
-    fun createReplLine(expr: String): ArendReplLine? {
-        return createFromText(expr)?.childOfType()
-    }
+    fun createExpressionMaybe(expr: String): ArendExpr? =
+        createFromText("\\func foo => $expr")?.childOfType()
 
     fun createExpression(expr: String) =
         createExpressionMaybe(expr) ?: error("Failed to create expr: `$expr`")
@@ -124,6 +125,16 @@ class ArendPsiFactory(
             append("| $name { }")
         }
         return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
+    }
+
+    fun createLam(teles: List<String>, expr: String): ArendLamExpr {
+        val code = buildString {
+            append("\\lam")
+            append(teles.joinToString(" ", " "))
+            append(" => ")
+            append(expr)
+        }.trimEnd()
+        return createFromText(code)?.childOfType() ?: error("Failed to create lambda: `$code`")
     }
 
     fun createPairOfBraces(): Pair<PsiElement, PsiElement> {

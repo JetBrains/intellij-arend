@@ -64,7 +64,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         context.setupUIComponentPresentation(text, hlStart, hlEnd, !context.isUIComponentEnabled, false, false, context.defaultParameterColor)
     }
 
-    private fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
+    public fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
         val params = mutableListOf<Abstract.Parameter>()
         val psiFactory = ArendPsiFactory(ProjectManager.getInstance().openProjects.first())
         if (def is Abstract.ParametersHolder) {
@@ -177,7 +177,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return res
     }
 
-    private fun findParamIndex(params: List<Abstract.Parameter>, argsExplicitness: List<Boolean>): Int {
+    public fun findParamIndex(params: List<Abstract.Parameter>, argsExplicitness: List<Boolean>): Int {
         if (argsExplicitness.isEmpty()) return -1
 
         val argIsExplicit = argsExplicitness.last()

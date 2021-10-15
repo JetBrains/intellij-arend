@@ -16,6 +16,7 @@ import com.intellij.util.castSafelyTo
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.typechecking.error.ErrorService
@@ -337,6 +338,13 @@ fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
     is ArendTypeTele -> tele.typedExpr?.expr
     is ArendFieldTele -> tele.expr
     else -> null
+}
+
+fun getTelesFromDef(def: PsiElement?): List<ArendCompositeElement> = when (def) {
+    is ArendDefFunction -> def.nameTeleList
+    is ArendDefClass -> def.fieldTeleList
+    is ArendClassField -> def.typeTeleList
+    else -> emptyList()
 }
 
 fun Editor.getSelectionWithoutErrors(): TextRange? =

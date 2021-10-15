@@ -2,6 +2,7 @@ package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.*
 import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.codeInspection.QuickFix
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
