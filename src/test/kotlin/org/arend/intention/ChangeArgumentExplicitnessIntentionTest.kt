@@ -619,4 +619,38 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func foo {A : \Type} (a : A) (h : \Pi (a : A) -> a = a) (p : idp = h a *> h a) => pmap _ _ {h a *>} p 
     """)
+
+    fun testParenthesizedBinOp() = doTest("""
+       \open Nat (+)
+
+       \func pmap2 {A B C : \Type} (f : A -> B -> C) {a a' : A} (p : a = a') {b b' : B} ({-caret-}q : b = b') : f a b = f a' b'
+         => path (\lam i => f (p @ i) (q @ i))
+
+       \func inv {A : \Type} {a a' : A} (p : a = a') : a' = a \elim p
+         | idp => idp
+
+       \func +-assoc {x y z : Nat} : (x + y) + z = x + (y + z) => {?}
+
+       \func foo (x y z : Nat) : x + (y + z) + (x + (y + z)) = x + y + z + (x + y + z)
+         => inv (pmap2 (+) +-assoc +-assoc)
+         
+       \func foo2 (x y z : Nat) : x + y + z + (x + y + z) = x + (y + z) + (x + (y + z))
+         => pmap2 (+) +-assoc +-assoc   
+    """, """
+       \open Nat (+)
+
+       \func pmap2 {A B C : \Type} (f : A -> B -> C) {a a' : A} (p : a = a') {b b' : B} {q : b = b'} : f a b = f a' b'
+         => path (\lam i => f (p @ i) (q @ i))
+
+       \func inv {A : \Type} {a a' : A} (p : a = a') : a' = a \elim p
+         | idp => idp
+
+       \func +-assoc {x y z : Nat} : (x + y) + z = x + (y + z) => {?}
+
+       \func foo (x y z : Nat) : x + (y + z) + (x + (y + z)) = x + y + z + (x + y + z)
+         => inv (pmap2 (+) +-assoc {_} {_} {+-assoc})
+       
+       \func foo2 (x y z : Nat) : x + y + z + (x + y + z) = x + (y + z) + (x + (y + z))
+         => pmap2 (+) +-assoc {_} {_} {+-assoc}   
+    """)
 }

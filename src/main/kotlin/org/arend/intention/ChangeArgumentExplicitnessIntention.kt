@@ -11,6 +11,7 @@ import org.arend.error.DummyErrorReporter
 import org.arend.ext.concrete.expr.ConcreteExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -721,11 +722,15 @@ private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression): Strin
         for (arg in concrete.arguments) {
             val concreteArg = arg.expression
             fun isLiteral (p : Any?) : Boolean = (p as? ArendLiteral)?.applyHole != null
+            var parens = false
             val argText =
                 if (concreteArg is Concrete.LamExpression &&
                     (isLiteral(concreteArg.data) || (concreteArg.data as? ArendArgumentAppExpr)?.argumentList?.any { isLiteral((it as? ArendAtomArgument)?.atomFieldsAcc?.atom?.literal) } == true)) {
                     (concreteArg.body.data as PsiElement).text
                 } else if (concreteArg !is Concrete.AppExpression) {
+                    if (concreteArg is Concrete.ReferenceExpression) {
+                        parens = concreteArg.referent is GlobalReferable && (concreteArg.referent as GlobalReferable).representablePrecedence.isInfix
+                    }
                     (concreteArg.data as PsiElement).text
                 } else {
                     val (first, last) = getRangeForConcrete(concreteArg, call) ?: continue
@@ -739,7 +744,7 @@ private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression): Strin
             }
 
             if (arg.isExplicit) {
-                if (needToWrapInBrackets(argText)) {
+                if (needToWrapInBrackets(argText) || parens) {
                     append("($argText) ")
                 } else {
                     append("$argText ")
