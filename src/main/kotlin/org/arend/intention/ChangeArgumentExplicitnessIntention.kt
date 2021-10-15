@@ -45,7 +45,7 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
 ) {
     override fun isApplicableTo(element: ArendCompositeElement, caretOffset: Int, editor: Editor): Boolean {
         return when (element) {
-            is ArendNameTele, is ArendFieldTele, is ArendTypeTele -> true
+            is ArendNameTele, is ArendFieldTele, is ArendTypeTele -> element.parent?.let{ it is ArendDefinition || it is ArendClassField } ?: false
             else -> false
         }
     }
