@@ -2,7 +2,6 @@ package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.*
 import com.intellij.codeInsight.intention.IntentionAction
-import com.intellij.codeInspection.QuickFix
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
@@ -21,7 +20,9 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.ReferenceExpression
 import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
+import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.ext.error.*
+import org.arend.ext.error.quickFix.ErrorQuickFix
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.ext.prettyprinting.doc.DocFactory.vHang
 import org.arend.ext.prettyprinting.doc.DocStringBuilder
@@ -300,10 +301,14 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     registerFix(info, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
                 }
 
-                is IgnoredArgumentError -> {
-                    when (val parent = cause.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
-                        is ArendArgument -> registerFix(info, RemoveArgumentQuickFix(SmartPointerManager.createPointer(parent)))
-                        is ArendTupleExpr -> registerFix(info, RemoveTupleExprQuickFix(SmartPointerManager.createPointer(parent), true))
+                is TypecheckingError -> for (quickFix in error.quickFixes) {
+                    val sourceNode = quickFix.replacement
+                    if (sourceNode == null) {
+                        val target = getTargetPsiElement(quickFix, cause)
+                        when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
+                            is ArendArgument -> registerFix(info, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
+                            is ArendTupleExpr -> registerFix(info, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
+                        }
                     }
                 }
             }
@@ -315,6 +320,13 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
     }
 
     companion object {
+        private fun getTargetPsiElement(quickFix: ErrorQuickFix, cause: PsiElement): PsiElement? =
+            when (val target = quickFix.target) {
+                null -> cause
+                is ConcreteSourceNode -> target.data as? PsiElement
+                else -> target as? PsiElement
+            }
+
         fun levelToSeverity(level: GeneralError.Level): HighlightSeverity =
             when (level) {
                 GeneralError.Level.ERROR -> HighlightSeverity.ERROR

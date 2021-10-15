@@ -313,6 +313,17 @@ fun PsiElement.addRangeBeforeWithNotification(firstElement: PsiElement, lastElem
     return result
 }
 
+fun PsiElement.deleteWithWhitespaces() {
+    if (prevElement is PsiWhiteSpace) {
+        val next = nextElement
+        if (next is PsiWhiteSpace) {
+            parent.deleteChildRangeWithNotification(this, next)
+            return
+        }
+    }
+    deleteWithNotification()
+}
+
 fun getArendNameText(element: PsiElement?): String? = when (element) {
     is LeafPsiElement -> when (element.elementType) {
         ID -> element.text
