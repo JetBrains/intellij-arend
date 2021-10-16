@@ -4,6 +4,7 @@ import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionResult
 import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.impl.BetterPrefixMatcher
 import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.ProjectAndLibrariesScope
@@ -54,7 +55,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
             val tcService = project.service<TypeCheckingService>()
 
             val consumer = { name: String, refs: List<PsiLocatedReferable>? ->
-                if (result.prefixMatcher.prefixMatches(name)) {
+                if (BetterPrefixMatcher(result.prefixMatcher, Int.MIN_VALUE).prefixMatches(name)) {
                     val locatedReferables = refs ?: StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
                     locatedReferables.forEach {
                         if (it !is ArendFile && !tracker.variants.contains(it)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
