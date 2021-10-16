@@ -13,6 +13,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         java: [11]
     runs-on: ${{ matrix.os }}
+    env:
+      NO_FS_ROOTS_ACCESS_CHECK: true
     steps:
     - uses: actions/checkout@v2
       with:
