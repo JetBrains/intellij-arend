@@ -1,0 +1,45 @@
+name: check
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  gradle:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        java: [11]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: intellij-arend
+    - uses: actions/checkout@v2
+      with:
+        repository: JetBrains/Arend
+        path: Arend
+    - uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java }}
+    - uses: eskatos/gradle-command-action@v1
+      with:
+        wrapper-cache-enabled: false
+        build-root-directory: intellij-arend
+        wrapper-directory: intellij-arend
+        arguments: test --info --no-daemon --stacktrace
+    - uses: eskatos/gradle-command-action@v1
+      # Normally, macOS runs faster than the other two
+      if: matrix.os == 'macOS-latest' && matrix.java == '11'
+      with:
+        wrapper-cache-enabled: false
+        build-root-directory: intellij-arend
+        wrapper-directory: intellij-arend
+        arguments: assemble --info --no-daemon --stacktrace
+    - uses: actions/upload-artifact@master
+      if: matrix.os == 'macOS-latest' && matrix.java == '11'
+      with:
+        name: Plugin
+        path: intellij-arend/build/distributions
