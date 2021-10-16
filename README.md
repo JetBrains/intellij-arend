@@ -3,7 +3,7 @@
 ![](https://arend-lang.github.io/assets/images/Logo_byJB.svg)
 
 [![JetBrains incubator project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
-[![Build Status][travis-build-status-svg]][travis-build-status]
+[![Actions Status](https://github.com/JetBrains/intellij-arend/workflows/check/badge.svg)](https://github.com/JetBrains/intellij-arend/actions)
 [![Downloads][d-svg]][jb-url]
 [![Version][v-svg]][jb-url]
 
