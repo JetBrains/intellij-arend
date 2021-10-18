@@ -1433,7 +1433,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \class D \extends C {
                  \func fubar => foo {\new C {| number => 1}}
 
-                 \func foo => C.bar Nat.+ (C.bar {\this}) Nat.+ number 
+                 \func foo => bar Nat.+ (bar {\this}) Nat.+ number 
                } 
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 
