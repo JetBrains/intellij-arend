@@ -4,6 +4,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiComment
@@ -487,6 +488,29 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
 
     return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
 }
+
+
+/**
+ * @return a new let expression inserted psi tree
+ */
+fun ArendLetExpr.addNewClause(clause: String): ArendLetExpr {
+    val letClauses = letClauseList
+    when (letClauses.size) {
+        0 -> error("There are no empty let expressions in Arend")
+        else -> {
+            val clauseTextList = letClauses.map { it?.text ?: "" } + listOf(clause)
+            val exprText = expr?.text ?: ""
+            @NlsSafe val newLetRepresentation =
+                "${getKw().text} ${clauseTextList.joinToString("") { "\n | $it" }} \n\\in $exprText"
+            val newLetPsi = ArendPsiFactory(project).createExpression(newLetRepresentation)
+            return this.replace(newLetPsi) as ArendLetExpr
+        }
+    }
+}
+
+private fun ArendLetExpr.getKw(): PsiElement =
+    letKw ?: haveKw ?: letsKw ?: havesKw ?: error("At least one of the keywords should be provided")
+
 
 fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this"), anchor: PsiElement? = definition.nameIdentifier): String {
     val thisVarName = StringRenamer().generateFreshName(variable, getAllBindings(definition).map { VariableImpl(it) }.toList())

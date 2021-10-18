@@ -12,7 +12,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
@@ -28,6 +27,7 @@ import org.arend.intention.ExtractExpressionToFunctionIntention
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.TCDefinition
+import org.arend.refactoring.addNewClause
 import org.arend.refactoring.replaceExprSmart
 import org.arend.resolving.util.parseBinOp
 import org.arend.term.concrete.Concrete
@@ -307,22 +307,4 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         }
         return psiFile?.findElementAt(rangeOfWrapped.startOffset + 1)?.parentOfType()!!
     }
-
-    private fun ArendLetExpr.addNewClause(clause: String): ArendLetExpr {
-        val letClauses = letClauseList
-        when (letClauses.size) {
-            0 -> error("There are no empty let expressions in Arend")
-            else -> {
-                val clauseTextList = letClauses.map { it?.text ?: "" } + listOf(clause)
-                val exprText = expr?.text ?: ""
-                @NlsSafe val newLetRepresentation =
-                        "${getKw().text} ${clauseTextList.joinToString("") { "\n | $it" }} \n\\in $exprText"
-                val newLetPsi = ArendPsiFactory(project).createExpression(newLetRepresentation)
-                return this.replace(newLetPsi) as ArendLetExpr
-            }
-        }
-    }
-
-    private fun ArendLetExpr.getKw(): PsiElement =
-            letKw ?: haveKw ?: letsKw ?: havesKw ?: error("At least one of the keywords should be provided")
 }
