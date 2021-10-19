@@ -89,9 +89,10 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             \func foobar => Foo.foo
             """, """
             \module Foo \where {
-              \func bar => 2 \where {
-                \func foo => 1
-              }
+              \func bar => 2 
+                \where {
+                  \func foo => 1
+                }
             }
 
             \func foobar => Foo.bar.foo
@@ -214,15 +215,16 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                   \func lol => foo + Foo.foo + bar.foobar + Foo.bar.foobar
                 }
 
-                \func goo => 4 \where {
-                  \module Foo \where {
-                    \func foo => bar.foobar + Foo.bar.foobar + bar.foobar
-
-                    \func bar => 2 \where {
-                      \func foobar => foo + bar
+                \func goo => 4
+                  \where {
+                    \module Foo \where {
+                      \func foo => bar.foobar + Foo.bar.foobar + bar.foobar
+                
+                      \func bar => 2 \where {
+                        \func foobar => foo + bar
+                      }
                     }
                   }
-                }
             """, "Main", "goo")
 
     fun testMovedContent3() =
@@ -1243,7 +1245,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                \func foo18 {this : R} : Nat => ((R.bar)) {this} 1 2
                
                \func foo19 {this : R} => ((\lam n => R.bar {this} n 202) : Nat -> Nat)
-            """, "Main", "", "Main", 
+            """, "Main", "", "Main",
                     "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8",
                     "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14", "R.foo15", "R.foo16",
                     "R.foo17", "R.foo18", "R.foo19")

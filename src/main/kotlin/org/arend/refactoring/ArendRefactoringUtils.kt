@@ -19,8 +19,8 @@ import org.arend.ext.core.context.CoreBinding
 import org.arend.ext.core.context.CoreParameter
 import org.arend.ext.core.expr.CoreExpression
 import org.arend.ext.core.expr.CoreReferenceExpression
-import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
+import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
@@ -467,11 +467,19 @@ fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass: ArendDefClass) {
 fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: ArendGroup, headPosition: Boolean = false): PsiElement? {
     if (myTargetContainer !is ArendDefModule && myTargetContainer !is ArendDefinition) return null
 
+    val actualWhereImpl = getCompleteWhere(myTargetContainer, psiFactory)
+
+    return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
+}
+
+private fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory): ArendWhere {
     val oldWhereImpl = myTargetContainer.where
     val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
         val localAnchor = myTargetContainer.lastChild
-        val insertedWhere = myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
-        myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
+        val insertedWhere =
+            myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
+        val space = if (myTargetContainer is ArendFunctionalDefinition) "\n" else " "
+        myTargetContainer.addAfter(psiFactory.createWhitespace(space), localAnchor)
         insertedWhere
     }
 
@@ -485,8 +493,7 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
             actualWhereImpl.addAfter(braces.second, actualWhereImpl.lastChild)
         }
     }
-
-    return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
+    return actualWhereImpl
 }
 
 
@@ -511,6 +518,11 @@ fun ArendLetExpr.addNewClause(clause: String): ArendLetExpr {
 private fun ArendLetExpr.getKw(): PsiElement =
     letKw ?: haveKw ?: letsKw ?: havesKw ?: error("At least one of the keywords should be provided")
 
+@Suppress("UNCHECKED_CAST")
+fun <T : ArendDefinition> ArendGroup.addToWhere(elementToAdd: T): T {
+    val where = getCompleteWhere(this, ArendPsiFactory(project))
+    return where.addBefore(elementToAdd, where.rbrace) as T
+}
 
 fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this"), anchor: PsiElement? = definition.nameIdentifier): String {
     val thisVarName = StringRenamer().generateFreshName(variable, getAllBindings(definition).map { VariableImpl(it) }.toList())
