@@ -8,7 +8,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.parentOfType
-import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.SmartList
 import org.arend.core.context.binding.Binding
@@ -22,11 +21,11 @@ import org.arend.extImpl.definitionRenamer.ScopeDefinitionRenamer
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendDefClass
-import org.arend.psi.ArendStatement
+import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.impl.ArendGroup
+import org.arend.refactoring.addToWhere
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
 import org.arend.resolving.ArendReferableConverter
@@ -92,16 +91,11 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         invokeRenamer(editor, globalOffsetOfNewDefinition, project)
     }
 
-    private fun getEnclosingDefinitionWithName(context: PsiElement): Pair<ArendCompositeElement, String>? {
-        val parentFunction = context.parentOfType<ArendFunctionalDefinition>()
-        if (parentFunction != null) {
-            val name = parentFunction.defIdentifier?.name ?: return null
-            return parentFunction to name
-        }
-        val parentClass = context.parentOfType<ArendDefClass>()
-        if (parentClass != null) {
-            val name = parentClass.name ?: return null
-            return parentClass to name
+    private fun getEnclosingDefinitionWithName(context: PsiElement): Pair<ArendGroup, String>? {
+        val parentGroup = context.parentOfType<ArendGroup>()
+        if (parentGroup != null) {
+            val name = parentGroup.defIdentifier?.name ?: return null
+            return parentGroup to name
         }
         return null
     }
@@ -179,30 +173,23 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             replacedConcrete: Concrete.Expression?,
             replaceablePsi: ArendCompositeElement,
             newFunctionDefinition: String,
-            oldFunction: PsiElement,
+            oldFunction: ArendGroup,
             project: Project
     ): Int {
         val document = editor.document
-        val startGoalOffset = replaceablePsi.startOffset
+        val startOffset = replaceablePsi.startOffset
         val newCallRepresentation = newCall.toString()
-        val positionOfNewDefinition = oldFunction.endOffset - rangeOfReplacement.length + newCallRepresentation.length + 4
-        document.insertString(oldFunction.endOffset, "\n\n\\func $newFunctionDefinition")
+        val newFunction = ArendPsiFactory(replaceablePsi.project).createFromText("\\func $newFunctionDefinition")!!.statements[0].definition as ArendDefFunction
+        val newDefinition = oldFunction.addToWhere(newFunction)
+        val newDefPointer = SmartPointerManager.createPointer(newDefinition)
+        PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
         val parenthesizedNewCall = replaceExprSmart(document, replaceablePsi, replacedConcrete, rangeOfReplacement, null, newCall, newCallRepresentation, false)
+        val parenShift = if (parenthesizedNewCall.startsWith('(')) 1 else 0
         PsiDocumentManager.getInstance(project).commitDocument(document)
-        val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return positionOfNewDefinition
-        val callElementPointer =
-                psiFile.findElementAt(startGoalOffset + 1)!!.let(SmartPointerManager::createPointer)
-        val newDefinitionPointer =
-                psiFile.findElementAt(positionOfNewDefinition)!!.let(SmartPointerManager::createPointer)
-        CodeStyleManager.getInstance(project).reformatText(
-                psiFile,
-                listOf(
-                        TextRange(startGoalOffset, startGoalOffset + parenthesizedNewCall.length),
-                        TextRange(positionOfNewDefinition - 2, positionOfNewDefinition + newFunctionDefinition.length)
-                )
-        )
-        editor.caretModel.moveToOffset(callElementPointer.element!!.startOffset)
-        return newDefinitionPointer.element!!.startOffset
+        oldFunction.where?.let { CodeStyleManager.getInstance(project).reformat(it) }
+
+        editor.caretModel.moveToOffset(startOffset + parenShift)
+        return newDefPointer.element!!.startOffset
     }
 
     protected fun invokeRenamer(editor: Editor, functionOffset: Int, project: Project) {
