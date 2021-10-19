@@ -112,7 +112,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
 
         val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {
             val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
-            val renamer = CachingDefinitionRenamer(ScopeDefinitionRenamer(selection.contextPsi.parentOfType<ArendStatement>()!!.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }));
+            val renamer = CachingDefinitionRenamer(ScopeDefinitionRenamer(selection.contextPsi.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }));
 
             { expr, useReturnType ->
                 try {

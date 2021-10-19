@@ -63,18 +63,18 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
           }
     """)
 
-    fun `test qualified definition`() = doTest("""
+    fun `test unqualified definition`() = doTest("""
         \func foo : Nat => {-selection-}b{-caret-}ar{-end_selection-}
         \where {
             \func bar : Nat => 1
         }
     """, """
         \func foo : Nat => foo-lemma
-        \where {
+          \where {
             \func bar : Nat => 1
-        }
-        
-        \func foo-lemma : Nat => foo.bar
+            
+            \func foo-lemma : Nat => bar
+          }
     """.trimIndent())
 
     fun `test projection`() = doTest("""

@@ -136,8 +136,9 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
     """,
     """
        \func foo => foo-lemma'
-       
-       \func foo-lemma' => {?}
+         \where {
+           \func foo-lemma' => {?}       
+         }
        
        \func foo-lemma : Nat => 1
     """)
