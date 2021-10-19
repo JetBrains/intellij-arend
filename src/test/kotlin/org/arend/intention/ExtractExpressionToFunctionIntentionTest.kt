@@ -16,24 +16,27 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
         \func bar (n : Nat) : Nat => n Nat.+ 1
 
         \func foo : Nat => bar (foo-lemma)
-    
-        \func foo-lemma : Fin 21 => 20
+          \where {
+            \func foo-lemma : Fin 21 => 20
+          }
     """)
 
     fun `test extract from selection 2`() = doTest("""
         \func bar {A : \Prop} (x y : A) : x = y => {-selection-}Path.i{-caret-}nProp{-end_selection-} _ _
     """, """
         \func bar {A : \Prop} (x y : A) : x = y => bar-lemma x y
-
-        \func bar-lemma {A : \Prop} (x y : A) : x = y => Path.inProp x y
+          \where {
+            \func bar-lemma {A : \Prop} (x y : A) : x = y => Path.inProp x y
+          }
     """)
 
     fun `test extract from selection 3`() = doTest("""
         \func bar {A : \Prop} (x y : A) : x = y => Path.inProp {-selection-}{-caret-}_{-end_selection-} _
     """, """
         \func bar {A : \Prop} (x y : A) : x = y => Path.inProp (bar-lemma x) _
-
-        \func bar-lemma {A : \Prop} (x : A) : A => x
+          \where {
+            \func bar-lemma {A : \Prop} (x : A) : A => x
+          }
     """)
 
     fun `test extract from selection 4`() = doTest("""
@@ -42,8 +45,9 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func f (x : Nat) => x
         \func foo (x y : Nat) => f (foo-lemma x)
-        
-        \func foo-lemma (x : Nat) : Nat => x Nat.+ x
+          \where {
+            \func foo-lemma (x : Nat) : Nat => x Nat.+ x
+          }
     """.trimIndent())
 
     fun `test implicit args`() = doTest("""
@@ -54,22 +58,23 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
         \data D {x y : Nat} {eq : x = y} (z : Nat) | dd
 
         \func foo : D {2} {2} {idp} 1 => foo-lemma
-  
-        \func foo-lemma : D {2} {2} {idp {Nat} {2}} 1 => dd
+          \where {
+            \func foo-lemma : D {2} {2} {idp {Nat} {2}} 1 => dd
+          }
     """)
 
-    fun `test qualified definition`() = doTest("""
+    fun `test unqualified definition`() = doTest("""
         \func foo : Nat => {-selection-}b{-caret-}ar{-end_selection-}
         \where {
             \func bar : Nat => 1
         }
     """, """
         \func foo : Nat => foo-lemma
-        \where {
+          \where {
             \func bar : Nat => 1
-        }
-        
-        \func foo-lemma : Nat => foo.bar
+            
+            \func foo-lemma : Nat => bar
+          }
     """.trimIndent())
 
     fun `test projection`() = doTest("""
@@ -80,8 +85,9 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
         \func foo : \Sigma Nat Nat => (1, 1)
 
         \func bar => \let (a, b) => foo \in bar-lemma a
-        
-        \func bar-lemma (a : Nat) : Nat => a 
+          \where {
+            \func bar-lemma (a : Nat) : Nat => a
+          }
     """)
 
     fun `test nested projection`() = doTest("""
@@ -92,8 +98,9 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
         \func foo : \Sigma (\Sigma Nat Nat) Nat => ((1, 1), 1)
 
         \func bar : \Sigma Nat Nat => \let ((a, b), c) => foo \in bar-lemma a c
-        
-        \func bar-lemma (a c : Nat) : \Sigma Nat Nat => (a, c) 
+          \where {
+            \func bar-lemma (a c : Nat) : \Sigma Nat Nat => (a, c)
+          }
     """)
 
     fun `test projections 2`() = doTest("""
@@ -108,14 +115,17 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
         \func g : Nat -> Nat => \lam x => x
         
         \func foo : Nat => \let rr => f \in foo-lemma rr
-        
-        \func foo-lemma (rr : \Sigma Nat Nat) : Nat => g rr.1""")
+          \where {
+            \func foo-lemma (rr : \Sigma Nat Nat) : Nat => g rr.1
+          }
+  """)
 
     fun `test complex infix`() = doTest("""
         \func foo (x y : Nat) => {-selection-}x Nat{-caret-}.+ x{-end_selection-} Nat.+ y
     """, """
         \func foo (x y : Nat) => foo-lemma x Nat.+ y
-        
-        \func foo-lemma (x : Nat) : Nat => x Nat.+ x
+          \where {
+            \func foo-lemma (x : Nat) : Nat => x Nat.+ x
+          }
     """)
 }
