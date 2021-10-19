@@ -183,12 +183,11 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val newDefinition = oldFunction.addToWhere(newFunction)
         val newDefPointer = SmartPointerManager.createPointer(newDefinition)
         PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
-        val parenthesizedNewCall = replaceExprSmart(document, replaceablePsi, replacedConcrete, rangeOfReplacement, null, newCall, newCallRepresentation, false)
-        val parenShift = if (parenthesizedNewCall.startsWith('(')) 1 else 0
+        replaceExprSmart(document, replaceablePsi, replacedConcrete, rangeOfReplacement, null, newCall, newCallRepresentation, false)
         PsiDocumentManager.getInstance(project).commitDocument(document)
         oldFunction.where?.let { CodeStyleManager.getInstance(project).reformat(it) }
 
-        editor.caretModel.moveToOffset(startOffset + parenShift)
+        editor.caretModel.moveToOffset(startOffset + 1)
         return newDefPointer.element!!.startOffset
     }
 

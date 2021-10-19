@@ -16,8 +16,9 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
         \func bar (n : Nat) : Nat => n Nat.+ 1
 
         \func foo : Nat => bar (foo-lemma)
-    
-        \func foo-lemma : Fin 21 => 20
+          \where {
+            \func foo-lemma : Fin 21 => 20
+          }
     """)
 
     fun `test extract from selection 2`() = doTest("""
@@ -44,8 +45,9 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
     """, """
         \func f (x : Nat) => x
         \func foo (x y : Nat) => f (foo-lemma x)
-        
-        \func foo-lemma (x : Nat) : Nat => x Nat.+ x
+          \where {
+            \func foo-lemma (x : Nat) : Nat => x Nat.+ x
+          }
     """.trimIndent())
 
     fun `test implicit args`() = doTest("""
