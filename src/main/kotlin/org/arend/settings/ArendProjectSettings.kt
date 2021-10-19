@@ -97,6 +97,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         options.showBinOpImplicitArgs = filterSet.contains(PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS)
         options.showCaseResultType = filterSet.contains(PrettyPrinterFlag.SHOW_CASE_RESULT_TYPE)
         options.showLevels = filterSet.contains(PrettyPrinterFlag.SHOW_LEVELS)
+        options.showProofs = filterSet.contains(PrettyPrinterFlag.SHOW_PROOFS)
     }
 
     override fun loadState(state: ArendProjectSettingsState) {
@@ -137,5 +138,6 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS, printingOptions.showBinOpImplicitArgs)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_CASE_RESULT_TYPE, printingOptions.showCaseResultType)
         setPrintOption(filterSet, PrettyPrinterFlag.SHOW_LEVELS, printingOptions.showLevels)
+        setPrintOption(filterSet, PrettyPrinterFlag.SHOW_PROOFS, printingOptions.showProofs)
     }
 }
