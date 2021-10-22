@@ -156,7 +156,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                         tcRefMap[name] = it.referable
                         val dataRef = it.referable
                         if (dataRef is DataLocatedReferable) {
-                            val ref = Scope.Utils.resolveName(preludeScope, name.toList())
+                            val ref = Scope.resolveName(preludeScope, name.toList())
                             if (ref is PsiLocatedReferable) {
                                 dataRef.setPointer(ref)
                             }
@@ -197,7 +197,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun getPsiReferable(referable: LocatedReferable): PsiLocatedReferable? {
         (referable.underlyingReferable as? PsiLocatedReferable)?.let { return it }
-        return Scope.Utils.resolveName(preludeScope, referable.refLongName.toList()) as? PsiLocatedReferable
+        return Scope.resolveName(preludeScope, referable.refLongName.toList()) as? PsiLocatedReferable
     }
 
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)

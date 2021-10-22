@@ -34,7 +34,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     override fun getDocumentationElementForLink(psiManager: PsiManager?, link: String, context: PsiElement?): PsiElement? {
         val longName = link.removePrefix(FULL_PREFIX)
         val scope = ArendDocComment.getScope((context as? ArendDocComment)?.owner ?: context) ?: return null
-        val ref = RedirectingReferable.getOriginalReferable(Scope.Utils.resolveName(scope, LongName.fromString(longName).toList()))
+        val ref = RedirectingReferable.getOriginalReferable(Scope.resolveName(scope, LongName.fromString(longName).toList()))
         return if (ref is PsiReferable && longName.length != link.length) ref.documentation else ref as? PsiElement
     }
 

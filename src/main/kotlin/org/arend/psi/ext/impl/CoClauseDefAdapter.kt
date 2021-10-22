@@ -37,7 +37,7 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
         val coClause = parentCoClause ?: return null
         coClause.prec?.let { return it }
         val classRef = (coClause.parent?.parent as? ClassReferenceHolder)?.classReference ?: return null
-        return (Scope.Utils.resolveName(ClassFieldImplScope(classRef, true), coClause.longName.refIdentifierList.map { it.refName }) as? ReferableAdapter<*>)?.getPrec()
+        return (Scope.resolveName(ClassFieldImplScope(classRef, true), coClause.longName.refIdentifierList.map { it.refName }) as? ReferableAdapter<*>)?.getPrec()
     }
 
     override fun getAlias(): ArendAlias? = null
