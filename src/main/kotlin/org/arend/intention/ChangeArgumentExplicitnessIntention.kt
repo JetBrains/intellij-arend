@@ -14,6 +14,8 @@ import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
@@ -115,10 +117,12 @@ abstract class ChangeArgumentExplicitnessApplier {
         val indexInDef = getTeleIndexInDef(def, element) + indexInTele
         val fCalls = ReferencesSearch.search(def).map { it.element }.filter { it.isValid }
         val insertedPsi = ArrayList<PsiElement>()
-
+        val scopes = HashMap<PsiElement, Scope>()
         if (element !is ArendTypeTele) {
             for (fCall in fCalls.map { getParentPsiFunctionCall(it) }.sortedBy { it.textLength }) {
-                CallWrapper.wrapWithSubTerms(fCall, def, insertedPsi)
+                val scopeAnchor = (fCall.ancestor<ArendDefinition>()?: fCall) as? ArendCompositeElement
+                val scope = if (scopeAnchor != null) scopes.computeIfAbsent(scopeAnchor) { CachingScope.make(scopeAnchor.scope) } else null
+                if (scope != null) CallWrapper.wrapWithSubTerms(fCall, def, insertedPsi, scope)
             }
         }
 
@@ -411,7 +415,8 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
         element.ancestor<ArendArgumentAppExpr>() ?: element
 
     override fun convertCallToPrefix(call: PsiElement): PsiElement? {
-        val concrete = convertCallToConcrete(call) ?: return null
+        val scope = CachingScope.make((((call.ancestor<ArendDefinition>() ?: call) as? ArendCompositeElement) ?: return null).scope)
+        val concrete = convertCallToConcrete(call, scope) ?: return null
         val functionCallText = textOfConcreteAppExpression(concrete)
         return factory.createArgumentAppExpr(functionCallText)
     }
@@ -430,7 +435,8 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
     }
 
     override fun getCallingParametersWithPhantom(call: PsiElement): List<String> {
-        val concrete = convertCallToConcrete(call)
+        val scope = CachingScope.make(((call.ancestor<ArendDefinition>() ?: call) as? ArendCompositeElement)?.scope)
+        val concrete = convertCallToConcrete(call, scope)
         return concrete?.arguments?.map { if (it.isExplicit) it.toString() else "{$it}" } ?: emptyList()
     }
 
@@ -484,8 +490,8 @@ private object CallWrapper {
     /**
         Wraps into parens all calls in `call`-element where resolve of function equals `def`
     */
-    fun wrapWithSubTerms(call: PsiElement, def: PsiElement, insertedPsi: MutableList<PsiElement>) {
-        fun wrapInArguments(appExpr: Concrete.AppExpression, def: PsiElement, index: Int): Concrete.AppExpression {
+    fun wrapWithSubTerms(call: PsiElement, def: PsiElement, insertedPsi: MutableList<PsiElement>, scope: Scope) {
+        fun wrapInArguments(appExpr: Concrete.AppExpression, def: PsiElement, index: Int, needResult: Boolean): Concrete.AppExpression? {
             var concrete = appExpr
             val cntArguments = concrete.arguments.size
             val function = concrete.function.data as PsiElement
@@ -494,7 +500,7 @@ private object CallWrapper {
             for (i in 0 until cntArguments) {
                 val argument = concrete.arguments[i].expression
                 if (argument is Concrete.AppExpression) {
-                    val currentCall = wrapInArguments(argument, def, i)
+                    val currentCall = wrapInArguments(argument, def, i, true)!!
                     // it's hard to find after wrapping psi-call corresponding argument
                     concrete = if (currentCall.toString() != appExpr.toString()) {
                         val newCall = currentCall.arguments.getOrNull(index)?.expression as? Concrete.AppExpression
@@ -506,12 +512,12 @@ private object CallWrapper {
                 }
             }
             val resolve = tryResolveFunctionName(function)
-            return if (def == resolve) wrapCall(concrete, def, insertedPsi) else concrete
+            return if (def == resolve) wrapCall(concrete, insertedPsi, scope, needResult) else concrete
         }
 
         factory = ArendPsiFactory(def.project)
-        val concrete = convertCallToConcrete(call) ?: return
-        wrapInArguments(concrete, def, -1)
+        val concrete = convertCallToConcrete(call, scope) ?: return
+        wrapInArguments(concrete, def, -1, false)
     }
 
     /**
@@ -519,7 +525,7 @@ private object CallWrapper {
      *
      * @return  concrete, where call is wrapped
      */
-    fun wrapCall(concrete: Concrete.AppExpression, def : PsiElement, insertedPsi: MutableList<PsiElement>): Concrete.AppExpression {
+    fun wrapCall(concrete: Concrete.AppExpression, insertedPsi: MutableList<PsiElement>, scope: Scope, needResult: Boolean): Concrete.AppExpression? {
         val call = (concrete.function.data as PsiElement).ancestor<ArendArgumentAppExpr>() ?: return concrete
         val (first, last) = getRangeForConcrete(concrete, call) ?: return concrete
         val isCurrentCallOnTop = (call.firstChild == first && call.lastChild == last)
@@ -548,7 +554,7 @@ private object CallWrapper {
         wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
         insertedPsi.add(insertedCall)
 
-        return convertCallToConcrete(insertedCall.ancestor<ArendArgumentAppExpr>() ?: insertedCall) ?: concrete
+        return if (needResult) convertCallToConcrete(insertedCall.ancestor<ArendArgumentAppExpr>() ?: insertedCall, scope) ?: concrete else null
     }
 
     fun unwrapCall(call: PsiElement) {
@@ -691,8 +697,7 @@ private fun needToWrapInBrackets(expr: String): Boolean {
     return false
 }
 
-private fun convertCallToConcrete(call: PsiElement): Concrete.AppExpression? {
-    val scope = (call as? ArendArgumentAppExpr)?.scope ?: return null
+private fun convertCallToConcrete(call: PsiElement, scope: Scope): Concrete.AppExpression? {
     var convertedExpression = ConcreteBuilder.convertExpression(call as Abstract.Expression)
         .accept(
             ExpressionResolveNameVisitor(
