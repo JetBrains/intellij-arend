@@ -114,15 +114,18 @@ abstract class ChangeArgumentExplicitnessApplier {
         val def = element.ancestor<PsiReferable>() as? PsiElement ?: return element
         val indexInDef = getTeleIndexInDef(def, element) + indexInTele
         val fCalls = ReferencesSearch.search(def).map { it.element }.filter { it.isValid }
-        val refs2 = ArrayList<PsiElement>(fCalls)
+        val insertedPsi = ArrayList<PsiElement>()
 
         if (element !is ArendTypeTele) {
             for (fCall in fCalls.map { getParentPsiFunctionCall(it) }.sortedBy { it.textLength }) {
-                CallWrapper.wrapWithSubTerms(fCall, def, refs2)
+                CallWrapper.wrapWithSubTerms(fCall, def, insertedPsi)
             }
         }
 
-        for (ref in refs2.filter { it.isValid && !inOpenDeclaration(it) }) replaceWithSubTerms(ref, def, indexInDef)
+        val updatedCalls = ArrayList(fCalls)
+        insertedPsi.filter { it.isValid }.map { call -> updatedCalls.addAll(searchRefsInPsiElement(def, call).map { it.element }) }
+
+        for (ref in updatedCalls.filter{ it.isValid && !inOpenDeclaration(it) }) replaceWithSubTerms(ref, def, indexInDef)
 
         return rewriteDef(element, indexInTele)
     }
@@ -481,7 +484,7 @@ private object CallWrapper {
     /**
         Wraps into parens all calls in `call`-element where resolve of function equals `def`
     */
-    fun wrapWithSubTerms(call: PsiElement, def: PsiElement, replacedCalls: MutableList<PsiElement>) {
+    fun wrapWithSubTerms(call: PsiElement, def: PsiElement, insertedPsi: MutableList<PsiElement>) {
         fun wrapInArguments(appExpr: Concrete.AppExpression, def: PsiElement, index: Int): Concrete.AppExpression {
             var concrete = appExpr
             val cntArguments = concrete.arguments.size
@@ -503,7 +506,7 @@ private object CallWrapper {
                 }
             }
             val resolve = tryResolveFunctionName(function)
-            return if (def == resolve) wrapCall(concrete, def, replacedCalls) else concrete
+            return if (def == resolve) wrapCall(concrete, def, insertedPsi) else concrete
         }
 
         factory = ArendPsiFactory(def.project)
@@ -516,7 +519,7 @@ private object CallWrapper {
      *
      * @return  concrete, where call is wrapped
      */
-    fun wrapCall(concrete: Concrete.AppExpression, def : PsiElement, replacedCalls: MutableList<PsiElement>): Concrete.AppExpression {
+    fun wrapCall(concrete: Concrete.AppExpression, def : PsiElement, insertedPsi: MutableList<PsiElement>): Concrete.AppExpression {
         val call = (concrete.function.data as PsiElement).ancestor<ArendArgumentAppExpr>() ?: return concrete
         val (first, last) = getRangeForConcrete(concrete, call) ?: return concrete
         val isCurrentCallOnTop = (call.firstChild == first && call.lastChild == last)
@@ -543,7 +546,7 @@ private object CallWrapper {
         val insertedCall = call.addAfterWithNotification(wrappedCall, last)
         call.deleteChildRangeWithNotification(first, last)
         wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
-        replacedCalls.addAll(searchRefsInPsiElement(def, insertedCall).map { it.element })
+        insertedPsi.add(insertedCall)
 
         return convertCallToConcrete(insertedCall.ancestor<ArendArgumentAppExpr>() ?: insertedCall) ?: concrete
     }
