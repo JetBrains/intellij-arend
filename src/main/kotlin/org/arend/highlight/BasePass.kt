@@ -27,6 +27,7 @@ import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.ext.prettyprinting.doc.DocFactory.vHang
 import org.arend.ext.prettyprinting.doc.DocStringBuilder
 import org.arend.ext.reference.DataContainer
+import org.arend.ext.reference.Precedence
 import org.arend.naming.error.DuplicateOpenedNameError
 import org.arend.naming.error.ExistingOpenedNameError
 import org.arend.naming.error.NotInScopeError
@@ -49,6 +50,7 @@ import org.arend.refactoring.replaceExprSmart
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
@@ -56,6 +58,7 @@ import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.typechecking.error.local.inference.InstanceInferenceError
 import org.arend.util.ArendBundle
+import java.lang.StringBuilder
 import java.util.*
 
 abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
@@ -303,11 +306,30 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
                 is TypecheckingError -> for (quickFix in error.quickFixes) {
                     val sourceNode = quickFix.replacement
+                    val target = getTargetPsiElement(quickFix, cause)
                     if (sourceNode == null) {
-                        val target = getTargetPsiElement(quickFix, cause)
                         when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
                             is ArendArgument -> registerFix(info, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
                             is ArendTupleExpr -> registerFix(info, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
+                        }
+                    } else if (target != null && sourceNode is Concrete.SourceNode) {
+                        val factory = ArendPsiFactory(target.project)
+                        val stringBuilder = StringBuilder()
+                        (object: PrettyPrintVisitor(stringBuilder, 0) {
+                            override fun prettyPrint(node: Concrete.SourceNode?, prec: Precedence?) {
+                                val data = node?.data
+                                if (data is PsiElement && data.isValid) myBuilder.append(data.text) else super.prettyPrint(node, prec)
+                            }
+                        }).prettyPrint(sourceNode, Precedence(Concrete.Expression.PREC))
+                        val replacementString = stringBuilder.toString()
+                        val replacementNode = when (target) {
+                            is ArendExpr -> {
+                                factory.createExpressionMaybe(replacementString)
+                            }
+                            else -> null
+                        }
+                        if (replacementNode != null) {
+                            target.replaceWithNotification(replacementNode)
                         }
                     }
                 }
