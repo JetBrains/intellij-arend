@@ -3,6 +3,7 @@ package org.arend.search.structural
 import com.intellij.codeInsight.template.TemplateContextType
 import com.intellij.dupLocator.util.NodeFilter
 import com.intellij.lang.Language
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileTypes.LanguageFileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -29,6 +30,9 @@ private val PROOF_SEARCH_CONTEXT = PatternContext("arend-proof-search", ArendBun
 private val PATTERN_CONTEXTS = listOf(PROOF_SEARCH_CONTEXT)
 private val PATTERN_ERROR = Key<String>("arend.pattern.error")
 
+/**
+ * Phrases "Proof Search" and "Structural search" are use in this package interchangeably
+ */
 class ArendStructuralSearchProfile : StructuralSearchProfile() {
     override fun compile(elements: Array<out PsiElement>, globalVisitor: GlobalCompilingVisitor) {
         ArendCompilingVisitor(globalVisitor).compile(elements)
@@ -65,6 +69,11 @@ class ArendStructuralSearchProfile : StructuralSearchProfile() {
         physical: Boolean
     ): Array<PsiElement> {
         val factory = ArendPsiFactory(project)
+        if (contextId == null) {
+            // used for test specifically. we don't support full-fledged structural search
+            assert(ApplicationManager.getApplication().isUnitTestMode)
+            return factory.createFromText(text)?.let { arrayOf(it) } ?: arrayOf()
+        }
         if (PROOF_SEARCH_CONTEXT.id == contextId) {
             return try {
                 val fragment = factory.createExpression(text)
