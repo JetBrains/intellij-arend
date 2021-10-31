@@ -41,13 +41,13 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
             }
             return true
         } else if ((concrete is Concrete.HoleExpression || concrete is Concrete.ReferenceExpression) && tree is PatternTree.LeafNode) {
-            val patternElement = tree.element
+            val patternElement = tree.referenceName
             val matchElement = concrete.data as ArendCompositeElement
-            if (patternElement.text.equals(matchElement.text)) {
+            if (patternElement == matchElement.text) {
                 return true
             }
             val matchName = if (matchElement is ArendReferenceContainer) matchElement.referenceName else null
-            if (patternElement.text.equals(matchName)) {
+            if (patternElement == matchName) {
                 return true
             }
             return false

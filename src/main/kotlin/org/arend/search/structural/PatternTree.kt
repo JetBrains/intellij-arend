@@ -2,6 +2,7 @@ package org.arend.search.structural
 
 import com.intellij.openapi.util.Key
 import com.intellij.refactoring.suggested.startOffset
+import com.intellij.util.castSafelyTo
 import com.intellij.util.containers.map2Array
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendTuple
@@ -20,12 +21,18 @@ import org.arend.util.appExprToConcrete
 internal sealed interface PatternTree {
 
     @JvmInline
-    value class BranchingNode(val subNodes: List<PatternTree>) : PatternTree
+    value class BranchingNode(val subNodes: List<PatternTree>) : PatternTree {
+        override fun toString(): String = subNodes.joinToString(", ", "[", "]", transform = PatternTree::toString)
+    }
 
     @JvmInline
-    value class LeafNode(val element: ArendCompositeElement) : PatternTree
+    value class LeafNode(val referenceName: String) : PatternTree {
+        override fun toString(): String = referenceName
+    }
 
-    object Wildcard : PatternTree
+    object Wildcard : PatternTree {
+        override fun toString(): String = "_"
+    }
 }
 
 internal fun deconstructArendExpr(expr: ArendExpr): PatternTree {
@@ -47,7 +54,7 @@ internal fun deconstructArendExpr(expr: ArendExpr): PatternTree {
         }
 
         override fun visitReference(expr: Concrete.ReferenceExpression, params: Unit?): Concrete.Expression {
-            return Concrete.HoleExpression(PatternTree.LeafNode(expr.data as ArendCompositeElement))
+            return Concrete.HoleExpression(PatternTree.LeafNode(expr.data.castSafelyTo<ArendCompositeElement>()!!.text))
         }
     }, Unit).data as PatternTree
 }

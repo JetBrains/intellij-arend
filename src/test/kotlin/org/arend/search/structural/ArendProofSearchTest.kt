@@ -39,17 +39,17 @@ class ArendProofSearchTest : LightQuickFixTestCase() {
         return matcher.testFindMatches(PRE_TEXT + content, true, ArendFileType, false)
     }
 
-    private fun assertCount(@Language("Arend") content: String, pattern: String, count: Int) =
-        TestCase.assertEquals(count, findMatches(content, pattern).size)
-
-
-    fun testBasicFunction() = assertCount(
-        """
-        \func foo (a b : Nat) : a + b = b + a => {?}
-    """, "= (+ _ _) (+ _ _)", 1
+    private fun assertHasMatch(content: String, pattern: String) = TestCase.assertTrue(
+        "Expected some matches of $pattern", findMatches(content, pattern).isNotEmpty()
     )
 
-    fun testBasicClass() = assertCount(
+    private fun assertHasNoMatch(content: String, pattern: String) = TestCase.assertTrue(
+        "Expected no matches of $pattern", findMatches(content, pattern).isEmpty()
+    )
+
+    fun testBasicFunction() = assertHasMatch("\\func foo (a b : Nat) : a + b = b + a => {?}", "= (+ _ _) (+ _ _)")
+
+    fun testBasicClass() = assertHasMatch(
         """
         \class Comm (A : \Type) (f : A -> A -> A) {
           | comm (x y : A) : f x y = f y x
@@ -57,8 +57,9 @@ class ArendProofSearchTest : LightQuickFixTestCase() {
         
         \instance AddComm : Comm Nat (+) \cowith
           | comm (x y : Nat) : x + y = y + x => {?}
-    """, "= (+ _ _) (+ _ _)", 1
-    )
+    """, "= (+ _ _) (+ _ _)")
+
+    fun testInfixPattern() = assertHasMatch("\\func foo (a b : Nat) : a + b = b + a => {?}", "_ + _ = _ + _")
 
 
 }
