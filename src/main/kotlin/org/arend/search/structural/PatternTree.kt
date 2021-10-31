@@ -20,17 +20,25 @@ import org.arend.util.appExprToConcrete
  */
 internal sealed interface PatternTree {
 
+    fun admits(identifier: String) : Boolean
+
     @JvmInline
     value class BranchingNode(val subNodes: List<PatternTree>) : PatternTree {
-        override fun toString(): String = subNodes.joinToString(", ", "[", "]", transform = PatternTree::toString)
+        override fun admits(identifier: String) = false
+
+        override fun toString(): String = subNodes.joinToString(" ", "[", "]", transform = PatternTree::toString)
     }
 
     @JvmInline
     value class LeafNode(val referenceName: String) : PatternTree {
+        override fun admits(identifier: String): Boolean = identifier == referenceName
+
         override fun toString(): String = referenceName
     }
 
     object Wildcard : PatternTree {
+        override fun admits(identifier: String): Boolean = true
+
         override fun toString(): String = "_"
     }
 }
@@ -65,7 +73,7 @@ private tailrec fun removeParens(expr : ArendExpr) : ArendExpr {
     return removeParens(innerExpr)
 }
 
-internal val PATTERN_TREE = Key<PatternTree>("arend.structural.search.pattern.tree")
+private val PATTERN_TREE = Key<PatternTree>("arend.structural.search.pattern.tree")
 
 /**
  * Use only in context of structural search

@@ -5,6 +5,8 @@ import com.intellij.psi.util.parentOfType
 import com.intellij.structuralsearch.impl.matcher.GlobalMatchingVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
+import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendVisitor
@@ -14,35 +16,36 @@ import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.impl.CoClauseDefAdapter
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
+import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
 
 class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) : ArendVisitor() {
 
-    private fun performMatch(tree: PatternTree, concrete: Concrete.Expression): Boolean {
-        if (tree is PatternTree.Wildcard) {
+    private fun performMatch(pattern: Concrete.Expression, matched: Concrete.Expression): Boolean {
+        if (pattern is Concrete.HoleExpression) {
             return true
         }
-        if (concrete is Concrete.AppExpression && tree is PatternTree.BranchingNode) {
-            val patternFunction = tree.subNodes[0]
-            val matchFunction = concrete.function
-            if (!performMatch(patternFunction, matchFunction)) {
+        if (matched is Concrete.AppExpression && pattern is Concrete.AppExpression) {
+            val patternFunction = pattern.function
+            val matchedFunction = matched.function
+            if (!performMatch(patternFunction, matchedFunction)) {
                 return false
             }
-            val concreteArguments = concrete.arguments.mapNotNull { if (it.isExplicit) it.expression else null }
-            val patternArguments = tree.subNodes.subList(1, tree.subNodes.size)
+            val concreteArguments = matched.arguments.mapNotNull { if (it.isExplicit) it.expression else null }
+            val patternArguments = pattern.arguments.map { it.expression }
             if (patternArguments.size != concreteArguments.size) {
                 return false
             }
-            for ((pattern, matched) in patternArguments.zip(concreteArguments)) {
-                if (!performMatch(pattern, matched)) {
+            for ((patternArg, matchedArg) in patternArguments.zip(concreteArguments)) {
+                if (!performMatch(patternArg, matchedArg)) {
                     return false
                 }
             }
             return true
-        } else if ((concrete is Concrete.HoleExpression || concrete is Concrete.ReferenceExpression) && tree is PatternTree.LeafNode) {
-            val patternElement = tree.referenceName
-            val matchElement = concrete.data as ArendCompositeElement
+        } else if ((matched is Concrete.HoleExpression || matched is Concrete.ReferenceExpression) && pattern is Concrete.ReferenceExpression) {
+            val patternElement = pattern.referent.refName
+            val matchElement = matched.data as ArendCompositeElement
             if (patternElement == matchElement.text) {
                 return true
             }
@@ -56,11 +59,37 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
         }
     }
 
+    private fun reassembleConcrete(tree: PatternTree, scope : Scope): Concrete.Expression =
+        when (tree) {
+            is PatternTree.BranchingNode -> {
+                val sequence = tree.subNodes.mapIndexed { index, it ->
+                    val expr = reassembleConcrete(it, scope)
+                    if (index == 0) Concrete.BinOpSequenceElem(expr) else Concrete.BinOpSequenceElem(
+                        expr,
+                        Fixity.UNKNOWN,
+                        true
+                    )
+                }
+                Concrete.BinOpSequenceExpression(null, sequence, null)
+            }
+            is PatternTree.LeafNode -> {
+                val referable = scope.resolveName(tree.referenceName)
+                if (referable == null) {
+                    Concrete.HoleExpression(tree.referenceName)
+                } else {
+                    val refExpr = Concrete.FixityReferenceExpression.make(null, referable, Fixity.UNKNOWN, null, null)
+                    refExpr ?: Concrete.HoleExpression(tree.referenceName)
+                }
+            }
+            PatternTree.Wildcard -> Concrete.HoleExpression(null)
+        }
+
     override fun visitExpr(o: ArendExpr) {
         super.visitExpr(o)
         val matchedElement = this.matchingVisitor.element
         matchingVisitor.result = false
-        val parentType = matchedElement.parentOfType<ArendFunctionalDefinition>()?.returnExpr?.exprList?.getOrNull(0) ?: return
+        val parentType =
+            matchedElement.parentOfType<ArendFunctionalDefinition>()?.returnExpr?.exprList?.getOrNull(0) ?: return
         if (!PsiTreeUtil.isAncestor(parentType, matchedElement, false)) {
             return
         }
@@ -68,9 +97,12 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
             val referable = matchedElement.parentOfType<DefinitionAdapter<*>>() ?: return
             val concrete = getType(referable) ?: return
             val patternTree = o.getPatternTree()
+            val mscope = CachingScope.make(matchedElement.scope)
             val parsedConcrete =
                 if (concrete is Concrete.BinOpSequenceExpression) BinOpParser(DummyErrorReporter.INSTANCE).parse(concrete) else concrete
-            if (performMatch(patternTree, parsedConcrete)) {
+            val patternConcrete = reassembleConcrete(patternTree, mscope)
+            val completePattern = if (patternConcrete is Concrete.BinOpSequenceExpression) BinOpParser(DummyErrorReporter.INSTANCE).parse(patternConcrete) else patternConcrete
+            if (performMatch(completePattern, parsedConcrete)) {
                 matchingVisitor.result = true
             }
         }
