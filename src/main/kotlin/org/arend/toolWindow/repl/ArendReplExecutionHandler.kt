@@ -5,23 +5,18 @@ import com.intellij.execution.console.LanguageConsoleBuilder
 import com.intellij.execution.console.LanguageConsoleImpl
 import com.intellij.execution.console.LanguageConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
-import org.arend.ext.core.ops.NormalizationMode
 import org.arend.psi.ArendFile
 import org.arend.repl.CommandHandler
-import org.arend.settings.ArendProjectSettings
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.PrintOptionKind
 import java.awt.event.InputEvent
@@ -69,37 +64,15 @@ class ArendReplExecutionHandler(
     init {
         consoleView.isEditable = true
         consoleView.isConsoleEditorEnabled = true
-        Disposer.register(consoleView, Disposable(::saveSettings))
-        val settings = settings()
-        if (settings.replPrintingOptionsFilterSet !== repl.prettyPrinterFlags) {
-            // Bind the settings with the repl config
-            repl.prettyPrinterFlags.clear()
-            repl.prettyPrinterFlags.addAll(settings.replPrintingOptionsFilterSet)
-            settings.replPrintingOptionsFilterSet = repl.prettyPrinterFlags
-        }
-        val normalization = settings.data.replNormalizationMode.uppercase()
-        try {
-            repl.normalizationMode = NormalizationMode.valueOf(normalization)
-        } catch (e: IllegalArgumentException) {
-            repl.normalizationMode = null
-        }
         repl.initialize()
         resetRepl()
     }
-
-    private fun saveSettings() {
-        settings().data.replNormalizationMode = repl.normalizationMode.toString()
-    }
-
-    private fun settings() =
-        consoleView.project.service<ArendProjectSettings>()
 
     private fun closeRepl() {
         toolWindow.hide()
         repl.clearScope()
         repl.resetCurrentLineScope()
         resetRepl()
-        saveSettings()
     }
 
     private fun resetRepl() {
