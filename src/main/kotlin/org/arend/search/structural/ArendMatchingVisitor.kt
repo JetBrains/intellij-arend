@@ -1,14 +1,19 @@
 package org.arend.search.structural
 
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.parentOfType
 import com.intellij.structuralsearch.impl.matcher.GlobalMatchingVisitor
+import org.arend.error.DummyErrorReporter
+import org.arend.naming.BinOpParser
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendVisitor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.ArendReferenceContainer
-import org.arend.psi.parentOfType
+import org.arend.psi.ext.impl.CoClauseDefAdapter
+import org.arend.psi.ext.impl.DefinitionAdapter
+import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
 
@@ -51,7 +56,6 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
         }
     }
 
-
     override fun visitExpr(o: ArendExpr) {
         super.visitExpr(o)
         val matchedElement = this.matchingVisitor.element
@@ -61,11 +65,23 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
             return
         }
         if (matchedElement is ArendArgumentAppExpr) {
+            val referable = matchedElement.parentOfType<DefinitionAdapter<*>>() ?: return
+            val concrete = getType(referable) ?: return
             val patternTree = o.getPatternTree()
-            val concrete = appExprToConcrete(matchedElement) ?: return
-            if (performMatch(patternTree, concrete)) {
+            val parsedConcrete =
+                if (concrete is Concrete.BinOpSequenceExpression) BinOpParser(DummyErrorReporter.INSTANCE).parse(concrete) else concrete
+            if (performMatch(patternTree, parsedConcrete)) {
                 matchingVisitor.result = true
             }
+        }
+    }
+
+    fun getType(def: DefinitionAdapter<*>): Concrete.Expression? {
+        // todo: reuse core definitions where possible to achieve matching with explicitly untyped definitions
+        return when (def) {
+            is CoClauseDefAdapter -> def.resultType?.let(::appExprToConcrete)
+            is FunctionDefinitionAdapter -> def.resultType?.let(::appExprToConcrete)
+            else -> null
         }
     }
 }

@@ -20,7 +20,7 @@ const val PRE_TEXT =
 """
 
 /**
- * Copy of StructuralSearchTestCase. It is somewhy not exported as part of openapi.
+ * Copy of StructuralSearchTestCase. It is for some reason not exported as part of openapi.
  */
 class ArendProofSearchTest : LightQuickFixTestCase() {
 
@@ -43,9 +43,20 @@ class ArendProofSearchTest : LightQuickFixTestCase() {
         TestCase.assertEquals(count, findMatches(content, pattern).size)
 
 
-    fun testBasic() = assertCount(
+    fun testBasicFunction() = assertCount(
         """
         \func foo (a b : Nat) : a + b = b + a => {?}
+    """, "= (+ _ _) (+ _ _)", 1
+    )
+
+    fun testBasicClass() = assertCount(
+        """
+        \class Comm (A : \Type) (f : A -> A -> A) {
+          | comm (x y : A) : f x y = f y x
+        }
+        
+        \instance AddComm : Comm Nat (+) \cowith
+          | comm (x y : Nat) : x + y = y + x => {?}
     """, "= (+ _ _) (+ _ _)", 1
     )
 
