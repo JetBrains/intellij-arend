@@ -18,8 +18,10 @@ import com.intellij.structuralsearch.impl.matcher.CompiledPattern
 import com.intellij.structuralsearch.impl.matcher.GlobalMatchingVisitor
 import com.intellij.structuralsearch.impl.matcher.PatternTreeContext
 import com.intellij.structuralsearch.impl.matcher.compiler.GlobalCompilingVisitor
+import com.intellij.structuralsearch.impl.matcher.handlers.TopLevelMatchingHandler
 import org.arend.ArendFileType
 import org.arend.ArendLanguage
+import org.arend.psi.ArendExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ArendRefIdentifier
 import org.arend.psi.ArendVisitor
@@ -35,7 +37,14 @@ private val PATTERN_ERROR = Key<String>("arend.pattern.error")
  */
 class ArendStructuralSearchProfile : StructuralSearchProfile() {
     override fun compile(elements: Array<out PsiElement>, globalVisitor: GlobalCompilingVisitor) {
-        ArendCompilingVisitor(globalVisitor).compile(elements)
+        val pattern = globalVisitor.context.pattern
+        for (element in elements) {
+            pattern.getHandler(element).setFilter { true } // accept all fow now
+            pattern.setHandler(element, TopLevelMatchingHandler(pattern.getHandler(element)))
+            if (element is ArendExpr) {
+                element.setPatternTree(deconstructArendExpr(element))
+            }
+        }
     }
 
     override fun createMatchingVisitor(globalVisitor: GlobalMatchingVisitor): PsiElementVisitor {
