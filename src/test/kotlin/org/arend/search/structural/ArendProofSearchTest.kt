@@ -28,6 +28,10 @@ const val PRE_TEXT =
   \func \infixl 4 ** (a b : Nat) : Nat => {?}
 }
 
+\func \infix 3 ^^ \alias upup : Nat -> Nat -> Nat => {?}
+
+\func baz (a b : Nat) : a ^^ b = upup b a => {?}
+
 """
 
 /**
@@ -83,5 +87,11 @@ class ArendProofSearchTest : LightQuickFixTestCase() {
     fun testQualifiedNameInPattern() = assertHasMatch("\\func foo (a b : Nat) : a M.** b = b M.** a => {?}", "_ M.** _ = _ M.** _")
 
     fun testIgnoreNamesFromOtherModules() = assertHasNoMatch("\\func foo (a b : Nat) : a N.** b = b N.** a => {?}", "_ M.** _ = _ M.** _")
+
+    fun testMatchAliasByOriginal() = assertHasMatch("\\func foo (a b : Nat) : a ^^ b = upup b a => {?}", "_ ^^ _ = _ ^^ _")
+
+    fun testMatchPureAlias() = assertHasMatch("\\func foo (a b : Nat) : upup a b = upup b a => {?}", "upup _ _ = upup _ _")
+
+    fun testMatchOriginalByAlias() = assertHasMatch("\\func foo (a b : Nat) : a ^^ b = upup b a => {?}", "upup _ _ = upup _ _")
 
 }

@@ -5,6 +5,7 @@ import com.intellij.psi.util.parentOfType
 import com.intellij.structuralsearch.impl.matcher.GlobalMatchingVisitor
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
+import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
@@ -46,7 +47,7 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
             }
             return true
         } else if (pattern is Concrete.ReferenceExpression) {
-            return pattern.underlyingReferable == matched.underlyingReferable
+            return pattern.underlyingReferable?.resolveAlias() == matched.underlyingReferable?.resolveAlias()
         } else {
             return false
         }
@@ -55,15 +56,21 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
     private fun reassembleConcrete(tree: PatternTree, scope : Scope, references : Map<String, List<Referable>>): Concrete.Expression? =
         when (tree) {
             is PatternTree.BranchingNode -> {
-                val sequence = tree.subNodes.mapIndexed { index, it ->
-                    val expr = reassembleConcrete(it, scope, references) ?: return@reassembleConcrete null
-                    if (index == 0) Concrete.BinOpSequenceElem(expr, Fixity.NONFIX, true) else Concrete.BinOpSequenceElem(
-                        expr,
-                        Fixity.UNKNOWN,
-                        true
-                    )
+                val binOpList = ArrayList<Concrete.BinOpSequenceElem>(tree.subNodes.size)
+                for (i in tree.subNodes.indices) {
+                    val expr = reassembleConcrete(tree.subNodes[i], scope, references) ?: break
+                    val binOp = if (i == 0) {
+                        Concrete.BinOpSequenceElem(expr, Fixity.NONFIX, true)
+                    } else {
+                        Concrete.BinOpSequenceElem(expr, Fixity.UNKNOWN, true)
+                    }
+                    binOpList.add(binOp)
                 }
-                binOpParser.parse(Concrete.BinOpSequenceExpression(null, sequence, null))
+                if (binOpList.size != tree.subNodes.size) {
+                    null
+                } else {
+                    binOpParser.parse(Concrete.BinOpSequenceExpression(null, binOpList, null))
+                }
             }
             is PatternTree.LeafNode -> {
                 val referable = Scope.resolveName(scope, tree.referenceName, false)
@@ -131,3 +138,5 @@ private fun disambiguate(candidates: List<Referable>, path: List<String>): Refer
     }
     return result
 }
+
+private fun Referable.resolveAlias(): Referable = if (this is AliasReferable) underlyingReferable else this
