@@ -17,6 +17,12 @@ const val PRE_TEXT =
 \data Nat | zero | suc (n : Nat)
 
 \func \infixl 3 + (a b : Nat) : Nat => {?}
+
+\func bar : Nat -> Nat -> Nat => {?}
+
+\module M \where {
+ \func \infixl 4 ** (a b : Nat) : Nat => {?}
+}
 """
 
 /**
@@ -61,5 +67,8 @@ class ArendProofSearchTest : LightQuickFixTestCase() {
 
     fun testInfixPattern() = assertHasMatch("\\func foo (a b : Nat) : a + b = b + a => {?}", "_ + _ = _ + _")
 
+    fun testInfixPatternWithParens() = assertHasMatch("\\func foo (a b : Nat) : a + b = b + a => {?}", "(_ + _) = (_ + _)")
+
+    fun testNoMatches() = assertHasNoMatch("\\func foo (a b : Nat) : bar a b = bar b a => {?}", "_ ** _ = _ ** _")
 
 }

@@ -1,6 +1,7 @@
 package org.arend.search.structural
 
 import com.intellij.openapi.util.Key
+import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
 import com.intellij.util.containers.map2Array
@@ -56,7 +57,7 @@ internal fun deconstructArendExpr(expr: ArendExpr): PatternTree {
             val data = expr.data as ArendExpr
             return if (data.text == "_") {
                 Concrete.HoleExpression(PatternTree.Wildcard)
-            }else {
+            } else {
                 Concrete.HoleExpression(deconstructArendExpr(data))
             }
         }
@@ -68,7 +69,7 @@ internal fun deconstructArendExpr(expr: ArendExpr): PatternTree {
 }
 
 private tailrec fun removeParens(expr : ArendExpr) : ArendExpr {
-    val innerTuple = expr.childOfType<ArendTuple>()?.takeIf { it.startOffset == expr.startOffset } ?: return expr
+    val innerTuple = expr.childOfType<ArendTuple>()?.takeIf { it.startOffset == expr.startOffset && it.endOffset == expr.endOffset } ?: return expr
     val innerExpr = innerTuple.tupleExprList.singleOrNull()?.exprList?.singleOrNull() ?: return expr
     return removeParens(innerExpr)
 }
