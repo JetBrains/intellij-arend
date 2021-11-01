@@ -3,8 +3,10 @@ package org.arend.search.structural
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.structuralsearch.impl.matcher.GlobalMatchingVisitor
+import org.arend.core.expr.visitor.FreeVariablesCollector
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
+import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendArgumentAppExpr
@@ -18,6 +20,7 @@ import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.FreeVariableCollectorConcrete
 import org.arend.util.appExprToConcrete
 
 class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) : ArendVisitor() {
@@ -61,11 +64,11 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
         }
     }
 
-    private fun reassembleConcrete(tree: PatternTree, scope : Scope): Concrete.Expression? =
+    private fun reassembleConcrete(tree: PatternTree, scope : Scope, references : Map<String, List<Referable>>): Concrete.Expression? =
         when (tree) {
             is PatternTree.BranchingNode -> {
                 val sequence = tree.subNodes.mapIndexed { index, it ->
-                    val expr = reassembleConcrete(it, scope) ?: return@reassembleConcrete null
+                    val expr = reassembleConcrete(it, scope, references) ?: return@reassembleConcrete null
                     if (index == 0) Concrete.BinOpSequenceElem(expr, Fixity.NONFIX, true) else Concrete.BinOpSequenceElem(
                         expr,
                         Fixity.UNKNOWN,
@@ -75,7 +78,7 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
                 binOpParser.parse(Concrete.BinOpSequenceExpression(null, sequence, null))
             }
             is PatternTree.LeafNode -> {
-                val referable = scope.resolveName(tree.referenceName)
+                val referable = scope.resolveName(tree.referenceName) ?: references[tree.referenceName]?.singleOrNull()
                 if (referable != null) {
                     val refExpr = Concrete.FixityReferenceExpression.make(null, referable, Fixity.UNKNOWN, null, null)
                     refExpr ?: Concrete.HoleExpression(tree.referenceName)
@@ -102,7 +105,12 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
             val mscope = CachingScope.make(matchedElement.scope)
             val parsedConcrete =
                 if (concrete is Concrete.BinOpSequenceExpression) binOpParser.parse(concrete) else concrete
-            val patternConcrete = reassembleConcrete(patternTree, mscope) ?: return
+            val qualifiedReferables by lazy(LazyThreadSafetyMode.NONE) {
+                val set = mutableSetOf<Referable>()
+                parsedConcrete.accept(FreeVariableCollectorConcrete(set), null)
+                set.groupBy { it.refName }
+            }
+            val patternConcrete = reassembleConcrete(patternTree, mscope, qualifiedReferables) ?: return
             if (performMatch(patternConcrete, parsedConcrete)) {
                 matchingVisitor.result = true
             }

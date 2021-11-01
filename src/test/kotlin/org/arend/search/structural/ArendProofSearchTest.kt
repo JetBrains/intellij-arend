@@ -71,4 +71,7 @@ class ArendProofSearchTest : LightQuickFixTestCase() {
 
     fun testNoMatches() = assertHasNoMatch("\\func foo (a b : Nat) : bar a b = bar b a => {?}", "_ ** _ = _ ** _")
 
+    fun testNoMatchesInBody() = assertHasNoMatch("\\func foo : \\Type => a + b = b + a", "_ + _ = _ + _")
+
+    fun testQualifiedName() = assertHasMatch("\\func foo (a b : Nat) : a M.** b = b M.** a => {?}", "_ ** _ = _ ** _")
 }
