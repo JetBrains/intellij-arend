@@ -3,7 +3,6 @@ package org.arend.search.structural
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.structuralsearch.impl.matcher.GlobalMatchingVisitor
-import org.arend.core.expr.visitor.FreeVariablesCollector
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
 import org.arend.naming.reference.Referable
@@ -12,9 +11,7 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendVisitor
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.impl.CoClauseDefAdapter
 import org.arend.psi.ext.impl.DefinitionAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
@@ -31,7 +28,7 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
         if (pattern is Concrete.HoleExpression) {
             return true
         }
-        if (matched is Concrete.AppExpression && pattern is Concrete.AppExpression) {
+        if (pattern is Concrete.AppExpression && matched is Concrete.AppExpression) {
             val patternFunction = pattern.function
             val matchedFunction = matched.function
             if (!performMatch(patternFunction, matchedFunction)) {
@@ -48,17 +45,8 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
                 }
             }
             return true
-        } else if ((matched is Concrete.HoleExpression || matched is Concrete.ReferenceExpression) && pattern is Concrete.ReferenceExpression) {
-            val patternElement = pattern.referent.refName
-            val matchElement = matched.data as ArendCompositeElement
-            if (patternElement == matchElement.text) {
-                return true
-            }
-            val matchName = if (matchElement is ArendReferenceContainer) matchElement.referenceName else null
-            if (patternElement == matchName) {
-                return true
-            }
-            return false
+        } else if (pattern is Concrete.ReferenceExpression) {
+            return pattern.underlyingReferable == matched.underlyingReferable
         } else {
             return false
         }
@@ -78,7 +66,8 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
                 binOpParser.parse(Concrete.BinOpSequenceExpression(null, sequence, null))
             }
             is PatternTree.LeafNode -> {
-                val referable = scope.resolveName(tree.referenceName) ?: references[tree.referenceName]?.singleOrNull()
+                val referable = Scope.resolveName(scope, tree.referenceName, false)
+                    ?: references[tree.referenceName.last()]?.let { disambiguate(it, tree.referenceName) }
                 if (referable != null) {
                     val refExpr = Concrete.FixityReferenceExpression.make(null, referable, Fixity.UNKNOWN, null, null)
                     refExpr ?: Concrete.HoleExpression(tree.referenceName)
@@ -116,13 +105,29 @@ class ArendMatchingVisitor(private val matchingVisitor: GlobalMatchingVisitor) :
             }
         }
     }
+}
 
-    fun getType(def: DefinitionAdapter<*>): Concrete.Expression? {
-        // todo: reuse core definitions where possible to achieve matching with explicitly untyped definitions and implicit arguments
-        return when (def) {
-            is CoClauseDefAdapter -> def.resultType?.let(::appExprToConcrete)
-            is FunctionDefinitionAdapter -> def.resultType?.let(::appExprToConcrete)
-            else -> null
+private fun getType(def: DefinitionAdapter<*>): Concrete.Expression? {
+    // todo: reuse core definitions where possible to achieve matching with explicitly untyped definitions and implicit arguments
+    return when (def) {
+        is CoClauseDefAdapter -> def.resultType?.let(::appExprToConcrete)
+        is FunctionDefinitionAdapter -> def.resultType?.let(::appExprToConcrete)
+        else -> null
+    }
+}
+
+private fun disambiguate(candidates: List<Referable>, path: List<String>): Referable? {
+    var result: Referable? = null
+    for (candidate in candidates) {
+        val longName = candidate.refLongName ?: continue
+        if (longName.toList().subList(longName.size() - path.size, longName.size()) == path) {
+            if (result == null) {
+                result = candidate
+            } else {
+                // there are two referables with the same suffix, it is ambiguous
+                return null
+            }
         }
     }
+    return result
 }

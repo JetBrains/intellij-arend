@@ -21,8 +21,13 @@ const val PRE_TEXT =
 \func bar : Nat -> Nat -> Nat => {?}
 
 \module M \where {
- \func \infixl 4 ** (a b : Nat) : Nat => {?}
+  \func \infixl 4 ** (a b : Nat) : Nat => {?}
 }
+
+\module N \where {
+  \func \infixl 4 ** (a b : Nat) : Nat => {?}
+}
+
 """
 
 /**
@@ -74,4 +79,9 @@ class ArendProofSearchTest : LightQuickFixTestCase() {
     fun testNoMatchesInBody() = assertHasNoMatch("\\func foo : \\Type => a + b = b + a", "_ + _ = _ + _")
 
     fun testQualifiedName() = assertHasMatch("\\func foo (a b : Nat) : a M.** b = b M.** a => {?}", "_ ** _ = _ ** _")
+
+    fun testQualifiedNameInPattern() = assertHasMatch("\\func foo (a b : Nat) : a M.** b = b M.** a => {?}", "_ M.** _ = _ M.** _")
+
+    fun testIgnoreNamesFromOtherModules() = assertHasNoMatch("\\func foo (a b : Nat) : a N.** b = b N.** a => {?}", "_ M.** _ = _ M.** _")
+
 }

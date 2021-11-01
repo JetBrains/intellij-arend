@@ -21,25 +21,17 @@ import org.arend.util.appExprToConcrete
  */
 internal sealed interface PatternTree {
 
-    fun admits(identifier: String) : Boolean
-
     @JvmInline
     value class BranchingNode(val subNodes: List<PatternTree>) : PatternTree {
-        override fun admits(identifier: String) = false
-
         override fun toString(): String = subNodes.joinToString(" ", "[", "]", transform = PatternTree::toString)
     }
 
     @JvmInline
-    value class LeafNode(val referenceName: String) : PatternTree {
-        override fun admits(identifier: String): Boolean = identifier == referenceName
-
-        override fun toString(): String = referenceName
+    value class LeafNode(val referenceName: List<String>) : PatternTree {
+        override fun toString(): String = referenceName.joinToString(".")
     }
 
     object Wildcard : PatternTree {
-        override fun admits(identifier: String): Boolean = true
-
         override fun toString(): String = "_"
     }
 }
@@ -63,7 +55,7 @@ internal fun deconstructArendExpr(expr: ArendExpr): PatternTree {
         }
 
         override fun visitReference(expr: Concrete.ReferenceExpression, params: Unit?): Concrete.Expression {
-            return Concrete.HoleExpression(PatternTree.LeafNode(expr.data.castSafelyTo<ArendCompositeElement>()!!.text))
+            return Concrete.HoleExpression(PatternTree.LeafNode(expr.data.castSafelyTo<ArendCompositeElement>()!!.text.split(".")))
         }
     }, Unit).data as PatternTree
 }
