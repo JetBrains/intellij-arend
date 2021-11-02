@@ -375,6 +375,8 @@
         <!-- Search everywhere contributor-->
         <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
 
+        <searchEverywhereContributor implementation="org.arend.actions.ArendProofSearchFactory" />
+
         <editorTabColorProvider implementation="org.arend.editor.ArendEditorTabColorProvider"/>
 
         <!-- Structural search -->
