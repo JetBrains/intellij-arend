@@ -166,6 +166,9 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         }
         val wrappableOptions = mutableListOf<WrappableOption>()
         for ((range, exprWithLet) in rangeMap) {
+            if (range == rootPsi.textRange) {
+                continue
+            }
             val (expr, let) = exprWithLet
             val basicText = rootPsi.containingFile.text.substring(range.startOffset, range.endOffset)
             val strippedText = stripText(basicText, expr, range)
