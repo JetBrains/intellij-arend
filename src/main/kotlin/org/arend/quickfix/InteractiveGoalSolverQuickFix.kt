@@ -20,7 +20,11 @@ import org.arend.typechecking.error.local.GoalError
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.ui.impl.ArendEditorUI
 
-class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val goal: GoalError, private val solver: InteractiveGoalSolver, private val action: (Document, Concrete.Expression, String) -> Unit) : IntentionAction {
+class InteractiveGoalSolverQuickFix(private val element: ArendExpr,
+                                    private val goal: GoalError,
+                                    private val solver: InteractiveGoalSolver,
+                                    private val action: (Editor, Concrete.Expression, String) -> Unit)
+    : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
             if (it != null) {
@@ -38,7 +42,7 @@ class InteractiveGoalSolverQuickFix(private val element: ArendExpr, private val 
                 val definitionRenamer = PsiLocatedRenamer(element)
                 val text = concrete.accept(DefinitionRenamerConcreteVisitor(CachingDefinitionRenamer(definitionRenamer)), null).toString()
                 ApplicationManager.getApplication().runWriteAction {
-                    action(editor.document, concrete, text)
+                    action(editor, concrete, text)
                     definitionRenamer.writeAllImportCommands()
                 }
             }

@@ -13,11 +13,14 @@ import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor
 import org.arend.typechecking.error.local.GoalError
 import org.arend.util.ArendBundle
 
-class GoalSolverFillingQuickFix(private val element: ArendExpr, private val goal: GoalError, private val action: (Document, Concrete.Expression, String) -> Unit) : IntentionAction {
+class GoalSolverFillingQuickFix(private val element: ArendExpr,
+                                private val goal: GoalError,
+                                private val action: (Editor, Concrete.Expression, String) -> Unit)
+    : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         val definitionRenamer = PsiLocatedRenamer(element)
         val text = goal.result.accept(DefinitionRenamerConcreteVisitor(CachingDefinitionRenamer(definitionRenamer)), null).toString()
-        action(editor.document, goal.result, text)
+        action(editor, goal.result, text)
         definitionRenamer.writeAllImportCommands()
     }
 
