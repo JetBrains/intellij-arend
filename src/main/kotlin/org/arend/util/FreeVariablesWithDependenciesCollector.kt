@@ -31,6 +31,9 @@ class FreeVariablesWithDependenciesCollector private constructor() : VoidExpress
 
     override fun visitReference(expr: ReferenceExpression, state: ParameterExplicitnessState): Void? {
         val currentBinding = expr.binding
+        if (currentBinding is ClassCallExpression.ClassCallBinding) {
+            return null
+        }
         currentBinding.type.expr.accept(this, ParameterExplicitnessState.IMPLICIT)
         val weakenedState = weakenState(state, currentBinding.typeExpr)
         freeBindings.add(currentBinding to weakenedState)
@@ -62,6 +65,8 @@ class FreeVariablesWithDependenciesCollector private constructor() : VoidExpress
         }
         return null
     }
+
+
 
     private fun freeParams(param: DependentLink) {
         var currentParam = param
