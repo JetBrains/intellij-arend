@@ -108,7 +108,10 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             if (!successful || !service<ArendSettings>().checkForUpdates) return
             for (dependency in library.dependencies) {
                 if (dependency.name == AREND_LIB) {
-                    checkForUpdates(project, getRegisteredLibrary(AREND_LIB)?.version)
+                    val arendLib = getRegisteredLibrary(AREND_LIB)
+                    if (arendLib != null) {
+                        checkForUpdates(project, arendLib.version)
+                    }
                     break
                 }
             }
