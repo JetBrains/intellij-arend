@@ -63,12 +63,13 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         file ?: return false
         if (!BaseArendIntention.canModify(file)) return false
         val selection = editor.getSelectionWithoutErrors()?.takeIf { !it.isEmpty } ?: return false
-        return file
-                .findElementAt(editor.caretModel.offset)
-                ?.parents(true)
-                ?.firstOrNull { it.textRange.contains(selection) }
-                ?.let(this::acceptableParents)
-                ?.firstOrNull() != null
+        val wrappablePsi = file
+            .findElementAt(editor.caretModel.offset)
+            ?.parents(true)
+            ?.firstOrNull { it.textRange.contains(selection) }
+            ?.let(this::acceptableParents)
+            ?.firstOrNull() ?: return false
+        return collectWrappableOptions(wrappablePsi, selection).isNotEmpty()
     }
 
     override fun getText(): String = ArendBundle.message("arend.create.let.binding")
