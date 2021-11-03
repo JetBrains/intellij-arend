@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parents
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.psi.ArendExpr
 import org.arend.psi.getSelectionWithoutErrors
 import org.arend.refactoring.rangeOfConcrete
@@ -25,7 +26,13 @@ open class ExtractExpressionToFunctionIntention : AbstractGenerateFunctionIntent
                             .filterIsInstance<ArendExpr>()
                             .lastOrNull { enclosingRange.contains(it.textRange) }
                             ?: subexprResult.subPsi
-            return SelectionResult(subexprResult.subCore.type, enclosingPsi, enclosingRange, subexprResult.subConcrete, null, subexprResult.subCore)
+            return SelectionResult(
+                subexprResult.subCore.type?.normalize(NormalizationMode.RNF),
+                enclosingPsi,
+                enclosingRange,
+                subexprResult.subConcrete,
+                null,
+                subexprResult.subCore)
         }
     }
 
