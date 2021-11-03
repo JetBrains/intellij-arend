@@ -6,6 +6,7 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.expr.*
 import org.arend.core.expr.visitor.VoidExpressionVisitor
+import org.arend.ext.core.ops.NormalizationMode
 import kotlin.Pair
 
 
@@ -34,7 +35,7 @@ class FreeVariablesWithDependenciesCollector private constructor() : VoidExpress
         if (currentBinding is ClassCallExpression.ClassCallBinding) {
             return null
         }
-        currentBinding.type.expr.accept(this, ParameterExplicitnessState.IMPLICIT)
+        currentBinding.type.normalize(NormalizationMode.RNF).expr.accept(this, ParameterExplicitnessState.IMPLICIT)
         val weakenedState = weakenState(state, currentBinding.typeExpr)
         freeBindings.add(currentBinding to weakenedState)
         return null
