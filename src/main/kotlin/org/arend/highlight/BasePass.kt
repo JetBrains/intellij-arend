@@ -7,13 +7,14 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.text.Strings
 import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
@@ -166,7 +167,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                                 ?: it
                             else -> it
                         }
-                        val action: (Document, Concrete.Expression, String) -> Unit = { doc, concrete, text ->
+                        val action: (Editor, Concrete.Expression, String) -> Unit = { editor, concrete, text ->
                             if (incomplete) {
                                 var offset = cause.textRange.endOffset
                                 var reformat = false
@@ -188,13 +189,23 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                                     cause is LeafPsiElement -> ""
                                     else -> " "
                                 }
-                                doc.insertString(offset, "$prefix$text")
+                                editor.document.insertString(offset, "$prefix$text")
 
                                 if (reformat) {
                                     val file = cause.containingFile
                                     CodeStyleManager.getInstance(file.project).reformatText(file, offset, offset + prefix.length + text.length)
                                 }
-                            } else replaceExprSmart(doc, expr, null, expr.textRange, null, concrete, text)
+                            } else {
+                                replaceExprSmart(editor.document, expr, null, expr.textRange, null, concrete, text)
+                                if (text.contains("{?}")) {
+                                    val goalOffset = editor.document.charsSequence.let { charSeq ->
+                                        Strings.indexOf(charSeq, "{?}", expr.startOffset, expr.startOffset + text.length)
+                                    }
+                                    if (goalOffset != -1) {
+                                        editor.caretModel.moveToOffset(goalOffset)
+                                    }
+                                }
+                            }
                         }
                         registerFix(info, GoalSolverFillingQuickFix(expr, error, action))
                         for (solver in error.goalSolver.additionalSolvers) {
