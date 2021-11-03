@@ -27,9 +27,11 @@ class ArendNoVariantsDelegator : CompletionContributor() {
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
         val tracker = object : Consumer<CompletionResult> {
             val variants = HashSet<PsiElement>()
+            val nullPsiVariants = HashSet<String>()
             override fun consume(plainResult: CompletionResult) {
                 result.passResult(plainResult)
                 val elementPsi: PsiElement? = plainResult.lookupElement.psiElement
+                val str = plainResult.lookupElement.lookupString
                 if (elementPsi != null) {
                     val elementIsWithinFileBeingEdited = elementPsi.containingFile == parameters.position.containingFile
                     if (!elementIsWithinFileBeingEdited) variants.add(elementPsi) else {
@@ -37,6 +39,8 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                         if (originalPosition != null) parameters.originalFile.findElementAt(elementPsi.startOffset - parameters.position.startOffset + originalPosition.startOffset)?.ancestors?.
                         firstOrNull {it.elementType == elementPsi.elementType }?.let { variants.add(it) }
                     }
+                } else {
+                    nullPsiVariants.add(str)
                 }
             }
         }
@@ -50,7 +54,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         val editor = parameters.editor
         val project = editor.project
 
-        if (project != null && allowedPosition && (tracker.variants.isEmpty() || !parameters.isAutoPopup)) {
+        if (project != null && allowedPosition && (tracker.variants.isEmpty() && tracker.nullPsiVariants.isEmpty() || !parameters.isAutoPopup)) {
             val scope = ProjectAndLibrariesScope(project)
             val tcService = project.service<TypeCheckingService>()
 
