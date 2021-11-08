@@ -373,7 +373,7 @@
         <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
 
         <!-- Search everywhere contributor-->
-        <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
+<!--        <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />-->
 
         <searchEverywhereContributor implementation="org.arend.actions.ArendProofSearchFactory" />
 
@@ -458,6 +458,13 @@
                 text="Goto Arend File"
                 description="Go to Arend file">
             <add-to-group group-id="GoToTargetEx" anchor="last" />
+        </action>
+
+        <action class="org.arend.actions.ArendProofSearchAction"
+                text="Search for Proof"
+                description="Search for proof">
+            <add-to-group group-id="GoToTargetEx" anchor="last" />
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt P" />
         </action>
 
         <group id="ToolbarArendGroup"
