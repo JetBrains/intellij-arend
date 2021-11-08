@@ -1,44 +1,30 @@
 package org.arend.actions
 
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
-import com.intellij.ide.actions.searcheverywhere.AbstractGotoSEContributor
-import com.intellij.ide.actions.searcheverywhere.FileSearchEverywhereContributor
+import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributorFactory
-import com.intellij.ide.util.gotoByName.FilteringGotoByModel
-import com.intellij.ide.util.gotoByName.GotoSymbolModel2
-import com.intellij.ide.util.gotoByName.LanguageRef
-import com.intellij.navigation.NavigationItem
-import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.psi.PsiElement
-import org.arend.ArendLanguage
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.stubs.StubIndex
+import com.intellij.util.Processor
 import org.arend.psi.ArendDefFunction
-import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.PsiReferable
+import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.util.arendModules
-import java.util.Collections.singletonList
 import javax.swing.ListCellRenderer
 
-class ArendProofSearchContributor(val event: AnActionEvent) : AbstractGotoSEContributor(event) {
+class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEverywhereContributor<PsiReferable> {
     override fun getGroupName(): String = "Proof search"
 
     override fun getSortWeight(): Int = 201
 
     override fun isShownInSeparateTab(): Boolean {
         return event.project?.arendModules?.isNotEmpty() ?: false
-    }
-
-    override fun createModel(project: Project): FilteringGotoByModel<*> {
-        val model = object : GotoSymbolModel2(project) {
-
-            override fun acceptItem(item: NavigationItem?): Boolean {
-                if (item !is ArendCompositeElement) return false
-                return super.acceptItem(item)
-            }
-        }
-        model.setFilterItems(singletonList(LanguageRef.forLanguage(ArendLanguage.INSTANCE)))
-        return model
     }
 
     override fun getElementsRenderer(): ListCellRenderer<Any> {
@@ -54,19 +40,56 @@ class ArendProofSearchContributor(val event: AnActionEvent) : AbstractGotoSECont
         }
     }
 
-    override fun getActions(onChanged: Runnable): MutableList<AnAction> {
-        return singletonList(
-            doGetActions(
-                FileSearchEverywhereContributor.createFileTypeFilter(this.myProject),
-                null,
-                onChanged
-            ).first()
-        )
+    override fun getSearchProviderId(): String = ArendProofSearchContributor::class.java.simpleName
+
+    override fun showInFindResults(): Boolean = false
+
+    override fun isDumbAware(): Boolean {
+        return false
+    }
+
+    override fun processSelectedItem(selected: PsiReferable, modifiers: Int, searchText: String): Boolean {
+        // todo: maybe filling selected goal with the proof?
+        return true
+    }
+
+    override fun getDataForItem(element: PsiReferable, dataId: String): Any? = null
+
+    override fun fetchWeightedElements(
+        pattern: String,
+        progressIndicator: ProgressIndicator,
+        consumer: Processor<in FoundItemDescriptor<PsiReferable>>
+    ) {
+        val project = event.project ?: return
+        runReadAction {
+            val keys = StubIndex.getInstance().getAllKeys(ArendDefinitionIndex.KEY, event.project!!)
+            for (definitionName in keys) {
+                if (progressIndicator.isCanceled) {
+                    break
+                }
+                StubIndex.getInstance().processElements(
+                    ArendDefinitionIndex.KEY,
+                    definitionName,
+                    project,
+                    GlobalSearchScope.allScope(project),
+                    PsiReferable::class.java
+                ) { def ->
+                    if (progressIndicator.isCanceled) {
+                        return@processElements false
+                    }
+                    if (def.name?.contains(pattern) == true) {
+                        // todo: weight
+                        consumer.process(FoundItemDescriptor(def, 1))
+                    }
+                    true
+                }
+            }
+        }
     }
 }
 
-class ArendProofSearchFactory : SearchEverywhereContributorFactory<Any> {
-    override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<Any> {
+class ArendProofSearchFactory : SearchEverywhereContributorFactory<PsiReferable> {
+    override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<PsiReferable> {
         return ArendProofSearchContributor(initEvent)
     }
 }
