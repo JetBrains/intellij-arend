@@ -12,9 +12,15 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.util.Processor
+import com.intellij.util.castSafelyTo
 import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendExpr
+import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.stubs.index.ArendDefinitionIndex
+import org.arend.search.structural.ArendExpressionMatcher
+import org.arend.search.structural.deconstructArendExpr
+import org.arend.term.abs.Abstract
 import org.arend.util.arendModules
 import javax.swing.ListCellRenderer
 
@@ -62,6 +68,8 @@ class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEver
     ) {
         val project = event.project ?: return
         runReadAction {
+            val parsedExpression = ArendPsiFactory(project).createExpressionMaybe(pattern) ?: return@runReadAction
+            val matcher = ArendExpressionMatcher(deconstructArendExpr(parsedExpression))
             val keys = StubIndex.getInstance().getAllKeys(ArendDefinitionIndex.KEY, event.project!!)
             for (definitionName in keys) {
                 if (progressIndicator.isCanceled) {
@@ -77,7 +85,9 @@ class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEver
                     if (progressIndicator.isCanceled) {
                         return@processElements false
                     }
-                    if (def.name?.contains(pattern) == true) {
+                    val type = def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<ArendExpr>()
+                        ?: return@processElements true
+                    if (matcher.match(type)) {
                         // todo: weight
                         consumer.process(FoundItemDescriptor(def, 1))
                     }
