@@ -75,7 +75,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 elementType == DOC_RBRACKET -> append("]")
                 elementType == DOC_TEXT -> html(docElement.text)
                 elementType == WHITE_SPACE -> append(" ")
-                elementType == DOC_CODE -> append("<code>${docElement.text}</code>")
+                elementType == DOC_CODE -> append("<code>${docElement.text.htmlEscape()}</code>")
                 elementType == DOC_PARAGRAPH_SEP -> {
                     append("<br>")
                     if (!full) {
@@ -85,7 +85,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 }
                 docElement is ArendDocReference -> {
                     val longName = docElement.longName
-                    val link = longName.refIdentifierList.joinToString(".") { it.id.text }
+                    val link = longName.refIdentifierList.joinToString(".") { it.id.text.htmlEscape() }
                     val isLink = longName.resolve is PsiReferable
                     if (isLink) {
                         append("<a href=\"psi_element://$link\">")
@@ -95,7 +95,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                     val text = docElement.docReferenceText
                     if (text != null) {
                         for (child in text.childrenWithLeaves) {
-                            if (child.elementType == DOC_TEXT) append(child.text)
+                            if (child.elementType == DOC_TEXT) html(child.text)
                         }
                     } else {
                         append(link)
@@ -110,7 +110,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                     append("<pre>")
                     for (child in docElement.childrenWithLeaves) {
                         when ((child as? LeafPsiElement)?.elementType) {
-                            DOC_CODE_LINE -> append(child.text)
+                            DOC_CODE_LINE -> html(child.text)
                             WHITE_SPACE -> append("\n")
                         }
                     }
