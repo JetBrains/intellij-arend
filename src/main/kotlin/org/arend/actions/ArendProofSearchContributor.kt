@@ -11,9 +11,12 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.speedSearch.SpeedSearchUtil
 import com.intellij.util.Processor
 import com.intellij.util.castSafelyTo
-import org.arend.psi.ArendDefFunction
+import com.intellij.util.ui.UIUtil
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.PsiReferable
@@ -22,9 +25,12 @@ import org.arend.search.structural.ArendExpressionMatcher
 import org.arend.search.structural.deconstructArendExpr
 import org.arend.term.abs.Abstract
 import org.arend.util.arendModules
+import javax.swing.JList
 import javax.swing.ListCellRenderer
 
-class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEverywhereContributor<PsiReferable> {
+data class ProofSearchEntry(val def : PsiReferable)
+
+class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEverywhereContributor<ProofSearchEntry> {
     override fun getGroupName(): String = "Proof search"
 
     override fun getSortWeight(): Int = 201
@@ -36,35 +42,62 @@ class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEver
     override fun getElementsRenderer(): ListCellRenderer<Any> {
         return object : SearchEverywherePsiRenderer(this) {
 
-            override fun getElementText(element: PsiElement): String {
-                val superText = super.getElementText(element)
-                if (element is ArendDefFunction && element.returnExpr != null) {
-                    return "$superText : ${element.returnExpr?.text}"
+            override fun customizeNonPsiElementLeftRenderer(
+                renderer: ColoredListCellRenderer<*>,
+                list: JList<*>,
+                value: Any?,
+                index: Int,
+                selected: Boolean,
+                hasFocus: Boolean
+            ): Boolean {
+                val def = value?.castSafelyTo<ProofSearchEntry>()?.def ?: return false
+                val bgColor = UIUtil.getListBackground()
+                val color = list.foreground
+                val name = def.name ?: return false
+                renderer.append("$name : ", SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, color))
+                val type = def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<PsiElement>()?.text ?: return false
+                SpeedSearchUtil.appendColoredFragmentForMatcher(
+                    type,
+                    renderer,
+                    SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, color),
+                    null,
+                    bgColor,
+                    selected
+                )
+                val locationAttributes = SimpleTextAttributes.GRAYED_ATTRIBUTES
+                val fm = list.getFontMetrics(list.font)
+                val maxWidth = list.width -
+                        fm.stringWidth(name) -
+                        16 - myRightComponentWidth - 20
+                val containerText = getContainerTextForLeftComponent(def, def.name, maxWidth, fm)
+                containerText?.run {
+                    renderer.append(" $containerText", locationAttributes)
                 }
-                return superText
+                renderer.icon = this.getIcon(def)
+                    return true
             }
         }
     }
 
     override fun getSearchProviderId(): String = ArendProofSearchContributor::class.java.simpleName
 
-    override fun showInFindResults(): Boolean = false
+    override fun showInFindResults(): Boolean = true
 
     override fun isDumbAware(): Boolean {
         return false
     }
 
-    override fun processSelectedItem(selected: PsiReferable, modifiers: Int, searchText: String): Boolean {
+    override fun processSelectedItem(selected: ProofSearchEntry, modifiers: Int, searchText: String): Boolean {
         // todo: maybe filling selected goal with the proof?
         return true
     }
 
-    override fun getDataForItem(element: PsiReferable, dataId: String): Any? = null
+    override fun getDataForItem(element: ProofSearchEntry, dataId: String): Any? = null
 
     override fun fetchWeightedElements(
         pattern: String,
         progressIndicator: ProgressIndicator,
-        consumer: Processor<in FoundItemDescriptor<PsiReferable>>
+        consumer: Processor<in FoundItemDescriptor<ProofSearchEntry>>
     ) {
         val project = event.project ?: return
         runReadAction {
@@ -89,7 +122,7 @@ class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEver
                         ?: return@processElements true
                     if (matcher.match(type)) {
                         // todo: weight
-                        consumer.process(FoundItemDescriptor(def, 1))
+                        consumer.process(FoundItemDescriptor(ProofSearchEntry(def), 1))
                     }
                     true
                 }
@@ -98,8 +131,8 @@ class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEver
     }
 }
 
-class ArendProofSearchFactory : SearchEverywhereContributorFactory<PsiReferable> {
-    override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<PsiReferable> {
+class ArendProofSearchFactory : SearchEverywhereContributorFactory<ProofSearchEntry> {
+    override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<ProofSearchEntry> {
         return ArendProofSearchContributor(initEvent)
     }
 }
