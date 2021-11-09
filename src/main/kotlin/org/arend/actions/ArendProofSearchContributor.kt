@@ -1,6 +1,5 @@
 package org.arend.actions
 
-import com.intellij.ide.actions.SearchEverywherePsiRenderer
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributorFactory
@@ -8,21 +7,12 @@ import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContrib
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
-import com.intellij.refactoring.suggested.startOffset
-import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.ui.SimpleTextAttributes
-import com.intellij.ui.speedSearch.SpeedSearchUtil
 import com.intellij.util.Processor
 import com.intellij.util.castSafelyTo
-import com.intellij.util.ui.UIUtil
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.ArendRefIdentifier
-import org.arend.psi.ArendVisitor
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.search.structural.ArendExpressionMatcher
@@ -30,8 +20,6 @@ import org.arend.search.structural.PatternTree
 import org.arend.search.structural.deconstructArendExpr
 import org.arend.term.abs.Abstract
 import org.arend.util.arendModules
-import javax.swing.JList
-import javax.swing.ListCellRenderer
 
 data class ProofSearchEntry(val def : PsiReferable, val tree : PatternTree)
 
@@ -44,55 +32,8 @@ class ArendProofSearchContributor(val event: AnActionEvent) : WeightedSearchEver
         return event.project?.arendModules?.isNotEmpty() ?: false
     }
 
-    override fun getElementsRenderer(): ListCellRenderer<Any> {
-        return object : SearchEverywherePsiRenderer(this) {
-
-            override fun customizeNonPsiElementLeftRenderer(
-                renderer: ColoredListCellRenderer<*>,
-                list: JList<*>,
-                value: Any?,
-                index: Int,
-                selected: Boolean,
-                hasFocus: Boolean
-            ): Boolean {
-                val def = value?.castSafelyTo<ProofSearchEntry>()?.def ?: return false
-                val patternTree = value.castSafelyTo<ProofSearchEntry>()?.tree ?: return false
-                val bgColor = UIUtil.getListBackground()
-                val color = list.foreground
-                val name = def.name ?: return false
-                renderer.append("$name : ", SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, color))
-                val type = def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<PsiElement>() ?: return false
-                val toHighlight = mutableListOf<TextRange>()
-                type.accept(object : ArendVisitor() {
-                    override fun visitRefIdentifier(o: ArendRefIdentifier) {
-                        val mname = o.referenceName
-                        if (patternTree is PatternTree.BranchingNode && patternTree.subNodes.any { it is PatternTree.LeafNode && it.referenceName.last() == mname }) {
-                            toHighlight.add(o.textRange)
-                        }
-                        super.visitRefIdentifier(o)
-                    }
-                })
-                val plain = SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, color)
-                if (selected) {
-                    renderer.setDynamicSearchMatchHighlighting(true)
-                    val highlighted = SimpleTextAttributes(bgColor, color, null, SimpleTextAttributes.STYLE_BOLD or SimpleTextAttributes.STYLE_SEARCH_MATCH)
-                    SpeedSearchUtil.appendColoredFragments(renderer, type.text, listOf(TextRange(0, type.text.length)), plain, highlighted)
-                } else {
-                    renderer.append(type.text, plain)
-                }
-                val locationAttributes = SimpleTextAttributes.GRAYED_ATTRIBUTES
-                val fm = list.getFontMetrics(list.font)
-                val maxWidth = list.width -
-                        fm.stringWidth(name) -
-                        16 - myRightComponentWidth - 20
-                val containerText = getContainerTextForLeftComponent(def, def.name, maxWidth, fm)
-                containerText?.run {
-                    renderer.append(" $containerText", locationAttributes)
-                }
-                renderer.icon = this.getIcon(def)
-                return true
-            }
-        }
+    override fun getElementsRenderer(): ArendProofSearchRenderer {
+        return ArendProofSearchRenderer()
     }
 
     override fun getSearchProviderId(): String = ArendProofSearchContributor::class.java.simpleName
