@@ -19,7 +19,7 @@ import org.arend.util.appExprToConcrete
  * Structural Search API, while the actual pattern object is a tree of symbols.
  * Pattern of the Proof Search contains infix symbols that cannot be completely resolved at the time of its writing.
  */
-internal sealed interface PatternTree {
+sealed interface PatternTree {
 
     @JvmInline
     value class BranchingNode(val subNodes: List<PatternTree>) : PatternTree {
