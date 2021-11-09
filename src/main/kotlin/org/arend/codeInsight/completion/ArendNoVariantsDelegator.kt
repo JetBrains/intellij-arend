@@ -62,7 +62,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 if (BetterPrefixMatcher(result.prefixMatcher, Int.MIN_VALUE).prefixMatches(name)) {
                     val locatedReferables = refs ?: StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
                     locatedReferables.forEach {
-                        if (it !is ArendFile && !tracker.variants.contains(it)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
+                        if (it !is ArendFile && ((it.containingFile as? ArendFile)?.moduleLocation != null) && !tracker.variants.contains(it)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
                             result.addElement(
                                     run {
                                         val oldHandler = it.insertHandler
