@@ -11,8 +11,10 @@ object ArendNamesValidator : NamesValidator {
     override fun isKeyword(name: String, project: Project?): Boolean =
         getLexerType(name) in AREND_KEYWORDS
 
-    override fun isIdentifier(name: String, project: Project?): Boolean =
-        getLexerType(name) == ArendElementTypes.ID
+    override fun isIdentifier(name: String, project: Project?): Boolean {
+        val tokenType = getLexerType(name)
+        return tokenType == ArendElementTypes.ID || tokenType == ArendElementTypes.REPL_COMMAND
+    }
 
     private fun getLexerType(text : String): IElementType? {
         val lexer = ArendLexerAdapter()
