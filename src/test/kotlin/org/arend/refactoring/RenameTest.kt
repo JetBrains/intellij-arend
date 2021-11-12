@@ -312,6 +312,12 @@ class RenameTest : ArendTestBase() {
          | con {bar} m => bar
     """)
 
+    fun `test name starts with a semicolon`() = doInlineTest(
+            ":b",
+            "\\func :a{-caret-} => {?}",
+            "\\func :b => {?}"
+    )
+
     private fun doTest(
             newName: String,
             @Language("Arend") before: String,
