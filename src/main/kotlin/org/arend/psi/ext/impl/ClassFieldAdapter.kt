@@ -15,7 +15,7 @@ import org.arend.psi.ArendTypeTele
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.resolving.FieldDataLocatedReferable
-import org.arend.term.ClassFieldKind
+import org.arend.ext.concrete.definition.ClassFieldKind
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
