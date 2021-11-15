@@ -1,20 +1,13 @@
 package org.arend.actions
 
-import com.intellij.ide.actions.GotoFileAction
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.actionSystem.DataContext
-import com.intellij.openapi.project.Project
-import org.arend.util.arendModules
+import com.intellij.openapi.components.service
+import org.arend.search.proof.ProofSearchService
 
-class ArendProofSearchAction : GotoFileAction(){
+class ArendProofSearchAction : AnAction(){
     override fun actionPerformed(e: AnActionEvent) {
-        showInSearchEverywherePopup(ArendProofSearchContributor::class.java.simpleName, e, true, false)
+        e.project?.service<ProofSearchService>()?.show(e)
     }
 
-    override fun hasContributors(context: DataContext?): Boolean =
-        if (context != null) {
-            val project: Project? = CommonDataKeys.PROJECT.getData(context)
-            project?.arendModules?.isNotEmpty() ?: false
-        } else false
 }
