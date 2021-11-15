@@ -1,24 +1,36 @@
 package org.arend.search.proof
 
+import com.intellij.accessibility.TextFieldWithListAccessibleContext
+import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.BigPopupUI
+import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.ui.*
+import com.intellij.ui.CollectionListModel
+import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.Gray
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.fields.ExtendableTextComponent
+import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.components.panels.NonOpaquePanel
+import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
+import org.arend.ArendIcons
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
+import javax.accessibility.AccessibleContext
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 
@@ -111,7 +123,10 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
 
     private fun runProofSearch() {
         val project = myProject ?: return
-        model.removeAll()
+        invokeAndWaitIfNeeded {
+            progressIndicator?.cancel()
+            model.removeAll()
+        }
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
             invokeLater {
                 this.progressIndicator = progressIndicator
@@ -123,5 +138,33 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
                 true
             }
         }
+    }
+
+    override fun createSearchField(): ExtendableTextField {
+        val res: SearchField = object : SearchField() {
+            override fun getAccessibleContext(): AccessibleContext {
+                if (accessibleContext == null) {
+                    accessibleContext = TextFieldWithListAccessibleContext(this, myResultsList.accessibleContext)
+                }
+                return accessibleContext
+            }
+        }
+        val leftExt: ExtendableTextComponent.Extension = object : ExtendableTextComponent.Extension {
+            override fun getIcon(hovered: Boolean): Icon {
+                return ArendIcons.TURNSTILE
+            }
+
+            override fun isIconBeforeText(): Boolean {
+                return true
+            }
+
+            override fun getIconGap(): Int {
+                return JBUIScale.scale(10)
+            }
+        }
+        res.addExtension(leftExt)
+        res.putClientProperty(SearchEverywhereUI.SEARCH_EVERYWHERE_SEARCH_FILED_KEY, true)
+        res.layout = BorderLayout()
+        return res
     }
 }

@@ -35,6 +35,8 @@ object ArendIcons {
     val MOVE_LEFT = getIcon("/icons/moveLeft.svg")
     val MOVE_RIGHT = getIcon("/icons/moveRight.svg")
 
+    val TURNSTILE = getIcon("/icons/turnstile.svg")
+
     // Source code elements
 
     val CLASS_DEFINITION = AllIcons.Nodes.Class
