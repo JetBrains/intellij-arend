@@ -4,47 +4,57 @@ import com.intellij.ide.actions.BigPopupUI
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.ui.CollectionListModel
-import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.ui.Gray
-import com.intellij.ui.JBColor
+import com.intellij.ui.*
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.panels.NonOpaquePanel
+import com.intellij.util.Alarm
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
 import javax.swing.*
+import javax.swing.event.DocumentEvent
 
 class ProofSearchUI(project : Project?) : BigPopupUI(project) {
+
+    private val searchAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
+
+    private val model: CollectionListModel<Any> = CollectionListModel()
+
+    private var progressIndicator : ProgressIndicator? = null
+        get() {
+            ApplicationManager.getApplication().assertIsDispatchThread()
+            return field
+        }
+        set(value) {
+            ApplicationManager.getApplication().assertIsDispatchThread()
+            field?.cancel()
+            field = value
+        }
+
     init {
         init()
+        initSearchActions()
     }
 
     override fun dispose() {}
 
     override fun createList(): JBList<Any> {
-        val listModel = CollectionListModel<Any>()
-        addListDataListener(listModel)
+        addListDataListener(model)
 
-        return JBList(listModel)
+        return JBList(model)
     }
 
     override fun createCellRenderer(): ListCellRenderer<Any> {
-        return object : ColoredListCellRenderer<Any>() {
-            override fun customizeCellRenderer(
-                list: JList<out Any>,
-                value: Any?,
-                index: Int,
-                selected: Boolean,
-                hasFocus: Boolean
-            ) {
-
-            }
-        }
+        // todo: better generics
+        return ArendProofSearchRenderer()
     }
 
     override fun createTopLeftPanel(): JPanel {
@@ -83,4 +93,35 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
     }
 
     override fun getAccessibleName(): String = "Proof search"
+
+    private fun initSearchActions() {
+        searchField.document.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) {
+                val newSearchString = searchPattern
+                scheduleSearch()
+            }
+        })
+    }
+
+    private fun scheduleSearch() {
+        if (!searchAlarm.isDisposed && searchAlarm.activeRequestCount == 0) {
+            searchAlarm.addRequest({ runProofSearch() }, 100)
+        }
+    }
+
+    private fun runProofSearch() {
+        val project = myProject ?: return
+        model.removeAll()
+        runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
+            invokeLater {
+                this.progressIndicator = progressIndicator
+            }
+            fetchWeightedElements(project, searchPattern, progressIndicator) { entry ->
+                invokeLater {
+                    model.add(entry)
+                }
+                true
+            }
+        }
+    }
 }
