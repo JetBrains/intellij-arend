@@ -86,13 +86,14 @@ private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using:
     return null
 }
 
-fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): ArrayList<ArendNsId> {
+fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): Pair<ArrayList<ArendNsId>, Boolean /* true if success */> {
     val insertedNsIds = ArrayList<ArendNsId>()
     val factory = ArendPsiFactory(statCmd.project)
     val insertAnchor = statCmd.longName
+    val usingBlockRequired = idList.any { it.second != null }
 
     val actualNsUsing: ArendNsUsing? = statCmd.nsUsing
-            ?: if (idList.any { it.second != null } && insertAnchor != null) {
+            ?: if (usingBlockRequired && insertAnchor != null) {
                 val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
                 val insertedUsing = insertAnchor.parent.addAfterWithNotification(newUsing, insertAnchor)
                 insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
@@ -101,7 +102,7 @@ fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): 
 
     val actualIdList = if (actualNsUsing?.usingKw != null) idList.filter { it.second != null } else idList
     if (actualNsUsing != null) insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
-    return insertedNsIds
+    return Pair(insertedNsIds, insertedNsIds.isNotEmpty() || !usingBlockRequired && actualNsUsing == null)
 }
 
 private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElement, name: String, factory: ArendPsiFactory): ArendRefIdentifier {
@@ -322,7 +323,7 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
                     data?.first?.execute()
                     if (data != null) LongName(data.second).toString() else null
                 } else null) ?: LongName(openedName.subList(0, openedName.size - 1)).toString()
-                return addIdToUsing(mySourceContainer, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+                return addIdToUsing(mySourceContainer, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).second
             }
 
         }
@@ -335,7 +336,7 @@ fun addIdToUsing(groupMember: PsiElement?,
                  targetContainerName: String,
                  renamings: List<Pair<String, String?>>,
                  factory: ArendPsiFactory,
-                 relativePosition: RelativePosition): List<ArendNsId> {
+                 relativePosition: RelativePosition): Pair<List<ArendNsId>, Boolean> {
     (groupMember?.ancestor<ArendGroup>())?.namespaceCommands?.map { statCmd ->
         if (statCmd is ArendStatCmd) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
@@ -352,9 +353,10 @@ fun addIdToUsing(groupMember: PsiElement?,
                 createStatCmdStatement(factory, targetContainerName, renamings, ArendPsiFactory.StatCmdKind.OPEN),
                 relativePosition)
         val statCmd = insertedStatement.childOfType<ArendStatCmd>()
-        return statCmd?.nsUsing?.nsIdList ?: emptyList()
+        val nsIds = statCmd?.nsUsing?.nsIdList ?: emptyList()
+        return Pair(nsIds, nsIds.isNotEmpty())
     }
-    return emptyList()
+    return Pair(emptyList(), false)
 }
 
 fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<Pair<String, ArendNsId?>> {
