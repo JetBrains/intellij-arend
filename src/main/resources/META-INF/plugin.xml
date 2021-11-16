@@ -373,9 +373,7 @@
         <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
 
         <!-- Search everywhere contributor-->
-<!--        <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />-->
-
-        <searchEverywhereContributor implementation="org.arend.actions.ArendProofSearchFactory" />
+        <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
 
         <editorTabColorProvider implementation="org.arend.editor.ArendEditorTabColorProvider"/>
 
@@ -460,10 +458,10 @@
             <add-to-group group-id="GoToTargetEx" anchor="last" />
         </action>
 
-        <action class="org.arend.actions.ArendProofSearchAction"
-                text="Search for Proof"
-                description="Search for proof">
-            <add-to-group group-id="GoToTargetEx" anchor="last" />
+        <action class="org.arend.search.proof.ArendProofSearchAction"
+                text="Proof Search"
+                description="Run search for pattern expression in functions' codomains">
+            <add-to-group group-id="SearchEverywhereActions" anchor="last" />
             <keyboard-shortcut keymap="$default" first-keystroke="control alt P" />
         </action>
 

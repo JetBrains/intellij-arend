@@ -1,17 +1,17 @@
 package org.arend.search.proof
 
 import com.intellij.accessibility.TextFieldWithListAccessibleContext
-import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.BigPopupUI
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.CollectionListModel
@@ -40,16 +40,15 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
 
     private val model: CollectionListModel<Any> = CollectionListModel()
 
-    private var progressIndicator : ProgressIndicator? = null
-        get() {
-            ApplicationManager.getApplication().assertIsDispatchThread()
-            return field
+    @Volatile
+    private var progressIndicator: ProgressIndicator? = null
+        get() = synchronized(this) {
+            field
         }
-        set(value) {
-            ApplicationManager.getApplication().assertIsDispatchThread()
-            field?.cancel()
+        set(value) = synchronized(this) {
             field = value
         }
+
 
     init {
         init()
@@ -113,6 +112,10 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
                 scheduleSearch()
             }
         })
+        val escape = ActionManager.getInstance().getAction("EditorEscape")
+        DumbAwareAction.create { close() }
+            .registerCustomShortcutSet(escape?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
+
     }
 
     private fun scheduleSearch() {
@@ -123,8 +126,8 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
 
     private fun runProofSearch() {
         val project = myProject ?: return
-        invokeAndWaitIfNeeded {
-            progressIndicator?.cancel()
+        progressIndicator?.cancel()
+        invokeLater {
             model.removeAll()
         }
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
@@ -166,5 +169,14 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
         res.putClientProperty(SearchEverywhereUI.SEARCH_EVERYWHERE_SEARCH_FILED_KEY, true)
         res.layout = BorderLayout()
         return res
+    }
+
+    fun close() {
+        stopSearch()
+        searchFinishedHandler.run()
+    }
+
+    fun stopSearch() {
+        invokeAndWaitIfNeeded { progressIndicator?.cancel() }
     }
 }

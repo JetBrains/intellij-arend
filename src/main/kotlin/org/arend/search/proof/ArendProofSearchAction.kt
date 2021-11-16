@@ -1,4 +1,4 @@
-package org.arend.actions
+package org.arend.search.proof
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
