@@ -27,7 +27,7 @@ class RedundantParensInspection : ArendInspectionBase() {
                 super.visitTuple(tuple)
                 val expression = unwrapParens(tuple) ?: return
                 if (neverNeedsParens(expression) ||
-                        neverNeedsParensInParent(tuple, expression) ||
+                        isCommonRedundantParensPattern(tuple, expression) ||
                         isApplicationUsedAsBinOpArgument(tuple, expression)) {
                     val message = ArendBundle.message("arend.inspection.redundant.parentheses.message")
                     holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
@@ -70,7 +70,7 @@ private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
     return isBinOp(literal.longName) || isBinOp(literal.ipName)
 }
 
-private fun neverNeedsParensInParent(tuple: ArendTuple, expression: ArendExpr): Boolean {
+private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendExpr): Boolean {
     val parentNewExpr = getParentAtomFieldsAcc(tuple)
             ?.parent.castSafelyTo<ArendArgumentAppExpr>()
             // Excludes cases like `(f a) b`
