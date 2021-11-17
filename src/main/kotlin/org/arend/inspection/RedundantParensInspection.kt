@@ -110,11 +110,15 @@ private fun isRedundantParensForAnyChild(parent: PsiElement?) =
                 parent is ArendLetClause ||
                 parent is ArendTypeAnnotation
 
-private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: ArendExpr) =
-        parent.colon != null || parent.parent.let {
-            it is ArendTuple && it.tupleExprList.size > 1 && (expression !is ArendCaseExpr || expression.withBody != null || expression.returnKw != null) ||
-                    it is ArendImplicitArgument
-        }
+private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: ArendExpr): Boolean {
+    if (parent.colon != null) {
+        return true
+    }
+    val grand = parent.parent
+    return grand is ArendTuple && grand.tupleExprList.size > 1 &&
+            (expression !is ArendCaseExpr || expression.withBody != null || expression.returnKw != null) ||
+            grand is ArendImplicitArgument
+}
 
 private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: ArendExpr): Boolean {
     val parentAtomFieldsAcc = getParentAtomFieldsAcc(tuple) ?: return false
