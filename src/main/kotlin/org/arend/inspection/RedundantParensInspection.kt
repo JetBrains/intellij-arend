@@ -79,12 +79,7 @@ private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendE
     // Examples of the parent new expression: (f a), \new (f a), (f a) { x => 1 }
     val parent = parentNewExpr?.parent
     return isRedundantParensForAnyChild(parent) ||
-            // Tuples
-            parent is ArendTupleExpr &&
-            (parent.colon != null || parent.parent.let {
-                it is ArendTuple && it.tupleExprList.size > 1 && (expression !is ArendCaseExpr || expression.withBody != null || expression.returnKw != null) ||
-                        it is ArendImplicitArgument
-            })
+            parent is ArendTupleExpr && isRedundantParensInTupleParent(parent, expression)
 }
 
 private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
@@ -114,6 +109,12 @@ private fun isRedundantParensForAnyChild(parent: PsiElement?) =
                 parent is ArendLetExpr ||
                 parent is ArendLetClause ||
                 parent is ArendTypeAnnotation
+
+private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: ArendExpr) =
+        parent.colon != null || parent.parent.let {
+            it is ArendTuple && it.tupleExprList.size > 1 && (expression !is ArendCaseExpr || expression.withBody != null || expression.returnKw != null) ||
+                    it is ArendImplicitArgument
+        }
 
 private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: ArendExpr): Boolean {
     val parentAtomFieldsAcc = getParentAtomFieldsAcc(tuple) ?: return false
