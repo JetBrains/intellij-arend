@@ -78,26 +78,7 @@ private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendE
             ?.parent.castSafelyTo<ArendNewExpr>()
     // Examples of the parent new expression: (f a), \new (f a), (f a) { x => 1 }
     val parent = parentNewExpr?.parent
-    return parent is ArendReturnExpr ||
-            // Parameter types
-            parent is ArendNameTele ||
-            parent is ArendFieldTele ||
-            parent is ArendTypedExpr ||
-            // Bodies, Clauses, CoClauses
-            parent is ArendFunctionalBody ||
-            parent is ArendDefMeta ||
-            parent is ArendClause ||
-            parent is CoClauseBase ||
-            // Clause patterns
-            parent is ArendPattern ||
-            parent is ArendAsPattern ||
-            // Expressions
-            parent is ArendPiExpr ||
-            parent is ArendLamExpr ||
-            parent is ArendLamTele ||
-            parent is ArendLetExpr ||
-            parent is ArendLetClause ||
-            parent is ArendTypeAnnotation ||
+    return isRedundantParensForAnyChild(parent) ||
             // Tuples
             parent is ArendTupleExpr &&
             (parent.colon != null || parent.parent.let {
@@ -111,6 +92,28 @@ private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
                 ?.parent.castSafelyTo<ArendAtomFieldsAcc>()
                 // Excludes cases like `(f a).1`
                 ?.takeIf { it.fieldAccList.isEmpty() }
+
+private fun isRedundantParensForAnyChild(parent: PsiElement?) =
+        parent is ArendReturnExpr ||
+                // Parameter types
+                parent is ArendNameTele ||
+                parent is ArendFieldTele ||
+                parent is ArendTypedExpr ||
+                // Bodies, Clauses, CoClauses
+                parent is ArendFunctionalBody ||
+                parent is ArendDefMeta ||
+                parent is ArendClause ||
+                parent is CoClauseBase ||
+                // Clause patterns
+                parent is ArendPattern ||
+                parent is ArendAsPattern ||
+                // Expressions
+                parent is ArendPiExpr ||
+                parent is ArendLamExpr ||
+                parent is ArendLamTele ||
+                parent is ArendLetExpr ||
+                parent is ArendLetClause ||
+                parent is ArendTypeAnnotation
 
 private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: ArendExpr): Boolean {
     val parentAtomFieldsAcc = getParentAtomFieldsAcc(tuple) ?: return false
