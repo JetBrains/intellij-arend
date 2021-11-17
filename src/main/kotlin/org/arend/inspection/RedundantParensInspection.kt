@@ -27,7 +27,7 @@ class RedundantParensInspection : ArendInspectionBase() {
                 super.visitTuple(tuple)
                 val expression = unwrapParens(tuple) ?: return
                 if (neverNeedsParens(expression) ||
-                        neverNeedsParensInParent(tuple) ||
+                        neverNeedsParensInParent(tuple, expression) ||
                         isApplicationUsedAsBinOpArgument(tuple, expression)) {
                     val message = ArendBundle.message("arend.inspection.redundant.parentheses.message")
                     holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
@@ -70,7 +70,7 @@ private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
     return isBinOp(literal.longName) || isBinOp(literal.ipName)
 }
 
-private fun neverNeedsParensInParent(tuple: ArendTuple): Boolean {
+private fun neverNeedsParensInParent(tuple: ArendTuple, expression: ArendExpr): Boolean {
     val parentNewExpr = getParentAtomFieldsAcc(tuple)
             ?.parent.castSafelyTo<ArendArgumentAppExpr>()
             // Excludes cases like `(f a) b`
@@ -99,7 +99,11 @@ private fun neverNeedsParensInParent(tuple: ArendTuple): Boolean {
             parent is ArendLetClause ||
             parent is ArendTypeAnnotation ||
             // Tuples
-            parent is ArendTupleExpr && (parent.colon != null || parent.parent.let { it is ArendTuple && it.tupleExprList.size > 1 || it is ArendImplicitArgument })
+            parent is ArendTupleExpr &&
+            (parent.colon != null || parent.parent.let {
+                it is ArendTuple && it.tupleExprList.size > 1 && (expression !is ArendCaseExpr || expression.withBody != null || expression.returnKw != null) ||
+                        it is ArendImplicitArgument
+            })
 }
 
 private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
