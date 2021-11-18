@@ -309,7 +309,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                             if (remainderAnchor.children.isNotEmpty()) remainderAnchor.firstChild else null
                         } else remainderAnchor
 
-                        val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole)
+                        val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole).first
                         for (nsId in nsIds) {
                             val target = nsId.refIdentifier.reference?.resolve()
                             val name = nsId.refIdentifier.referenceName
