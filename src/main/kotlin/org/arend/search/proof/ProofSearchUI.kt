@@ -131,9 +131,7 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
             model.removeAll()
         }
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
-            invokeLater {
-                this.progressIndicator = progressIndicator
-            }
+            this.progressIndicator = progressIndicator
             fetchWeightedElements(project, searchPattern, progressIndicator) { entry ->
                 invokeLater {
                     model.add(entry)
@@ -171,12 +169,12 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
         return res
     }
 
-    fun close() {
+    private fun close() {
         stopSearch()
         searchFinishedHandler.run()
     }
 
-    fun stopSearch() {
+    private fun stopSearch() {
         invokeAndWaitIfNeeded { progressIndicator?.cancel() }
     }
 }
