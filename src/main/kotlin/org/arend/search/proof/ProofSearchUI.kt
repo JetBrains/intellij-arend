@@ -1,14 +1,10 @@
 package org.arend.search.proof
 
 import com.intellij.accessibility.TextFieldWithListAccessibleContext
-import com.intellij.ide.IdeBundle
 import com.intellij.ide.actions.BigPopupUI
-import com.intellij.ide.actions.runAnything.RunAnythingPopupUI
+import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.ActionToolbar
-import com.intellij.openapi.actionSystem.CommonShortcuts
-import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
@@ -28,6 +24,7 @@ import com.intellij.util.BooleanFunction
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import org.arend.ArendIcons
+import org.arend.psi.navigate
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
@@ -117,12 +114,21 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         val escape = ActionManager.getInstance().getAction("EditorEscape")
         DumbAwareAction.create { close() }
             .registerCustomShortcutSet(escape?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
-        RunAnythingPopupUI.adjustEmptyText(
+        adjustEmptyText(
             mySearchField,
             { field: JBTextField -> field.text.isEmpty() },
             "Pattern string",
             ""
         )
+
+        DumbAwareAction.create { event: AnActionEvent? ->
+            // todo: also navigate by clicking on an entry
+            val indices = myResultsList.selectedIndices
+            val first = model.getElementAt(indices[0]) as FoundItemDescriptor<ProofSearchEntry>
+            val navigatable = first.item.def.navigationElement
+            close()
+            navigatable.navigate(true)
+        }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
     }
 
     private fun scheduleSearch() {
@@ -185,9 +191,9 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         progressIndicator?.cancel()
     }
 
-    fun adjustEmptyText(
+    private fun adjustEmptyText(
         textEditor: JBTextField,
-        function: BooleanFunction<in JBTextField?>,
+        function: BooleanFunction<in JBTextField>,
         leftText: @NlsContexts.StatusText String,
         rightText: @NlsContexts.StatusText String
     ) {
@@ -198,4 +204,6 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         statusText.appendText(false, 0, rightText, SimpleTextAttributes.GRAY_ATTRIBUTES, null)
         statusText.setFont(UIUtil.getLabelFont(UIUtil.FontSize.SMALL))
     }
+
+
 }

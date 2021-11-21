@@ -1,5 +1,6 @@
 package org.arend.search.proof
 
+import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.openapi.util.TextRange
@@ -14,6 +15,7 @@ import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
 import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ext.impl.CoClauseDefAdapter
 import org.arend.search.structural.PatternTree
 import org.arend.term.abs.Abstract
 import java.awt.*
@@ -69,7 +71,7 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
         textArea.foreground = textColor
         textArea.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
         textArea.font = JBTextArea().font
-        val icon = def.getIcon(0)
+        val icon = if (def is CoClauseDefAdapter) AllIcons.General.Show_to_implement else def.getIcon(0)
         label.icon = icon
         label.border = BorderFactory.createEmptyBorder(1 + textArea.getFontMetrics(textArea.font).height - icon.iconHeight, 0, 5, 2)
         return panel
