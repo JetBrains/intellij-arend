@@ -1,27 +1,26 @@
 package org.arend.search.proof
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.IdeBundle
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.panels.OpaquePanel
-import com.intellij.ui.speedSearch.SpeedSearchUtil
 import com.intellij.util.castSafelyTo
+import com.intellij.util.ui.JBInsets
+import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.CoClauseDefAdapter
 import org.arend.search.structural.PatternTree
 import org.arend.term.abs.Abstract
-import java.awt.*
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Component
 import javax.swing.*
-import javax.swing.text.html.HTMLDocument
-import javax.swing.text.html.HTMLEditorKit
 
 data class ProofSearchEntry(val def : PsiReferable, val tree : PatternTree)
 
@@ -47,21 +46,39 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
         isSelected: Boolean,
         cellHasFocus: Boolean
     ): Component {
-        value as FoundItemDescriptor<ProofSearchEntry>
-        val def = value.item.def.castSafelyTo<Abstract.FunctionDefinition>() ?: return panel
-        def as PsiReferable
-        val parameterTypes = def.parameters.map { (it as PsiElement).text }
-        val type =
-            def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<PsiElement>() ?: return panel
-        textArea.contentType = "text/html"
-        textArea.text = buildHtml(def.name!!, parameterTypes, type.text, if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor())
-        val width = list.width
-        if (width > 0) {
-            textArea.setSize(width, Short.MAX_VALUE.toInt())
+        if (value is MoreElement) {
+            panel.font = UIUtil.getLabelFont().deriveFont(UIUtil.getFontSize(UIUtil.FontSize.SMALL))
+            panel.background = JBUI.CurrentTheme.BigPopup.listTitleLabelForeground()
+            textArea.text = IdeBundle.message("search.everywhere.points.more")
+            panel.border = null
+        } else {
+            value as FoundItemDescriptor<ProofSearchEntry>
+            val def = value.item.def.castSafelyTo<Abstract.FunctionDefinition>() ?: return panel
+            def as PsiReferable
+            val parameterTypes = def.parameters.map { (it as PsiElement).text }
+            val type =
+                def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<PsiElement>() ?: return panel
+            textArea.contentType = "text/html"
+            textArea.text = buildHtml(
+                def.name!!,
+                parameterTypes,
+                type.text,
+                if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor()
+            )
+            val width = list.width
+            if (width > 0) {
+                textArea.setSize(width, Short.MAX_VALUE.toInt())
+            }
+            val icon = if (def is CoClauseDefAdapter) AllIcons.General.Show_to_implement else def.getIcon(0)
+            label.icon = icon
+            label.border = BorderFactory.createEmptyBorder(
+                1 + textArea.getFontMetrics(textArea.font).height - icon.iconHeight,
+                0,
+                5,
+                2
+            )
         }
         textArea.border = BORDER
-
-
         val bgColor = if (isSelected) UIUtil.getListSelectionBackground(true) else UIUtil.getListBackground()
         val textColor = if (isSelected) list.selectionForeground else list.foreground
         textArea.background = bgColor
@@ -71,9 +88,7 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
         textArea.foreground = textColor
         textArea.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
         textArea.font = JBTextArea().font
-        val icon = if (def is CoClauseDefAdapter) AllIcons.General.Show_to_implement else def.getIcon(0)
-        label.icon = icon
-        label.border = BorderFactory.createEmptyBorder(1 + textArea.getFontMetrics(textArea.font).height - icon.iconHeight, 0, 5, 2)
+
         return panel
 
     }

@@ -18,7 +18,6 @@ import org.arend.term.abs.Abstract
 fun fetchWeightedElements(
     project: Project,
     pattern: String,
-    progressIndicator: ProgressIndicator
 ): Sequence<FoundItemDescriptor<ProofSearchEntry>> = sequence {
     val parsedExpression = runReadAction {
         ArendPsiFactory(project).createExpressionMaybe(pattern)
@@ -26,9 +25,6 @@ fun fetchWeightedElements(
     val matcher = runReadAction { ArendExpressionMatcher(deconstructArendExpr(parsedExpression)) }
     val keys = runReadAction { StubIndex.getInstance().getAllKeys(ArendDefinitionIndex.KEY, project) }
     for (definitionName in keys) {
-        if (progressIndicator.isCanceled) {
-            break
-        }
         val list = mutableListOf<PsiReferable>()
         runReadAction {
             StubIndex.getInstance().processElements(
@@ -51,3 +47,7 @@ fun fetchWeightedElements(
         }
     }
 }
+
+@JvmInline
+value class MoreElement(val sequence : Sequence<FoundItemDescriptor<ProofSearchEntry>>)
+

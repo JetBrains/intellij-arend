@@ -21,6 +21,7 @@ import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
 import com.intellij.util.BooleanFunction
+import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import org.arend.ArendIcons
@@ -124,31 +125,48 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         DumbAwareAction.create { event: AnActionEvent? ->
             // todo: also navigate by clicking on an entry
             val indices = myResultsList.selectedIndices
-            val first = model.getElementAt(indices[0]) as FoundItemDescriptor<ProofSearchEntry>
-            val navigatable = first.item.def.navigationElement
-            close()
-            navigatable.navigate(true)
+            val first = model.getElementAt(indices[0])
+            if (first is FoundItemDescriptor<*>) {
+                val navigatable = first.item.castSafelyTo<ProofSearchEntry>()!!.def.navigationElement
+                close()
+                navigatable.navigate(true)
+            } else if (first is MoreElement) {
+                runProofSearch(first.sequence)
+            }
         }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
     }
 
     private fun scheduleSearch() {
         if (!searchAlarm.isDisposed && searchAlarm.activeRequestCount == 0) {
-            searchAlarm.addRequest({ runProofSearch() }, 100)
+            searchAlarm.addRequest({ runProofSearch(null) }, 100)
         }
     }
 
-    private fun runProofSearch() {
+    private fun runProofSearch(results : Sequence<FoundItemDescriptor<ProofSearchEntry>>?) {
         val project = myProject ?: return
         progressIndicator?.cancel()
-        invokeLater {
-            model.removeAll()
+        if (results == null) {
+            invokeLater {
+                model.removeAll()
+            }
         }
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
             this.progressIndicator = progressIndicator
-            val elements = fetchWeightedElements(project, searchPattern, progressIndicator)
+            val elements = results ?: fetchWeightedElements(project, searchPattern)
+            var counter = 20
             for (element in elements) {
+                if (progressIndicator.isCanceled) {
+                    break
+                }
+                --counter
                 invokeLater {
                     model.add(element)
+                }
+                if (counter == 0) {
+                    invokeLater {
+                        model.add(MoreElement(elements.drop(20)))
+                    }
+                    break
                 }
             }
         }
