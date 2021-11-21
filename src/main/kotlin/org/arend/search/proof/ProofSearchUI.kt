@@ -1,29 +1,30 @@
 package org.arend.search.proof
 
 import com.intellij.accessibility.TextFieldWithListAccessibleContext
+import com.intellij.ide.IdeBundle
 import com.intellij.ide.actions.BigPopupUI
+import com.intellij.ide.actions.runAnything.RunAnythingPopupUI
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.ui.CollectionListModel
-import com.intellij.ui.DocumentAdapter
-import com.intellij.ui.Gray
-import com.intellij.ui.JBColor
+import com.intellij.ui.*
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
+import com.intellij.util.BooleanFunction
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import org.arend.ArendIcons
@@ -116,7 +117,12 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         val escape = ActionManager.getInstance().getAction("EditorEscape")
         DumbAwareAction.create { close() }
             .registerCustomShortcutSet(escape?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
-
+        RunAnythingPopupUI.adjustEmptyText(
+            mySearchField,
+            { field: JBTextField -> field.text.isEmpty() },
+            "Pattern string",
+            ""
+        )
     }
 
     private fun scheduleSearch() {
@@ -170,12 +176,26 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         return res
     }
 
-    public fun close() {
+    fun close() {
         stopSearch()
         searchFinishedHandler.run()
     }
 
     private fun stopSearch() {
         progressIndicator?.cancel()
+    }
+
+    fun adjustEmptyText(
+        textEditor: JBTextField,
+        function: BooleanFunction<in JBTextField?>,
+        leftText: @NlsContexts.StatusText String,
+        rightText: @NlsContexts.StatusText String
+    ) {
+        textEditor.putClientProperty("StatusVisibleFunction", function)
+        val statusText = textEditor.emptyText
+        statusText.isShowAboveCenter = false
+        statusText.setText(leftText, SimpleTextAttributes.GRAY_ATTRIBUTES)
+        statusText.appendText(false, 0, rightText, SimpleTextAttributes.GRAY_ATTRIBUTES, null)
+        statusText.setFont(UIUtil.getLabelFont(UIUtil.FontSize.SMALL))
     }
 }
