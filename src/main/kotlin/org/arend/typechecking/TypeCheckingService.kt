@@ -253,7 +253,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         fun getFunction(expr: Concrete.Expression?) =
             (((expr as? Concrete.ReferenceExpression)?.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let { listOf(it) }
 
-        val result = pool.getInstance(classifyingExpression, parameters, null, null)
+        val result = pool.findInstance(classifyingExpression, parameters, null, null, null)
         getFunction(result)?.let { return it }
         if (result !is Concrete.AppExpression) return emptyList()
 
