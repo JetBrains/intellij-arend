@@ -34,7 +34,7 @@ import javax.accessibility.AccessibleContext
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 
-class ProofSearchUI(project : Project?) : BigPopupUI(project) {
+class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
 
     private val searchAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
@@ -95,8 +95,10 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
         res.isOpaque = false
 
         val actionGroup = DefaultActionGroup()
+        project?.let { actionGroup.addAction(ShowInFindWindowAction(this, it)) }
         val toolbar = ActionManager.getInstance().createActionToolbar("proof.search.top.toolbar", actionGroup, true)
         toolbar.layoutPolicy = ActionToolbar.NOWRAP_LAYOUT_POLICY
+        toolbar.setTargetComponent(this)
         val toolbarComponent = toolbar.component
         toolbarComponent.isOpaque = false
         res.add(toolbarComponent)
@@ -108,7 +110,6 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
     private fun initSearchActions() {
         searchField.document.addDocumentListener(object : DocumentAdapter() {
             override fun textChanged(e: DocumentEvent) {
-                val newSearchString = searchPattern
                 scheduleSearch()
             }
         })
@@ -169,12 +170,12 @@ class ProofSearchUI(project : Project?) : BigPopupUI(project) {
         return res
     }
 
-    private fun close() {
+    public fun close() {
         stopSearch()
         searchFinishedHandler.run()
     }
 
     private fun stopSearch() {
-        invokeAndWaitIfNeeded { progressIndicator?.cancel() }
+        progressIndicator?.cancel()
     }
 }
