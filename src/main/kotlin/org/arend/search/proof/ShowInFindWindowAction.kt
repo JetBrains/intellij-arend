@@ -39,10 +39,8 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
             override fun run(indicator: ProgressIndicator) {
                 progressIndicator.start()
                 val foundElements: MutableCollection<Any> = ArrayList()
-                fetchWeightedElements(project, searchText, progressIndicator) { entry ->
-                    foundElements.add(entry)
-                    true
-                }
+                val elements = fetchWeightedElements(project, searchText, progressIndicator)
+                foundElements.add(elements.toList())
                 fillUsages(foundElements, usages, targets)
             }
 

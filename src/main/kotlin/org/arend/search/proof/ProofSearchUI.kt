@@ -145,11 +145,11 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         }
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
             this.progressIndicator = progressIndicator
-            fetchWeightedElements(project, searchPattern, progressIndicator) { entry ->
+            val elements = fetchWeightedElements(project, searchPattern, progressIndicator)
+            for (element in elements) {
                 invokeLater {
-                    model.add(entry)
+                    model.add(element)
                 }
-                true
             }
         }
     }
