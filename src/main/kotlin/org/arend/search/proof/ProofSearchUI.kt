@@ -24,6 +24,7 @@ import com.intellij.util.BooleanFunction
 import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
+import com.jetbrains.rd.util.remove
 import org.arend.ArendIcons
 import org.arend.psi.navigate
 import java.awt.BorderLayout
@@ -112,6 +113,7 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
                 scheduleSearch()
             }
         })
+        myResultsList.expandableItemsHandler.isEnabled = false
         val escape = ActionManager.getInstance().getAction("EditorEscape")
         DumbAwareAction.create { close() }
             .registerCustomShortcutSet(escape?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
@@ -136,6 +138,8 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
             }
         }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
     }
+
+    fun loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong (a : Int) : Int { return 1 }
 
     private fun scheduleSearch() {
         if (!searchAlarm.isDisposed && searchAlarm.activeRequestCount == 0) {
