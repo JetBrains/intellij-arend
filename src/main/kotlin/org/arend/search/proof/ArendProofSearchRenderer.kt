@@ -75,7 +75,7 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
                 def.name!!,
                 parameterTypes,
                 type.text,
-                (def.containingFile as ArendFile).representableName,
+                (def.containingFile as ArendFile).moduleLocation?.modulePath?.toString()!!,
                 if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor()
 
             )
