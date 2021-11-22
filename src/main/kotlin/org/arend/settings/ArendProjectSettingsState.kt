@@ -46,7 +46,8 @@ class ArendProjectSettingsState {
     var librariesRoot: String? = null
 
     // Proof search
-    var ignoreTestLocations : Boolean = true
+    var includeTestLocations : Boolean = false
+    var includeNonProjectLocations : Boolean = true
 }
 
 class ArendPrintingOptions {

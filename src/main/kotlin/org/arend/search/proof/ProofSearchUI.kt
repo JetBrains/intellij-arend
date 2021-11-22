@@ -182,7 +182,7 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
                 model.removeAll()
             }
         }
-        val settings = project.service<ArendProjectSettings>().data.ignoreTestLocations
+        val settings = ProofSearchUISettings(project)
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
             this.progressIndicator = progressIndicator
             val elements = results ?: fetchWeightedElements(project, settings, searchPattern)
