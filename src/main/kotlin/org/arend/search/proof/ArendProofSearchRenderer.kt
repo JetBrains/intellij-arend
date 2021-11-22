@@ -3,7 +3,9 @@ package org.arend.search.proof
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
+import com.intellij.openapi.vfs.newvfs.VfsPresentationUtil
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiUtilCore
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.panels.OpaquePanel
@@ -11,8 +13,8 @@ import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
-import org.apache.commons.lang.StringEscapeUtils
-import org.apache.commons.lang.StringEscapeUtils.*
+import org.apache.commons.lang.StringEscapeUtils.escapeHtml
+import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.CoClauseDefAdapter
 import org.arend.search.structural.PatternTree
@@ -53,6 +55,13 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
             textArea.text = buildHtmlMore(if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor())
             panel.border = null
             label.icon = null
+            val bgColor =
+                if (isSelected) UIUtil.getListSelectionBackground(true) else UIUtil.getListBackground()
+            textArea.background = bgColor
+
+            panel.background = bgColor
+            label.background = bgColor
+            iconPanel.background = bgColor
         } else {
             value as FoundItemDescriptor<ProofSearchEntry>
             val def = value.item.def.castSafelyTo<Abstract.FunctionDefinition>() ?: return panel
@@ -60,12 +69,15 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
             val parameterTypes = def.parameters.map { (it as PsiElement).text }
             val type =
                 def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<PsiElement>() ?: return panel
+
             textArea.contentType = "text/html"
             textArea.text = buildHtml(
                 def.name!!,
                 parameterTypes,
                 type.text,
+                (def.containingFile as ArendFile).representableName,
                 if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor()
+
             )
             val icon = if (def is CoClauseDefAdapter) AllIcons.General.Show_to_implement else def.getIcon(0)
             label.icon = icon
@@ -75,14 +87,22 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
                 5,
                 2
             )
+            val bgColor = if (isSelected) UIUtil.getListSelectionBackground(true) else {
+                val file = PsiUtilCore.getVirtualFile(def)
+                if (file == null)
+                    UIUtil.getListBackground()
+                else
+                    VfsPresentationUtil.getFileBackgroundColor(def.project, file)
+            }
+
+            textArea.background = bgColor
+            panel.background = bgColor
+            label.background = bgColor
+            iconPanel.background = bgColor
         }
         textArea.border = BORDER
-        val bgColor = if (isSelected) UIUtil.getListSelectionBackground(true) else UIUtil.getListBackground()
         val textColor = if (isSelected) list.selectionForeground else list.foreground
-        textArea.background = bgColor
-        panel.background = bgColor
-        label.background = bgColor
-        iconPanel.background = bgColor
+
         textArea.foreground = textColor
         textArea.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
         textArea.font = JBTextArea().font
@@ -91,17 +111,23 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
 
     }
 
-    private fun toHex(color : Color) : String {
+    private fun toHex(color: Color): String {
         return "#${color.red.toHexString()}${color.blue.toHexString()}${color.green.toHexString()}"
     }
 
-    private fun buildHtml(name : String, parameters : List<String>, type : String, nameColor: Color) : String{
+    private fun buildHtml(
+        name: String,
+        parameters: List<String>,
+        type: String,
+        locationText: String,
+        nameColor: Color
+    ): String {
         return """
            <html>
            <body>
            <span style="color: ${toHex(nameColor)}">${escapeHtml(name)}</span> ${
             parameters.joinToString(" ") { escapeHtml(it) }
-        } : <b>${escapeHtml(type)}</b>
+        } : <b>${escapeHtml(type)}</b> <span style="color: ${toHex(nameColor)}"> (in ${escapeHtml(locationText)})</span>
            </body>
            </html>
         """.trimIndent()
