@@ -67,10 +67,6 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
                 type.text,
                 if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor()
             )
-            val width = list.width
-            if (width > 0) {
-                textArea.setSize(width, Short.MAX_VALUE.toInt())
-            }
             val icon = if (def is CoClauseDefAdapter) AllIcons.General.Show_to_implement else def.getIcon(0)
             label.icon = icon
             label.border = BorderFactory.createEmptyBorder(
