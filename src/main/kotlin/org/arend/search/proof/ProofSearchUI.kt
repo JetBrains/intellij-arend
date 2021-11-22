@@ -131,6 +131,7 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
                 close()
                 navigatable.navigate(true)
             } else if (first is MoreElement) {
+                model.remove(first)
                 runProofSearch(first.sequence)
             }
         }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)

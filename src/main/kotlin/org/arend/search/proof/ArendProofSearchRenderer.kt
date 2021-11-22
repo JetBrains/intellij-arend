@@ -49,8 +49,10 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
         if (value is MoreElement) {
             panel.font = UIUtil.getLabelFont().deriveFont(UIUtil.getFontSize(UIUtil.FontSize.SMALL))
             panel.background = JBUI.CurrentTheme.BigPopup.listTitleLabelForeground()
-            textArea.text = IdeBundle.message("search.everywhere.points.more")
+            textArea.contentType = "text/html"
+            textArea.text = buildHtmlMore(if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor())
             panel.border = null
+            label.icon = null
         } else {
             value as FoundItemDescriptor<ProofSearchEntry>
             val def = value.item.def.castSafelyTo<Abstract.FunctionDefinition>() ?: return panel
@@ -102,6 +104,16 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
            <html>
            <body>
            <span style="color: ${toHex(nameColor)}">$name</span> ${parameters.joinToString(" ")} : <b>$type</b>
+           </body>
+           </html>
+        """.trimIndent()
+    }
+
+    private fun buildHtmlMore(nameColor: Color) : String{
+        return """
+           <html>
+           <body>
+           <span style="font-size: small; color: ${toHex(nameColor)}">... more</span>
            </body>
            </html>
         """.trimIndent()
