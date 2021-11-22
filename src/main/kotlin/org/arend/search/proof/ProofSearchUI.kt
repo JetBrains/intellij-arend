@@ -58,7 +58,10 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         initSearchActions()
     }
 
-    override fun dispose() {}
+    override fun dispose() {
+        close()
+        model.removeAll()
+    }
 
     override fun createList(): JBList<Any> {
         addListDataListener(model)

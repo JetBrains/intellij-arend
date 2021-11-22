@@ -2,6 +2,7 @@ package org.arend.search.proof
 
 import com.intellij.ide.IdeEventQueue
 import com.intellij.ide.actions.BigPopupUI
+import com.intellij.ide.actions.searcheverywhere.SearchEverywhereManagerImpl
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -20,6 +21,7 @@ class ProofSearchService {
 
     private var myBalloon: JBPopup? = null
     private var myBalloonFullSize: Dimension? = null
+    private var lastSearchText: String? = null
 
     fun show(e: AnActionEvent) {
         IdeEventQueue.getInstance().popupManager.closeAllPopups(false)
@@ -36,9 +38,9 @@ class ProofSearchService {
                 setRequestFocus(true)
                 setCancelKeyEnabled(false)
                 setCancelCallback {
-//                    if (isShown() && myProofSearchUI.getUserInputText() != searchText) {
-//                        saveSearchText()
-//                    }
+                    if (isShown()) {
+                        lastSearchText = myProofSearchUI?.searchField?.text
+                    }
                     true
                 }
                 addUserData("SIMPLE_WINDOW") // NON-NLS
@@ -53,12 +55,14 @@ class ProofSearchService {
             }
         myBalloon = balloon
 
-        val size: Dimension = proofSearchUI.minimumSize
-        JBInsets.addTo(size, balloon.content.insets)
-        balloon.setMinimumSize(size)
+//        val size: Dimension = proofSearchUI.minimumSize
+//        JBInsets.addTo(size, balloon.content.insets)
+//        balloon.setMinimumSize(size)
 
         Disposer.register(balloon) {
-//            saveSize()
+            if (proofSearchUI.viewType == BigPopupUI.ViewType.SHORT) {
+                WindowStateService.getInstance(project).putSize("proof.search.location.key", myBalloonFullSize)
+            }
             myProofSearchUI = null
             myBalloon = null
             myBalloonFullSize = null
@@ -123,6 +127,13 @@ class ProofSearchService {
                     balloon.size = myBalloonFullSize!!
                 }
             }
+        }
+
+        val lastText = lastSearchText
+        if (lastText != null) {
+            view.searchField.text = lastText
+            view.searchField.selectionStart = 0
+            view.searchField.selectionEnd = lastText.length
         }
         return view
     }
