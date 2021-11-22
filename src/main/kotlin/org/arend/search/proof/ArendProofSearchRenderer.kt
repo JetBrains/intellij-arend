@@ -1,7 +1,6 @@
 package org.arend.search.proof
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.IdeBundle
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.psi.PsiElement
@@ -9,10 +8,11 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.panels.OpaquePanel
 import com.intellij.util.castSafelyTo
-import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
+import org.apache.commons.lang.StringEscapeUtils
+import org.apache.commons.lang.StringEscapeUtils.*
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.CoClauseDefAdapter
 import org.arend.search.structural.PatternTree
@@ -99,7 +99,9 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
         return """
            <html>
            <body>
-           <span style="color: ${toHex(nameColor)}">$name</span> ${parameters.joinToString(" ")} : <b>$type</b>
+           <span style="color: ${toHex(nameColor)}">${escapeHtml(name)}</span> ${
+            parameters.joinToString(" ") { escapeHtml(it) }
+        } : <b>${escapeHtml(type)}</b>
            </body>
            </html>
         """.trimIndent()
