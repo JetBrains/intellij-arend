@@ -6,6 +6,7 @@ import com.intellij.ide.IdeBundle
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -17,6 +18,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiElement
 import com.intellij.usageView.UsageInfo
 import com.intellij.usages.*
+import org.arend.settings.ArendProjectSettings
 
 class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project: Project) : DumbAwareAction(
     IdeBundle.messagePointer("show.in.find.window.button.name"),
@@ -39,7 +41,7 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
             override fun run(indicator: ProgressIndicator) {
                 progressIndicator.start()
                 val foundElements: MutableCollection<Any> = ArrayList()
-                val elements = fetchWeightedElements(project, searchText)
+                val elements = fetchWeightedElements(project, project.service<ArendProjectSettings>().data.ignoreTestLocations, searchText)
                 foundElements.addAll(elements.toList())
                 fillUsages(foundElements, usages, targets)
             }

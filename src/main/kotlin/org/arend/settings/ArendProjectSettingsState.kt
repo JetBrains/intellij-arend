@@ -44,6 +44,9 @@ class ArendProjectSettingsState {
 
     // Libraries
     var librariesRoot: String? = null
+
+    // Proof search
+    var ignoreTestLocations : Boolean = true
 }
 
 class ArendPrintingOptions {

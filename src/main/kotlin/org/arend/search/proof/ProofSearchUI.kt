@@ -6,6 +6,7 @@ import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.DumbAwareAction
@@ -26,6 +27,7 @@ import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import org.arend.ArendIcons
 import org.arend.psi.navigate
+import org.arend.settings.ArendProjectSettings
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
@@ -96,7 +98,10 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         res.isOpaque = false
 
         val actionGroup = DefaultActionGroup()
-        project?.let { actionGroup.addAction(ShowInFindWindowAction(this, it)) }
+        project?.let {
+            actionGroup.addAction(GearActionGroup(this, it))
+            actionGroup.addAction(ShowInFindWindowAction(this, it))
+        }
         val toolbar = ActionManager.getInstance().createActionToolbar("proof.search.top.toolbar", actionGroup, true)
         toolbar.layoutPolicy = ActionToolbar.NOWRAP_LAYOUT_POLICY
         toolbar.setTargetComponent(this)
@@ -169,7 +174,7 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         }
     }
 
-    private fun runProofSearch(results : Sequence<FoundItemDescriptor<ProofSearchEntry>>?) {
+    fun runProofSearch(results : Sequence<FoundItemDescriptor<ProofSearchEntry>>?) {
         val project = myProject ?: return
         progressIndicator?.cancel()
         if (results == null) {
@@ -177,9 +182,10 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
                 model.removeAll()
             }
         }
+        val settings = project.service<ArendProjectSettings>().data.ignoreTestLocations
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
             this.progressIndicator = progressIndicator
-            val elements = results ?: fetchWeightedElements(project, searchPattern)
+            val elements = results ?: fetchWeightedElements(project, settings, searchPattern)
             var counter = 20
             for (element in elements) {
                 if (progressIndicator.isCanceled) {

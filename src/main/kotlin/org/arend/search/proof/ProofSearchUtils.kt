@@ -4,9 +4,12 @@ import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.TestSourcesFilter
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.castSafelyTo
+import org.arend.ArendFileType
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.PsiReferable
@@ -17,6 +20,7 @@ import org.arend.term.abs.Abstract
 
 fun fetchWeightedElements(
     project: Project,
+    settings: Boolean,
     pattern: String,
 ): Sequence<FoundItemDescriptor<ProofSearchEntry>> = sequence {
     val parsedExpression = runReadAction {
@@ -34,6 +38,12 @@ fun fetchWeightedElements(
                 GlobalSearchScope.allScope(project),
                 PsiReferable::class.java
             ) { def ->
+                if (settings) {
+                    val file = PsiUtilCore.getVirtualFile(def)
+                    if (file != null && TestSourcesFilter.isTestSources(file, project)) {
+                        return@processElements true
+                    }
+                }
                 val type = def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<ArendExpr>()
                     ?: return@processElements true
                 if (matcher.match(type)) {
