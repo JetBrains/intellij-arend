@@ -69,13 +69,12 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
             val parameterTypes = def.parameters.map { (it as PsiElement).text }
             val type =
                 def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<PsiElement>() ?: return panel
-
             textArea.contentType = "text/html"
             textArea.text = buildHtml(
                 def.name!!,
                 parameterTypes,
                 type.text,
-                (def.containingFile as ArendFile).moduleLocation?.modulePath?.toString()!!,
+                (def.containingFile as ArendFile).moduleLocation?.modulePath?.toString(),
                 if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor()
 
             )
@@ -119,15 +118,16 @@ class ArendProofSearchRenderer : ListCellRenderer<Any> {
         name: String,
         parameters: List<String>,
         type: String,
-        locationText: String,
+        locationText: String?,
         nameColor: Color
     ): String {
+        val locationRepresentation = locationText?.let { "<span style=\"color: ${toHex(nameColor)}\">(in ${escapeHtml(locationText)})</span>" } ?: ""
         return """
            <html>
            <body>
            <span style="color: ${toHex(nameColor)}">${escapeHtml(name)}</span> ${
             parameters.joinToString(" ") { escapeHtml(it) }
-        } : <b>${escapeHtml(type)}</b> <span style="color: ${toHex(nameColor)}"> (in ${escapeHtml(locationText)})</span>
+        } : <b>${escapeHtml(type)}</b> $locationRepresentation
            </body>
            </html>
         """.trimIndent()
