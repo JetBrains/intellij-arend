@@ -24,12 +24,13 @@ import com.intellij.util.BooleanFunction
 import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.rd.util.remove
 import org.arend.ArendIcons
 import org.arend.psi.navigate
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import javax.accessibility.AccessibleContext
 import javax.swing.*
 import javax.swing.event.DocumentEvent
@@ -127,23 +128,44 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         DumbAwareAction.create { event: AnActionEvent? ->
             // todo: also navigate by clicking on an entry
             val indices = myResultsList.selectedIndices
-            val first = model.getElementAt(indices[0])
-            if (first is FoundItemDescriptor<*>) {
-                val navigatable = first.item.castSafelyTo<ProofSearchEntry>()!!.def.navigationElement
-                close()
-                navigatable.navigate(true)
-            } else if (first is MoreElement) {
-                model.remove(first)
-                runProofSearch(first.sequence)
-            }
-        }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
-    }
+            elementSelected(model.getElementAt(indices[0]))
 
-    fun loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong (a : Int) : Int { return 1 }
+        }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
+
+        val mouseListener = object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                onMouseClicked(e)
+            }
+        }
+        myResultsList.addMouseListener(mouseListener)
+        myResultsList.addMouseMotionListener(mouseListener)
+    }
 
     private fun scheduleSearch() {
         if (!searchAlarm.isDisposed && searchAlarm.activeRequestCount == 0) {
             searchAlarm.addRequest({ runProofSearch(null) }, 100)
+        }
+    }
+
+    private fun onMouseClicked(e: MouseEvent) {
+        if (e.button == MouseEvent.BUTTON1) {
+            e.consume()
+            val i = myResultsList.locationToIndex(e.point)
+            if (i > -1) {
+                myResultsList.selectedIndex = i
+                elementSelected(model.getElementAt(i))
+            }
+        }
+    }
+
+    fun elementSelected(element : Any) {
+        if (element is FoundItemDescriptor<*>) {
+            val navigatable = element.item.castSafelyTo<ProofSearchEntry>()!!.def.navigationElement
+            close()
+            navigatable.navigate(true)
+        } else if (element is MoreElement) {
+            model.remove(element)
+            runProofSearch(element.sequence)
         }
     }
 
