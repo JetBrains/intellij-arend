@@ -188,6 +188,9 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
                 --counter
                 invokeLater {
                     model.add(element)
+                    if (results != null && counter == 19 && myResultsList.selectedIndex == -1) {
+                        myResultsList.selectedIndex = myResultsList.itemsCount - 1
+                    }
                 }
                 if (counter == 0) {
                     invokeLater {
