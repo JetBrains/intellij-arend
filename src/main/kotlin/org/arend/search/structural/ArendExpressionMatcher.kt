@@ -31,31 +31,37 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
             set.groupBy { it.refName }
         }
         val patternConcrete = reassembleConcrete(tree, mscope, qualifiedReferables) ?: return false
-        return performMatch(patternConcrete, parsedConcrete)
+        return performMatch(patternConcrete, patternConcrete, parsedConcrete)
     }
 
 
-    private fun performMatch(pattern: Concrete.Expression, matched: Concrete.Expression): Boolean {
+    private fun performMatch(globalPattern : Concrete.Expression, pattern: Concrete.Expression, matched: Concrete.Expression): Boolean {
         if (pattern is Concrete.HoleExpression) {
             return true
         }
         if (pattern is Concrete.AppExpression && matched is Concrete.AppExpression) {
             val patternFunction = pattern.function
             val matchedFunction = matched.function
-            if (!performMatch(patternFunction, matchedFunction)) {
-                return false
-            }
             val concreteArguments = matched.arguments.mapNotNull { if (it.isExplicit) it.expression else null }
+            if (!performMatch(globalPattern, patternFunction, matchedFunction)) {
+                return concreteArguments.any { performMatch(globalPattern, globalPattern, it) }
+            }
             val patternArguments = pattern.arguments.map { it.expression }
             if (patternArguments.size != concreteArguments.size) {
-                return false
+                return concreteArguments.any { performMatch(globalPattern, globalPattern, it) }
             }
+            var fullMatch = true
             for ((patternArg, matchedArg) in patternArguments.zip(concreteArguments)) {
-                if (!performMatch(patternArg, matchedArg)) {
-                    return false
+                if (!performMatch(globalPattern, patternArg, matchedArg)) {
+                    fullMatch = false
+                    break
                 }
             }
-            return true
+            return if (fullMatch) {
+                true
+            } else {
+                concreteArguments.any { performMatch(globalPattern, globalPattern, it) }
+            }
         } else if (pattern is Concrete.ReferenceExpression) {
             return pattern.underlyingReferable?.resolveAlias() == matched.underlyingReferable?.resolveAlias()
         } else {

@@ -15,8 +15,7 @@ import org.arend.util.appExprToConcrete
 
 /**
  * Proof Search in Arend differs from regular structural search in the sense that
- * searched expression is not a valid Arend PSI element. We use dummy PSI element just for compatibility with the
- * Structural Search API, while the actual pattern object is a tree of symbols.
+ * searched expression is not a valid Arend PSI element.
  * Pattern of the Proof Search contains infix symbols that cannot be completely resolved at the time of its writing.
  */
 sealed interface PatternTree {
@@ -37,7 +36,9 @@ sealed interface PatternTree {
 }
 
 internal fun deconstructArendExpr(expr: ArendExpr): PatternTree {
-    val concrete = appExprToConcrete(removeParens(expr))!!
+    if (expr.text == "_") return PatternTree.Wildcard
+    val concrete = appExprToConcrete(removeParens(expr))
+    concrete!!
     return concrete.accept(object : BaseConcreteExpressionVisitor<Unit>() {
         override fun visitApp(expr: Concrete.AppExpression, params: Unit): Concrete.Expression {
             val function = expr.function.accept(this, Unit).data as PatternTree
