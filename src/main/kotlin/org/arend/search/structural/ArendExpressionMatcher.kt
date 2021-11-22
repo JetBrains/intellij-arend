@@ -31,11 +31,32 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
             set.groupBy { it.refName }
         }
         val patternConcrete = reassembleConcrete(tree, mscope, qualifiedReferables) ?: return false
-        return performMatch(patternConcrete, patternConcrete, parsedConcrete)
+        return performMatch(patternConcrete, parsedConcrete)
     }
 
 
-    private fun performMatch(globalPattern : Concrete.Expression, pattern: Concrete.Expression, matched: Concrete.Expression): Boolean {
+    private fun performMatch(
+        pattern: Concrete.Expression,
+        matched: Concrete.Expression
+    ): Boolean {
+        if (performTopMatch(pattern, matched)) {
+            return true
+        }
+        if (matched is Concrete.AppExpression) {
+            if (performMatch(pattern, matched.function)) {
+                return true
+            }
+            for (arg in matched.arguments) {
+                if (performMatch(pattern, arg.expression)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun performTopMatch(pattern: Concrete.Expression,
+                                matched: Concrete.Expression) : Boolean {
         if (pattern is Concrete.HoleExpression) {
             return true
         }
@@ -43,26 +64,20 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
             val patternFunction = pattern.function
             val matchedFunction = matched.function
             val concreteArguments = matched.arguments.mapNotNull { if (it.isExplicit) it.expression else null }
-            if (!performMatch(globalPattern, patternFunction, matchedFunction)) {
-                return concreteArguments.any { performMatch(globalPattern, globalPattern, it) }
+            if (!performMatch(patternFunction, matchedFunction)) {
+                return false
             }
             val patternArguments = pattern.arguments.map { it.expression }
             if (patternArguments.size != concreteArguments.size) {
-                return concreteArguments.any { performMatch(globalPattern, globalPattern, it) }
+                return false
             }
-            var fullMatch = true
             for ((patternArg, matchedArg) in patternArguments.zip(concreteArguments)) {
-                if (!performMatch(globalPattern, patternArg, matchedArg)) {
-                    fullMatch = false
-                    break
+                if (!performMatch(patternArg, matchedArg)) {
+                    return false
                 }
             }
-            return if (fullMatch) {
-                true
-            } else {
-                concreteArguments.any { performMatch(globalPattern, globalPattern, it) }
-            }
-        } else if (pattern is Concrete.ReferenceExpression) {
+            return true
+        } else if (pattern is Concrete.ReferenceExpression && matched is Concrete.ReferenceExpression) {
             return pattern.underlyingReferable?.resolveAlias() == matched.underlyingReferable?.resolveAlias()
         } else {
             return false
