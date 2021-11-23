@@ -50,16 +50,15 @@ private fun isAtomic(expression: ArendNewExpr) =
                 // Excludes cases like `f (mcases \with {}) 1`
                 expression.withBody == null
 
-private fun isAtomic(argumentAppExpr: ArendArgumentAppExpr): Boolean {
-    if (argumentAppExpr.argumentList.isNotEmpty()) {
-        return false
-    }
+private fun isAtomic(argumentAppExpr: ArendArgumentAppExpr): Boolean =
+        argumentAppExpr.argumentList.isEmpty() &&
+                hasNoLevelArguments(argumentAppExpr) &&
+                argumentAppExpr.atomFieldsAcc != null
+
+private fun hasNoLevelArguments(argumentAppExpr: ArendArgumentAppExpr): Boolean {
     val longNameExpr = argumentAppExpr.longNameExpr
-    if (longNameExpr != null) {
-        // Excludes cases like `f (Path \levels 0 0) 1`, `f (Path \lp \lh) 1`
-        return longNameExpr.levelsExpr == null && longNameExpr.atomOnlyLevelExprList.isEmpty()
-    }
-    return argumentAppExpr.atomFieldsAcc != null
+    // Excludes cases like `f (Path \levels 0 0) 1`, `f (Path \lp \lh) 1`
+    return longNameExpr == null || longNameExpr.levelsExpr == null && longNameExpr.atomOnlyLevelExprList.isEmpty()
 }
 
 private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
@@ -126,7 +125,9 @@ private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: Aren
     val parentAppExpr = directParentAppExpression(parentAppExprPsi, parentAtomFieldsAcc) ?: return false
     if (BinOpIntentionUtil.isBinOpApp(parentAppExpr)) {
         val childAppExpr = if (expression is ArendNewExpr && isAtomic(expression)) expression.argumentAppExpr else null
-        return childAppExpr != null && BinOpIntentionUtil.toConcreteBinOpApp(childAppExpr) == null
+        return childAppExpr != null &&
+                hasNoLevelArguments(childAppExpr) &&
+                BinOpIntentionUtil.toConcreteBinOpApp(childAppExpr) == null
     }
     return false
 }

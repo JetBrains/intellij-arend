@@ -22,3 +22,6 @@
 \func test12 => suc (suc 0) + 1 + 2
 \func test13 => 0 + suc (suc 1) + 2
 \func test14 => 0 + 1 + suc (suc 2)
+
+\func test15 => suc 1 + (suc \levels \lp \lh 1)
+\func test16 => suc 0 + (suc \lp \lh 1)
