@@ -6,18 +6,22 @@ import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
 import org.arend.ArendIcons
 
-class ArendPinErrorAction: ToggleAction("Pin message", "When the message is pinned, other messages will not be displayed", ArendIcons.PIN) {
+class ArendPinGoalAction: ToggleAction("Pin Goal", "When the goal is pinned, other goals will not be displayed", ArendIcons.PIN) {
     override fun isSelected(e: AnActionEvent): Boolean {
         val service = getMessagesService(e)
-        return service?.isErrorTextPinned ?: false
+        return service?.isGoalTextPinned ?: false
     }
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
         val service = getMessagesService(e)
-        service?.isErrorTextPinned = state
+        service?.isGoalTextPinned = state
         if (!state) service?.updateEditor()
     }
 
     private fun getMessagesService(e: AnActionEvent): ArendMessagesService? =
             e.dataContext.getData(PlatformDataKeys.PROJECT)?.service()
+
+    companion object {
+        const val ID = "Arend.PinGoal"
+    }
 }

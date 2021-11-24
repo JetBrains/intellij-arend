@@ -11,7 +11,7 @@ import org.arend.typechecking.error.ErrorService
 class ArendMessagesService(private val project: Project) {
     var view: ArendMessagesView? = null
         private set
-    var isErrorTextPinned: Boolean = false
+    var isGoalTextPinned: Boolean = false
 
     fun activate(project: Project, selectFirst: Boolean) {
         runInEdt {

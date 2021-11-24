@@ -386,10 +386,10 @@
             <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
         </action>
 
-        <action id="Arend.PinErrorMessage"
-                class="org.arend.toolWindow.errors.ArendPinErrorAction"
-                text="Pin Error Message"
-                description="Pin error message">
+        <action id="Arend.PinGoal"
+                class="org.arend.toolWindow.errors.ArendPinGoalAction"
+                text="Pin Goal"
+                description="Pin goal">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift Y"/>
         </action>
 

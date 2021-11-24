@@ -91,16 +91,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         }
     }
 
-    override fun valueChanged(e: TreeSelectionEvent?) {
-        if (!project.service<ArendMessagesService>().isErrorTextPinned) {
-            updateEditor()
-        }
-    }
+    override fun valueChanged(e: TreeSelectionEvent?) = updateEditor()
 
     fun updateEditor() {
         val treeElement = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
         if (treeElement != null) {
             if (treeElement.highestError.error.level == GeneralError.Level.GOAL) {
+                if (isGoalTextPinned()) {
+                    return
+                }
                 if (goalEditor == null) {
                     goalEditor = ArendMessagesViewEditor(project, treeElement)
                 }
@@ -115,7 +114,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 goalErrorSplitter.secondComponent = errorEditor?.component ?: errorEmptyPanel
             }
         } else {
-            if (shouldClear(goalEditor)) {
+            if (!isGoalTextPinned() && shouldClear(goalEditor)) {
                 goalEditor?.clear()
                 goalErrorSplitter.firstComponent = goalEmptyPanel
             }
@@ -125,6 +124,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
         }
     }
+
+    private fun isGoalTextPinned() = project.service<ArendMessagesService>().isGoalTextPinned
 
     private fun updateEditor(editor: ArendMessagesViewEditor, treeElement: ArendErrorTreeElement) {
         if (editor.treeElement != treeElement) {
