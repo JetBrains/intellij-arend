@@ -36,16 +36,19 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     val tree = ArendErrorTree(treeModel, this)
     private val autoScrollFromSource = ArendErrorTreeAutoScrollFromSource(project, tree)
 
-    private val splitter = JBSplitter(false, 0.25f)
-    private val emptyPanel = JPanel()
-    private var editor: ArendMessagesViewEditor? = null
+    private val treeDetailsSplitter = JBSplitter(false, 0.25f)
+    private val goalErrorSplitter = JBSplitter(false, 0.5f)
+    private var goalEditor: ArendMessagesViewEditor? = null
+    private val goalEmptyPanel = JPanel()
+    private var errorEditor: ArendMessagesViewEditor? = null
+    private val errorEmptyPanel = JPanel()
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
 
         toolWindow.setIcon(ArendIcons.MESSAGES)
         val contentManager = toolWindow.contentManager
-        contentManager.addContent(contentManager.factory.createContent(splitter, "", false))
+        contentManager.addContent(contentManager.factory.createContent(treeDetailsSplitter, "", false))
 
         tree.cellRenderer = ArendErrorTreeCellRenderer()
         tree.addTreeSelectionListener(this)
@@ -63,13 +66,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         actionGroup.add(ArendMessagesFilterActionGroup(project, autoScrollFromSource))
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, true)
-        toolbar.setTargetComponent(splitter)
+        toolbar.setTargetComponent(treeDetailsSplitter)
 
-        splitter.firstComponent = panel {
+        treeDetailsSplitter.firstComponent = panel {
             row { toolbar.component() }
             row { JBScrollPane(tree)() }
         }
-        splitter.secondComponent = emptyPanel
+        treeDetailsSplitter.secondComponent = goalErrorSplitter
+        goalErrorSplitter.firstComponent = goalEmptyPanel
+        goalErrorSplitter.secondComponent = errorEmptyPanel
 
         update()
     }
@@ -77,9 +82,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun projectClosing(project: Project) {
         if (project == this.project) {
             root.removeAllChildren()
-            splitter.secondComponent = emptyPanel
-            editor?.release()
-            editor = null
+            goalErrorSplitter.firstComponent = goalEmptyPanel
+            goalErrorSplitter.secondComponent = errorEmptyPanel
+            goalEditor?.release()
+            goalEditor = null
+            errorEditor?.release()
+            errorEditor = null
         }
     }
 
@@ -92,30 +100,58 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     fun updateEditor() {
         val treeElement = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
         if (treeElement != null) {
-            if (editor == null) {
-                editor = ArendMessagesViewEditor(project, treeElement)
-            }
-            if (editor?.treeElement != treeElement) {
-                for (arendError in treeElement.errors) {
-                    configureError(arendError.error)
+            if (treeElement.highestError.error.level == GeneralError.Level.GOAL) {
+                if (goalEditor == null) {
+                    goalEditor = ArendMessagesViewEditor(project, treeElement)
                 }
-                editor?.update(treeElement)
+                updateEditor(goalEditor!!, treeElement)
+                goalErrorSplitter.firstComponent = goalEditor?.component ?: goalEmptyPanel
             }
-            splitter.secondComponent = editor?.component ?: emptyPanel
+            else {
+                if (errorEditor == null) {
+                    errorEditor = ArendMessagesViewEditor(project, treeElement)
+                }
+                updateEditor(errorEditor!!, treeElement)
+                goalErrorSplitter.secondComponent = errorEditor?.component ?: errorEmptyPanel
+            }
         } else {
-            val activeError = editor?.treeElement?.sampleError
-            if (activeError != null) {
-                val def = activeError.definition
-                if (def == null || !tree.containsNode(def)) {
-                    editor?.clear()
-                    splitter.secondComponent = emptyPanel
-                }
+            if (shouldClear(goalEditor)) {
+                goalEditor?.clear()
+                goalErrorSplitter.firstComponent = goalEmptyPanel
+            }
+            if (shouldClear(errorEditor)) {
+                errorEditor?.clear()
+                goalErrorSplitter.secondComponent = errorEmptyPanel
             }
         }
     }
 
+    private fun updateEditor(editor: ArendMessagesViewEditor, treeElement: ArendErrorTreeElement) {
+        if (editor.treeElement != treeElement) {
+            for (arendError in treeElement.errors) {
+                configureError(arendError.error)
+            }
+            editor.update(treeElement)
+        }
+    }
+
+    private fun shouldClear(editor: ArendMessagesViewEditor?): Boolean {
+        val activeError = editor?.treeElement?.sampleError
+        if (activeError != null) {
+            val def = activeError.definition
+            if (def == null || !tree.containsNode(def)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    fun updateGoalText() {
+        goalEditor?.updateErrorText()
+    }
+
     fun updateErrorText() {
-        editor?.updateErrorText()
+        errorEditor?.updateErrorText()
     }
 
     private fun configureError(error: GeneralError) {

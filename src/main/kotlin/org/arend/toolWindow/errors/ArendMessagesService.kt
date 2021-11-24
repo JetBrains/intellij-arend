@@ -45,6 +45,10 @@ class ArendMessagesService(private val project: Project) {
         view?.updateEditor()
     }
 
+    fun updateGoalText() {
+        view?.updateGoalText()
+    }
+
     fun updateErrorText() {
         view?.updateErrorText()
     }
