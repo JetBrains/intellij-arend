@@ -265,12 +265,7 @@ abstract class ChangeArgumentExplicitnessApplier {
      * @return  last implicit arguments were passed to the function or not
      */
     private fun lastImplicitArgumentsAreOmitted(def: PsiElement, lastIndexInCall: Int): Boolean {
-        val teleExplicitness = mutableListOf<Boolean>()
-        for (tele in getTelesFromDef(def)) {
-            val teleSize = getTele(tele)?.size ?: continue
-            teleExplicitness.addAll(List(teleSize) { tele.text.first() != '{' })
-        }
-
+        val teleExplicitness = getTelesFromDef(def)?.map { it.second } ?: throw IllegalStateException()
         val omittedParametersExplicitness = teleExplicitness.subList(lastIndexInCall + 1, teleExplicitness.size)
         return omittedParametersExplicitness.all { !it }
     }
@@ -283,18 +278,13 @@ abstract class ChangeArgumentExplicitnessApplier {
      * @return  psi with lambda
      */
     private fun rewriteToLambda(call: PsiElement, def: PsiElement, indexInDef: Int, startFromIndex: Int): ArendLamExpr {
-        val teleList = mutableListOf<String>()
         val referables = getContext(call) as MutableList
-
-        for (tele in getTelesFromDef(def)) {
-            val paramsInTele = getTele(tele) ?: continue
-            teleList.addAll(paramsInTele.map {
-                val variable = VariableImpl(it.text)
-                val freshName = StringRenamer().generateFreshName(variable, referables)
-                referables.add(VariableImpl(freshName))
-                if (tele.text.first() != '{') freshName else "{$freshName}"
-            })
-        }
+        val teleList = getTelesFromDef(def)?.map {
+            val variable = VariableImpl(it.first)
+            val freshName = StringRenamer().generateFreshName(variable, referables)
+            referables.add(VariableImpl(freshName))
+            if (it.second) freshName else "{$freshName}"
+        } ?: throw IllegalStateException()
 
         val teleListCut = teleList.subList(startFromIndex + 1, teleList.size)
         val callingArgs = teleList.toMutableList()

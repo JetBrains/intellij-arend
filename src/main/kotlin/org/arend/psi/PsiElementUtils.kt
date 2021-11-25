@@ -16,9 +16,10 @@ import com.intellij.util.castSafelyTo
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.psi.ArendElementTypes.*
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
+import org.arend.refactoring.getTele
+import org.arend.term.abs.Abstract
 import org.arend.typechecking.error.ErrorService
 
 val PsiElement.theOnlyChild: PsiElement?
@@ -351,13 +352,34 @@ fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
     else -> null
 }
 
-fun getTelesFromDef(def: PsiElement?): List<ArendCompositeElement> = when (def) {
-    is ArendDefFunction -> def.nameTeleList
-    is ArendDefClass -> def.fieldTeleList
-    is ArendClassField -> def.typeTeleList
-    is ArendConstructor -> def.typeTeleList //TODO: FIXME
-    is ArendDefData -> def.typeTeleList
-    else -> emptyList()
+fun getTeleExplicitness(tele: PsiElement?): Boolean? = when (tele) {
+    is Abstract.Parameter -> tele.isExplicit
+    is ArendTypedExpr -> (tele.parent as? ArendTypeTele)?.isExplicit
+    else -> null
+}
+
+fun getIdName(id: PsiElement): String? = when (id) {
+    is ArendIdentifierOrUnknown -> id.defIdentifier?.name
+    is ArendFieldDefIdentifier -> id.name
+    else -> null
+}
+
+fun getTelesFromDef(def: PsiElement?): List<Pair<String?, Boolean>>? = when (def) {
+    is ArendConstructor -> {
+        null //TODO: Implement me
+    }
+    else -> {
+        when (def) {
+            is ArendDefFunction -> def.nameTeleList
+            is ArendDefClass -> def.fieldTeleList
+            is ArendClassField -> def.typeTeleList
+            is ArendDefData -> def.typeTeleList
+            else -> null
+        }?.map {
+            val isExplicit = getTeleExplicitness(it) ?: return@getTelesFromDef null
+            getTele(it)?.map { it2 -> Pair(getIdName(it2), isExplicit) } ?: return@getTelesFromDef null
+        }?.flatten()?.toList()
+    }
 }
 
 fun Editor.getSelectionWithoutErrors(): TextRange? =
