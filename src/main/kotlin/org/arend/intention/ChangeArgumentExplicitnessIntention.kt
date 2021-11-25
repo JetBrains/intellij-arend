@@ -47,7 +47,8 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
 ) {
     override fun isApplicableTo(element: ArendCompositeElement, caretOffset: Int, editor: Editor): Boolean {
         return when (element) {
-            is ArendNameTele, is ArendFieldTele, is ArendTypeTele -> element.parent?.let{ it is ArendDefinition || it is ArendClassField } ?: false
+            is ArendNameTele, is ArendFieldTele, is ArendTypeTele ->
+                element.parent?.let{ it is ArendDefinition || it is ArendClassField || it is ArendConstructor } ?: false
             else -> false
         }
     }
@@ -67,7 +68,7 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
     private fun chooseApplier(element: ArendCompositeElement): ChangeArgumentExplicitnessApplier? {
         return when (element) {
             is ArendNameTele, is ArendFieldTele -> NameFieldApplier()
-            is ArendTypeTele -> TypeApplier()
+            is ArendTypeTele -> if (element.parent is ArendConstructor || element.parent is ArendDefData) NameFieldApplier() else TypeApplier()
             else -> null
         }
     }

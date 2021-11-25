@@ -355,6 +355,8 @@ fun getTelesFromDef(def: PsiElement?): List<ArendCompositeElement> = when (def) 
     is ArendDefFunction -> def.nameTeleList
     is ArendDefClass -> def.fieldTeleList
     is ArendClassField -> def.typeTeleList
+    is ArendConstructor -> def.typeTeleList //TODO: FIXME
+    is ArendDefData -> def.typeTeleList
     else -> emptyList()
 }
 

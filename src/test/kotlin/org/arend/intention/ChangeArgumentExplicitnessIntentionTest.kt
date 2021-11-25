@@ -653,4 +653,36 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func foo2 (x y z : Nat) : x + y + z + (x + y + z) = x + (y + z) + (x + (y + z))
          => pmap2 (+) +-assoc {_} {_} {+-assoc}   
     """)
+
+    fun testData() = doTest("""
+       \data D ({-caret-}a : Nat)
+         | con (n : Nat)
+
+       \func foo : D 0 => con 3 
+    """, """
+       \data D {a : Nat}
+         | con (n : Nat)
+
+       \func foo : D {0} => con 3 
+    """)
+
+    fun testDataConstructor() = doTest("""
+       \data TruncP (A : \Type)
+         | inP A
+         | truncP (a a' : TruncP A) ({-caret-}i : I) \elim i {
+           | left  => a
+           | right => a'
+       } \where {
+         \use \level levelProp {A : \Type} (a a' : TruncP A) : a = a' => path (truncP a a')
+       }
+    """, """
+       \data TruncP (A : \Type)
+         | inP A
+         | truncP (a a' : TruncP A) {i : I} \elim i {
+           | left  => a
+           | right => a'
+       } \where {
+         \use \level levelProp {A : \Type} (a a' : TruncP A) : a = a' => path (\lam i => truncP a a' {i})
+       } 
+    """)
 }
