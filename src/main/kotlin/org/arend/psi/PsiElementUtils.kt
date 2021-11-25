@@ -364,18 +364,30 @@ fun getIdName(id: PsiElement): String? = when (id) {
     else -> null
 }
 
+private fun getTelesFromDefInternal(def: PsiElement?): List<PsiElement>? = when (def) {
+    is ArendDefFunction -> def.nameTeleList
+    is ArendDefClass -> def.fieldTeleList
+    is ArendClassField -> def.typeTeleList
+    is ArendDefData -> def.typeTeleList
+    else -> null
+}
+
 fun getTelesFromDef(def: PsiElement?): List<Pair<String?, Boolean>>? = when (def) {
     is ArendConstructor -> {
-        null //TODO: Implement me
+        if (def.parent is ArendDataBody && def.parent.parent is ArendDefData) {
+            val dataTeles = getTelesFromDefInternal(def.parent.parent as? ArendDefData)
+            dataTeles?.map { getTele(it)?.map { it2 -> Pair(getIdName(it2), false) } ?: return@getTelesFromDef null }?.plus(
+                def.typeTeleList.map {
+                    val isExplicit = getTeleExplicitness(it) ?: return@getTelesFromDef null
+                    getTele(it)?.map { it2 -> Pair(getIdName(it2), isExplicit) } ?: return@getTelesFromDef null
+                }
+            )?.flatten()?.toList()
+        } else if (def.parent is ArendConstructorClause) {
+            null // TODO: Implement me
+        } else null
     }
     else -> {
-        when (def) {
-            is ArendDefFunction -> def.nameTeleList
-            is ArendDefClass -> def.fieldTeleList
-            is ArendClassField -> def.typeTeleList
-            is ArendDefData -> def.typeTeleList
-            else -> null
-        }?.map {
+        getTelesFromDefInternal(def)?.map {
             val isExplicit = getTeleExplicitness(it) ?: return@getTelesFromDef null
             getTele(it)?.map { it2 -> Pair(getIdName(it2), isExplicit) } ?: return@getTelesFromDef null
         }?.flatten()?.toList()
