@@ -1,14 +1,15 @@
 package org.arend.search.proof
 
-import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.TestSourcesFilter
+import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiUtilCore
+import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendPsiFactory
@@ -23,14 +24,16 @@ fun fetchWeightedElements(
     project: Project,
     settings: ProofSearchUISettings,
     pattern: String,
-): Sequence<FoundItemDescriptor<ProofSearchEntry>> = sequence {
-    val parsedExpression = runReadAction {
-        ArendPsiFactory(project).createExpressionMaybe(pattern)
+): Sequence<ProofSearchEntry> = sequence {
+    val matcher = runReadAction {
+        val parsedExpression = ArendPsiFactory(project).createExpressionMaybe(pattern) ?: return@runReadAction null
+        ArendExpressionMatcher(deconstructArendExpr(parsedExpression))
     } ?: return@sequence
-    val matcher = runReadAction { ArendExpressionMatcher(deconstructArendExpr(parsedExpression)) }
+
     val keys = runReadAction { StubIndex.getInstance().getAllKeys(ArendDefinitionIndex.KEY, project) }
+
     for (definitionName in keys) {
-        val list = mutableListOf<PsiReferable>()
+        val list = SmartList<PsiReferable>()
         runReadAction {
             StubIndex.getInstance().processElements(
                 ArendDefinitionIndex.KEY,
@@ -39,18 +42,8 @@ fun fetchWeightedElements(
                 GlobalSearchScope.allScope(project),
                 PsiReferable::class.java
             ) { def ->
-                if (!settings.includeTestLocations) {
-                    val file = PsiUtilCore.getVirtualFile(def)
-                    if (file != null && TestSourcesFilter.isTestSources(file, project)) {
-                        return@processElements true
-                    }
-                }
-                if (!settings.includeNonProjectLocations) {
-                    val file = PsiUtilCore.getVirtualFile(def)
-                    if (file != null && !ProjectScope.getProjectScope(project).contains(file)) {
-                        return@processElements true
-                    }
-                }
+                if (!settings.checkAllowed(def)) return@processElements true
+
                 val type = def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<ArendExpr>()
                     ?: return@processElements true
                 if (matcher.match(type)) {
@@ -59,21 +52,33 @@ fun fetchWeightedElements(
                 true
             }
         }
+
         for (def in list) {
-            yield(FoundItemDescriptor(ProofSearchEntry(def, matcher.tree), 1))
+            yield(ProofSearchEntry(def, matcher.tree))
         }
     }
 }
 
-@JvmInline
-value class MoreElement(val sequence: Sequence<FoundItemDescriptor<ProofSearchEntry>>)
+sealed interface ProofSearchUIEntry
 
-class ProofSearchUISettings private constructor(
-    val includeTestLocations: Boolean,
-    val includeNonProjectLocations: Boolean
-) {
-    constructor(project: Project) : this(
-        project.service<ArendProjectSettings>().data.includeTestLocations,
-        project.service<ArendProjectSettings>().data.includeNonProjectLocations
-    )
+@JvmInline
+value class MoreElement(val sequence: Sequence<ProofSearchEntry>) : ProofSearchUIEntry
+
+@JvmInline
+value class DefElement(val entry: ProofSearchEntry) : ProofSearchUIEntry
+
+class ProofSearchUISettings(private val project: Project) {
+
+    private val includeTestLocations: Boolean = project.service<ArendProjectSettings>().data.includeTestLocations
+
+    private val includeNonProjectLocations: Boolean = project.service<ArendProjectSettings>().data.includeNonProjectLocations
+
+    fun checkAllowed(element: PsiElement): Boolean {
+        if (includeNonProjectLocations && includeTestLocations) {
+            return true
+        }
+        val file = PsiUtilCore.getVirtualFile(element) ?: return true
+        return (includeTestLocations || !TestSourcesFilter.isTestSources(file, project))
+                && (includeNonProjectLocations || ProjectScope.getProjectScope(project).contains(file))
+    }
 }
