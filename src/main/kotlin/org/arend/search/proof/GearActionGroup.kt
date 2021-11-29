@@ -6,26 +6,26 @@ import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsActions
 import com.intellij.ui.popup.PopupState
 import org.arend.settings.ArendProjectSettings
+import org.arend.settings.ArendProjectSettingsState
 import java.awt.event.MouseEvent
+import kotlin.reflect.KMutableProperty1
 
 
+class GearActionGroup(private val searchUI: ProofSearchUI, val project: Project) :
+    AnAction(AllIcons.General.GearPlain), DumbAware {
 
-class GearActionGroup(val searchUI: ProofSearchUI, val project: Project) : AnAction(AllIcons.General.GearPlain), DumbAware {
-    val myPopupState = PopupState.forPopupMenu()
-
+    private val myPopupState = PopupState.forPopupMenu()
 
     override fun actionPerformed(e: AnActionEvent) {
         if (myPopupState.isRecentlyHidden) return // do not show new popup
-        val popup = ActionManager.getInstance().createActionPopupMenu(ActionPlaces.TOOLWINDOW_POPUP, ActualGearActionGroup(searchUI, project))
+        val popup = ActionManager.getInstance()
+            .createActionPopupMenu(ActionPlaces.TOOLWINDOW_POPUP, ActualGearActionGroup(searchUI, project))
         val inputEvent = e.inputEvent
-        var x = 0
-        var y = 0
-        if (inputEvent is MouseEvent) {
-            x = inputEvent.x
-            y = inputEvent.y
-        }
+        val x = if (inputEvent is MouseEvent) inputEvent.x else 0
+        val y = if (inputEvent is MouseEvent) inputEvent.y else 0
         myPopupState.prepareToShow(popup.component)
         popup.component.show(inputEvent.component, x, y)
     }
@@ -34,26 +34,39 @@ class GearActionGroup(val searchUI: ProofSearchUI, val project: Project) : AnAct
         init {
             templatePresentation.icon = AllIcons.General.GearPlain
             templatePresentation.text = IdeBundle.message("show.options.menu")
-            addAction(ExcludeTests(searchUI, project))
-            addAction(ExcludeNonProjectFiles(searchUI, project))
+            addAction(IncludeTests(searchUI, project))
+            addAction(IncludeNonProjectFiles(searchUI, project))
         }
     }
 }
 
-private class ExcludeNonProjectFiles(val searchUI: ProofSearchUI, val project: Project) : ToggleAction("Include non-project locations") {
-    override fun isSelected(e: AnActionEvent): Boolean = project.service<ArendProjectSettings>().data.includeNonProjectLocations
+private abstract class ProofSearchToggleSettingsAction(
+    val searchUI: ProofSearchUI,
+    val project: Project,
+    val settingsProperty: KMutableProperty1<ArendProjectSettingsState, Boolean>,
+    actionText: @NlsActions.ActionText String
+) : ToggleAction(actionText) {
+    override fun isSelected(e: AnActionEvent): Boolean =
+        settingsProperty.invoke(project.service<ArendProjectSettings>().data)
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
-        project.service<ArendProjectSettings>().data.includeNonProjectLocations = state
+        settingsProperty.set(project.service<ArendProjectSettings>().data, state)
         searchUI.runProofSearch(null)
     }
 }
 
-private class ExcludeTests(val searchUI: ProofSearchUI, private val project: Project) : ToggleAction("Include test locations") {
-    override fun isSelected(e: AnActionEvent): Boolean = project.service<ArendProjectSettings>().data.includeTestLocations
+private class IncludeNonProjectFiles(searchUI: ProofSearchUI, project: Project) :
+    ProofSearchToggleSettingsAction(
+        searchUI,
+        project,
+        ArendProjectSettingsState::includeNonProjectLocations,
+        "Include non-project locations"
+    )
 
-    override fun setSelected(e: AnActionEvent, state: Boolean) {
-        project.service<ArendProjectSettings>().data.includeTestLocations = state
-        searchUI.runProofSearch(null)
-    }
-}
+private class IncludeTests(searchUI: ProofSearchUI, project: Project) :
+    ProofSearchToggleSettingsAction(
+        searchUI,
+        project,
+        ArendProjectSettingsState::includeTestLocations,
+        "Include non-project locations"
+    )
