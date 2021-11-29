@@ -2,7 +2,6 @@ package org.arend.search.proof
 
 import com.intellij.ide.IdeEventQueue
 import com.intellij.ide.actions.BigPopupUI
-import com.intellij.ide.actions.searcheverywhere.SearchEverywhereManagerImpl
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -46,7 +45,7 @@ class ProofSearchService {
                 addUserData("SIMPLE_WINDOW") // NON-NLS
                 setResizable(true)
                 setMovable(true)
-                    .setDimensionServiceKey(project, "proof.search.location.key", true)
+                    .setDimensionServiceKey(project, PROOF_SEARCH_LOCATION_KEY, true)
                 setLocateWithinScreenBounds(false)
                 createPopup()
             }.also {
@@ -55,13 +54,9 @@ class ProofSearchService {
             }
         myBalloon = balloon
 
-//        val size: Dimension = proofSearchUI.minimumSize
-//        JBInsets.addTo(size, balloon.content.insets)
-//        balloon.setMinimumSize(size)
-
         Disposer.register(balloon) {
             if (proofSearchUI.viewType == BigPopupUI.ViewType.SHORT) {
-                WindowStateService.getInstance(project).putSize("proof.search.location.key", myBalloonFullSize)
+                WindowStateService.getInstance(project).putSize(PROOF_SEARCH_LOCATION_KEY, myBalloonFullSize)
             }
             myProofSearchUI = null
             myBalloon = null
@@ -69,20 +64,16 @@ class ProofSearchService {
         }
 
         if (proofSearchUI.viewType == BigPopupUI.ViewType.SHORT) {
-            myBalloonFullSize =
-                WindowStateService.getInstance(project).getSize("proof.search.location.key")
-            val prefSize: Dimension = proofSearchUI.preferredSize
-            balloon.size = prefSize
+            myBalloonFullSize = WindowStateService.getInstance(project).getSize(PROOF_SEARCH_LOCATION_KEY)
+            balloon.size = proofSearchUI.preferredSize
         }
         calcPositionAndShow(project, balloon, proofSearchUI)
     }
 
     private fun calcPositionAndShow(project: Project, balloon: JBPopup, proofSearchUI: ProofSearchUI) {
-        val savedLocation =
-            WindowStateService.getInstance(project).getLocation("proof.search.location.key")
+        val savedLocation = WindowStateService.getInstance(project).getLocation(PROOF_SEARCH_LOCATION_KEY)
         balloon.showCenteredInCurrentWindow(project)
 
-        //for first show and short mode popup should be shifted to the top screen half
         if (savedLocation == null && proofSearchUI.viewType == BigPopupUI.ViewType.SHORT) {
             val location = balloon.locationOnScreen
             location.y /= 2
@@ -90,14 +81,12 @@ class ProofSearchService {
         }
     }
 
-
     private fun isShown(): Boolean {
         return myProofSearchUI != null && myBalloon.let { it != null && !it.isDisposed }
     }
 
-
     private fun createView(event: AnActionEvent): ProofSearchUI {
-        val view = ProofSearchUI(event.project)
+        val view = ProofSearchUI(event.project!!)
         view.setSearchFinishedHandler {
             if (isShown()) {
                 myBalloon?.cancel()
@@ -138,3 +127,5 @@ class ProofSearchService {
         return view
     }
 }
+
+private const val PROOF_SEARCH_LOCATION_KEY = "proof.search.location.key"
