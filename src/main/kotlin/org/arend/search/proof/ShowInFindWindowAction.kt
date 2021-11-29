@@ -3,10 +3,8 @@ package org.arend.search.proof
 import com.intellij.find.findUsages.PsiElement2UsageTargetAdapter
 import com.intellij.icons.AllIcons
 import com.intellij.ide.IdeBundle
-import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -18,7 +16,6 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiElement
 import com.intellij.usageView.UsageInfo
 import com.intellij.usages.*
-import org.arend.settings.ArendProjectSettings
 
 class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project: Project) : DumbAwareAction(
     IdeBundle.messagePointer("show.in.find.window.button.name"),
@@ -33,26 +30,20 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
         presentation.tabName = "Matches"
         presentation.tabText = "Matches"
         val usages: MutableCollection<Usage> = LinkedHashSet()
-        val targets: MutableCollection<PsiElement?> = LinkedHashSet()
-        ProgressManager.getInstance().run(object : Task.Modal(project, "Matches", true) {
+        val targets: MutableCollection<PsiElement> = LinkedHashSet()
+        ProgressManager.getInstance().run(object : Task.Modal(project, "Searching for Definitions…", true) {
 
             private val progressIndicator: ProgressIndicator = ProgressIndicatorBase()
 
             override fun run(indicator: ProgressIndicator) {
                 progressIndicator.start()
-                val foundElements: MutableCollection<Any> = ArrayList()
-                val elements = fetchWeightedElements(project, ProofSearchUISettings(project), searchText)
-                foundElements.addAll(elements.toList())
-                fillUsages(foundElements, usages, targets)
+                val elements = fetchWeightedElements(project, ProofSearchUISettings(project), searchText).toList()
+                fillUsages(elements, usages, targets)
             }
 
-            override fun onCancel() {
-                progressIndicator.cancel()
-            }
+            override fun onCancel() = progressIndicator.cancel()
 
-            override fun onSuccess() {
-                showInFindWindow(targets, usages, presentation)
-            }
+            override fun onSuccess() = showInFindWindow(targets, usages, presentation)
 
             override fun onThrowable(error: Throwable) {
                 super.onThrowable(error)
@@ -62,23 +53,20 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
     }
 
     private fun fillUsages(
-        foundElements: Collection<Any>,
+        foundElements: Collection<ProofSearchEntry>,
         usages: MutableCollection<in Usage>,
-        targets: MutableCollection<in PsiElement?>
-    ) {
-        runReadAction {
-            foundElements.map { o: Any? ->
-                (o as FoundItemDescriptor<ProofSearchEntry>).item.def
-            }
-                .forEach { element: PsiElement? ->
-                    if (element!!.textRange != null) {
-                        val usageInfo = UsageInfo(element)
-                        usages.add(UsageInfo2UsageAdapter(usageInfo))
-                    } else {
-                        targets.add(element)
-                    }
+        targets: MutableCollection<in PsiElement>
+    ) = runReadAction {
+        foundElements
+            .map(ProofSearchEntry::def)
+            .forEach { element: PsiElement ->
+                if (element.textRange != null) {
+                    val usageInfo = UsageInfo(element)
+                    usages.add(UsageInfo2UsageAdapter(usageInfo))
+                } else {
+                    targets.add(element)
                 }
-        }
+            }
     }
 
     private fun showInFindWindow(
@@ -87,13 +75,11 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
         presentation: UsageViewPresentation
     ) {
         val targetsArray: Array<out UsageTarget> = PsiElement2UsageTargetAdapter.convert(targets.toTypedArray(), false)
-        val usagesArray = usages.toTypedArray<Usage>()
-        UsageViewManager.getInstance(project).showUsages(targetsArray, usagesArray, presentation)
+        UsageViewManager.getInstance(project).showUsages(targetsArray, usages.toTypedArray(), presentation)
     }
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabled = true
-        e.presentation.icon =
-            ToolWindowManager.getInstance(project).getLocationIcon(ToolWindowId.FIND, AllIcons.General.Pin_tab)
+        e.presentation.icon = ToolWindowManager.getInstance(project).getLocationIcon(ToolWindowId.FIND, AllIcons.General.Pin_tab)
     }
 }
