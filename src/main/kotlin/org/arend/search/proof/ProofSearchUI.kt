@@ -2,16 +2,16 @@ package org.arend.search.proof
 
 import com.intellij.accessibility.TextFieldWithListAccessibleContext
 import com.intellij.ide.actions.BigPopupUI
-import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
-import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.CommonShortcuts
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.*
 import com.intellij.ui.components.JBList
@@ -21,13 +21,10 @@ import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
-import com.intellij.util.BooleanFunction
-import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import org.arend.ArendIcons
 import org.arend.psi.navigate
-import org.arend.settings.ArendProjectSettings
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
@@ -37,11 +34,11 @@ import javax.accessibility.AccessibleContext
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 
-class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
+class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private val searchAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
-    private val model: CollectionListModel<Any> = CollectionListModel()
+    private val model: CollectionListModel<ProofSearchUIEntry> = CollectionListModel()
 
     @Volatile
     private var progressIndicator: ProgressIndicator? = null
@@ -52,10 +49,9 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
             field = value
         }
 
-
     init {
         init()
-        initSearchActions()
+        initActions()
     }
 
     override fun dispose() {
@@ -64,24 +60,27 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
     }
 
     override fun createList(): JBList<Any> {
-        addListDataListener(model)
+        @Suppress("UNCHECKED_CAST")
+        addListDataListener(model as AbstractListModel<Any>)
 
         return JBList(model)
     }
 
     override fun createCellRenderer(): ListCellRenderer<Any> {
-        // todo: better generics
-        return ArendProofSearchRenderer()
+        @Suppress("UNCHECKED_CAST")
+        return ArendProofSearchRenderer() as ListCellRenderer<Any>
     }
 
     override fun createTopLeftPanel(): JPanel {
         val title = JLabel("Proof Search")
         val topPanel: JPanel = NonOpaquePanel(BorderLayout())
-        val foregroundColor =
-            if (StartupUiUtil.isUnderDarcula()) if (UIUtil.isUnderWin10LookAndFeel()) JBColor.WHITE else JBColor(
-                Gray._240, Gray._200
-            ) else UIUtil.getLabelForeground()
-
+        val foregroundColor = when {
+            StartupUiUtil.isUnderDarcula() -> when {
+                UIUtil.isUnderWin10LookAndFeel() -> JBColor.WHITE
+                else -> JBColor(Gray._240, Gray._200)
+            }
+            else -> UIUtil.getLabelForeground()
+        }
 
         title.foreground = foregroundColor
         title.border = BorderFactory.createEmptyBorder(3, 5, 5, 0)
@@ -101,10 +100,8 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         res.isOpaque = false
 
         val actionGroup = DefaultActionGroup()
-        project?.let {
-            actionGroup.addAction(GearActionGroup(this, it))
-            actionGroup.addAction(ShowInFindWindowAction(this, it))
-        }
+        actionGroup.addAction(GearActionGroup(this, project))
+        actionGroup.addAction(ShowInFindWindowAction(this, project))
         val toolbar = ActionManager.getInstance().createActionToolbar("proof.search.top.toolbar", actionGroup, true)
         toolbar.layoutPolicy = ActionToolbar.NOWRAP_LAYOUT_POLICY
         toolbar.setTargetComponent(this)
@@ -116,30 +113,24 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
 
     override fun getAccessibleName(): String = "Proof search"
 
-    private fun initSearchActions() {
-        searchField.document.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(e: DocumentEvent) {
-                scheduleSearch()
-            }
-        })
+    private fun initActions() {
         myResultsList.expandableItemsHandler.isEnabled = false
-        val escape = ActionManager.getInstance().getAction("EditorEscape")
-        DumbAwareAction.create { close() }
-            .registerCustomShortcutSet(escape?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
-        adjustEmptyText(
-            mySearchField,
-            { field: JBTextField -> field.text.isEmpty() },
-            "Pattern string",
-            ""
-        )
 
-        DumbAwareAction.create { event: AnActionEvent? ->
-            // todo: also navigate by clicking on an entry
-            val indices = myResultsList.selectedIndices
-            elementSelected(model.getElementAt(indices[0]))
+        registerSearchAction()
+        registerEscapeAction()
+        registerEnterAction()
+        registerMouseActions()
 
-        }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
+        adjustEmptyText(mySearchField)
+    }
 
+    private fun registerSearchAction() {
+        searchField.document.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) = scheduleSearch()
+        })
+    }
+
+    private fun registerMouseActions() {
         val mouseListener = object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
                 onMouseClicked(e)
@@ -147,6 +138,22 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
         }
         myResultsList.addMouseListener(mouseListener)
         myResultsList.addMouseMotionListener(mouseListener)
+    }
+
+    private fun registerEnterAction() {
+        DumbAwareAction.create {
+            val indices = myResultsList.selectedIndices
+            if (indices.isNotEmpty()) {
+                onEntrySelected(model.getElementAt(indices[0]))
+            }
+        }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
+    }
+
+    private fun registerEscapeAction() {
+        val escapeAction = ActionManager.getInstance().getAction("EditorEscape")
+        DumbAwareAction
+            .create { close() }
+            .registerCustomShortcutSet(escapeAction?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
     }
 
     private fun scheduleSearch() {
@@ -161,52 +168,58 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
             val i = myResultsList.locationToIndex(e.point)
             if (i > -1) {
                 myResultsList.selectedIndex = i
-                elementSelected(model.getElementAt(i))
+                onEntrySelected(model.getElementAt(i))
             }
         }
     }
 
-    fun elementSelected(element : Any) {
-        if (element is FoundItemDescriptor<*>) {
-            val navigatable = element.item.castSafelyTo<ProofSearchEntry>()!!.def.navigationElement
+    private fun onEntrySelected(element: ProofSearchUIEntry) = when (element) {
+        is DefElement -> {
+            val navigationElement = element.entry.def.navigationElement
             close()
-            navigatable.navigate(true)
-        } else if (element is MoreElement) {
+            navigationElement.navigate(true)
+        }
+        is MoreElement -> {
             model.remove(element)
             runProofSearch(element.sequence)
         }
     }
 
-    fun runProofSearch(results : Sequence<FoundItemDescriptor<ProofSearchEntry>>?) {
-        val project = myProject ?: return
-        progressIndicator?.cancel()
-        if (results == null) {
-            invokeLater {
-                model.removeAll()
-            }
-        }
+    fun runProofSearch(results: Sequence<ProofSearchEntry>?) {
+        cleanupCurrentResults(results)
+
         val settings = ProofSearchUISettings(project)
+
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
             this.progressIndicator = progressIndicator
-            val elements = results ?: fetchWeightedElements(project, settings, searchPattern)
-            var counter = 20
+            val elements = results ?: generateProofSearchResults(project, settings, searchPattern)
+            var counter = RESULT_LIMIT
             for (element in elements) {
                 if (progressIndicator.isCanceled) {
                     break
                 }
-                --counter
                 invokeLater {
-                    model.add(element)
-                    if (results != null && counter == 19 && myResultsList.selectedIndex == -1) {
+                    model.add(DefElement(element))
+                    if (results != null && counter == RESULT_LIMIT && myResultsList.selectedIndex == -1) {
                         myResultsList.selectedIndex = myResultsList.itemsCount - 1
                     }
                 }
+                --counter
                 if (counter == 0) {
                     invokeLater {
-                        model.add(MoreElement(elements.drop(20)))
+                        model.add(MoreElement(elements.drop(RESULT_LIMIT)))
                     }
                     break
                 }
+            }
+        }
+    }
+
+    private fun cleanupCurrentResults(results: Sequence<ProofSearchEntry>?) {
+        progressIndicator?.cancel()
+        if (results == null) {
+            invokeLater {
+                model.removeAll()
             }
         }
     }
@@ -221,17 +234,11 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
             }
         }
         val leftExt: ExtendableTextComponent.Extension = object : ExtendableTextComponent.Extension {
-            override fun getIcon(hovered: Boolean): Icon {
-                return ArendIcons.TURNSTILE
-            }
+            override fun getIcon(hovered: Boolean): Icon = ArendIcons.TURNSTILE
 
-            override fun isIconBeforeText(): Boolean {
-                return true
-            }
+            override fun isIconBeforeText(): Boolean = true
 
-            override fun getIconGap(): Int {
-                return JBUIScale.scale(10)
-            }
+            override fun getIconGap(): Int = JBUIScale.scale(10)
         }
         res.addExtension(leftExt)
         res.putClientProperty(SearchEverywhereUI.SEARCH_EVERYWHERE_SEARCH_FILED_KEY, true)
@@ -249,18 +256,14 @@ class ProofSearchUI(private val project : Project?) : BigPopupUI(project) {
     }
 
     private fun adjustEmptyText(
-        textEditor: JBTextField,
-        function: BooleanFunction<in JBTextField>,
-        leftText: @NlsContexts.StatusText String,
-        rightText: @NlsContexts.StatusText String
+        textEditor: JBTextField
     ) {
-        textEditor.putClientProperty("StatusVisibleFunction", function)
+        textEditor.putClientProperty("StatusVisibleFunction", { field: JBTextField -> field.text.isEmpty() })
         val statusText = textEditor.emptyText
         statusText.isShowAboveCenter = false
-        statusText.setText(leftText, SimpleTextAttributes.GRAY_ATTRIBUTES)
-        statusText.appendText(false, 0, rightText, SimpleTextAttributes.GRAY_ATTRIBUTES, null)
+        statusText.setText("Pattern string", SimpleTextAttributes.GRAY_ATTRIBUTES)
         statusText.setFont(UIUtil.getLabelFont(UIUtil.FontSize.SMALL))
     }
-
-
 }
+
+private const val RESULT_LIMIT = 20

@@ -1,6 +1,5 @@
-package org.arend.search.structural
+package org.arend.search.proof
 
-import com.intellij.openapi.util.Key
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
@@ -20,9 +19,15 @@ import org.arend.util.appExprToConcrete
  */
 sealed interface PatternTree {
 
+    enum class Implicitness {
+        IMPLICIT, EXPLICIT;
+
+        fun toBoolean(): Boolean = this == IMPLICIT
+    }
+
     @JvmInline
-    value class BranchingNode(val subNodes: List<PatternTree>) : PatternTree {
-        override fun toString(): String = subNodes.joinToString(" ", "[", "]", transform = PatternTree::toString)
+    value class BranchingNode(val subNodes: List<Pair<PatternTree, Implicitness>>) : PatternTree {
+        override fun toString(): String = subNodes.joinToString(" ", "[", "]", transform = { it.first.toString() })
     }
 
     @JvmInline
@@ -37,13 +42,24 @@ sealed interface PatternTree {
 
 internal fun deconstructArendExpr(expr: ArendExpr): PatternTree {
     if (expr.text == "_") return PatternTree.Wildcard
-    val concrete = appExprToConcrete(removeParens(expr))
-    concrete!!
+    val concrete = appExprToConcrete(removeParens(expr))!!
     return concrete.accept(object : BaseConcreteExpressionVisitor<Unit>() {
         override fun visitApp(expr: Concrete.AppExpression, params: Unit): Concrete.Expression {
             val function = expr.function.accept(this, Unit).data as PatternTree
-            val args = expr.arguments.map2Array { it.expression.accept(this, Unit).data as PatternTree }
-            return Concrete.HoleExpression(PatternTree.BranchingNode(listOf(function, *args)))
+            val args = expr.arguments.map2Array {
+                it.expression.accept(
+                    this,
+                    Unit
+                ).data as PatternTree to explicitnessFromBoolean(it.isExplicit)
+            }
+            return Concrete.HoleExpression(
+                PatternTree.BranchingNode(
+                    listOf(
+                        function to PatternTree.Implicitness.EXPLICIT,
+                        *args
+                    )
+                )
+            )
         }
 
         override fun visitHole(expr: Concrete.HoleExpression, params: Unit?): Concrete.Expression {
@@ -67,11 +83,5 @@ private tailrec fun removeParens(expr : ArendExpr) : ArendExpr {
     return removeParens(innerExpr)
 }
 
-private val PATTERN_TREE = Key<PatternTree>("arend.structural.search.pattern.tree")
-
-/**
- * Use only in context of structural search
- */
-internal fun ArendExpr.getPatternTree() : PatternTree = this.getUserData(PATTERN_TREE)!!
-
-internal fun ArendExpr.setPatternTree(tree: PatternTree) = this.putUserData(PATTERN_TREE, tree)
+private fun explicitnessFromBoolean(explicit: Boolean): PatternTree.Implicitness =
+    if (explicit) PatternTree.Implicitness.EXPLICIT else PatternTree.Implicitness.IMPLICIT

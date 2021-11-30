@@ -1,4 +1,4 @@
-package org.arend.search.structural
+package org.arend.search.proof
 
 import com.intellij.psi.util.parentOfType
 import org.arend.error.DummyErrorReporter
@@ -93,11 +93,12 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
             is PatternTree.BranchingNode -> {
                 val binOpList = ArrayList<Concrete.BinOpSequenceElem>(tree.subNodes.size)
                 for (i in tree.subNodes.indices) {
-                    val expr = reassembleConcrete(tree.subNodes[i], scope, references) ?: break
+                    val expr = reassembleConcrete(tree.subNodes[i].first, scope, references) ?: break
+                    val explicitness = tree.subNodes[i].second.toBoolean()
                     val binOp = if (i == 0) {
-                        Concrete.BinOpSequenceElem(expr, Fixity.NONFIX, true)
+                        Concrete.BinOpSequenceElem(expr, Fixity.NONFIX, explicitness)
                     } else {
-                        Concrete.BinOpSequenceElem(expr, Fixity.UNKNOWN, true)
+                        Concrete.BinOpSequenceElem(expr, Fixity.UNKNOWN, explicitness)
                     }
                     binOpList.add(binOp)
                 }
