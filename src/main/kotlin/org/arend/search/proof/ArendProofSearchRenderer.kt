@@ -55,11 +55,11 @@ class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
         label.background = bgColor
         iconPanel.background = bgColor
 
-        addContent(value, textColor)
+        addContent(value, textColor, isSelected)
         return panel
     }
 
-    fun addContent(value: ProofSearchUIEntry, textColor: Color) = when (value) {
+    fun addContent(value: ProofSearchUIEntry, textColor: Color, isSelected: Boolean) = when (value) {
         is MoreElement -> {
             panel.font = UIUtil.getLabelFont().deriveFont(UIUtil.getFontSize(UIUtil.FontSize.SMALL))
             textArea.text = buildMoreHTML(textColor)
@@ -69,7 +69,8 @@ class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
         is DefElement -> {
             val def = value.entry.def
             def as Abstract.FunctionDefinition // implied by 'generateProofSearchResults'
-            textArea.text = buildHtml(def, textColor)
+            val auxiliaryTextColor = if (isSelected) textColor else UIUtil.getInactiveTextColor()
+            textArea.text = buildHtml(def, auxiliaryTextColor)
             val icon = getIcon(def)
             label.icon = icon
             label.border = generateLabelBorder(textArea, icon)

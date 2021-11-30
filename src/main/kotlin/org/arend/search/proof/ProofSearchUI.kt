@@ -188,11 +188,9 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     fun runProofSearch(results: Sequence<ProofSearchEntry>?) {
         cleanupCurrentResults(results)
 
-        val settings = ProofSearchUISettings(project)
-
         runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
             this.progressIndicator = progressIndicator
-            val elements = results ?: generateProofSearchResults(project, settings, searchPattern)
+            val elements = results ?: generateProofSearchResults(project, searchPattern)
             var counter = RESULT_LIMIT
             for (element in elements) {
                 if (progressIndicator.isCanceled) {

@@ -37,7 +37,7 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
 
             override fun run(indicator: ProgressIndicator) {
                 progressIndicator.start()
-                val elements = generateProofSearchResults(project, ProofSearchUISettings(project), searchText).toList()
+                val elements = generateProofSearchResults(project, searchText).toList()
                 fillUsages(elements, usages, targets)
             }
 
