@@ -1,13 +1,8 @@
-package org.arend.search.structural
+package org.arend.search
 
-import com.intellij.codeInsight.daemon.quickFix.LightQuickFixTestCase
-import com.intellij.structuralsearch.MatchOptions
-import com.intellij.structuralsearch.MatchResult
-import com.intellij.structuralsearch.Matcher
-import com.intellij.structuralsearch.impl.matcher.compiler.PatternCompiler
 import junit.framework.TestCase
-import org.arend.ArendFileType
-import org.arend.ArendLanguage
+import org.arend.ArendTestBase
+import org.arend.search.proof.generateProofSearchResults
 import org.intellij.lang.annotations.Language
 
 const val PRE_TEXT =
@@ -34,24 +29,15 @@ const val PRE_TEXT =
 
 """
 
-/**
- * Copy of StructuralSearchTestCase. It is for some reason not exported as part of openapi.
- */
-class ArendProofSearchTest : LightQuickFixTestCase() {
-
-    private var options: MatchOptions = MatchOptions()
+class ArendProofSearchTest : ArendTestBase() {
 
     private fun findMatches(
         @Language("Arend") content: String,
         pattern: String
-    ): List<MatchResult> {
-
-        options.fillSearchCriteria(pattern)
-        options.setFileType(ArendFileType)
-        options.dialect = ArendLanguage.INSTANCE
-        val compiledPattern = PatternCompiler.compilePattern(project, options, true, false)
-        val matcher = Matcher(project, options, compiledPattern)
-        return matcher.testFindMatches(PRE_TEXT + content, true, ArendFileType, false)
+    ): Set<String> {
+        myFixture.addFileToProject("_.ard", PRE_TEXT + content)
+        val results = generateProofSearchResults(project, pattern)
+        return results.toList().mapTo(HashSet()) { it.def.name!! }
     }
 
     private fun assertHasMatch(content: String, pattern: String) = TestCase.assertTrue(

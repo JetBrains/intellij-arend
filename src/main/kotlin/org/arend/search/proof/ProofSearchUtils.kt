@@ -14,10 +14,9 @@ import com.intellij.util.castSafelyTo
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.stubs.index.ArendDefinitionIndex
-import org.arend.search.structural.ArendExpressionMatcher
-import org.arend.search.structural.PatternTree
-import org.arend.search.structural.deconstructArendExpr
+import org.arend.resolving.DataLocatedReferable
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
 
@@ -25,9 +24,9 @@ data class ProofSearchEntry(val def : PsiReferable, val tree : PatternTree)
 
 fun generateProofSearchResults(
     project: Project,
-    settings: ProofSearchUISettings,
     pattern: String,
 ): Sequence<ProofSearchEntry> = sequence {
+    val settings = ProofSearchUISettings(project)
     val matcher = runReadAction {
         val parsedExpression = ArendPsiFactory(project).createExpressionMaybe(pattern) ?: return@runReadAction null
         ArendExpressionMatcher(deconstructArendExpr(parsedExpression))
@@ -47,6 +46,8 @@ fun generateProofSearchResults(
             ) { def ->
                 if (!settings.checkAllowed(def)) return@processElements true
 
+                val typechecked = def.castSafelyTo<ReferableAdapter<*>>()?.tcReferable
+                val coreDefinition = typechecked?.takeIf { it.isTypechecked }?.castSafelyTo<DataLocatedReferable>()?.typechecked
                 val type = def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<ArendExpr>()
                     ?: return@processElements true
                 if (matcher.match(type)) {

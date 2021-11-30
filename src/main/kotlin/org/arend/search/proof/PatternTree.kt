@@ -22,7 +22,7 @@ sealed interface PatternTree {
     enum class Implicitness {
         IMPLICIT, EXPLICIT;
 
-        fun toBoolean(): Boolean = this == IMPLICIT
+        fun toBoolean(): Boolean = this == EXPLICIT
     }
 
     @JvmInline
