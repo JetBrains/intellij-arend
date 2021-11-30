@@ -16,11 +16,14 @@ import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.search.structural.ArendExpressionMatcher
+import org.arend.search.structural.PatternTree
 import org.arend.search.structural.deconstructArendExpr
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
 
-fun fetchWeightedElements(
+data class ProofSearchEntry(val def : PsiReferable, val tree : PatternTree)
+
+fun generateProofSearchResults(
     project: Project,
     settings: ProofSearchUISettings,
     pattern: String,

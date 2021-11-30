@@ -2,7 +2,6 @@ package org.arend.search.proof
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
-import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.openapi.vfs.newvfs.VfsPresentationUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiUtilCore
@@ -10,137 +9,144 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.panels.OpaquePanel
 import com.intellij.util.castSafelyTo
-import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
 import org.apache.commons.lang.StringEscapeUtils.escapeHtml
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.CoClauseDefAdapter
-import org.arend.search.structural.PatternTree
 import org.arend.term.abs.Abstract
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
 import javax.swing.*
+import javax.swing.border.Border
 
-data class ProofSearchEntry(val def : PsiReferable, val tree : PatternTree)
-
-private val BORDER = BorderFactory.createEmptyBorder(3, 0, 5, 0)
-
-class ArendProofSearchRenderer : ListCellRenderer<Any> {
-    val panel: JPanel = OpaquePanel(SearchEverywherePsiRenderer.SELayout())
-    val iconPanel: JPanel = JPanel(BorderLayout())
-    val label: JBLabel = JBLabel()
-    val textArea = JEditorPane()
+class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
+    private val panel: JPanel = OpaquePanel(SearchEverywherePsiRenderer.SELayout())
+    private val iconPanel: JPanel = JPanel(BorderLayout())
+    private val label: JBLabel = JBLabel()
+    private val textArea = JEditorPane()
 
     init {
         iconPanel.add(label, BorderLayout.NORTH)
-
         panel.add(iconPanel, BorderLayout.WEST)
         panel.add(textArea, BorderLayout.CENTER)
     }
 
     override fun getListCellRendererComponent(
-        list: JList<out Any>,
-        value: Any,
+        list: JList<out ProofSearchUIEntry>,
+        value: ProofSearchUIEntry,
         index: Int,
         isSelected: Boolean,
         cellHasFocus: Boolean
     ): Component {
-        if (value is MoreElement) {
-            panel.font = UIUtil.getLabelFont().deriveFont(UIUtil.getFontSize(UIUtil.FontSize.SMALL))
-            panel.background = JBUI.CurrentTheme.BigPopup.listTitleLabelForeground()
-            textArea.contentType = "text/html"
-            textArea.text = buildHtmlMore(if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor())
-            panel.border = null
-            label.icon = null
-            val bgColor =
-                if (isSelected) UIUtil.getListSelectionBackground(true) else UIUtil.getListBackground()
-            textArea.background = bgColor
-
-            panel.background = bgColor
-            label.background = bgColor
-            iconPanel.background = bgColor
-        } else {
-            value as FoundItemDescriptor<ProofSearchEntry>
-            val def = value.item.def.castSafelyTo<Abstract.FunctionDefinition>() ?: return panel
-            def as PsiReferable
-            val parameterTypes = def.parameters.map { (it as PsiElement).text }
-            val type =
-                def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<PsiElement>() ?: return panel
-            textArea.contentType = "text/html"
-            textArea.text = buildHtml(
-                def.name!!,
-                parameterTypes,
-                type.text,
-                (def.containingFile as ArendFile).moduleLocation?.modulePath?.toString(),
-                if (isSelected) list.selectionForeground else UIUtil.getInactiveTextColor()
-
-            )
-            val icon = if (def is CoClauseDefAdapter) AllIcons.General.Show_to_implement else def.getIcon(0)
-            label.icon = icon
-            label.border = BorderFactory.createEmptyBorder(
-                1 + textArea.getFontMetrics(textArea.font).height - icon.iconHeight,
-                0,
-                5,
-                2
-            )
-            val bgColor = if (isSelected) UIUtil.getListSelectionBackground(true) else {
-                val file = PsiUtilCore.getVirtualFile(def)
-                if (file == null)
-                    UIUtil.getListBackground()
-                else
-                    VfsPresentationUtil.getFileBackgroundColor(def.project, file)
-            }
-
-            textArea.background = bgColor
-            panel.background = bgColor
-            label.background = bgColor
-            iconPanel.background = bgColor
-        }
-        textArea.border = BORDER
         val textColor = if (isSelected) list.selectionForeground else list.foreground
+        val bgColor = getBackgroundColor(isSelected, value)
 
+        textArea.contentType = "text/html"
+        textArea.border = BORDER
         textArea.foreground = textColor
         textArea.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
         textArea.font = JBTextArea().font
+        textArea.background = bgColor
 
+        panel.background = bgColor
+        label.background = bgColor
+        iconPanel.background = bgColor
+
+        addContent(value, textColor)
         return panel
-
     }
 
-    private fun toHex(color: Color): String {
-        return "#${color.red.toHexString()}${color.blue.toHexString()}${color.green.toHexString()}"
+    fun addContent(value: ProofSearchUIEntry, textColor: Color) = when (value) {
+        is MoreElement -> {
+            panel.font = UIUtil.getLabelFont().deriveFont(UIUtil.getFontSize(UIUtil.FontSize.SMALL))
+            textArea.text = buildMoreHTML(textColor)
+            panel.border = null
+            label.icon = null
+        }
+        is DefElement -> {
+            val def = value.entry.def
+            def as Abstract.FunctionDefinition // implied by 'generateProofSearchResults'
+            textArea.text = buildHtml(def, textColor)
+            val icon = getIcon(def)
+            label.icon = icon
+            label.border = generateLabelBorder(textArea, icon)
+        }
     }
-
-    private fun buildHtml(
-        name: String,
-        parameters: List<String>,
-        type: String,
-        locationText: String?,
-        nameColor: Color
-    ): String {
-        val locationRepresentation = locationText?.let { "<span style=\"color: ${toHex(nameColor)}\">(in ${escapeHtml(locationText)})</span>" } ?: ""
-        return """
-           <html>
-           <body>
-           <span style="color: ${toHex(nameColor)}">${escapeHtml(name)}</span> ${
-            parameters.joinToString(" ") { escapeHtml(it) }
-        } : <b>${escapeHtml(type)}</b> $locationRepresentation
-           </body>
-           </html>
-        """.trimIndent()
-    }
-
-    private fun buildHtmlMore(nameColor: Color) : String{
-        return """
-           <html>
-           <body>
-           <span style="font-size: small; color: ${toHex(nameColor)}">... more</span>
-           </body>
-           </html>
-        """.trimIndent()
-    }
-
 }
+
+private val BORDER = BorderFactory.createEmptyBorder(3, 0, 5, 0)
+
+private fun <T> buildHtml(
+    def: T,
+    nameColor: Color
+): String? where T : PsiReferable, T : Abstract.FunctionDefinition {
+    val name = def.name ?: return null
+    val type = def.resultType.castSafelyTo<PsiElement>()?.text ?: return null
+    val parameters = def.parameters.map { (it as PsiElement).text }
+    val locationText = (def.containingFile as ArendFile).moduleLocation?.modulePath?.toString() ?: ""
+    return buildDefinitionHTML(name, parameters, type, locationText, nameColor)
+}
+
+private fun Color.asHex(): String {
+    return "#${red.toHexString()}${blue.toHexString()}${green.toHexString()}"
+}
+
+private fun buildDefinitionHTML(
+    name: String,
+    parameters: List<String>,
+    type: String,
+    locationText: String,
+    nameColor: Color
+): String {
+    val locationRepresentation =
+        if (locationText != "") "<span style=\"color: ${nameColor.asHex()}\">(in ${escapeHtml(locationText)})</span>" else ""
+    return """
+           <html>
+           <body>
+           <span style="color: ${nameColor.asHex()}">${escapeHtml(name)}</span> 
+           ${parameters.joinToString(" ") { escapeHtml(it) }} : <b>${escapeHtml(type)}</b> $locationRepresentation
+           </body>
+           </html>
+        """.trimIndent()
+}
+
+private fun buildMoreHTML(nameColor: Color): String = """
+       <html>
+       <body>
+       <span style="font-size: small; color: ${nameColor.asHex()}">... more</span>
+       </body>
+       </html>
+    """.trimIndent()
+
+private fun getBackgroundColor(isSelected: Boolean, element: ProofSearchUIEntry): Color =
+    when (isSelected) {
+        true -> UIUtil.getListSelectionBackground(true)
+        false -> when (element) {
+            is DefElement -> {
+                val file = PsiUtilCore.getVirtualFile(element.entry.def)
+                if (file != null) {
+                    VfsPresentationUtil.getFileBackgroundColor(element.entry.def.project, file)
+                        ?: UIUtil.getListBackground()
+                } else {
+                    UIUtil.getListBackground()
+                }
+            }
+            is MoreElement -> UIUtil.getListBackground()
+        }
+    }
+
+private fun getIcon(def: PsiReferable): Icon = when (def) {
+    is CoClauseDefAdapter -> AllIcons.General.Show_to_implement
+    else -> def.getIcon(0)
+}
+
+private fun generateLabelBorder(textArea: JEditorPane, icon: Icon): Border =
+    BorderFactory.createEmptyBorder(
+        1 + textArea.getFontMetrics(textArea.font).height - icon.iconHeight,
+        0,
+        5,
+        2
+    )
