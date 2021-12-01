@@ -123,7 +123,7 @@ private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: Aren
     val parentAtomFieldsAcc = getParentAtomFieldsAcc(tuple) ?: return false
     val parentAppExprPsi = parentArgumentAppExpr(parentAtomFieldsAcc) ?: return false
     val parentAppExpr = directParentAppExpression(parentAppExprPsi, parentAtomFieldsAcc) ?: return false
-    if (BinOpIntentionUtil.isBinOpApp(parentAppExpr)) {
+    if (BinOpIntentionUtil.isBinOpInfixApp(parentAppExpr)) {
         val childAppExpr = if (expression is ArendNewExpr && isAtomic(expression)) expression.argumentAppExpr else null
         return childAppExpr != null &&
                 hasNoLevelArguments(childAppExpr) &&

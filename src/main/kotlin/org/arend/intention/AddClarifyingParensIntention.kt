@@ -31,7 +31,7 @@ class AddClarifyingParensIntention : BaseArendIntention(ArendBundle.message("are
 
 private fun needClarifyingParens(binOpSeq: Concrete.AppExpression): Boolean {
     return binOpSeq.arguments.any {
-        it.isExplicit && it.expression.let { e -> e is Concrete.AppExpression && BinOpIntentionUtil.isBinOpApp(e) }
+        it.isExplicit && it.expression.let { e -> e is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(e) }
     }
 }
 
@@ -44,7 +44,7 @@ class AddClarifyingParensProcessor : BinOpSeqProcessor() {
             return implicitArgumentText(arg, editor)
         }
         val expression = arg.expression
-        if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpApp(expression)) {
+        if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(expression)) {
             return mapBinOp(expression, editor, caretHelper)?.let { "($it)" }
         }
         return text(expression, editor)

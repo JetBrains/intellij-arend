@@ -78,7 +78,7 @@ private fun hasClarifyingParens(binOpSeq: Concrete.AppExpression): Boolean {
                     queue.add(binOp)
                 }
             }
-            if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpApp(expression)) {
+            if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(expression)) {
                 queue.add(expression)
             }
         }
@@ -125,7 +125,7 @@ class RemoveClarifyingParensProcessor : BinOpSeqProcessor() {
                 return if (doesNotNeedParens(binOp, parentBinOp)) binOpText else "($binOpText)"
             }
         }
-        if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpApp(expression)) {
+        if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(expression)) {
             return mapBinOp(expression, editor, caretHelper)
         }
         return text(arg.expression, editor)

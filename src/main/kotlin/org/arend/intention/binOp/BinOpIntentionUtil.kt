@@ -7,6 +7,7 @@ import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendIPName
 import org.arend.psi.ArendLongName
 import org.arend.psi.ext.ArendReferenceContainer
+import org.arend.refactoring.rangeOfConcrete
 import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
 import org.arend.util.isBinOp
@@ -21,12 +22,17 @@ object BinOpIntentionUtil {
 
     internal fun toConcreteBinOpApp(app: ArendArgumentAppExpr): Concrete.AppExpression? {
         val binOpSeq = appExprToConcrete(app, true)
-        return if (binOpSeq is Concrete.AppExpression && isBinOpApp(binOpSeq)) binOpSeq else null
+        return if (binOpSeq is Concrete.AppExpression && isBinOpInfixApp(binOpSeq)) binOpSeq else null
     }
 
-    internal fun isBinOpApp(expression: Concrete.AppExpression) =
-            isBinOp(expression.function.data as? ArendReferenceContainer)
+    internal fun isBinOpInfixApp(expression: Concrete.AppExpression) =
+            isBinOp(expression.function.data as? ArendReferenceContainer) && !isPrefixForm(expression)
 
     private fun skipWhiteSpacesBackwards(element: PsiElement) =
             if (element is PsiWhiteSpace) PsiTreeUtil.prevCodeLeaf(element) else element
+
+    private fun isPrefixForm(expression: Concrete.AppExpression): Boolean {
+        val firstArg = expression.arguments.first { it.isExplicit }?.expression ?: return false
+        return rangeOfConcrete(expression.function).endOffset <= rangeOfConcrete(firstArg).startOffset
+    }
 }
