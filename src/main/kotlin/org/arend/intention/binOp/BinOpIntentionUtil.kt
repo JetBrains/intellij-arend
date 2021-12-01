@@ -20,7 +20,7 @@ object BinOpIntentionUtil {
         return if (isBinOp(binOpReference)) binOpReference else null
     }
 
-    internal fun toConcreteBinOpApp(app: ArendArgumentAppExpr): Concrete.AppExpression? {
+    internal fun toConcreteBinOpInfixApp(app: ArendArgumentAppExpr): Concrete.AppExpression? {
         val binOpSeq = appExprToConcrete(app, true)
         return if (binOpSeq is Concrete.AppExpression && isBinOpInfixApp(binOpSeq)) binOpSeq else null
     }

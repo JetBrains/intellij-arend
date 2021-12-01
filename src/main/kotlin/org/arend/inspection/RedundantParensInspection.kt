@@ -127,7 +127,7 @@ private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: Aren
         val childAppExpr = if (expression is ArendNewExpr && isAtomic(expression)) expression.argumentAppExpr else null
         return childAppExpr != null &&
                 hasNoLevelArguments(childAppExpr) &&
-                BinOpIntentionUtil.toConcreteBinOpApp(childAppExpr) == null
+                BinOpIntentionUtil.toConcreteBinOpInfixApp(childAppExpr) == null
     }
     return false
 }
