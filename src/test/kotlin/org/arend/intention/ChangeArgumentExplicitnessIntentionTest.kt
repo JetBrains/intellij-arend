@@ -685,4 +685,18 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          \use \level levelProp {A : \Type} (a a' : TruncP A) : a = a' => path (\lam i => truncP a a' {i})
        } 
     """)
+
+    fun testDataConstructorClause() = doTest("""
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc ({-caret-}n < m)
+
+       \func lol : 1 < 2 => suc<suc (zero<suc {0}) 
+    """, """
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc {n < m}
+
+       \func lol : 1 < 2 => suc<suc {_} {_} {zero<suc {0}} 
+    """)
 }

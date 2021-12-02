@@ -87,7 +87,7 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
         val newTele = createSwitchedTele(factory, tele) ?: return
 
         var curElement = tele
-        val teleSize = getTele(tele)?.size ?: return
+        val teleSize = if (tele is ArendTypeTele && tele.typedExpr?.identifierOrUnknownList?.isEmpty() == true) 1 else getTele(tele)?.size ?: return
         for (i in 0..teleSize) {
             val splittedTele = chooseApplier(curElement)?.applyTo(curElement, 0) ?: continue
             curElement = splittedTele.nextSibling as? ArendCompositeElement ?: break
@@ -630,8 +630,7 @@ private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement): Int {
     var i = 0
     for (parameter in parameters) {
         if (parameter == tele) return i
-        val teles = getTele(parameter as PsiElement) ?: continue
-        i += teles.size
+        i += parameter.referableList.size
     }
     return -1
 }

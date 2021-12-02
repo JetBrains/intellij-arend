@@ -5,25 +5,32 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
-import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.util.elementType
+import com.intellij.psi.util.*
+import org.arend.error.CountingErrorReporter
+import org.arend.error.DummyErrorReporter
+import org.arend.ext.error.GeneralError
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.psi.ext.impl.ClassFieldAdapter
 import org.arend.psi.ext.impl.FunctionDefinitionAdapter
+import org.arend.psi.parentOfType
+import org.arend.resolving.ArendReferableConverter
+import org.arend.resolving.DataLocatedReferable
+import org.arend.resolving.util.ParameterImpl
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.resolving.util.parseBinOp
 import org.arend.util.checkConcreteExprIsArendExpr
+import java.util.Collections.singletonList
 
 class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, List<Abstract.Parameter>> {
 
-    private fun exprToString(expr: Abstract.Expression?) =
-        if (expr != null) ConcreteBuilder.convertExpression(expr).toString() else "{?error}"
+    private fun exprToString(expr: Abstract.Expression?): String? =
+        if (expr != null) ConcreteBuilder.convertExpression(expr).toString() else null
 
     override fun updateUI(p: List<Abstract.Parameter>?, context: ParameterInfoUIContext) {
         if (p == null) return
@@ -37,7 +44,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 curParam = if (curParam == -1) -1 else curParam - 1
                 continue
             }
-            val nameTypeList = mutableListOf<Pair<String?, String>>()
+            val nameTypeList = mutableListOf<Pair<String?, String?>>()
             val vars = pm.referableList
             if (vars.isNotEmpty()) {
                 vars.mapTo(nameTypeList) { Pair(it?.textRepresentation() ?: "_", exprToString(pm.type)) }
@@ -48,7 +55,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 if (text != "") {
                     text += ", "
                 }
-                var varText = v.first + " : " + v.second
+                var varText = v.first + if (v.second != null) " : " + v.second else ""
                 if (!pm.isExplicit) {
                     varText = "{$varText}"
                 }
@@ -64,7 +71,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         context.setupUIComponentPresentation(text, hlStart, hlEnd, !context.isUIComponentEnabled, false, false, context.defaultParameterColor)
     }
 
-    public fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
+    fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
         val params = mutableListOf<Abstract.Parameter>()
         val psiFactory = ArendPsiFactory(ProjectManager.getInstance().openProjects.first())
         if (def is Abstract.ParametersHolder) {
@@ -95,7 +102,38 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                     for (tele in defData.typeTeleList.reversed()) {
                         val type = exprToString(tele.type)
                         for (p in tele.referableList.reversed()) {
-                            params.add(0, psiFactory.createNameTele(p.textRepresentation(), type, false))
+                            params.add(0, psiFactory.createNameTele(p?.textRepresentation() ?: "_", type, false))
+                        }
+                    }
+                } else {
+                    val constructorClause = def.parent as? ArendConstructorClause
+                    val dataBody = constructorClause?.parent as? ArendDataBody
+                    val elim = dataBody?.elim
+                    val data = dataBody?.parent as? ArendDefData
+                    val project = data?.project
+                    if (data is Abstract.Definition && elim != null && project != null) {
+                        val concreteData : Concrete.GeneralDefinition = ConcreteBuilder.convert(ArendReferableConverter, data, CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE))
+                        if (concreteData is Concrete.DataDefinition) {
+                            val clause = concreteData.constructorClauses.firstOrNull { it.constructors.map { (it.data as? DataLocatedReferable)?.data?.element }.contains(def) }
+                            fun collectNamePatterns(pattern: Concrete.Pattern): List<Concrete.NamePattern> = if (pattern is Concrete.NamePattern) singletonList(pattern) else pattern.patterns.map { collectNamePatterns(it) }.flatten()
+                            when {
+                                elim.withKw != null -> clause?.patterns?.map { collectNamePatterns(it) }?.flatten()?.reversed()?.map {
+                                    params.add(0, ParameterImpl(false, singletonList(it.referable), null))
+                                }
+
+                                elim.elimKw != null -> {
+                                    val dataArgs = data.typeTeleList.map { it.referableList }.flatten().filterIsInstance<ArendDefIdentifier>()
+                                    val eliminatedArgs = elim.refIdentifierList.map { it.resolve }.filterIsInstance<ArendDefIdentifier>()
+                                    if (eliminatedArgs.size == clause?.patterns?.size) {
+                                        dataArgs.map { it ->
+                                            val elimIndex = eliminatedArgs.indexOf(it)
+                                            if (elimIndex == -1) singletonList(it) else collectNamePatterns(clause.patterns[elimIndex]).map { it.referable }
+                                        }.flatten().reversed().forEach {
+                                            params.add(0, ParameterImpl(false, singletonList(it), null))
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -177,7 +215,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         return res
     }
 
-    public fun findParamIndex(params: List<Abstract.Parameter>, argsExplicitness: List<Boolean>): Int {
+    fun findParamIndex(params: List<Abstract.Parameter>, argsExplicitness: List<Boolean>): Int {
         if (argsExplicitness.isEmpty()) return -1
 
         val argIsExplicit = argsExplicitness.last()
