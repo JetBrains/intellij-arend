@@ -13,13 +13,13 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.castSafelyTo
+import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
+import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
-import org.arend.refactoring.getTele
-import org.arend.term.abs.Abstract
 import org.arend.typechecking.error.ErrorService
 
 val PsiElement.theOnlyChild: PsiElement?
@@ -352,47 +352,18 @@ fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
     else -> null
 }
 
-fun getTeleExplicitness(tele: PsiElement?): Boolean? = when (tele) {
-    is Abstract.Parameter -> tele.isExplicit
-    is ArendTypedExpr -> (tele.parent as? ArendTypeTele)?.isExplicit
-    else -> null
-}
-
-fun getIdName(id: PsiElement): String? = when (id) {
-    is ArendIdentifierOrUnknown -> id.defIdentifier?.name
+fun getIdName(id: Referable): String? = when (id) {
+    is ArendDefIdentifier -> id.name
     is ArendFieldDefIdentifier -> id.name
     else -> null
 }
 
-private fun getTelesFromDefInternal(def: PsiElement?): List<PsiElement>? = when (def) {
-    is ArendDefFunction -> def.nameTeleList
-    is ArendDefClass -> def.fieldTeleList
-    is ArendClassField -> def.typeTeleList
-    is ArendDefData -> def.typeTeleList
-    else -> null
-}
-
-fun getTelesFromDef(def: PsiElement?): List<Pair<String?, Boolean>>? = when (def) {
-    is ArendConstructor -> {
-        if (def.parent is ArendDataBody && def.parent.parent is ArendDefData) {
-            val dataTeles = getTelesFromDefInternal(def.parent.parent as? ArendDefData)
-            dataTeles?.map { getTele(it)?.map { it2 -> Pair(getIdName(it2), false) } ?: return@getTelesFromDef null }?.plus(
-                def.typeTeleList.map {
-                    val isExplicit = getTeleExplicitness(it) ?: return@getTelesFromDef null
-                    getTele(it)?.map { it2 -> Pair(getIdName(it2), isExplicit) } ?: return@getTelesFromDef null
-                }
-            )?.flatten()?.toList()
-        } else if (def.parent is ArendConstructorClause) {
-            null // TODO: Implement me
-        } else null
-    }
-    else -> {
-        getTelesFromDefInternal(def)?.map {
-            val isExplicit = getTeleExplicitness(it) ?: return@getTelesFromDef null
-            getTele(it)?.map { it2 -> Pair(getIdName(it2), isExplicit) } ?: return@getTelesFromDef null
-        }?.flatten()?.toList()
-    }
-}
+fun getTelesFromDef(def: PsiElement?): List<Pair<String?, Boolean>>? =
+    (def as? Referable)?.let { referable ->
+        ArendParameterInfoHandler.getAllParametersForReferable(referable)
+            .map { it.referableList.map { v ->
+                Pair((v as? PsiElement)?.let{getIdName(v)}, it.isExplicit)
+            } }.flatten()}
 
 fun Editor.getSelectionWithoutErrors(): TextRange? =
     EditorUtil.getSelectionInAnyMode(this).takeIf { range ->
@@ -405,5 +376,5 @@ fun Editor.getSelectionWithoutErrors(): TextRange? =
         elementsWithErrors.all { !range.intersects(it.textRange) }
     }
 
-fun parentArgumentAppExpr(atomFieldsAcc: ArendAtomFieldsAcc?): ArendArgumentAppExpr? =
+ fun parentArgumentAppExpr(atomFieldsAcc: ArendAtomFieldsAcc?): ArendArgumentAppExpr? =
         atomFieldsAcc?.parent?.let { if (it is ArendAtomArgument) it.parent else it }?.castSafelyTo()

@@ -699,4 +699,18 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func lol : 1 < 2 => suc<suc {_} {_} {zero<suc {0}} 
     """)
+
+    fun testDataConstructorClause2() = doTest("""
+       \data foo (n m : Nat) \with
+         | 0, suc _ => cons1
+         | suc n, suc m => cons2 (foo n m) ({-caret-}i : I)
+
+       \func lol => path (cons2 (cons1 {1}))
+    """, """
+       \data foo (n m : Nat) \with
+         | 0, suc _ => cons1
+         | suc n, suc m => cons2 (foo n m) {i : I}
+
+       \func lol => path (\lam i => cons2 (cons1 {1}) {i})         
+    """)
 }

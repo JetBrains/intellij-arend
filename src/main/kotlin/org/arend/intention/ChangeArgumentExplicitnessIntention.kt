@@ -6,7 +6,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
-import org.arend.codeInsight.ArendParameterInfoHandler
+import org.arend.codeInsight.ArendParameterInfoHandler.Companion.findParamIndex
+import org.arend.codeInsight.ArendParameterInfoHandler.Companion.getAllParametersForReferable
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.concrete.expr.ConcreteExpression
 import org.arend.ext.variable.Variable
@@ -187,12 +188,11 @@ abstract class ChangeArgumentExplicitnessApplier {
      * @return  list, where list.i = j means that ith argument in call is jth argument from definition
      */
     private fun getParametersIndices(def: PsiElement, call: PsiElement): List<Int> {
-        val parameterHandler = ArendParameterInfoHandler()
-        val parameters = parameterHandler.getAllParametersForReferable(def as PsiReferable)
+        val parameters = getAllParametersForReferable(def as PsiReferable)
         val argsExplicitness = getCallingParametersWithPhantom(call).map { it.first() != '{' }
         val argsIndices = mutableListOf<Int>()
         for (i in argsExplicitness.indices) {
-            argsIndices.add(parameterHandler.findParamIndex(parameters, argsExplicitness.subList(0, i + 1)))
+            argsIndices.add(findParamIndex(parameters, argsExplicitness.subList(0, i + 1)))
         }
 
         val cntPhantomArgs = argsExplicitness.size - getCallingParameters(call).size
@@ -624,8 +624,7 @@ private fun rewriteArg(text: String): String {
  * Returns first argument's index in this `tele` among all arguments in `def`
  */
 private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement): Int {
-    val parameterHandler = ArendParameterInfoHandler()
-    val parameters = parameterHandler.getAllParametersForReferable(def as PsiReferable)
+    val parameters = getAllParametersForReferable(def as PsiReferable)
 
     var i = 0
     for (parameter in parameters) {
