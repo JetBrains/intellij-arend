@@ -46,6 +46,22 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
                 }
             }
         }
+        if (matched is Concrete.PiExpression) {
+            return performMatch(pattern, matched.codomain)
+        }
+        if (matched is Concrete.LetExpression) {
+            for (clause in matched.clauses) {
+                if (performMatch(pattern, clause.term)) {
+                    return true
+                }
+            }
+            if (performMatch(pattern, matched.expression)) {
+                return true
+            }
+        }
+        if (matched is Concrete.LamExpression) {
+            return performMatch(pattern, matched.body)
+        }
         return false
     }
 

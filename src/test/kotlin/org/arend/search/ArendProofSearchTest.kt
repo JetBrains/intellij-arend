@@ -95,6 +95,26 @@ class ArendProofSearchTest : ArendTestBase() {
         """, "Nat"
     )
 
+    fun testPi() = assertHasMatch("""
+        \func f : Nat -> Nat => {?}
+    """, "Nat")
+
+    fun testNoMatchInPiArgument() = assertHasNoMatch("""
+        \func f : Nat -> 1 = 1 => {?}
+    """, "Nat")
+
+    fun testLet() = assertHasMatch("""
+        \func f : \let x => 1 \in x = x => {?}
+    """, "_ = _")
+
+    fun testLetArgument() = assertHasMatch("""
+        \func f : \let x => Nat \in x = x => {?}
+    """, "Nat")
+
+    fun testLambda() = assertHasMatch("""
+        \func f : (\lam x => Nat) = (\lam x => Nat) => {?}
+    """, "Nat")
+
 }
 
 
