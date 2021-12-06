@@ -159,9 +159,4 @@ private fun getIcon(def: PsiReferable): Icon = when (def) {
 }
 
 private fun generateLabelBorder(textArea: JEditorPane, icon: Icon): Border =
-    BorderFactory.createEmptyBorder(
-        1 + textArea.getFontMetrics(textArea.font).height - icon.iconHeight,
-        0,
-        5,
-        2
-    )
+    BorderFactory.createEmptyBorder(1 + textArea.getFontMetrics(textArea.font).height - icon.iconHeight, 0, 5, 2)

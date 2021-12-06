@@ -27,11 +27,8 @@ sealed interface PatternTree {
     value class BranchingNode(val subNodes: List<Pair<PatternTree, Implicitness>>) : PatternTree {
         override fun getAllIdentifiers(): List<String> = subNodes.flatMap { it.first.getAllIdentifiers() }
 
-        override fun toString(): String = subNodes.joinToString(
-            " ",
-            "[",
-            "]",
-            transform = { "${it.second.compactLBrace()}${it.first}${it.second.compactRBrace()}" })
+        override fun toString(): String =
+            subNodes.joinToString(" ", "[", "]", transform = { "${it.second.compactLBrace()}${it.first}${it.second.compactRBrace()}" })
     }
 
     @JvmInline

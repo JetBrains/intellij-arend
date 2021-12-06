@@ -25,6 +25,7 @@ import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import org.arend.ArendIcons
 import org.arend.psi.navigate
+import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
@@ -59,8 +60,6 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         model.removeAll()
     }
 
-
-
     override fun createList(): JBList<Any> {
         @Suppress("UNCHECKED_CAST")
         addListDataListener(model as AbstractListModel<Any>)
@@ -74,7 +73,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     }
 
     override fun createTopLeftPanel(): JPanel {
-        val title = JLabel("Proof Search")
+        val title = JLabel(ArendBundle.message("arend.proof.search.title"))
         val topPanel: JPanel = NonOpaquePanel(BorderLayout())
         val foregroundColor = when {
             StartupUiUtil.isUnderDarcula() -> when {
@@ -113,7 +112,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         return res
     }
 
-    override fun getAccessibleName(): String = "Proof search"
+    override fun getAccessibleName(): String = ArendBundle.message("arend.proof.search.title")
 
     private fun initActions() {
         myResultsList.expandableItemsHandler.isEnabled = false
@@ -190,7 +189,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     fun runProofSearch(results: Sequence<ProofSearchEntry>?) {
         cleanupCurrentResults(results)
 
-        runBackgroundableTask("Proof Search", myProject) { progressIndicator ->
+        runBackgroundableTask(ArendBundle.message("arend.proof.search.title"), myProject) { progressIndicator ->
             this.progressIndicator = progressIndicator
             val elements = results ?: generateProofSearchResults(project, searchPattern)
             var counter = RESULT_LIMIT
@@ -261,7 +260,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         textEditor.putClientProperty("StatusVisibleFunction", { field: JBTextField -> field.text.isEmpty() })
         val statusText = textEditor.emptyText
         statusText.isShowAboveCenter = false
-        statusText.setText("Pattern string", SimpleTextAttributes.GRAY_ATTRIBUTES)
+        statusText.setText(ArendBundle.message("arend.proof.search.pattern"), SimpleTextAttributes.GRAY_ATTRIBUTES)
         statusText.setFont(UIUtil.getLabelFont(UIUtil.FontSize.SMALL))
     }
 }

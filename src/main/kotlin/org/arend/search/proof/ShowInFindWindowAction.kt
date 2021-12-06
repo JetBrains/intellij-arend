@@ -16,6 +16,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiElement
 import com.intellij.usageView.UsageInfo
 import com.intellij.usages.*
+import org.arend.util.ArendBundle
 
 class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project: Project) : DumbAwareAction(
     IdeBundle.messagePointer("show.in.find.window.button.name"),
@@ -25,13 +26,13 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
         ui.close()
         val searchText: String = ui.searchField.text
         val presentation = UsageViewPresentation()
-        presentation.codeUsagesString = "Matches of $searchText"
-        presentation.targetsNodeText = "Results"
-        presentation.tabName = "Matches"
-        presentation.tabText = "Matches"
+        presentation.codeUsagesString = ArendBundle.message("arend.proof.search.matches.of", searchText)
+        presentation.targetsNodeText = ArendBundle.message("arend.proof.search.find.usages.results")
+        presentation.tabName = ArendBundle.message("arend.proof.search.matches")
+        presentation.tabText = ArendBundle.message("arend.proof.search.matches")
         val usages: MutableCollection<Usage> = LinkedHashSet()
         val targets: MutableCollection<PsiElement> = LinkedHashSet()
-        ProgressManager.getInstance().run(object : Task.Modal(project, "Searching for Definitions…", true) {
+        ProgressManager.getInstance().run(object : Task.Modal(project, ArendBundle.message("arend.proof.search.searching.for.definitions"), true) {
 
             private val progressIndicator: ProgressIndicator = ProgressIndicatorBase()
 

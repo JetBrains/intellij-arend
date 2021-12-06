@@ -376,11 +376,6 @@
         <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
 
         <editorTabColorProvider implementation="org.arend.editor.ArendEditorTabColorProvider"/>
-
-        <!-- Structural search -->
-        <structuralsearch.profile implementation="org.arend.search.structural.ArendStructuralSearchProfile"/>
-        <structuralsearch.filterProvider implementation="org.arend.search.structural.ArendFilterProvider"/>
-
     </extensions>
 
     <actions>

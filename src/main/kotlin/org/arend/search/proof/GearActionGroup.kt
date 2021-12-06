@@ -10,6 +10,7 @@ import com.intellij.openapi.util.NlsActions
 import com.intellij.ui.popup.PopupState
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendProjectSettingsState
+import org.arend.util.ArendBundle
 import java.awt.event.MouseEvent
 import kotlin.reflect.KMutableProperty1
 
@@ -60,7 +61,7 @@ private class IncludeNonProjectFiles(searchUI: ProofSearchUI, project: Project) 
         searchUI,
         project,
         ArendProjectSettingsState::includeNonProjectLocations,
-        "Include non-project locations"
+        ArendBundle.message("arend.proof.search.include.non.project.locations")
     )
 
 private class IncludeTests(searchUI: ProofSearchUI, project: Project) :
@@ -68,5 +69,5 @@ private class IncludeTests(searchUI: ProofSearchUI, project: Project) :
         searchUI,
         project,
         ArendProjectSettingsState::includeTestLocations,
-        "Include non-project locations"
+        ArendBundle.message("arend.proof.search.include.test.locations")
     )
