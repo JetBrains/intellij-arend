@@ -8,14 +8,16 @@ import com.intellij.psi.util.PsiUtilCore
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.panels.OpaquePanel
-import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
 import org.apache.commons.lang.StringEscapeUtils.escapeHtml
+import org.arend.core.expr.Expression
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.impl.CoClauseDefAdapter
-import org.arend.term.abs.Abstract
+import org.arend.psi.ext.impl.*
+import org.arend.psi.parentOfType
+import org.arend.term.prettyprint.ToAbstractVisitor
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -67,10 +69,9 @@ class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
             label.icon = null
         }
         is DefElement -> {
-            val def = value.entry.def
-            def as Abstract.FunctionDefinition // implied by 'generateProofSearchResults'
+            val (def, type, _) = value.entry
             val auxiliaryTextColor = if (isSelected) textColor else UIUtil.getInactiveTextColor()
-            textArea.text = buildHtml(def, auxiliaryTextColor)
+            textArea.text = buildHtml(def, type, auxiliaryTextColor)
             val icon = getIcon(def)
             label.icon = icon
             label.border = generateLabelBorder(textArea, icon)
@@ -80,15 +81,30 @@ class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
 
 private val BORDER = BorderFactory.createEmptyBorder(3, 0, 5, 0)
 
-private fun <T> buildHtml(
-    def: T,
+private fun buildHtml(
+    def: ReferableAdapter<*>,
+    type: Expression,
     nameColor: Color
-): String? where T : PsiReferable, T : Abstract.FunctionDefinition {
+): String? {
     val name = def.name ?: return null
-    val type = def.resultType.castSafelyTo<PsiElement>()?.text ?: return null
-    val parameters = def.parameters.map { (it as PsiElement).text }
+    val parameters = getRepresentableParameters(def)
+    val typeRepresentation = ToAbstractVisitor.convert(type, PrettyPrinterConfig.DEFAULT).toString()
     val locationText = (def.containingFile as ArendFile).moduleLocation?.modulePath?.toString() ?: ""
-    return buildDefinitionHTML(name, parameters, type, locationText, nameColor)
+    return buildDefinitionHTML(name, parameters, typeRepresentation, locationText, nameColor)
+}
+
+private fun getRepresentableParameters(adapter: ReferableAdapter<*>): List<String> = when (adapter) {
+    is FunctionDefinitionAdapter -> adapter.parameters.map { (it as PsiElement).text }
+    is ConstructorAdapter ->
+        (adapter.parentOfType<DataDefinitionAdapter>()?.parameters?.map { modifyRepr(it.text) } ?: emptyList()) +
+                adapter.parameters.map { it.text }
+    else -> emptyList()
+}
+
+private fun modifyRepr(param: String): String = if (param.startsWith("(") && param.endsWith(")")) {
+    "{${param.subSequence(1, param.length - 1)}}"
+} else {
+    "{$param}"
 }
 
 private fun Color.asHex(): String {

@@ -5,31 +5,6 @@ import org.arend.ArendTestBase
 import org.arend.search.proof.generateProofSearchResults
 import org.intellij.lang.annotations.Language
 
-const val PRE_TEXT =
-    """
-\open Nat
-
-"""
-
-const val MODULES = """
-    
-\module M \where {
-  \func \infixl 4 ** (a b : Nat) : Nat => {?}
-}
-
-\module N \where {
-  \func \infixl 4 ** (a b : Nat) : Nat => {?}
-}
-
-"""
-
-const val ALIASES = """
-    
-\func \infix 3 ^^ \alias upup : Nat -> Nat -> Nat => {?}
-
-\func baz (a b : Nat) : a ^^ b = upup b a => {?}
-
-"""
 
 class ArendProofSearchTest : ArendTestBase() {
 
@@ -100,4 +75,38 @@ class ArendProofSearchTest : ArendTestBase() {
     """, "Listt"
     )
 
+    fun testConstructor2() = assertHasMatch(
+        """
+\data List (A : \Type)
+  | nil
+  | cons A (List A)""", "List"
+    )
+
 }
+
+
+const val PRE_TEXT =
+    """
+\open Nat
+
+"""
+
+const val MODULES = """
+    
+\module M \where {
+  \func \infixl 4 ** (a b : Nat) : Nat => {?}
+}
+
+\module N \where {
+  \func \infixl 4 ** (a b : Nat) : Nat => {?}
+}
+
+"""
+
+const val ALIASES = """
+    
+\func \infix 3 ^^ \alias upup : Nat -> Nat -> Nat => {?}
+
+\func baz (a b : Nat) : a ^^ b = upup b a => {?}
+
+"""

@@ -18,8 +18,8 @@ import org.arend.term.prettyprint.ToAbstractVisitor
 
 internal class ArendExpressionMatcher(val tree: PatternTree) {
 
-    fun match(coreDefinition: Definition, scope: Scope): Boolean {
-        val resultType = getType(coreDefinition) ?: return false
+    fun match(coreDefinition: Definition, scope: Scope): Expression? {
+        val resultType = getType(coreDefinition) ?: return null
         val cachingScope = CachingScope.make(scope)
         val completeConcrete = ToAbstractVisitor.convert(resultType, PrettyPrinterConfig.DEFAULT)
         val qualifiedReferables by lazy(LazyThreadSafetyMode.NONE) {
@@ -27,17 +27,17 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
             completeConcrete.accept(FreeVariableCollectorConcrete(set), null)
             set.groupBy { it.refName }
         }
-        val patternConcrete = reassembleConcrete(tree, cachingScope, qualifiedReferables) ?: return false
-        return performMatch(patternConcrete, completeConcrete)
+        val patternConcrete = reassembleConcrete(tree, cachingScope, qualifiedReferables) ?: return null
+        return if (performMatch(patternConcrete, completeConcrete)) {
+            resultType
+        } else {
+            null
+        }
     }
 
     private fun getType(def: Definition): Expression? = when (def) {
-        is FunctionDefinition -> {
-            def.resultType
-        }
-        is Constructor -> {
-            def.getDataTypeExpression(LevelPair.STD)
-        }
+        is FunctionDefinition -> def.resultType
+        is Constructor -> def.getDataTypeExpression(LevelPair.STD)
         else -> null
     }
 
