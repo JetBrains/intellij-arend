@@ -38,7 +38,10 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.arend.util.findExternalLibrary
 import org.intellij.lang.annotations.Language
+import org.junit.internal.runners.JUnit38ClassRunner
+import org.junit.runner.RunWith
 
+@RunWith(JUnit38ClassRunner::class) // TODO: A workaround for https://github.com/gradle/gradle/issues/18486
 abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
     override fun getProjectDescriptor(): LightProjectDescriptor = DefaultDescriptor

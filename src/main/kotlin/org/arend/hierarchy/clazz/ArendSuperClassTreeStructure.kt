@@ -52,6 +52,6 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
 
     override fun buildChildren(descriptor: HierarchyNodeDescriptor): Array<out Any> {
         val children = getChildren(descriptor, myProject)
-        return browser.buildChildren(children, TypeHierarchyBrowserBase.SUPERTYPES_HIERARCHY_TYPE)
+        return browser.buildChildren(children, TypeHierarchyBrowserBase.getSupertypesHierarchyType())
     }
 }

@@ -15,7 +15,7 @@ class ArendCallHierarchyProvider : HierarchyProvider {
     }
 
     override fun browserActivated(hierarchyBrowser: HierarchyBrowser) {
-        (hierarchyBrowser as ArendCallHierarchyBrowser).changeView(CallHierarchyBrowserBase.CALLER_TYPE)
+        (hierarchyBrowser as ArendCallHierarchyBrowser).changeView(CallHierarchyBrowserBase.getCallerType())
     }
 
     override fun getTarget(dataContext: DataContext): PsiElement? {

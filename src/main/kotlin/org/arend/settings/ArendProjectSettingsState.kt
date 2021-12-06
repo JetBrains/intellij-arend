@@ -8,7 +8,7 @@ class ArendProjectSettingsState {
     // Hierarchy
     var showImplFields = true
     var showNonImplFields = true
-    var hierarchyViewType = TypeHierarchyBrowserBase.SUBTYPES_HIERARCHY_TYPE
+    var hierarchyViewType = TypeHierarchyBrowserBase.getSubtypesHierarchyType()
 
     // Messages
     var autoScrollToSource = true

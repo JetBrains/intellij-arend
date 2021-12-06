@@ -24,14 +24,14 @@ class ArendCallHierarchyBrowser(project: Project, method: PsiElement) : CallHier
         (descriptor as? ArendHierarchyNodeDescriptor)?.psiElement
 
     override fun createTrees(trees: MutableMap<in String, in JTree>) {
-        trees[CALLEE_TYPE] = createTree(false)
-        trees[CALLER_TYPE] = createTree(false)
+        trees[getCalleeType()] = createTree(false)
+        trees[getCallerType()] = createTree(false)
     }
 
     override fun createHierarchyTreeStructure(type: String, psiElement: PsiElement) =
         when (type) {
-            CALLEE_TYPE -> ArendCalleeTreeStructure(myProject, psiElement)
-            CALLER_TYPE -> ArendCallerTreeStructure(myProject, psiElement)
+            getCalleeType() -> ArendCalleeTreeStructure(myProject, psiElement)
+            getCallerType() -> ArendCallerTreeStructure(myProject, psiElement)
             else -> null
         }
 

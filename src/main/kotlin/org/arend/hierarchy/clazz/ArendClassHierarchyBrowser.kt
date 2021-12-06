@@ -65,19 +65,19 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         val subTree = createTree(false)
         val superTree = createTree(false)
 
-        trees[SUBTYPES_HIERARCHY_TYPE] = subTree
-        trees[SUPERTYPES_HIERARCHY_TYPE] = superTree
+        trees[getSubtypesHierarchyType()] = subTree
+        trees[getSupertypesHierarchyType()] = superTree
 
         typeToTree = hashMapOf(
-                SUBTYPES_HIERARCHY_TYPE to subTree,
-                SUPERTYPES_HIERARCHY_TYPE to superTree
+            getSubtypesHierarchyType() to subTree,
+            getSupertypesHierarchyType() to superTree
         )
     }
 
     override fun createHierarchyTreeStructure(type: String, psiElement: PsiElement): HierarchyTreeStructure? =
         when (type) {
-            SUBTYPES_HIERARCHY_TYPE -> ArendSubClassTreeStructure(myProject, psiElement, this)
-            SUPERTYPES_HIERARCHY_TYPE -> ArendSuperClassTreeStructure(myProject, psiElement, this)
+            getSubtypesHierarchyType() -> ArendSubClassTreeStructure(myProject, psiElement, this)
+            getSupertypesHierarchyType() -> ArendSuperClassTreeStructure(myProject, psiElement, this)
             else -> null
         }
 
@@ -141,7 +141,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         tree.model = AsyncTreeModel(myModel, false, myProject)
     }
 
-    inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
+    inner class ArendShowImplFieldsAction : ToggleAction("Show Implemented Fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
 
         override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showImplFields
 
@@ -151,7 +151,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         }
     }
 
-    inner class ArendShowNonImplFieldsAction : ToggleAction("Show non-implemented fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
+    inner class ArendShowNonImplFieldsAction : ToggleAction("Show Non-Implemented Fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
         override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showNonImplFields
 

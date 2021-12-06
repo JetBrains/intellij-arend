@@ -2,7 +2,10 @@ package org.arend
 
 import com.intellij.testFramework.ParsingTestCase
 import org.arend.parser.ArendParserDefinition
+import org.junit.internal.runners.JUnit38ClassRunner
+import org.junit.runner.RunWith
 
+@RunWith(JUnit38ClassRunner::class) // TODO: A workaround for https://github.com/gradle/gradle/issues/18486
 class ParsingTest : ParsingTestCase("org/arend/parser/fixtures", ArendFileType.defaultExtension, ArendParserDefinition()) {
 
     override fun getTestDataPath() = "src/test/resources"

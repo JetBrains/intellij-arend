@@ -1,6 +1,6 @@
 package org.arend.codeInsight.completion
 
-class ArendFilteredScope : ArendCompletionTestBase() {
+class ArendFilteredScopeTest : ArendCompletionTestBase() {
     fun `test super classes`() =
         checkCompletionVariants(
             "\\class A { | z : Nat }\n" +
