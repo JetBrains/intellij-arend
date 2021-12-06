@@ -89,6 +89,12 @@ class ArendProofSearchTest : ArendTestBase() {
 \func foo : p {1} => idp""", "p {_}"
     )
 
+    fun testSigma() = assertHasMatch(
+        """
+        \func p : \Sigma (1 = 1) Nat => {?}
+        """, "Nat"
+    )
+
 }
 
 

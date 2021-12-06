@@ -39,6 +39,13 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
                 }
             }
         }
+        if (matched is Concrete.SigmaExpression) {
+            for (projection in matched.parameters) {
+                if (performMatch(pattern, projection.type)) {
+                    return true
+                }
+            }
+        }
         return false
     }
 
