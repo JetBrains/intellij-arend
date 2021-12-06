@@ -25,6 +25,7 @@ import org.arend.refactoring.ArendNamesValidator
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
+import org.arend.toolWindow.repl.getReplCompletion
 import org.arend.typechecking.TypeCheckingService
 
 interface ArendReference : PsiReference {
@@ -60,7 +61,7 @@ class TemporaryLocatedReferable(private val referable: LocatedReferable) : Locat
     override fun getUnderlyingReferable() = referable
 }
 
-private object ArendIdReferableConverter : ReferableConverter {
+object ArendIdReferableConverter : ReferableConverter {
     override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
         null -> null
         is TCReferable -> referable
@@ -95,7 +96,12 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 atomFieldsAcc.fieldAccList.isNotEmpty() -> null
                 else -> atomFieldsAcc.parent
             }
-            if ((((argParent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr)?.parent as? ArendReturnExpr)?.parent is ArendDefInstance) {
+            val newExprParent = ((argParent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr)?.parent
+            if (newExprParent is ArendReplLine) {
+                val commandName = newExprParent.replCommand?.text?.drop(1)
+                return if (commandName == null) emptyArray() else getReplCompletion(commandName)
+            }
+            if ((newExprParent as? ArendReturnExpr)?.parent is ArendDefInstance) {
                 clazz = ArendDefClass::class.java
                 notARecord = true
             }
@@ -125,8 +131,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             else -> {}
         }
 
+        val file = element.containingFile
         return elements.mapNotNull { origElement ->
-            createArendLookUpElement(origElement, element.containingFile, false, clazz, notARecord)
+            createArendLookUpElement(origElement, file, false, clazz, notARecord)
         }.toTypedArray()
     }
 
@@ -187,6 +194,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
 
     companion object {
         fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, fullName: Boolean, clazz: Class<*>?, notARecord: Boolean, lookup: String? = null): LookupElementBuilder? {
+            if (origElement is ModuleReferable && containingFile is ArendFile && origElement.path == containingFile.moduleLocation?.modulePath) {
+                return null
+            }
             val ref = origElement.underlyingReferable
             return if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
                 null
@@ -195,7 +205,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                     val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
                     val aliasString = if (alias == null) "" else " $alias"
                     val elementName = origElement.refName
-                    val lookupString = lookup ?: elementName + aliasString
+                    val lookupString = lookup ?: (elementName + aliasString)
                     var builder = LookupElementBuilder.create(ref, lookupString).withIcon(ref.getIcon(0))
                     if (fullName) {
                         builder = builder.withPresentableText(((ref as? PsiLocatedReferable)?.fullName ?: elementName) + aliasString)

@@ -62,6 +62,7 @@ class ArendPrintOptionsFilterAction(private val project: Project,
             PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS -> "Show infix operators' implicit arguments"
             PrettyPrinterFlag.SHOW_CASE_RESULT_TYPE -> "Show result types of case expressions"
             PrettyPrinterFlag.SHOW_LEVELS -> "Show levels"
+            PrettyPrinterFlag.SHOW_PROOFS -> "Show proofs"
         }
     }
 }

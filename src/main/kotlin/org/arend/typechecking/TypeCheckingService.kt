@@ -26,7 +26,6 @@ import org.arend.ext.instance.InstanceSearchParameters
 import org.arend.ext.instance.SubclassSearchParameters
 import org.arend.ext.module.LongName
 import org.arend.ext.typechecking.DefinitionListener
-import org.arend.extImpl.ArendDependencyProviderImpl
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
@@ -60,6 +59,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.pool.GlobalInstancePool
+import org.arend.typechecking.instance.pool.LocalInstancePool
 import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.instance.provider.SimpleInstanceProvider
@@ -158,7 +158,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                         tcRefMap[name] = it.referable
                         val dataRef = it.referable
                         if (dataRef is DataLocatedReferable) {
-                            val ref = Scope.Utils.resolveName(preludeScope, name.toList())
+                            val ref = Scope.resolveName(preludeScope, name.toList())
                             if (ref is PsiLocatedReferable) {
                                 dataRef.setPointer(ref)
                             }
@@ -199,7 +199,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     fun getPsiReferable(referable: LocatedReferable): PsiLocatedReferable? {
         (referable.underlyingReferable as? PsiLocatedReferable)?.let { return it }
-        return Scope.Utils.resolveName(preludeScope, referable.refLongName.toList()) as? PsiLocatedReferable
+        return Scope.resolveName(preludeScope, referable.refLongName.toList()) as? PsiLocatedReferable
     }
 
     fun getDefinitionPsiReferable(definition: Definition) = getPsiReferable(definition.referable)
@@ -244,11 +244,16 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         return result
     }
 
+    fun isInstanceAvailable(classRef: TCDefReferable): Boolean {
+        val classDef = classRef.typechecked as? ClassDefinition ?: return false
+        return classDef.classifyingField == null && instances[classRef].isNotEmpty()
+    }
+
     private fun getInstances(pool: GlobalInstancePool, classDef: ClassDefinition, classifyingExpression: Expression?, parameters: InstanceSearchParameters): List<FunctionDefinition> {
         fun getFunction(expr: Concrete.Expression?) =
             (((expr as? Concrete.ReferenceExpression)?.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let { listOf(it) }
 
-        val result = pool.getInstance(classifyingExpression, parameters, null, null)
+        val result = pool.findInstance(classifyingExpression, parameters, null, null, null)
         getFunction(result)?.let { return it }
         if (result !is Concrete.AppExpression) return emptyList()
 
@@ -262,7 +267,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         if (isRecursive) {
             val visitor = CheckTypeVisitor(DummyErrorReporter.INSTANCE, pool, null)
-            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor)
+            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor, LocalInstancePool(visitor))
             val tcResult = visitor.checkExpr(result, null)
             if (tcResult != null && classifyingExpression != null && classDef.classifyingField != null) {
                 CompareVisitor.compare(visitor.equations, CMP.EQ, classifyingExpression, FieldCallExpression.make(classDef.classifyingField, tcResult.expression), null, null)
@@ -379,17 +384,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
 
-        val library = extensionDefinitions[tcReferable]
-        if (library != null) {
-            project.service<TypecheckingTaskQueue>().addTask {
-                val provider = ArendDependencyProviderImpl(ArendTypechecking.create(project), libraryManager.getAvailableModuleScopeProvider(library), libraryManager.definitionRequester, library)
-                try {
-                    runReadAction {
-                        service<ArendExtensionChangeListener>().notifyIfNeeded(project)
-                    }
-                } finally {
-                    provider.disable()
-                }
+        if (extensionDefinitions.containsKey(tcReferable)) {
+            runReadAction {
+                service<ArendExtensionChangeListener>().notifyIfNeeded(project)
             }
         }
 

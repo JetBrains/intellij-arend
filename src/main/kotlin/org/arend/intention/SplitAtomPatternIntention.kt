@@ -48,7 +48,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         this.splitPatternEntries = null
 
         if (element is ArendPattern && element.atomPatternOrPrefixList.size == 0 || element is ArendAtomPatternOrPrefix) {
-            val type = getElementType(element, editor)?.let{ TypeCoerceExpression.unfoldType(it) }
+            val type = getElementType(element, editor)?.let{ TypeConstructorExpression.unfoldType(it) }
             this.splitPatternEntries = when (type) {
                 is DataCallExpression -> {
                     val canDoPatternMatchingOnIdp = admitsPatternMatchingOnIdp(type, caseClauseParameters)

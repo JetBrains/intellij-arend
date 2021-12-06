@@ -11,7 +11,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.stubs.ArendDefFunctionStub
-import org.arend.term.FunctionKind
+import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.resolving.util.ParameterImpl

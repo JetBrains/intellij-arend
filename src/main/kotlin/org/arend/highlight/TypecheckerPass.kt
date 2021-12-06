@@ -1,6 +1,7 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -36,8 +37,10 @@ class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: H
 
     override fun applyInformationWithProgress() {
         super.applyInformationWithProgress()
-        updateErrors(file)
-        selectErrorFromEditor(file.project, editor, file, always = false, activate = false)
+        invokeLater {
+            updateErrors(file)
+            selectErrorFromEditor(file.project, editor, file, always = false, activate = false)
+        }
     }
 
     companion object {

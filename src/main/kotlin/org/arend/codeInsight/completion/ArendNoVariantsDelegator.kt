@@ -4,10 +4,13 @@ import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionResult
 import com.intellij.codeInsight.completion.CompletionResultSet
-import com.intellij.codeInsight.lookup.LookupElement
+import com.intellij.codeInsight.completion.impl.BetterPrefixMatcher
 import com.intellij.openapi.components.service
+import com.intellij.psi.PsiElement
 import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.Consumer
 import org.arend.naming.scope.ScopeFactory.isGlobalScopeVisible
 import org.arend.psi.*
@@ -23,11 +26,22 @@ import org.arend.typechecking.TypeCheckingService
 class ArendNoVariantsDelegator : CompletionContributor() {
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
         val tracker = object : Consumer<CompletionResult> {
-            var hasVariant: Boolean = false
+            val variants = HashSet<PsiElement>()
+            val nullPsiVariants = HashSet<String>()
             override fun consume(plainResult: CompletionResult) {
                 result.passResult(plainResult)
-                val element: LookupElement? = plainResult.lookupElement
-                hasVariant = hasVariant || element != null
+                val elementPsi: PsiElement? = plainResult.lookupElement.psiElement
+                val str = plainResult.lookupElement.lookupString
+                if (elementPsi != null) {
+                    val elementIsWithinFileBeingEdited = elementPsi.containingFile == parameters.position.containingFile
+                    if (!elementIsWithinFileBeingEdited) variants.add(elementPsi) else {
+                        val originalPosition = parameters.originalPosition
+                        if (originalPosition != null) parameters.originalFile.findElementAt(elementPsi.startOffset - parameters.position.startOffset + originalPosition.startOffset)?.ancestors?.
+                        firstOrNull {it.elementType == elementPsi.elementType }?.let { variants.add(it) }
+                    }
+                } else {
+                    nullPsiVariants.add(str)
+                }
             }
         }
         result.runRemainingContributors(parameters, tracker)
@@ -40,15 +54,15 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         val editor = parameters.editor
         val project = editor.project
 
-        if (!tracker.hasVariant && project != null && allowedPosition) {
+        if (project != null && allowedPosition && (tracker.variants.isEmpty() && tracker.nullPsiVariants.isEmpty() || !parameters.isAutoPopup)) {
             val scope = ProjectAndLibrariesScope(project)
             val tcService = project.service<TypeCheckingService>()
 
             val consumer = { name: String, refs: List<PsiLocatedReferable>? ->
-                if (result.prefixMatcher.prefixMatches(name)) {
+                if (BetterPrefixMatcher(result.prefixMatcher, Int.MIN_VALUE).prefixMatches(name)) {
                     val locatedReferables = refs ?: StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, scope, PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
                     locatedReferables.forEach {
-                        if (it !is ArendFile) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
+                        if (it !is ArendFile && ((it.containingFile as? ArendFile)?.moduleLocation != null) && !tracker.variants.contains(it)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
                             result.addElement(
                                     run {
                                         val oldHandler = it.insertHandler
@@ -80,7 +94,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 true // If only a limited number (say N) of variants is needed, return false after N added lookUpElements
             }
         } else {
-            result.restartCompletionWhenNothingMatches()
+            result.restartCompletionOnAnyPrefixChange()
         }
 
         super.fillCompletionVariants(parameters, result)

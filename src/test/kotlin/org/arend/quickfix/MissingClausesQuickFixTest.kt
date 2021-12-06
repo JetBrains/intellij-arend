@@ -811,6 +811,28 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | suc n, suc m, suc k, suc<suc p, suc<suc q => {?} 
     """)
 
+    fun `test correct renaming when patternmatching on idp`() = doTest("""
+       \data Bool | false | true
+       
+       \func BoolFuncLem (f : Bool -> Bool) (x : Bool) : f (f (f x)) = f x
+         => \case{-caret-} f true \as t, idp : f true = t, f false \as ff, idp : f false = ff, \elim x \with {
+       }
+    """, """
+       \data Bool | false | true
+        
+       \func BoolFuncLem (f : Bool -> Bool) (x : Bool) : f (f (f x)) = f x
+         => \case f true \as t, idp : f true = t, f false \as ff, idp : f false = ff, \elim x \with {
+           | false, p, false, p1, false => {?}
+           | false, p, false, p1, true => {?}
+           | false, p, true, p1, false => {?}
+           | false, p, true, p1, true => {?}
+           | true, p, false, p1, false => {?}
+           | true, p, false, p1, true => {?}
+           | true, p, true, p1, false => {?}
+           | true, p, true, p1, true => {?}
+         } 
+    """)
+
 
     val dataLeq = """
        \data \infix 4 < (n m : Nat) \with

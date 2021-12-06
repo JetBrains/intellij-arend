@@ -21,7 +21,7 @@ class RemoveClarifyingParensIntention : BaseArendIntention(ArendBundle.message("
         editor ?: return false
         val binOp = BinOpIntentionUtil.findBinOp(element) ?: return false
         val binOpSeqPsi = binOp.parentOfType<ArendArgumentAppExpr>() ?: return false
-        val binOpSeq = BinOpIntentionUtil.toConcreteBinOpApp(binOpSeqPsi) ?: return false
+        val binOpSeq = BinOpIntentionUtil.toConcreteBinOpInfixApp(binOpSeqPsi) ?: return false
         val parentBinOp = getParentBinOpSkippingParens(binOpSeq) ?: binOpSeq
         return hasClarifyingParens(parentBinOp)
     }
@@ -30,7 +30,7 @@ class RemoveClarifyingParensIntention : BaseArendIntention(ArendBundle.message("
         editor ?: return
         val binOp = BinOpIntentionUtil.findBinOp(element) ?: return
         val binOpSeqPsi = binOp.parentOfType<ArendArgumentAppExpr>() ?: return
-        val binOpSeq = BinOpIntentionUtil.toConcreteBinOpApp(binOpSeqPsi) ?: return
+        val binOpSeq = BinOpIntentionUtil.toConcreteBinOpInfixApp(binOpSeqPsi) ?: return
         val parentBinOp = getParentBinOpSkippingParens(binOpSeq) ?: binOpSeq
         RemoveClarifyingParensProcessor().run(project, editor, binOp, parentBinOp)
     }
@@ -43,7 +43,7 @@ private fun getParentBinOpSkippingParens(binOp: Concrete.AppExpression): Concret
     if (parentAppExprPsi.argumentList.isEmpty()) {
         return null
     }
-    val parentAppExpr = BinOpIntentionUtil.toConcreteBinOpApp(parentAppExprPsi) ?: return null
+    val parentAppExpr = BinOpIntentionUtil.toConcreteBinOpInfixApp(parentAppExprPsi) ?: return null
     return getParentBinOpSkippingParens(parentAppExpr) ?: parentAppExpr
 }
 
@@ -78,7 +78,7 @@ private fun hasClarifyingParens(binOpSeq: Concrete.AppExpression): Boolean {
                     queue.add(binOp)
                 }
             }
-            if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpApp(expression)) {
+            if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(expression)) {
                 queue.add(expression)
             }
         }
@@ -89,7 +89,7 @@ private fun hasClarifyingParens(binOpSeq: Concrete.AppExpression): Boolean {
 private fun findBinOpInParens(expression: Concrete.HoleExpression): Concrete.AppExpression? {
     val tuple = (expression.data as? ArendAtomFieldsAcc)?.childOfType<ArendTuple>() ?: return null
     val appExprPsi = unwrapAppExprInParens(tuple) ?: return null
-    return BinOpIntentionUtil.toConcreteBinOpApp(appExprPsi)
+    return BinOpIntentionUtil.toConcreteBinOpInfixApp(appExprPsi)
 }
 
 private fun unwrapAppExprInParens(tuple: ArendTuple): ArendArgumentAppExpr? {
@@ -125,7 +125,7 @@ class RemoveClarifyingParensProcessor : BinOpSeqProcessor() {
                 return if (doesNotNeedParens(binOp, parentBinOp)) binOpText else "($binOpText)"
             }
         }
-        if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpApp(expression)) {
+        if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(expression)) {
             return mapBinOp(expression, editor, caretHelper)
         }
         return text(arg.expression, editor)

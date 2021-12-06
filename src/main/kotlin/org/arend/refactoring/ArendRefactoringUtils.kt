@@ -4,6 +4,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiComment
@@ -18,8 +19,8 @@ import org.arend.ext.core.context.CoreBinding
 import org.arend.ext.core.context.CoreParameter
 import org.arend.ext.core.expr.CoreExpression
 import org.arend.ext.core.expr.CoreReferenceExpression
-import org.arend.ext.variable.Variable
 import org.arend.ext.module.LongName
+import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
@@ -85,13 +86,14 @@ private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using:
     return null
 }
 
-fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): ArrayList<ArendNsId> {
+fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): Pair<ArrayList<ArendNsId>, Boolean /* true if success */> {
     val insertedNsIds = ArrayList<ArendNsId>()
     val factory = ArendPsiFactory(statCmd.project)
     val insertAnchor = statCmd.longName
+    val usingBlockRequired = idList.any { it.second != null }
 
     val actualNsUsing: ArendNsUsing? = statCmd.nsUsing
-            ?: if (idList.any { it.second != null } && insertAnchor != null) {
+            ?: if (usingBlockRequired && insertAnchor != null) {
                 val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
                 val insertedUsing = insertAnchor.parent.addAfterWithNotification(newUsing, insertAnchor)
                 insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
@@ -100,7 +102,7 @@ fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): 
 
     val actualIdList = if (actualNsUsing?.usingKw != null) idList.filter { it.second != null } else idList
     if (actualNsUsing != null) insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
-    return insertedNsIds
+    return Pair(insertedNsIds, insertedNsIds.isNotEmpty() || !usingBlockRequired && actualNsUsing == null)
 }
 
 private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElement, name: String, factory: ArendPsiFactory): ArendRefIdentifier {
@@ -321,7 +323,7 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
                     data?.first?.execute()
                     if (data != null) LongName(data.second).toString() else null
                 } else null) ?: LongName(openedName.subList(0, openedName.size - 1)).toString()
-                return addIdToUsing(mySourceContainer, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+                return addIdToUsing(mySourceContainer, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).second
             }
 
         }
@@ -334,7 +336,7 @@ fun addIdToUsing(groupMember: PsiElement?,
                  targetContainerName: String,
                  renamings: List<Pair<String, String?>>,
                  factory: ArendPsiFactory,
-                 relativePosition: RelativePosition): List<ArendNsId> {
+                 relativePosition: RelativePosition): Pair<List<ArendNsId>, Boolean> {
     (groupMember?.ancestor<ArendGroup>())?.namespaceCommands?.map { statCmd ->
         if (statCmd is ArendStatCmd) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
@@ -351,9 +353,10 @@ fun addIdToUsing(groupMember: PsiElement?,
                 createStatCmdStatement(factory, targetContainerName, renamings, ArendPsiFactory.StatCmdKind.OPEN),
                 relativePosition)
         val statCmd = insertedStatement.childOfType<ArendStatCmd>()
-        return statCmd?.nsUsing?.nsIdList ?: emptyList()
+        val nsIds = statCmd?.nsUsing?.nsIdList ?: emptyList()
+        return Pair(nsIds, nsIds.isNotEmpty())
     }
-    return emptyList()
+    return Pair(emptyList(), false)
 }
 
 fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<Pair<String, ArendNsId?>> {
@@ -466,11 +469,19 @@ fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass: ArendDefClass) {
 fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: ArendGroup, headPosition: Boolean = false): PsiElement? {
     if (myTargetContainer !is ArendDefModule && myTargetContainer !is ArendDefinition) return null
 
+    val actualWhereImpl = getCompleteWhere(myTargetContainer, psiFactory)
+
+    return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
+}
+
+private fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory): ArendWhere {
     val oldWhereImpl = myTargetContainer.where
     val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
         val localAnchor = myTargetContainer.lastChild
-        val insertedWhere = myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
-        myTargetContainer.addAfter(psiFactory.createWhitespace(" "), localAnchor)
+        val insertedWhere =
+            myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
+        val space = if (myTargetContainer is ArendFunctionalDefinition) "\n" else " "
+        myTargetContainer.addAfter(psiFactory.createWhitespace(space), localAnchor)
         insertedWhere
     }
 
@@ -484,8 +495,35 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
             actualWhereImpl.addAfter(braces.second, actualWhereImpl.lastChild)
         }
     }
+    return actualWhereImpl
+}
 
-    return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
+
+/**
+ * @return a new let expression inserted psi tree
+ */
+fun ArendLetExpr.addNewClause(clause: String): ArendLetExpr {
+    val letClauses = letClauseList
+    when (letClauses.size) {
+        0 -> error("There are no empty let expressions in Arend")
+        else -> {
+            val clauseTextList = letClauses.map { it?.text ?: "" } + listOf(clause)
+            val exprText = expr?.text ?: ""
+            @NlsSafe val newLetRepresentation =
+                "${getKw().text} ${clauseTextList.joinToString("") { "\n | $it" }} \n\\in $exprText"
+            val newLetPsi = ArendPsiFactory(project).createExpression(newLetRepresentation)
+            return this.replace(newLetPsi) as ArendLetExpr
+        }
+    }
+}
+
+private fun ArendLetExpr.getKw(): PsiElement =
+    letKw ?: haveKw ?: letsKw ?: havesKw ?: error("At least one of the keywords should be provided")
+
+@Suppress("UNCHECKED_CAST")
+fun <T : ArendDefinition> ArendGroup.addToWhere(elementToAdd: T): T {
+    val where = getCompleteWhere(this, ArendPsiFactory(project))
+    return where.addBefore(elementToAdd, where.rbrace) as T
 }
 
 fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this"), anchor: PsiElement? = definition.nameIdentifier): String {
@@ -532,7 +570,8 @@ fun admitsPatternMatchingOnIdp(expr: CoreExpression,
 
 // Binop util method plus auxiliary stuff
 
-fun getFirstExplicitParameter(definition: Referable?, defaultName: String): String {
+fun getFirstExplicitParameter(ref: Referable?, defaultName: String): String {
+    val definition = ref?.underlyingReferable
     if (definition is Abstract.ParametersHolder) {
         val firstParameter = definition.parameters.firstOrNull { it.isExplicit }
         val firstReferable = firstParameter?.referableList?.firstOrNull()
@@ -555,10 +594,11 @@ fun addImplicitArgAfter(psiFactory: ArendPsiFactory, anchor: PsiElement, argumen
     }
 }
 
-fun getTele(tele: PsiElement): List<ArendIdentifierOrUnknown>? = when (tele) {
+fun getTele(tele: PsiElement): List<ArendCompositeElement>? = when (tele) {
     is ArendNameTele -> tele.identifierOrUnknownList
     is ArendLamTele -> tele.identifierOrUnknownList
     is ArendTypeTele -> tele.typedExpr?.identifierOrUnknownList
+    is ArendFieldTele -> tele.fieldDefIdentifierList
     else -> null
 }
 

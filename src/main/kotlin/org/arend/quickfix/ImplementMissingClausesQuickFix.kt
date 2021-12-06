@@ -326,7 +326,11 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     if (patternMatchingOnIdp != PatternMatchingOnIdpResult.INAPPLICABLE) {
                         if (patternMatchingOnIdp == PatternMatchingOnIdpResult.IDP)
                             getCorrectPreludeItemStringReference(project, cause, Prelude.IDP)
-                        else getFreshName(sampleParameter)
+                        else {
+                            val fN = getFreshName(sampleParameter)
+                            occupiedNames.add(VariableImpl(fN))
+                            fN
+                        }
                     } else if (integralNumber != null && abs(integralNumber) < Concrete.NumberPattern.MAX_VALUE) {
                         integralNumber.toString()
                     } else {

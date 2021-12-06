@@ -1,4 +1,4 @@
-package org.arend.quickfix
+package org.arend.quickfix.replacers
 
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor

@@ -136,7 +136,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 
     for (location in locations) {
         location.getReferenceNames().map { referenceName ->
-            if (referenceName.isEmpty() || Scope.Utils.resolveName(correctedScope, referenceName)?.underlyingReferable == defaultLocation.target) {
+            if (referenceName.isEmpty() || Scope.resolveName(correctedScope, referenceName)?.underlyingReferable == defaultLocation.target) {
                 resultingDecisions.add(Pair(referenceName, fileResolveActions[location]))
             }
         }

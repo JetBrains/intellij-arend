@@ -159,6 +159,10 @@
 
         <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 
+        <!-- Selection -->
+
+        <smartSelectProvider implementation="org.arend.actions.ArendSmartSelectProvider"/>
+
         <!-- Support arend.yaml -->
 
         <completion.contributor language="yaml" implementationClass="org.arend.yaml.codeInsight.YAMLCompletionContributor"/>
@@ -177,11 +181,6 @@
 
         <!-- Intention Actions -->
         <intentionAction>
-            <className>org.arend.intention.ImplementFieldsInNewExprIntention</className>
-            <category>Arend</category>
-        </intentionAction>
-
-        <intentionAction>
             <className>org.arend.intention.ImplementFieldsInCoClauseIntention</className>
             <category>Arend</category>
         </intentionAction>
@@ -193,6 +192,11 @@
 
         <intentionAction>
             <className>org.arend.intention.ExtractExpressionToFunctionIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.generating.CreateLetBindingIntention</className>
             <category>Arend</category>
         </intentionAction>
 
@@ -223,6 +227,11 @@
 
         <intentionAction>
             <className>org.arend.intention.SwapInfixOperatorArgumentsIntention</className>
+            <category>Arend</category>
+        </intentionAction>
+
+        <intentionAction>
+            <className>org.arend.intention.ChangeArgumentExplicitnessIntention</className>
             <category>Arend</category>
         </intentionAction>
 

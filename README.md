@@ -3,7 +3,7 @@
 ![](https://arend-lang.github.io/assets/images/Logo_byJB.svg)
 
 [![JetBrains incubator project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
-[![Build Status][travis-build-status-svg]][travis-build-status]
+[![Actions Status](https://github.com/JetBrains/intellij-arend/workflows/check/badge.svg)](https://github.com/JetBrains/intellij-arend/actions)
 [![Downloads][d-svg]][jb-url]
 [![Version][v-svg]][jb-url]
 
@@ -54,11 +54,3 @@ When hacking on the plugin, you may need the following plugins -
 BNF Grammars and JFlex lexers editor. Readable parser/PSI code generator.
 * **[PsiViewer](https://plugins.jetbrains.com/plugin/227-psiviewer)** -
 A Program Structure Interface (PSI) tree viewer.
-
-## Travis CI
-
-The project is configured to build and run tests with Travis CI, which you can enable in your forks.
-
-<!-- Badges -->
-[travis-build-status]: https://travis-ci.org/JetBrains/intellij-arend?branch=master
-[travis-build-status-svg]: https://travis-ci.org/JetBrains/intellij-arend.svg?branch=master

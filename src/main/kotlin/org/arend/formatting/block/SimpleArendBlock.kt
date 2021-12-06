@@ -10,7 +10,9 @@ import com.intellij.psi.TokenType.ERROR_ELEMENT
 import com.intellij.psi.TokenType.WHITE_SPACE
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
+import com.intellij.psi.util.siblings
 import org.arend.parser.ParserMixin.DOC_COMMENT
 import org.arend.parser.ParserMixin.DOC_TEXT
 import org.arend.psi.*
@@ -37,6 +39,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         }
 
         if (nodePsi is ArendFunctionBody) {
+            if (child1 is AbstractArendBlock && child2 is AbstractArendBlock && shouldWrapLetExpression(child1.node.elementType, child2.node.psi)) return oneCrlf
             if (child1 is AbstractArendBlock && child1.node.elementType == FAT_ARROW) return oneSpaceWrap
             if (needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
             return super.getSpacing(child1, child2)
@@ -92,9 +95,12 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
 
             if ((myNode.psi is ArendNameTele || myNode.psi is ArendTypedExpr) && (c1et == IDENTIFIER_OR_UNKNOWN && c2et == COLON)) return oneSpaceWrap
-            if (c1et == NAME_TELE && c2et == NAME_TELE || c1et == TYPE_TELE && c2et == TYPE_TELE) return oneSpaceWrap
+
+            if (c1et == NAME_TELE && c2et == NAME_TELE || c1et == TYPE_TELE && c2et == TYPE_TELE || c1et == FIELD_TELE && c2et == FIELD_TELE) return oneSpaceWrap
 
             if (myNode.psi is ArendNewExpr && c1et == ARGUMENT_APP_EXPR && c2et == WITH_BODY) return oneSpaceWrap
+
+            if (shouldWrapLetExpression(c1et, psi2)) return oneCrlf
 
             if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW || c1et == COMMA && c2et == PATTERN)) return oneSpaceWrap
 
@@ -102,7 +108,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (myNode.psi is ArendPattern && (c1et == DEF_IDENTIFIER || c1et == ATOM_PATTERN_OR_PREFIX) && c2et == ATOM_PATTERN_OR_PREFIX) return oneSpaceWrap
 
-            if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
+            if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele || nodePsi is ArendFieldTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
 
             if ((myNode.psi is ArendDefinition || myNode.psi is ArendClassStat) && (psi2 is ArendPrec || psi2 is ArendDefIdentifier)) return oneSpaceNoWrap
 
@@ -136,6 +142,17 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
         }
 
         return null
+    }
+
+    private fun shouldWrapLetExpression(c1et: IElementType, psi2: PsiElement): Boolean {
+        val let = if (c1et == LPAREN && psi2 is ArendTupleExpr) {
+            psi2.exprList.singleOrNull() as? ArendLetExpr
+        } else if (c1et == FAT_ARROW && psi2 is ArendLetExpr) {
+            psi2
+        } else {
+            null
+        }
+        return let?.inKw?.siblings(false)?.any { it is PsiWhiteSpace && it.text.contains("\n")} == true
     }
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {

@@ -58,4 +58,5 @@ class ArendPrintingOptions {
     var showBinOpImplicitArgs = false
     var showCaseResultType = false
     var showLevels = false
+    var showProofs = false
 }

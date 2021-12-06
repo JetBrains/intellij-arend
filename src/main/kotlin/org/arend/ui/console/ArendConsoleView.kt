@@ -7,11 +7,10 @@ import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import org.arend.ArendIcons
-import org.arend.injection.InjectedArendEditor
 
 class ArendConsoleView(project: Project) : ProjectManagerListener {
     val toolWindow = ToolWindowManager.getInstance(project).registerToolWindow(RegisterToolWindowTask(CONSOLE_ID, ToolWindowAnchor.RIGHT, canWorkInDumbMode = false))
-    val editor = InjectedArendEditor(project, CONSOLE_ID, null)
+    val editor = ArendConsoleViewEditor(project)
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)

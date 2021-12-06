@@ -2,38 +2,21 @@ package org.arend.resolving.util
 
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
-import org.arend.naming.reference.ErrorReference
-import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.psi.ArendLongName
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendIPNameImplMixin
-import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 
 
-private fun isShort(element: ArendCompositeElement) =
-        (element !is ArendLongName || element.refIdentifierList.size == 1) && (element !is ArendIPNameImplMixin || element.parentLongName == null)
-
 fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?) =
         if (data is ArendCompositeElement) {
-            if (isShort(data)) {
-                Concrete.FixityReferenceExpression.make(data, ((data as? ArendLongName)?.refIdentifierList?.lastOrNull() ?: data).reference?.resolve() as? Referable ?: ErrorReference(data, referent.textRepresentation()), fixity, null, null)
-            } else {
-                val refExpr = Concrete.FixityReferenceExpression.make(data, referent, fixity, null, null)
-                val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPNameImplMixin)?.parentLiteral ?: data).scope, true, null)
-                (refExpr.referent as? GlobalReferable)?.let {
-                    val psiRef = PsiLocatedReferable.fromReferable(it)
-                    if (psiRef != null) {
-                        refExpr.referent = psiRef
-                    }
-                }
-                if (arg == null) refExpr else Concrete.AppExpression.make(data, refExpr, arg, false)
-            }
+            val refExpr = Concrete.FixityReferenceExpression.make(data, referent, fixity, null, null)
+            val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPNameImplMixin)?.parentLiteral ?: data).scope, false, null)
+            if (arg == null) refExpr else Concrete.AppExpression.make(data, refExpr, arg, false)
         } else {
             null
         }
@@ -59,3 +42,16 @@ fun parseBinOp(data: Any?, left: Abstract.Expression, sequence: Collection<Abstr
     return BinOpParser(DummyErrorReporter.INSTANCE).parse(Concrete.BinOpSequenceExpression(data, concreteSeq, null))
 }
 
+/**
+ * Attempts to parse abstract expression assuming it is already a bin op sequence.
+ */
+fun parseBinOp(expr : Abstract.Expression) : Concrete.Expression? {
+    var result : Concrete.Expression? = null
+    expr.accept(object : BaseAbstractExpressionVisitor<Unit, Nothing?>(null){
+        override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, params: Unit?): Nothing? {
+            result = parseBinOp(left, sequence)
+            return null
+        }
+    }, Unit)
+    return result
+}

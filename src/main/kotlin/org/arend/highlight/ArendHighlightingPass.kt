@@ -15,7 +15,6 @@ import org.arend.psi.ext.ArendIPNameImplMixin
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
-import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
@@ -33,7 +32,7 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
 
-class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     private val psiListenerService = myProject.service<ArendPsiChangeService>()
@@ -51,7 +50,7 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         if (myProject.service<TypeCheckingService>().isLoaded) {
-            setProgressLimit(numberOfDefinitions(group).toLong())
+            setProgressLimit(numberOfDefinitions(file).toLong())
             collectInfo(progress)
         }
     }
@@ -162,7 +161,7 @@ class ArendHighlightingPass(file: ArendFile, private val group: ArendGroup, edit
 
                 advanceProgress(1)
             }
-        }).resolveGroup(group, group.scope)
+        }).resolveGroup(file, file.scope)
 
         concreteProvider.resolve = true
 
