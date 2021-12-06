@@ -11,14 +11,12 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
-import org.arend.psi.ArendExpr
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.resolving.DataLocatedReferable
 import org.arend.settings.ArendProjectSettings
-import org.arend.term.abs.Abstract
 
 data class ProofSearchEntry(val def : PsiReferable, val tree : PatternTree)
 
@@ -48,9 +46,7 @@ fun generateProofSearchResults(
 
                 val typechecked = def.castSafelyTo<ReferableAdapter<*>>()?.tcReferable
                 val coreDefinition = typechecked?.takeIf { it.isTypechecked }?.castSafelyTo<DataLocatedReferable>()?.typechecked
-                val type = def.castSafelyTo<Abstract.FunctionDefinition>()?.resultType?.castSafelyTo<ArendExpr>()
-                    ?: return@processElements true
-                if (matcher.match(type)) {
+                if (coreDefinition != null && matcher.match(coreDefinition, def.scope)) {
                     list.add(def)
                 }
                 true

@@ -7,14 +7,12 @@ import org.intellij.lang.annotations.Language
 
 const val PRE_TEXT =
     """
-\func \infix 1 = {A : \Type} (a b : \Type) : \Type => {?}
+\open Nat
 
-\data Nat | zero | suc (n : Nat)
+"""
 
-\func \infixl 3 + (a b : Nat) : Nat => {?}
-
-\func bar : Nat -> Nat -> Nat => {?}
-
+const val MODULES = """
+    
 \module M \where {
   \func \infixl 4 ** (a b : Nat) : Nat => {?}
 }
@@ -23,6 +21,10 @@ const val PRE_TEXT =
   \func \infixl 4 ** (a b : Nat) : Nat => {?}
 }
 
+"""
+
+const val ALIASES = """
+    
 \func \infix 3 ^^ \alias upup : Nat -> Nat -> Nat => {?}
 
 \func baz (a b : Nat) : a ^^ b = upup b a => {?}
@@ -35,7 +37,8 @@ class ArendProofSearchTest : ArendTestBase() {
         @Language("Arend") content: String,
         pattern: String
     ): Set<String> {
-        myFixture.addFileToProject("_.ard", PRE_TEXT + content)
+        myFixture.addFileToProject("Main.ard", PRE_TEXT + content)
+        typecheck()
         val results = generateProofSearchResults(project, pattern)
         return results.toList().mapTo(HashSet()) { it.def.name!! }
     }
@@ -48,7 +51,8 @@ class ArendProofSearchTest : ArendTestBase() {
         "Expected no matches of $pattern", findMatches(content, pattern).isEmpty()
     )
 
-    fun testBasicFunction() = assertHasMatch("\\func foo (a b : Nat) : a + b = b + a => {?}", "= (+ _ _) (+ _ _)")
+    fun testBasicFunction() =
+        assertHasMatch("\\func foo (a b : Nat) : a + b = b + a => {?}", "= (+ _ _) (+ _ _)")
 
     fun testBasicClass() = assertHasMatch(
         """
@@ -64,20 +68,36 @@ class ArendProofSearchTest : ArendTestBase() {
 
     fun testInfixPatternWithParens() = assertHasMatch("\\func foo (a b : Nat) : a + b = b + a => {?}", "(_ + _) = (_ + _)")
 
-    fun testNoMatches() = assertHasNoMatch("\\func foo (a b : Nat) : bar a b = bar b a => {?}", "_ ** _ = _ ** _")
+    fun testNoMatches() = assertHasNoMatch("""
+        \func bar : Nat -> Nat -> Nat => {?}
+        
+        \func foo (a b : Nat) : bar a b = bar b a => {?}
+        """, "_ ** _ = _ ** _")
 
     fun testNoMatchesInBody() = assertHasNoMatch("\\func foo : \\Type => a + b = b + a", "_ + _ = _ + _")
 
-    fun testQualifiedName() = assertHasMatch("\\func foo (a b : Nat) : a M.** b = b M.** a => {?}", "_ ** _ = _ ** _")
+    fun testQualifiedName() = assertHasMatch("$MODULES\\func foo (a b : Nat) : a M.** b = b M.** a => {?}", "_ ** _ = _ ** _")
 
-    fun testQualifiedNameInPattern() = assertHasMatch("\\func foo (a b : Nat) : a M.** b = b M.** a => {?}", "_ M.** _ = _ M.** _")
+    fun testQualifiedNameInPattern() =
+        assertHasMatch("$MODULES\\func foo (a b : Nat) : a M.** b = b M.** a => {?}", "_ M.** _ = _ M.** _")
 
-    fun testIgnoreNamesFromOtherModules() = assertHasNoMatch("\\func foo (a b : Nat) : a N.** b = b N.** a => {?}", "_ M.** _ = _ M.** _")
+    fun testIgnoreNamesFromOtherModules() =
+        assertHasNoMatch("$MODULES\\func foo (a b : Nat) : a N.** b = b N.** a => {?}", "_ M.** _ = _ M.** _")
 
-    fun testMatchAliasByOriginal() = assertHasMatch("\\func foo (a b : Nat) : a ^^ b = upup b a => {?}", "_ ^^ _ = _ ^^ _")
+    fun testMatchAliasByOriginal() =
+        assertHasMatch("$ALIASES\\func foo (a b : Nat) : a ^^ b = upup b a => {?}", "_ ^^ _ = _ ^^ _")
 
-    fun testMatchPureAlias() = assertHasMatch("\\func foo (a b : Nat) : upup a b = upup b a => {?}", "upup _ _ = upup _ _")
+    fun testMatchPureAlias() =
+        assertHasMatch("$ALIASES\\func foo (a b : Nat) : upup a b = upup b a => {?}", "upup _ _ = upup _ _")
 
-    fun testMatchOriginalByAlias() = assertHasMatch("\\func foo (a b : Nat) : a ^^ b = upup b a => {?}", "upup _ _ = upup _ _")
+    fun testMatchOriginalByAlias() =
+        assertHasMatch("$ALIASES\\func foo (a b : Nat) : a ^^ b = upup b a => {?}", "upup _ _ = upup _ _")
+
+    fun testConstructor() = assertHasMatch(
+        """
+        \data Listt | nil Nat
+        
+    """, "Listt"
+    )
 
 }

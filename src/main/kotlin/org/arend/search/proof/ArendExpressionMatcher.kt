@@ -1,37 +1,44 @@
 package org.arend.search.proof
 
-import com.intellij.psi.util.parentOfType
+import org.arend.core.definition.Constructor
+import org.arend.core.definition.Definition
+import org.arend.core.definition.FunctionDefinition
+import org.arend.core.expr.Expression
+import org.arend.core.subst.LevelPair
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.naming.BinOpParser
-import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendExpr
-import org.arend.psi.ext.impl.CoClauseDefAdapter
-import org.arend.psi.ext.impl.DefinitionAdapter
-import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.FreeVariableCollectorConcrete
-import org.arend.util.appExprToConcrete
+import org.arend.term.prettyprint.ToAbstractVisitor
 
 internal class ArendExpressionMatcher(val tree: PatternTree) {
-    val binOpParser = BinOpParser(DummyErrorReporter.INSTANCE)
 
-    fun match(expr: ArendExpr): Boolean {
-        val referable = expr.parentOfType<DefinitionAdapter<*>>() ?: return false
-        val concrete = getType(referable) ?: return false
-        val mscope = CachingScope.make(expr.scope)
-        val parsedConcrete =
-            if (concrete is Concrete.BinOpSequenceExpression) binOpParser.parse(concrete) else concrete
+    fun match(coreDefinition: Definition, scope: Scope): Boolean {
+        val resultType = getType(coreDefinition) ?: return false
+        val cachingScope = CachingScope.make(scope)
+        val completeConcrete = ToAbstractVisitor.convert(resultType, PrettyPrinterConfig.DEFAULT)
         val qualifiedReferables by lazy(LazyThreadSafetyMode.NONE) {
             val set = mutableSetOf<Referable>()
-            parsedConcrete.accept(FreeVariableCollectorConcrete(set), null)
+            completeConcrete.accept(FreeVariableCollectorConcrete(set), null)
             set.groupBy { it.refName }
         }
-        val patternConcrete = reassembleConcrete(tree, mscope, qualifiedReferables) ?: return false
-        return performMatch(patternConcrete, parsedConcrete)
+        val patternConcrete = reassembleConcrete(tree, cachingScope, qualifiedReferables) ?: return false
+        return performMatch(patternConcrete, completeConcrete)
+    }
+
+    private fun getType(def: Definition): Expression? = when (def) {
+        is FunctionDefinition -> {
+            def.resultType
+        }
+        is Constructor -> {
+            def.getDataTypeExpression(LevelPair.STD)
+        }
+        else -> null
     }
 
 
@@ -64,7 +71,7 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
             val patternFunction = pattern.function
             val matchedFunction = matched.function
             val concreteArguments = matched.arguments.mapNotNull { if (it.isExplicit) it.expression else null }
-            if (!performMatch(patternFunction, matchedFunction)) {
+            if (!performTopMatch(patternFunction, matchedFunction)) {
                 return false
             }
             val patternArguments = pattern.arguments.map { it.expression }
@@ -72,16 +79,21 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
                 return false
             }
             for ((patternArg, matchedArg) in patternArguments.zip(concreteArguments)) {
-                if (!performMatch(patternArg, matchedArg)) {
+                if (!performTopMatch(patternArg, matchedArg)) {
                     return false
                 }
             }
             return true
         } else if (pattern is Concrete.ReferenceExpression && matched is Concrete.ReferenceExpression) {
-            return pattern.underlyingReferable?.resolveAlias() == matched.underlyingReferable?.resolveAlias()
+            return pattern.underlyingReferable?.recursiveReferable() == matched.underlyingReferable?.recursiveReferable()
         } else {
             return false
         }
+    }
+
+    private fun Referable.recursiveReferable(): Referable {
+        val underlying = underlyingReferable
+        return if (underlying === this) this else underlying.recursiveReferable()
     }
 
     private fun reassembleConcrete(
@@ -122,16 +134,6 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
         }
 }
 
-
-private fun getType(def: DefinitionAdapter<*>): Concrete.Expression? {
-    // todo: reuse core definitions where possible to achieve matching with explicitly untyped definitions and implicit arguments
-    return when (def) {
-        is CoClauseDefAdapter -> def.resultType?.let(::appExprToConcrete)
-        is FunctionDefinitionAdapter -> def.resultType?.let(::appExprToConcrete)
-        else -> null
-    }
-}
-
 private fun disambiguate(candidates: List<Referable>, path: List<String>): Referable? {
     var result: Referable? = null
     for (candidate in candidates) {
@@ -148,4 +150,5 @@ private fun disambiguate(candidates: List<Referable>, path: List<String>): Refer
     return result
 }
 
-private fun Referable.resolveAlias(): Referable = if (this is AliasReferable) underlyingReferable else this
+
+val binOpParser = BinOpParser(DummyErrorReporter.INSTANCE)
