@@ -26,6 +26,7 @@ import org.arend.psi.ext.impl.FunctionDefinitionAdapter
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.resolving.DataLocatedReferable
+import org.arend.search.collectSearchScopes
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.ToAbstractVisitor
@@ -41,9 +42,18 @@ fun generateProofSearchResults(
     val patternTree = PatternTree.fromRawPattern(pattern) ?: return@sequence
     val matcher = ArendExpressionMatcher(patternTree)
 
+    val listedIdentifiers = patternTree.getAllIdentifiers()
+
     val keys = DumbService.getInstance(project).runReadActionInSmartMode(Computable {
         StubIndex.getInstance().getAllKeys(ArendDefinitionIndex.KEY, project)
     })
+
+    val searchScope = if (listedIdentifiers.isNotEmpty()) {
+        val scopes = collectSearchScopes(listedIdentifiers, GlobalSearchScope.allScope(project), project)
+        scopes.map { GlobalSearchScope.fileScope(project, it) }.reduce(GlobalSearchScope::union)
+    } else {
+        GlobalSearchScope.allScope(project)
+    }
 
     for (definitionName in keys) {
         val list = SmartList<Pair<ReferableAdapter<*>, Concrete.Expression>>()
@@ -52,7 +62,7 @@ fun generateProofSearchResults(
                 ArendDefinitionIndex.KEY,
                 definitionName,
                 project,
-                GlobalSearchScope.allScope(project),
+                searchScope,
                 PsiReferable::class.java
             ) { def ->
                 if (!settings.checkAllowed(def)) return@processElements true

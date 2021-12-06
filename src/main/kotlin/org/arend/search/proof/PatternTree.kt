@@ -25,6 +25,8 @@ sealed interface PatternTree {
 
     @JvmInline
     value class BranchingNode(val subNodes: List<Pair<PatternTree, Implicitness>>) : PatternTree {
+        override fun getAllIdentifiers(): List<String> = subNodes.flatMap { it.first.getAllIdentifiers() }
+
         override fun toString(): String = subNodes.joinToString(
             " ",
             "[",
@@ -34,12 +36,18 @@ sealed interface PatternTree {
 
     @JvmInline
     value class LeafNode(val referenceName: List<String>) : PatternTree {
+        override fun getAllIdentifiers(): List<String> = listOf(referenceName.last())
+
         override fun toString(): String = referenceName.joinToString(".")
     }
 
     object Wildcard : PatternTree {
+        override fun getAllIdentifiers(): List<String> = emptyList()
+
         override fun toString(): String = "_"
     }
+
+    fun getAllIdentifiers() : List<String>
 }
 
 private typealias Token = String
