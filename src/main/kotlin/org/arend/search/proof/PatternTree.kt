@@ -45,7 +45,7 @@ sealed interface PatternTree {
 private typealias Token = String
 
 internal fun patternToTree(pattern: String): PatternTree? {
-    val tokens: List<Token> = Pattern.compile("[^()\\p{Space}]+|\\(|\\)|\\{|}").toRegex().findAll(pattern).map { it.value }.toList()
+    val tokens: List<Token> = Pattern.compile("""[^(){}\p{Space}]+|\(|\)|\{|}""").toRegex().findAll(pattern).map { it.value }.toList()
     return parseTokens(tokens)
 }
 

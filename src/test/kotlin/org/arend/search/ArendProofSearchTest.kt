@@ -82,6 +82,13 @@ class ArendProofSearchTest : ArendTestBase() {
   | cons A (List A)""", "List"
     )
 
+    fun testImplicitArgument() = assertHasMatch(
+        """
+\func p {n : Nat} : \Prop => 1 = 1
+
+\func foo : p {1} => idp""", "p {_}"
+    )
+
 }
 
 

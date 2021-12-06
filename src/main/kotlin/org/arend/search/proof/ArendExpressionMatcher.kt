@@ -70,15 +70,11 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
         if (pattern is Concrete.AppExpression && matched is Concrete.AppExpression) {
             val patternFunction = pattern.function
             val matchedFunction = matched.function
-            val concreteArguments = matched.arguments.mapNotNull { if (it.isExplicit) it.expression else null }
+            val mapping = doubleArgumentIterable(pattern.arguments, matched.arguments) ?: return false
             if (!performTopMatch(patternFunction, matchedFunction)) {
                 return false
             }
-            val patternArguments = pattern.arguments.map { it.expression }
-            if (patternArguments.size != concreteArguments.size) {
-                return false
-            }
-            for ((patternArg, matchedArg) in patternArguments.zip(concreteArguments)) {
+            for ((patternArg, matchedArg) in mapping) {
                 if (!performTopMatch(patternArg, matchedArg)) {
                     return false
                 }
@@ -132,6 +128,27 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
             }
             PatternTree.Wildcard -> Concrete.HoleExpression(null)
         }
+}
+
+private fun doubleArgumentIterable(patternArguments : List<Concrete.Argument>, matchArguments : List<Concrete.Argument>) : Iterable<Pair<Concrete.Expression, Concrete.Expression>>? {
+    var indexInMatch = 0
+    val container : MutableList<Pair<Concrete.Expression, Concrete.Expression>> = mutableListOf()
+    for (patternArg in patternArguments) {
+        if (patternArg.isExplicit) {
+            while (!matchArguments[indexInMatch].isExplicit) {
+                indexInMatch += 1
+                if (indexInMatch == matchArguments.size) {
+                    return null
+                }
+            }
+        }
+        if (patternArg.isExplicit != matchArguments[indexInMatch].isExplicit) {
+            return null
+        }
+        container.add(patternArg.expression to matchArguments[indexInMatch].expression)
+        indexInMatch += 1
+    }
+    return container
 }
 
 private fun disambiguate(candidates: List<Referable>, path: List<String>): Referable? {
