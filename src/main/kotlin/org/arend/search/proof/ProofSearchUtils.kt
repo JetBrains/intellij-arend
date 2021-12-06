@@ -12,24 +12,21 @@ import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
 import org.arend.core.expr.Expression
-import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.resolving.DataLocatedReferable
 import org.arend.settings.ArendProjectSettings
 
-data class ProofSearchEntry(val def: ReferableAdapter<*>, val finalCodomain: Expression, val tree: PatternTree)
+data class ProofSearchEntry(val def: ReferableAdapter<*>, val finalCodomain: Expression)
 
 fun generateProofSearchResults(
     project: Project,
     pattern: String,
 ): Sequence<ProofSearchEntry> = sequence {
     val settings = ProofSearchUISettings(project)
-    val matcher = runReadAction {
-        val parsedExpression = ArendPsiFactory(project).createExpressionMaybe(pattern) ?: return@runReadAction null
-        ArendExpressionMatcher(deconstructArendExpr(parsedExpression))
-    } ?: return@sequence
+    val patternTree = PatternTree.fromRawPattern(pattern) ?: return@sequence
+    val matcher = ArendExpressionMatcher(patternTree)
 
     val keys = runReadAction { StubIndex.getInstance().getAllKeys(ArendDefinitionIndex.KEY, project) }
 
@@ -58,7 +55,7 @@ fun generateProofSearchResults(
         }
 
         for (def in list) {
-            yield(ProofSearchEntry(def.first, def.second, matcher.tree))
+            yield(ProofSearchEntry(def.first, def.second))
         }
     }
 }

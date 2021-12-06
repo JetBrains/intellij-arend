@@ -1,33 +1,35 @@
 package org.arend.search.proof
 
-import com.intellij.refactoring.suggested.endOffset
-import com.intellij.refactoring.suggested.startOffset
-import com.intellij.util.castSafelyTo
-import com.intellij.util.containers.map2Array
-import org.arend.psi.ArendExpr
-import org.arend.psi.ArendTuple
-import org.arend.psi.childOfType
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.term.concrete.BaseConcreteExpressionVisitor
-import org.arend.term.concrete.Concrete
-import org.arend.util.appExprToConcrete
+import java.util.regex.Pattern
 
-/**
- * Proof Search in Arend differs from regular structural search in the sense that
- * searched expression is not a valid Arend PSI element.
- * Pattern of the Proof Search contains infix symbols that cannot be completely resolved at the time of its writing.
- */
 sealed interface PatternTree {
+    companion object {
+        fun fromRawPattern(pattern: String) : PatternTree? = patternToTree(pattern)
+    }
 
     enum class Implicitness {
         IMPLICIT, EXPLICIT;
+
+        fun compactLBrace(): String = when (this) {
+            IMPLICIT -> "{"
+            EXPLICIT -> ""
+        }
+
+        fun compactRBrace(): String = when (this) {
+            IMPLICIT -> "}"
+            EXPLICIT -> ""
+        }
 
         fun toBoolean(): Boolean = this == EXPLICIT
     }
 
     @JvmInline
     value class BranchingNode(val subNodes: List<Pair<PatternTree, Implicitness>>) : PatternTree {
-        override fun toString(): String = subNodes.joinToString(" ", "[", "]", transform = { it.first.toString() })
+        override fun toString(): String = subNodes.joinToString(
+            " ",
+            "[",
+            "]",
+            transform = { "${it.second.compactLBrace()}${it.first}${it.second.compactRBrace()}" })
     }
 
     @JvmInline
@@ -40,48 +42,62 @@ sealed interface PatternTree {
     }
 }
 
-internal fun deconstructArendExpr(expr: ArendExpr): PatternTree {
-    if (expr.text == "_") return PatternTree.Wildcard
-    val concrete = appExprToConcrete(removeParens(expr))!!
-    return concrete.accept(object : BaseConcreteExpressionVisitor<Unit>() {
-        override fun visitApp(expr: Concrete.AppExpression, params: Unit): Concrete.Expression {
-            val function = expr.function.accept(this, Unit).data as PatternTree
-            val args = expr.arguments.map2Array {
-                it.expression.accept(
-                    this,
-                    Unit
-                ).data as PatternTree to explicitnessFromBoolean(it.isExplicit)
-            }
-            return Concrete.HoleExpression(
-                PatternTree.BranchingNode(
-                    listOf(
-                        function to PatternTree.Implicitness.EXPLICIT,
-                        *args
-                    )
-                )
-            )
-        }
+private typealias Token = String
 
-        override fun visitHole(expr: Concrete.HoleExpression, params: Unit?): Concrete.Expression {
-            val data = expr.data as ArendExpr
-            return if (data.text == "_") {
-                Concrete.HoleExpression(PatternTree.Wildcard)
-            } else {
-                Concrete.HoleExpression(deconstructArendExpr(data))
-            }
-        }
-
-        override fun visitReference(expr: Concrete.ReferenceExpression, params: Unit?): Concrete.Expression {
-            return Concrete.HoleExpression(PatternTree.LeafNode(expr.data.castSafelyTo<ArendCompositeElement>()!!.text.split(".")))
-        }
-    }, Unit).data as PatternTree
+internal fun patternToTree(pattern: String): PatternTree? {
+    val tokens: List<Token> = Pattern.compile("[^()\\p{Space}]+|\\(|\\)|\\{|}").toRegex().findAll(pattern).map { it.value }.toList()
+    return parseTokens(tokens)
 }
 
-private tailrec fun removeParens(expr : ArendExpr) : ArendExpr {
-    val innerTuple = expr.childOfType<ArendTuple>()?.takeIf { it.startOffset == expr.startOffset && it.endOffset == expr.endOffset } ?: return expr
-    val innerExpr = innerTuple.tupleExprList.singleOrNull()?.exprList?.singleOrNull() ?: return expr
-    return removeParens(innerExpr)
-}
+private fun parseTokens(tokens: List<Token>): PatternTree? {
 
-private fun explicitnessFromBoolean(explicit: Boolean): PatternTree.Implicitness =
-    if (explicit) PatternTree.Implicitness.EXPLICIT else PatternTree.Implicitness.IMPLICIT
+    fun findClosingBrace(start: Int, limit: Int, openBrace: Token, closingBrace: Token): Int? {
+        var balance = 1
+        var currentIndex = start + 1
+        while (currentIndex < limit && balance > 0) {
+            if (tokens[currentIndex] == openBrace) balance += 1
+            if (tokens[currentIndex] == closingBrace) balance -= 1
+            currentIndex += 1
+        }
+        return if (balance == 0) {
+            currentIndex - 1
+        } else {
+            null
+        }
+    }
+
+    fun doParseTokens(position: Int, limit: Int): PatternTree? {
+        if (position == limit) return null
+        val nodes: MutableList<Pair<PatternTree, PatternTree.Implicitness>> = mutableListOf()
+        var currentPosition = position
+
+        while (currentPosition != limit) {
+            when (val token = tokens[currentPosition]) {
+                "_" -> nodes.add(PatternTree.Wildcard to PatternTree.Implicitness.EXPLICIT)
+                "(" -> {
+                    val closingBrace = findClosingBrace(currentPosition, limit, token, ")") ?: return null
+                    val subTree = doParseTokens(currentPosition + 1, closingBrace) ?: return null
+                    nodes.add(subTree to PatternTree.Implicitness.EXPLICIT)
+                    currentPosition = closingBrace
+                }
+                ")" -> return null
+                "{" -> {
+                    val closingBrace = findClosingBrace(currentPosition, limit, token, "}") ?: return null
+                    val subTree = doParseTokens(currentPosition + 1, closingBrace) ?: return null
+                    nodes.add(subTree to PatternTree.Implicitness.IMPLICIT)
+                    currentPosition = closingBrace
+                }
+                "}" -> return null
+                else -> nodes.add(PatternTree.LeafNode(token.split(".")) to PatternTree.Implicitness.EXPLICIT)
+            }
+            currentPosition += 1
+        }
+        return if (nodes.size == 1 && nodes[0].second != PatternTree.Implicitness.IMPLICIT) {
+            nodes[0].first
+        } else {
+            PatternTree.BranchingNode(nodes)
+        }
+    }
+
+    return doParseTokens(0, tokens.size)
+}

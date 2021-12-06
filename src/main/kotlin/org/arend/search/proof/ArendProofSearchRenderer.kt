@@ -69,7 +69,7 @@ class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
             label.icon = null
         }
         is DefElement -> {
-            val (def, type, _) = value.entry
+            val (def, type) = value.entry
             val auxiliaryTextColor = if (isSelected) textColor else UIUtil.getInactiveTextColor()
             textArea.text = buildHtml(def, type, auxiliaryTextColor)
             val icon = getIcon(def)
