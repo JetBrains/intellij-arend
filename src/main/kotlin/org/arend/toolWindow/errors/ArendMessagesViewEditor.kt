@@ -27,7 +27,9 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
 
     private fun setupActions() {
         if (treeElement?.highestError?.error?.level == GeneralError.Level.GOAL) {
+            actionGroup.add(ActionManager.getInstance().getAction(ArendClearGoalAction.ID))
             actionGroup.add(ActionManager.getInstance().getAction(ArendPinGoalAction.ID))
+            actionGroup.add(ArendAutoClearGoalAction())
         }
         val enablePrintOptions = treeElement?.errors?.any { it.error.hasExpressions() } ?: false
         actionGroup.add(ArendPrintOptionsActionGroup(project, printOptionKind, enablePrintOptions))

@@ -393,6 +393,13 @@
             <keyboard-shortcut keymap="$default" first-keystroke="control shift Y"/>
         </action>
 
+        <action id="Arend.ClearGoal"
+                class="org.arend.toolWindow.errors.ArendClearGoalAction"
+                text="Clear Goal"
+                description="Clear goal">
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
+        </action>
+
         <action id="Arend.ReloadLibrary"
                 class="org.arend.module.ReloadLibrariesAction"
                 text="Reload Arend Libraries">

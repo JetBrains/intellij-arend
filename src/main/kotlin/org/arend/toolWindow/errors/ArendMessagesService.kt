@@ -12,6 +12,7 @@ class ArendMessagesService(private val project: Project) {
     var view: ArendMessagesView? = null
         private set
     var isGoalTextPinned: Boolean = false
+    var isAutoClearGoals: Boolean = false
 
     fun activate(project: Project, selectFirst: Boolean) {
         runInEdt {
@@ -51,5 +52,9 @@ class ArendMessagesService(private val project: Project) {
 
     fun updateErrorText() {
         view?.updateErrorText()
+    }
+
+    fun clearGoalText() {
+        view?.clearGoalText()
     }
 }

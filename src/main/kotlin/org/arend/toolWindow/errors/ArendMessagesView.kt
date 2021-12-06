@@ -13,10 +13,12 @@ import com.intellij.psi.PsiElement
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.layout.panel
+import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
+import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.settings.ArendProjectSettings
@@ -24,6 +26,7 @@ import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
+import org.arend.util.ArendBundle
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
@@ -94,7 +97,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun valueChanged(e: TreeSelectionEvent?) = updateEditor()
 
     fun updateEditor() {
-        val treeElement = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
+        val treeElement = getSelectedError()
         if (treeElement != null) {
             if (treeElement.highestError.error.level == GeneralError.Level.GOAL) {
                 if (isGoalTextPinned()) {
@@ -115,8 +118,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
         } else {
             if (!isGoalTextPinned() && shouldClear(goalEditor)) {
-                goalEditor?.clear()
-                goalErrorSplitter.firstComponent = goalEmptyPanel
+                if (project.service<ArendMessagesService>().isAutoClearGoals) {
+                    clearGoalText()
+                    return
+                }
+                if (goalEditor?.treeElement != null) {
+                    goalEditor?.treeElement = null
+                    val outdatedMessage = "\n[${ArendBundle.message("arend.messages.view.outdated.goal")}]"
+                    goalEditor?.addDoc(DocFactory.text(outdatedMessage), null, false)
+                }
             }
             if (shouldClear(errorEditor)) {
                 errorEditor?.clear()
@@ -124,6 +134,10 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
         }
     }
+
+    private fun getSelectedError(): ArendErrorTreeElement? =
+            tree.lastSelectedPathComponent.castSafelyTo<DefaultMutableTreeNode>()
+                    ?.userObject?.castSafelyTo<ArendErrorTreeElement>()
 
     private fun isGoalTextPinned() = project.service<ArendMessagesService>().isGoalTextPinned
 
@@ -153,6 +167,14 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     fun updateErrorText() {
         errorEditor?.updateErrorText()
+    }
+
+    fun clearGoalText() {
+        if (goalEditor?.treeElement == getSelectedError()) {
+            tree.clearSelection()
+        }
+        goalEditor?.clear()
+        goalErrorSplitter.firstComponent = goalEmptyPanel
     }
 
     private fun configureError(error: GeneralError) {
