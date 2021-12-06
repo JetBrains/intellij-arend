@@ -11,13 +11,11 @@ import com.intellij.ui.components.panels.OpaquePanel
 import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
 import org.apache.commons.lang.StringEscapeUtils.escapeHtml
-import org.arend.core.expr.Expression
-import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.*
 import org.arend.psi.parentOfType
-import org.arend.term.prettyprint.ToAbstractVisitor
+import org.arend.term.concrete.Concrete
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -83,12 +81,12 @@ private val BORDER = BorderFactory.createEmptyBorder(3, 0, 5, 0)
 
 private fun buildHtml(
     def: ReferableAdapter<*>,
-    type: Expression,
+    type: Concrete.Expression,
     nameColor: Color
 ): String? {
     val name = def.name ?: return null
     val parameters = getRepresentableParameters(def)
-    val typeRepresentation = ToAbstractVisitor.convert(type, PrettyPrinterConfig.DEFAULT).toString()
+    val typeRepresentation = (if (def is FunctionDefinitionAdapter) def.resultType?.text else null) ?: type.toString()
     val locationText = (def.containingFile as ArendFile).moduleLocation?.modulePath?.toString() ?: ""
     return buildDefinitionHTML(name, parameters, typeRepresentation, locationText, nameColor)
 }

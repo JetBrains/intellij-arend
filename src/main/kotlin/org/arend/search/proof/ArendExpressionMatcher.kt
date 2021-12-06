@@ -1,12 +1,6 @@
 package org.arend.search.proof
 
-import org.arend.core.definition.Constructor
-import org.arend.core.definition.Definition
-import org.arend.core.definition.FunctionDefinition
-import org.arend.core.expr.Expression
-import org.arend.core.subst.LevelPair
 import org.arend.error.DummyErrorReporter
-import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.naming.BinOpParser
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
@@ -14,33 +8,19 @@ import org.arend.naming.scope.Scope
 import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.FreeVariableCollectorConcrete
-import org.arend.term.prettyprint.ToAbstractVisitor
 
 internal class ArendExpressionMatcher(val tree: PatternTree) {
 
-    fun match(coreDefinition: Definition, scope: Scope): Expression? {
-        val resultType = getType(coreDefinition) ?: return null
+    fun match(matchedType: Concrete.Expression, scope: Scope): Boolean {
         val cachingScope = CachingScope.make(scope)
-        val completeConcrete = ToAbstractVisitor.convert(resultType, PrettyPrinterConfig.DEFAULT)
         val qualifiedReferables by lazy(LazyThreadSafetyMode.NONE) {
             val set = mutableSetOf<Referable>()
-            completeConcrete.accept(FreeVariableCollectorConcrete(set), null)
+            matchedType.accept(FreeVariableCollectorConcrete(set), null)
             set.groupBy { it.refName }
         }
-        val patternConcrete = reassembleConcrete(tree, cachingScope, qualifiedReferables) ?: return null
-        return if (performMatch(patternConcrete, completeConcrete)) {
-            resultType
-        } else {
-            null
-        }
+        val patternConcrete = reassembleConcrete(tree, cachingScope, qualifiedReferables) ?: return false
+        return performMatch(patternConcrete, matchedType)
     }
-
-    private fun getType(def: Definition): Expression? = when (def) {
-        is FunctionDefinition -> def.resultType
-        is Constructor -> def.getDataTypeExpression(LevelPair.STD)
-        else -> null
-    }
-
 
     private fun performMatch(
         pattern: Concrete.Expression,
@@ -134,6 +114,9 @@ private fun doubleArgumentIterable(patternArguments : List<Concrete.Argument>, m
     var indexInMatch = 0
     val container : MutableList<Pair<Concrete.Expression, Concrete.Expression>> = mutableListOf()
     for (patternArg in patternArguments) {
+        if (indexInMatch == matchArguments.size) {
+            return null
+        }
         if (patternArg.isExplicit) {
             while (!matchArguments[indexInMatch].isExplicit) {
                 indexInMatch += 1
@@ -147,6 +130,11 @@ private fun doubleArgumentIterable(patternArguments : List<Concrete.Argument>, m
         }
         container.add(patternArg.expression to matchArguments[indexInMatch].expression)
         indexInMatch += 1
+    }
+    for (remainder in matchArguments.subList(indexInMatch, matchArguments.size)) {
+        if (remainder.isExplicit) {
+            return null
+        }
     }
     return container
 }

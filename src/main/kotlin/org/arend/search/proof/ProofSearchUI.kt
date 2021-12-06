@@ -59,6 +59,8 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         model.removeAll()
     }
 
+
+
     override fun createList(): JBList<Any> {
         @Suppress("UNCHECKED_CAST")
         addListDataListener(model as AbstractListModel<Any>)
