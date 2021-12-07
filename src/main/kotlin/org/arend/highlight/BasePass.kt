@@ -22,6 +22,7 @@ import org.arend.core.expr.ReferenceExpression
 import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
 import org.arend.ext.concrete.ConcreteSourceNode
+import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.ext.error.*
 import org.arend.ext.error.quickFix.ErrorQuickFix
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
@@ -46,6 +47,9 @@ import org.arend.quickfix.instance.InstanceInferenceQuickFix
 import org.arend.quickfix.instance.ReplaceWithLocalInstanceQuickFix
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
+import org.arend.quickfix.replacers.ReplaceAbsurdPatternQuickFix
+import org.arend.quickfix.replacers.ReplaceFunctionKindQuickFix
+import org.arend.quickfix.replacers.ReplaceWithWildcardPatternQuickFix
 import org.arend.refactoring.replaceExprSmart
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.IncompleteExpressionError
@@ -298,6 +302,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             }
                         }
                     PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) registerFix(info, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                    COULD_BE_LEMMA -> if (cause is ArendDefFunction) registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
                     else -> {}
                 }
 
@@ -381,6 +386,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     CertainTypecheckingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
                     CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseOpt
+                    COULD_BE_LEMMA -> (element as? ArendDefFunction)?.functionKw
                     else -> null
                 }
                 is LevelMismatchError -> if (error.isLemma) {

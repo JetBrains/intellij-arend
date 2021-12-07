@@ -312,7 +312,7 @@ class RenameTest : ArendTestBase() {
          | con {bar} m => bar
     """)
 
-    fun `test name starts with a semicolon`() = doInlineTest(
+    fun `test name starts with a colon`() = doInlineTest(
             ":b",
             "\\func :a{-caret-} => {?}",
             "\\func :b => {?}"
