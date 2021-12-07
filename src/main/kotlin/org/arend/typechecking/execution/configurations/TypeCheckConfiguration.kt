@@ -13,6 +13,7 @@ import com.intellij.util.xmlb.XmlSerializer
 import com.intellij.util.xmlb.annotations.Property
 import com.intellij.util.xmlb.annotations.Tag
 import org.arend.module.ArendRawLibrary
+import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.TypeCheckCommand
@@ -63,14 +64,14 @@ class TypeCheckConfiguration(
                 (libraryManager.getRegisteredLibrary(arendTypeCheckCommand.library) as? ArendRawLibrary)?.config?.localFSRoot?.let { listOf(it.path) } ?: emptyList()
             }
             val projectPath = if (libPaths.isEmpty()) project.basePath else libPaths.joinToString(" ")
-
+            val librariesRoot = project.service<ArendProjectSettings>().librariesRoot
             val jarConfiguration = JarApplicationConfigurationType.getInstance().createTemplateConfiguration(project) as JarApplicationConfiguration
             jarConfiguration.jarPath = arendSettings.pathToArendJar
             jarConfiguration.programParameters = "$projectPath --recompile" +
-                if (arendTypeCheckCommand.modulePath.isEmpty()) ""
-                else ("=" + arendTypeCheckCommand.modulePath +
-                    if (arendTypeCheckCommand.definitionFullName.isEmpty()) ""
-                    else ":" + arendTypeCheckCommand.definitionFullName)
+                    (if (arendTypeCheckCommand.modulePath.isEmpty()) ""
+                    else ("=" + arendTypeCheckCommand.modulePath +
+                            if (arendTypeCheckCommand.definitionFullName.isEmpty()) ""
+                            else ":" + arendTypeCheckCommand.definitionFullName)) + " -L " + librariesRoot
             val jarAppState = jarConfiguration.getState(executor, environment)
             if (jarAppState != null) {
                 return jarAppState

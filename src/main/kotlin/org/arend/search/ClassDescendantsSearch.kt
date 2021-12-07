@@ -57,19 +57,21 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
         finder?.processElementUsages(clazz, processor, options)
 
         for (usage in processor.results) {
-            if (FIND_SUBCLASSES) {
+             if (FIND_SUBCLASSES) {
                 (usage.element?.parent as? ArendLongName)?.let { longName ->
-                    (longName.parent as? ArendDefClass)?.let { defClass ->
-                        if (longName.refIdentifierList.lastOrNull()?.reference?.resolve() == clazz) {
-                            descendants.add(defClass)
+                    (longName.parent as? ArendSuperClass)?.let { superClass ->
+                        (superClass.parent as? ArendDefClass)?.let { defClass ->
+                            if (longName.refIdentifierList.lastOrNull()?.reference?.resolve() == clazz) {
+                                descendants.add(defClass)
+                            }
                         }
                     }
                 }
             }
 
             if (FIND_INSTANCES) {
-                val defInst = usage.element?.parentOfType<ArendReturnExpr>()?.parent as? InstanceAdapter
-                if (defInst?.typeClassReference == clazz) {
+                val defInst = usage.element?.parentOfType<ArendDefInstance>() //ArendReturnExpr>()?.parent as? InstanceAdapter
+                if (defInst?.classReference == clazz) {
                     descendants.add(defInst)
                 }
             }
