@@ -71,6 +71,12 @@ class ArendPsiFactory(
         return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
     }
 
+    fun createFunctionKeyword(keyword: String): ArendFunctionKw =
+        createFromText("$keyword foo => 0")?.childOfType<ArendDefFunction>()?.functionKw ?: error("Failed to create keyword $keyword")
+
+    fun createInstanceKeyword(keyword: String): ArendInstanceOrCons =
+        createFromText("$keyword foo => 0")?.childOfType<ArendDefInstance>()?.instanceOrCons ?: error("Failed to create keyword $keyword")
+
     fun createClause(expr: String, createWithEmptyExpression: Boolean = false): ArendClause {
         val code = "\\func foo => \\case goo \\with { | $expr ${if (createWithEmptyExpression) "" else "=> {?}"} }"
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")

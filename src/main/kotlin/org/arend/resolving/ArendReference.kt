@@ -131,8 +131,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             else -> {}
         }
 
+        val file = element.containingFile
         return elements.mapNotNull { origElement ->
-            createArendLookUpElement(origElement, element.containingFile, false, clazz, notARecord)
+            createArendLookUpElement(origElement, file, false, clazz, notARecord)
         }.toTypedArray()
     }
 
@@ -193,6 +194,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
 
     companion object {
         fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, fullName: Boolean, clazz: Class<*>?, notARecord: Boolean, lookup: String? = null): LookupElementBuilder? {
+            if (origElement is ModuleReferable && containingFile is ArendFile && origElement.path == containingFile.moduleLocation?.modulePath) {
+                return null
+            }
             val ref = origElement.underlyingReferable
             return if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
                 null

@@ -16,7 +16,7 @@ class AddClarifyingParensIntention : BaseArendIntention(ArendBundle.message("are
         editor ?: return false
         val binOp = BinOpIntentionUtil.findBinOp(element) ?: return false
         val binOpSeqAbs = binOp.parentOfType<ArendArgumentAppExpr>() ?: return false
-        val binOpSeq = BinOpIntentionUtil.toConcreteBinOpApp(binOpSeqAbs) ?: return false
+        val binOpSeq = BinOpIntentionUtil.toConcreteBinOpInfixApp(binOpSeqAbs) ?: return false
         return needClarifyingParens(binOpSeq)
     }
 
@@ -24,14 +24,14 @@ class AddClarifyingParensIntention : BaseArendIntention(ArendBundle.message("are
         editor ?: return
         val binOp = BinOpIntentionUtil.findBinOp(element) ?: return
         val binOpSeqAbs = binOp.parentOfType<ArendArgumentAppExpr>() ?: return
-        val binOpSeq = BinOpIntentionUtil.toConcreteBinOpApp(binOpSeqAbs) ?: return
+        val binOpSeq = BinOpIntentionUtil.toConcreteBinOpInfixApp(binOpSeqAbs) ?: return
         AddClarifyingParensProcessor().run(project, editor, binOp, binOpSeq)
     }
 }
 
 private fun needClarifyingParens(binOpSeq: Concrete.AppExpression): Boolean {
     return binOpSeq.arguments.any {
-        it.isExplicit && it.expression.let { e -> e is Concrete.AppExpression && BinOpIntentionUtil.isBinOpApp(e) }
+        it.isExplicit && it.expression.let { e -> e is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(e) }
     }
 }
 
@@ -44,7 +44,7 @@ class AddClarifyingParensProcessor : BinOpSeqProcessor() {
             return implicitArgumentText(arg, editor)
         }
         val expression = arg.expression
-        if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpApp(expression)) {
+        if (expression is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(expression)) {
             return mapBinOp(expression, editor, caretHelper)?.let { "($it)" }
         }
         return text(expression, editor)
