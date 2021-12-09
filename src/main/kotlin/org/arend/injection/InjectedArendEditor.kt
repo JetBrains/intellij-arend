@@ -51,7 +51,10 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let { document ->
-                EditorFactory.getInstance().createEditor(document, project, virtualFile, true)
+                EditorFactory.getInstance().createEditor(document, project, virtualFile, true).apply {
+                    settings.setGutterIconsShown(false)
+                    settings.isRightMarginShown = false
+                }
             }
         } else null
 
