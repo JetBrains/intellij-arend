@@ -16,7 +16,7 @@ class ArendMessagesService(private val project: Project) {
 
     fun activate(project: Project, selectFirst: Boolean) {
         runInEdt {
-            ToolWindowManager.getInstance(project).getToolWindow("Arend Errors")?.activate(if (selectFirst) Runnable {
+            ToolWindowManager.getInstance(project).getToolWindow("Arend Messages")?.activate(if (selectFirst) Runnable {
                 val service = project.service<ArendMessagesService>()
                 val view = service.view
                 if (view != null) {

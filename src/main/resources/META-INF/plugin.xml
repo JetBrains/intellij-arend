@@ -370,7 +370,7 @@
 
         <!-- Tool Windows -->
 
-        <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
+        <toolWindow id="Arend Messages" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
 
         <!-- Search everywhere contributor-->
         <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
