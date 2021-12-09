@@ -137,7 +137,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             return if (numExplicitsBefore == 0 && numImplicitsJustBefore <= 0) paramIndex else -1
         }
 
-        fun getAllParametersForReferable(def: Referable): List<Abstract.Parameter> {
+        fun getAllParametersForReferable(def: Referable, needImplicitConstructorParameters: Boolean = true): List<Abstract.Parameter> {
             val params = mutableListOf<Abstract.Parameter>()
             val psiFactory = ArendPsiFactory(ProjectManager.getInstance().openProjects.first())
             if (def is Abstract.ParametersHolder) {
@@ -162,7 +162,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                     }
                     else -> null
                 }
-                if (def is ArendConstructor) {
+                if (def is ArendConstructor && needImplicitConstructorParameters) {
                     val defData = def.parent?.parent as? ArendDefData
                     if (defData != null) {
                         for (tele in defData.typeTeleList.reversed()) {

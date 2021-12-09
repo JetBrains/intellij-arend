@@ -24,10 +24,14 @@ import org.arend.psi.ext.PsiReferable
 import org.arend.refactoring.getTele
 import org.arend.refactoring.splitTele
 import org.arend.resolving.ArendIdReferableConverter
+import org.arend.resolving.ArendReferableConverter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
+import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
+import java.lang.IllegalArgumentException
+import java.lang.StringBuilder
 
 /*
     The key steps of this intention:
@@ -117,6 +121,7 @@ abstract class ChangeArgumentExplicitnessApplier {
         factory = ArendPsiFactory(element.project)
         val def = element.ancestor<PsiReferable>() as? PsiElement ?: return element
         val indexInDef = getTeleIndexInDef(def, element) + indexInTele
+        val indexInCons = if (def is ArendConstructor) getTeleIndexInDef(def, element, false) + indexInTele else -1
         val fCalls = ReferencesSearch.search(def).map { it.element }.filter { it.isValid }
         val insertedPsi = ArrayList<PsiElement>()
         val scopes = HashMap<PsiElement, Scope>()
@@ -124,14 +129,16 @@ abstract class ChangeArgumentExplicitnessApplier {
             for (fCall in fCalls.map { getParentPsiFunctionCall(it) }.sortedBy { it.textLength }) {
                 val scopeAnchor = (fCall.ancestor<ArendDefinition>()?: fCall) as? ArendCompositeElement
                 val scope = if (scopeAnchor != null) scopes.computeIfAbsent(scopeAnchor) { CachingScope.make(scopeAnchor.scope) } else null
-                if (scope != null) CallWrapper.wrapWithSubTerms(fCall, def, insertedPsi, scope)
+                if (scope != null) CallWrapper.wrapWithSubTerms(fCall as Abstract.Expression, def, insertedPsi, scope)
             }
         }
 
         val updatedCalls = ArrayList(fCalls)
         insertedPsi.filter { it.isValid }.map { call -> updatedCalls.addAll(searchRefsInPsiElement(def, call).map { it.element }) }
 
-        for (ref in updatedCalls.filter{ it.isValid && !inOpenDeclaration(it) }) replaceWithSubTerms(ref, def, indexInDef)
+        for (ref in updatedCalls.filter{ it.isValid && !inOpenDeclaration(it) }) {
+            replaceWithSubTerms(ref, def, if (def is ArendConstructor && ref is ArendDefIdentifier && ref.parent is ArendPattern) indexInCons else indexInDef)
+        }
 
         return rewriteDef(element, indexInTele)
     }
@@ -162,13 +169,13 @@ abstract class ChangeArgumentExplicitnessApplier {
 
         val callerRef = extractRefIdFromCalling(def, updatedCall)
         for (ref in refs) {
-            if (ref.element != callerRef) {
+            if (ref.element.isValid && ref.element != callerRef?.element) {
                 replaceWithSubTerms(ref.element, def, indexInDef)
             }
         }
 
         // after wrapping in parens it should be true for most cases, because we shouldn't go up a lot
-        if (def == resolveCaller(updatedCall)) {
+        if (callerRef != null && def == callerRef.resolve() /* resolveCaller(updatedCall)*/) {
             val rewrittenCall = rewriteCall(updatedCall, def, indexInDef)
             if (needUnwrap && rewrittenCall !is ArendLamExpr) {
                 CallWrapper.unwrapCall(rewrittenCall)
@@ -188,7 +195,8 @@ abstract class ChangeArgumentExplicitnessApplier {
      * @return  list, where list.i = j means that ith argument in call is jth argument from definition
      */
     private fun getParametersIndices(def: PsiElement, call: PsiElement): List<Int> {
-        val parameters = getAllParametersForReferable(def as PsiReferable)
+        val isCostructorInPattern = def is ArendConstructor && call is ArendPattern
+        val parameters = getAllParametersForReferable(def as PsiReferable, !isCostructorInPattern)
         val argsExplicitness = getCallingParametersWithPhantom(call).map { it.first() != '{' }
         val argsIndices = mutableListOf<Int>()
         for (i in argsExplicitness.indices) {
@@ -229,11 +237,13 @@ abstract class ChangeArgumentExplicitnessApplier {
         val notEnoughArguments = (lastIndex < indexInDef)
 
         if (notEnoughArguments) {
-            if (lastImplicitArgumentsAreOmitted(def, lastIndex)) {
-                insertArgumentInIndex(call, createArgument("_"), argsText.size)
-                return call
-            }
-            return rewriteToLambda(call, def, indexInDef, lastIndex)
+            if (call is Abstract.Expression) {
+                if (lastImplicitArgumentsAreOmitted(def, lastIndex)) {
+                    insertArgumentInIndex(call, createArgument("_"), argsText.size)
+                    return call
+                }
+                return rewriteToLambda(call, def, indexInDef, lastIndex)
+            } else if (call is ArendPattern) return call // We are attempting to refactor code with "Not enough patterns" error?
         }
 
         val existsInArgList = (indices.indexOf(indexInDef) != -1)
@@ -252,8 +262,7 @@ abstract class ChangeArgumentExplicitnessApplier {
             deleteArgumentInIndex(call, indexInArgs)
         } else {
             val newArgText = rewriteArg(argsText[indexInArgs])
-            val newArgument = createArgument(newArgText)
-            changeArgumentInIndex(call, newArgument, def, indexInArgs)
+            changeArgumentInIndex(call, newArgText, def, indexInArgs)
         }
         return call
     }
@@ -324,7 +333,7 @@ abstract class ChangeArgumentExplicitnessApplier {
     /**
      * Inserts argument into call at index in the call
      */
-    private fun insertArgumentInIndex(call: PsiElement, argument: PsiElement, index: Int) {
+    private fun insertArgumentInIndex(call: PsiElement, argument: PsiElement, index: Int) { //TODO: Implement me for patterns!!!
         val parameters = getCallingParameters(call)
         val ws = factory.createWhitespace(" ")
 
@@ -341,7 +350,8 @@ abstract class ChangeArgumentExplicitnessApplier {
     /**
      * Changes argument's explicitness in the call
      */
-    private fun changeArgumentInIndex(call: PsiElement, argument: PsiElement, def: PsiElement, index: Int) {
+    private fun changeArgumentInIndex(call: PsiElement, newArgText: String, def: PsiElement, index: Int) {
+        val argument = if (call is ArendPattern) ArendPsiFactory(call.project).createAtomPattern(newArgText) else createArgument(newArgText)
         val indices = getParametersIndices(def, call)
         val oldArgument = getCallingParameters(call)[index]
         val anchor = oldArgument.replaceWithNotification(argument)
@@ -378,17 +388,12 @@ abstract class ChangeArgumentExplicitnessApplier {
      */
     abstract fun getCallingParameters(call: PsiElement): List<PsiElement>
 
-    /**
-     * Resolves the function of given call
-     */
-    abstract fun resolveCaller(call: PsiElement): PsiElement?
-
     abstract fun getContext(element: PsiElement): List<Variable>
 
     /**
      * Extracts reference to the function of given call
      */
-    abstract fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiElement?
+    abstract fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiReference?
 
     /**
      * Returns all parameters including phantoms
@@ -403,38 +408,56 @@ abstract class ChangeArgumentExplicitnessApplier {
 
 class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement =
+        if (element is ArendDefIdentifier && (element.parent is ArendPattern || element.parent is ArendLongName && element.parent.parent is ArendPattern)) element.ancestor<ArendPattern>()!! else
         element.ancestor<ArendArgumentAppExpr>() ?: element
 
     override fun convertCallToPrefix(call: PsiElement): PsiElement? {
+        if (call !is Abstract.Expression) return null
         val scope = CachingScope.make((((call.ancestor<ArendDefinition>() ?: call) as? ArendCompositeElement) ?: return null).scope)
         val concrete = convertCallToConcrete(call, scope) ?: return null
         val functionCallText = textOfConcreteAppExpression(concrete)
         return factory.createArgumentAppExpr(functionCallText)
     }
 
-    override fun getCallingParameters(call: PsiElement): List<PsiElement> = (call as ArendArgumentAppExpr).argumentList
+    override fun getCallingParameters(call: PsiElement): List<PsiElement> = when (call) {
+        is ArendArgumentAppExpr -> call.argumentList
+        is ArendPattern -> call.atomPatternOrPrefixList
+        else -> throw IllegalArgumentException()
+    }
 
     override fun getContext(element: PsiElement): List<Variable> {
         val argumentAppExpr = element as ArendArgumentAppExpr
         return argumentAppExpr.scope.elements.map { VariableImpl(it.textRepresentation()) }
     }
 
-    override fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiElement? {
-        val function = (call as ArendArgumentAppExpr).atomFieldsAcc!!
+    override fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiReference? {
+        val function = when (call) {
+            is ArendArgumentAppExpr -> call.atomFieldsAcc
+            is ArendPattern -> call.defIdentifier
+            else -> null
+        } ?: throw IllegalArgumentException()
+
         val refs = searchRefsInPsiElement(def, function)
-        return if (refs.isEmpty()) null else refs.first().element
+        return if (refs.isEmpty()) null else refs.first()
     }
 
     override fun getCallingParametersWithPhantom(call: PsiElement): List<String> {
         val scope = CachingScope.make(((call.ancestor<ArendDefinition>() ?: call) as? ArendCompositeElement)?.scope)
-        val concrete = convertCallToConcrete(call, scope)
-        return concrete?.arguments?.map { if (it.isExplicit) it.toString() else "{$it}" } ?: emptyList()
-    }
-
-    override fun resolveCaller(call: PsiElement): PsiElement? {
-        val psiFunctionCall = call as ArendArgumentAppExpr
-        val longName = psiFunctionCall.atomFieldsAcc?.childOfType<ArendLongName>() ?: return null
-        return getRefToFunFromLongName(longName)
+        return when (call) {
+            is ArendPattern -> {
+                val concretePattern = ConcreteBuilder.convertPattern(call, ArendReferableConverter, null, null)
+                concretePattern.patterns.map {
+                    val sb = StringBuilder()
+                    PrettyPrintVisitor(sb, 0).prettyPrintPattern(it, 0, false)
+                    sb.toString().let { str -> if (it.isExplicit) str else "{${str}}" }
+                }
+            }
+            is Abstract.Expression -> {
+                val concrete = convertCallToConcrete(call, scope)
+                concrete?.arguments?.map { if (it.isExplicit) it.toString() else "{$it}" } ?: emptyList()
+            }
+            else -> throw IllegalArgumentException()
+        }
     }
 
     override fun createArgument(arg: String): PsiElement =
@@ -455,20 +478,14 @@ class TypeApplier : ChangeArgumentExplicitnessApplier() {
         return localCoClause.scope.elements.map { VariableImpl(it.textRepresentation()) }
     }
 
-    override fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiElement? {
+    override fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiReference? {
         val function = (call as ArendLocalCoClause).longName!!
         val refs = searchRefsInPsiElement(def, function)
-        return if (refs.isEmpty()) null else refs.first().element
+        return if (refs.isEmpty()) null else refs.first()
     }
 
     override fun getCallingParametersWithPhantom(call: PsiElement): List<String> {
         return getCallingParameters(call).map { it.text }
-    }
-
-    override fun resolveCaller(call: PsiElement): PsiElement? {
-        val coClause = call as ArendLocalCoClause
-        val longName = coClause.longName ?: return null
-        return getRefToFunFromLongName(longName)
     }
 
     override fun createArgument(arg: String): PsiElement = factory.createCoClause("dummy $arg").lamParamList.first()
@@ -481,7 +498,7 @@ private object CallWrapper {
     /**
         Wraps into parens all calls in `call`-element where resolve of function equals `def`
     */
-    fun wrapWithSubTerms(call: PsiElement, def: PsiElement, insertedPsi: MutableList<PsiElement>, scope: Scope) {
+    fun wrapWithSubTerms(call: Abstract.Expression, def: PsiElement, insertedPsi: MutableList<PsiElement>, scope: Scope) {
         fun wrapInArguments(appExpr: Concrete.AppExpression, def: PsiElement, index: Int, needResult: Boolean): Concrete.AppExpression? {
             var concrete = appExpr
             val cntArguments = concrete.arguments.size
@@ -545,7 +562,7 @@ private object CallWrapper {
         wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
         insertedPsi.add(insertedCall)
 
-        return if (needResult) convertCallToConcrete(insertedCall.ancestor<ArendArgumentAppExpr>() ?: insertedCall, scope) ?: concrete else null
+        return if (needResult) convertCallToConcrete(insertedCall.ancestor<ArendArgumentAppExpr>() ?: insertedCall as Abstract.Expression, scope) ?: concrete else null
     }
 
     fun unwrapCall(call: PsiElement) {
@@ -615,7 +632,7 @@ private fun rewriteArg(text: String): String {
     return if (!toImplicit) {
         if (text.isNotEmpty() && text.first() == '-') "{ $text}" else "{$text}"
     } else {
-        newText = text.substring(1, text.length - 1)
+        newText = if (text == "()") text else text.substring(1, text.length - 1)
         if (newText.isNotEmpty() && newText.first() == '-') "{ $newText}" else "{$newText}"
     }
 }
@@ -623,8 +640,8 @@ private fun rewriteArg(text: String): String {
 /**
  * Returns first argument's index in this `tele` among all arguments in `def`
  */
-private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement): Int {
-    val parameters = getAllParametersForReferable(def as PsiReferable)
+private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement, includeConstructorParametersComingFromDefData: Boolean = true): Int {
+    val parameters = getAllParametersForReferable(def as PsiReferable, includeConstructorParametersComingFromDefData)
 
     var i = 0
     for (parameter in parameters) {
@@ -686,8 +703,8 @@ private fun needToWrapInBrackets(expr: String): Boolean {
     return false
 }
 
-private fun convertCallToConcrete(call: PsiElement, scope: Scope): Concrete.AppExpression? {
-    var convertedExpression = ConcreteBuilder.convertExpression(call as Abstract.Expression)
+private fun convertCallToConcrete(call: Abstract.Expression, scope: Scope): Concrete.AppExpression? {
+    var convertedExpression = ConcreteBuilder.convertExpression(call)
         .accept(
             ExpressionResolveNameVisitor(
                 ArendIdReferableConverter,

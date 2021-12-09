@@ -713,4 +713,24 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func lol => path (\lam i => cons2 (cons1 {1}) {i})         
     """)
+
+    fun testPatterns() = doTest("""        
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc {k : Nat} ({-caret-}n < m)
+
+       \func foo {n m : Nat} (p : n < suc m) : Nat \elim n, m, p
+         | suc n, 0, suc<suc ()
+         | suc (suc n), suc (suc m), suc<suc (suc<suc q) => 2
+         | _, _, _ => 3
+    """, """        
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc {k : Nat} {n < m}
+
+       \func foo {n m : Nat} (p : n < suc m) : Nat \elim n, m, p
+         | suc n, 0, suc<suc {_} {()}
+         | suc (suc n), suc (suc m), suc<suc {_} {suc<suc {_} {q}} => 2
+         | _, _, _ => 3
+    """)
 }
