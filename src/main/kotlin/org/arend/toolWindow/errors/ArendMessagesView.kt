@@ -11,9 +11,9 @@ import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
-import com.intellij.ui.JBSplitter
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
@@ -28,7 +28,6 @@ import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.util.ArendBundle
-import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
@@ -42,11 +41,11 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private val toolWindowPanel = SimpleToolWindowPanel(false)
     private val treeDetailsSplitter = OnePixelSplitter(false, 0.25f)
-    private val goalErrorSplitter = JBSplitter(false, 0.5f)
+    private val goalErrorSplitter = OnePixelSplitter(false, 0.5f)
     private var goalEditor: ArendMessagesViewEditor? = null
-    private val goalEmptyPanel = JPanel()
+    private val goalEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.goal.panel.text"))
     private var errorEditor: ArendMessagesViewEditor? = null
-    private val errorEmptyPanel = JPanel()
+    private val errorEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.error.panel.text"))
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
