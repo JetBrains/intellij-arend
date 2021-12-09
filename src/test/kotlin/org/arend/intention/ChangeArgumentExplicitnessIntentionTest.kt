@@ -298,6 +298,16 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testInfixAsPostfix() = doTest("""
+        \func \infix 4 ++ ({-caret-}n m : Nat) => n Nat.+ m
+        
+        \func zoo => `++ 1
+    """, """
+        \func \infix 4 ++ {n m : Nat} => n Nat.+ m
+        
+        \func zoo => (\lam x => ++ {x} {1})
+    """)
+
     fun testFunctionIESaveFullNames() = doTest(
         """
         \func f {A B : \Type} ({-caret-}a : A) (b : B) => a
