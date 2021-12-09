@@ -8,11 +8,12 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
+import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
 import com.intellij.ui.JBSplitter
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.layout.panel
+import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.ScrollPaneFactory
 import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
@@ -39,7 +40,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     val tree = ArendErrorTree(treeModel, this)
     private val autoScrollFromSource = ArendErrorTreeAutoScrollFromSource(project, tree)
 
-    private val treeDetailsSplitter = JBSplitter(false, 0.25f)
+    private val toolWindowPanel = SimpleToolWindowPanel(false)
+    private val treeDetailsSplitter = OnePixelSplitter(false, 0.25f)
     private val goalErrorSplitter = JBSplitter(false, 0.5f)
     private var goalEditor: ArendMessagesViewEditor? = null
     private val goalEmptyPanel = JPanel()
@@ -51,7 +53,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         toolWindow.setIcon(ArendIcons.MESSAGES)
         val contentManager = toolWindow.contentManager
-        contentManager.addContent(contentManager.factory.createContent(treeDetailsSplitter, "", false))
+        contentManager.addContent(contentManager.factory.createContent(toolWindowPanel, "", false))
 
         tree.cellRenderer = ArendErrorTreeCellRenderer()
         tree.addTreeSelectionListener(this)
@@ -68,13 +70,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         actionGroup.addSeparator()
         actionGroup.add(ArendMessagesFilterActionGroup(project, autoScrollFromSource))
 
-        val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, true)
-        toolbar.setTargetComponent(treeDetailsSplitter)
+        val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, false)
+        toolbar.setTargetComponent(toolWindowPanel)
 
-        treeDetailsSplitter.firstComponent = panel {
-            row { toolbar.component() }
-            row { JBScrollPane(tree)() }
-        }
+        toolWindowPanel.toolbar = toolbar.component
+        toolWindowPanel.setContent(treeDetailsSplitter)
+        treeDetailsSplitter.firstComponent = ScrollPaneFactory.createScrollPane(tree, true)
         treeDetailsSplitter.secondComponent = goalErrorSplitter
         goalErrorSplitter.firstComponent = goalEmptyPanel
         goalErrorSplitter.secondComponent = errorEmptyPanel
