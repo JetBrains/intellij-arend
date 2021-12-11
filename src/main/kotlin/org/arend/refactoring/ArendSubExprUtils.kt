@@ -17,6 +17,9 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.SyntaxTraverser
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
+import com.intellij.util.castSafelyTo
 import org.arend.core.expr.*
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
@@ -210,6 +213,21 @@ fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
             minOf(left.textRange.startOffset, right.textRange.startOffset),
             maxOf(left.textRange.endOffset, right.textRange.endOffset)
     )
+}
+
+fun psiOfConcrete(expr: Concrete.Expression): List<PsiElement> {
+    val range = rangeOfConcrete(expr)
+    if (range.isEmpty) {
+        return emptyList()
+    }
+    val file = expr.data?.castSafelyTo<PsiElement>()?.containingFile ?: return emptyList()
+    val first = file.findElementAt(range.startOffset)
+    val last = file.findElementAt(range.endOffset - 1)
+    if (first == null || last == null || first.startOffset != range.startOffset || last.endOffset != range.endOffset) {
+        throw IllegalStateException("Failed to calculate psi of concrete expression, unexpected range")
+    }
+    // TODO doesn't work, as we can get elements from non intersecting trees.
+    return PsiTreeUtil.getElementsOfRange(first, last)
 }
 
 private fun collectArendExprs(

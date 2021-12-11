@@ -12,7 +12,7 @@ import com.intellij.util.castSafelyTo
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
-import org.arend.psi.parentArgumentAppExpr
+import org.arend.refactoring.psiOfConcrete
 import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.visitor.VoidConcreteVisitor
@@ -137,7 +137,7 @@ private fun directParentAppExpression(parentAppExpr: ArendArgumentAppExpr, argum
     var directParent: Concrete.AppExpression? = null
     concreteParentAppExpr.accept(object : VoidConcreteVisitor<Void?, Void?>() {
         override fun visitApp(app: Concrete.AppExpression?, params: Void?): Void? {
-            if (app != null && app.arguments.any { it.expression.data == argument }) {
+            if (app != null && app.arguments.any { psiOfConcrete(it.expression).singleOrNull() == argument }) {
                 directParent = app
                 return null
             }
