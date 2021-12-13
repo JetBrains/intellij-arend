@@ -194,25 +194,27 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     fun runProofSearch(results: Sequence<ProofSearchEntry>?) {
         cleanupCurrentResults(results)
 
+        val settings = ProofSearchUISettings(project)
+
         runBackgroundableTask(ArendBundle.message("arend.proof.search.title"), myProject) { progressIndicator ->
             runWithLoadingIcon {
                 this.progressIndicator = progressIndicator
                 val elements = results ?: generateProofSearchResults(project, searchPattern)
-                var counter = RESULT_LIMIT
+                var counter = PROOF_SEARCH_RESULT_LIMIT
                 for (element in elements) {
                     if (progressIndicator.isCanceled) {
                         break
                     }
                     invokeLater {
                         model.add(DefElement(element))
-                        if (results != null && counter == RESULT_LIMIT && myResultsList.selectedIndex == -1) {
+                        if (results != null && counter == PROOF_SEARCH_RESULT_LIMIT && myResultsList.selectedIndex == -1) {
                             myResultsList.selectedIndex = myResultsList.itemsCount - 1
                         }
                     }
                     --counter
-                    if (counter == 0) {
+                    if (settings.shouldLimitSearch() && counter == 0) {
                         invokeLater {
-                            model.add(MoreElement(elements.drop(RESULT_LIMIT)))
+                            model.add(MoreElement(elements.drop(PROOF_SEARCH_RESULT_LIMIT)))
                         }
                         break
                     }
@@ -287,4 +289,4 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     }
 }
 
-private const val RESULT_LIMIT = 20
+const val PROOF_SEARCH_RESULT_LIMIT = 20

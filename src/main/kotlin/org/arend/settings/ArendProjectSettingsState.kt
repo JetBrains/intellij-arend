@@ -48,6 +48,7 @@ class ArendProjectSettingsState {
     // Proof search
     var includeTestLocations : Boolean = false
     var includeNonProjectLocations : Boolean = true
+    var truncateSearchResults : Boolean = true
 }
 
 class ArendPrintingOptions {

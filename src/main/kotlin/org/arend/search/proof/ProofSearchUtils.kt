@@ -120,6 +120,8 @@ class ProofSearchUISettings(private val project: Project) {
 
     private val includeNonProjectLocations: Boolean = project.service<ArendProjectSettings>().data.includeNonProjectLocations
 
+    private val truncateResults: Boolean = project.service<ArendProjectSettings>().data.truncateSearchResults
+
     fun checkAllowed(element: PsiElement): Boolean {
         if (includeNonProjectLocations && includeTestLocations) {
             return true
@@ -128,4 +130,6 @@ class ProofSearchUISettings(private val project: Project) {
         return (includeTestLocations || !TestSourcesFilter.isTestSources(file, project))
                 && (includeNonProjectLocations || ProjectScope.getProjectScope(project).contains(file))
     }
+
+    fun shouldLimitSearch() : Boolean = truncateResults
 }

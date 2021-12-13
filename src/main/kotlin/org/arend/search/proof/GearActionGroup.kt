@@ -6,11 +6,11 @@ import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.NlsActions
 import com.intellij.ui.popup.PopupState
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendProjectSettingsState
 import org.arend.util.ArendBundle
+import org.jetbrains.annotations.Nls
 import java.awt.event.MouseEvent
 import kotlin.reflect.KMutableProperty1
 
@@ -37,6 +37,7 @@ class GearActionGroup(private val searchUI: ProofSearchUI, val project: Project)
             templatePresentation.text = IdeBundle.message("show.options.menu")
             addAction(IncludeTests(searchUI, project))
             addAction(IncludeNonProjectFiles(searchUI, project))
+            addAction(LimitSearch(searchUI, project))
         }
     }
 }
@@ -45,7 +46,7 @@ private abstract class ProofSearchToggleSettingsAction(
     val searchUI: ProofSearchUI,
     val project: Project,
     val settingsProperty: KMutableProperty1<ArendProjectSettingsState, Boolean>,
-    actionText: @NlsActions.ActionText String
+    actionText: @Nls String
 ) : ToggleAction(actionText) {
     override fun isSelected(e: AnActionEvent): Boolean =
         settingsProperty.invoke(project.service<ArendProjectSettings>().data)
@@ -70,4 +71,12 @@ private class IncludeTests(searchUI: ProofSearchUI, project: Project) :
         project,
         ArendProjectSettingsState::includeTestLocations,
         ArendBundle.message("arend.proof.search.include.test.locations")
+    )
+
+private class LimitSearch(searchUI: ProofSearchUI, project: Project) :
+    ProofSearchToggleSettingsAction(
+        searchUI,
+        project,
+        ArendProjectSettingsState::truncateSearchResults,
+        ArendBundle.message("arend.proof.search.limit.search.results", PROOF_SEARCH_RESULT_LIMIT)
     )
