@@ -13,6 +13,7 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
+import org.arend.core.definition.ClassField
 import org.arend.core.definition.Constructor
 import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
@@ -101,6 +102,7 @@ fun getConcreteType(referable: PsiReferable): Concrete.Expression? {
 private fun getType(def: Definition): Expression? = when (def) {
     is FunctionDefinition -> def.resultType
     is Constructor -> def.getDataTypeExpression(LevelPair.STD)
+    is ClassField -> def.resultType
     else -> null
 }
 

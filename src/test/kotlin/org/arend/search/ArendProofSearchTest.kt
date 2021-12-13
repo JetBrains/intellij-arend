@@ -115,6 +115,11 @@ class ArendProofSearchTest : ArendTestBase() {
         \func f : (\lam x => Nat) = (\lam x => Nat) => {?}
     """, "Nat")
 
+    fun testClass() = assertHasMatch("""
+        \class Foo {
+          | foo : Nat
+        }
+    """, "Nat")
 }
 
 
