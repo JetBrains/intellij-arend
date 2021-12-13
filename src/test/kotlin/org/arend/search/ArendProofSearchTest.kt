@@ -120,6 +120,10 @@ class ArendProofSearchTest : ArendTestBase() {
           | foo : Nat
         }
     """, "Nat")
+
+    fun testCurried() = assertHasMatch("""
+        \func f (a b : Nat) : a + b = a => {?}
+    """, "+ _")
 }
 
 

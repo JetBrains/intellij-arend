@@ -154,11 +154,6 @@ private fun doubleArgumentIterable(patternArguments : List<Concrete.Argument>, m
         container.add(patternArg.expression to matchArguments[indexInMatch].expression)
         indexInMatch += 1
     }
-    for (remainder in matchArguments.subList(indexInMatch, matchArguments.size)) {
-        if (remainder.isExplicit) {
-            return null
-        }
-    }
     return container
 }
 
