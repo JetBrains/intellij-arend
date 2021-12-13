@@ -29,10 +29,11 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
         val project = parameters.project
         val tasks = ArrayList<Pair<String, SearchScope>>()
 
-        val standardName = elementToSearch.refName
-        val aliasName = elementToSearch.aliasName
-        if (scope is GlobalSearchScope) {
-            runReadAction {
+
+        runReadAction {
+            val standardName = elementToSearch.refName
+            val aliasName = elementToSearch.aliasName
+            if (scope is GlobalSearchScope) {
                 collectSearchScopes(listOf(standardName), scope, project).forEach {
                     val arendFile = PsiManager.getInstance(project).findFile(it) as? ArendFile
                     if (arendFile != null) {
@@ -46,10 +47,10 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
                             tasks.add(aliasName to LocalSearchScope(arendFile))
                         }
                     }
-                }
             }
-        } else if (aliasName != null) {
-            tasks.add(Pair(aliasName, scope))
+            } else if (aliasName != null) {
+                tasks.add(Pair(aliasName, scope))
+            }
         }
 
         for (task in tasks) {

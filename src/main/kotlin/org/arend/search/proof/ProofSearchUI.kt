@@ -8,21 +8,24 @@ import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.*
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.fields.ExtendableTextField
-import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
+import com.intellij.util.ui.EmptyIcon
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
+import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
 import org.arend.psi.navigate
 import org.arend.util.ArendBundle
@@ -40,6 +43,8 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     private val searchAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
     private val model: CollectionListModel<ProofSearchUIEntry> = CollectionListModel()
+
+    private val loadingIcon: JBLabel = JBLabel(EmptyIcon.ICON_16)
 
     @Volatile
     private var progressIndicator: ProgressIndicator? = null
@@ -73,8 +78,9 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     }
 
     override fun createTopLeftPanel(): JPanel {
-        val title = JLabel(ArendBundle.message("arend.proof.search.title"))
-        val topPanel: JPanel = NonOpaquePanel(BorderLayout())
+        @Suppress("DialogTitleCapitalization")
+        val title = JBLabel(ArendBundle.message("arend.proof.search.title"))
+        val topPanel = JPanel(MigLayout("flowx, ins 0, gap 0, fillx, filly"))
         val foregroundColor = when {
             StartupUiUtil.isUnderDarcula() -> when {
                 UIUtil.isUnderWin10LookAndFeel() -> JBColor.WHITE
@@ -86,13 +92,12 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         title.foreground = foregroundColor
         title.border = BorderFactory.createEmptyBorder(3, 5, 5, 0)
         if (SystemInfo.isMac) {
-            title.font = title.font.deriveFont(Font.BOLD, title.font.size - 1f)
+            title.font = loadingIcon.font.deriveFont(Font.BOLD, title.font.size - 1f)
         } else {
-            title.font = title.font.deriveFont(Font.BOLD)
+            title.font = loadingIcon.font.deriveFont(Font.BOLD)
         }
-
-        topPanel.add(title)
-
+        topPanel.add(title, "gapright 4")
+        topPanel.add(loadingIcon, "w 24, wmin 24")
         return topPanel
     }
 
@@ -190,26 +195,43 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         cleanupCurrentResults(results)
 
         runBackgroundableTask(ArendBundle.message("arend.proof.search.title"), myProject) { progressIndicator ->
-            this.progressIndicator = progressIndicator
-            val elements = results ?: generateProofSearchResults(project, searchPattern)
-            var counter = RESULT_LIMIT
-            for (element in elements) {
-                if (progressIndicator.isCanceled) {
-                    break
-                }
-                invokeLater {
-                    model.add(DefElement(element))
-                    if (results != null && counter == RESULT_LIMIT && myResultsList.selectedIndex == -1) {
-                        myResultsList.selectedIndex = myResultsList.itemsCount - 1
+            runWithLoadingIcon {
+                this.progressIndicator = progressIndicator
+                val elements = results ?: generateProofSearchResults(project, searchPattern)
+                var counter = RESULT_LIMIT
+                for (element in elements) {
+                    if (progressIndicator.isCanceled) {
+                        break
                     }
-                }
-                --counter
-                if (counter == 0) {
                     invokeLater {
-                        model.add(MoreElement(elements.drop(RESULT_LIMIT)))
+                        model.add(DefElement(element))
+                        if (results != null && counter == RESULT_LIMIT && myResultsList.selectedIndex == -1) {
+                            myResultsList.selectedIndex = myResultsList.itemsCount - 1
+                        }
                     }
-                    break
+                    --counter
+                    if (counter == 0) {
+                        invokeLater {
+                            model.add(MoreElement(elements.drop(RESULT_LIMIT)))
+                        }
+                        break
+                    }
                 }
+            }
+        }
+    }
+
+    private inline fun runWithLoadingIcon(action: () -> Unit) {
+        runInEdt {
+            loadingIcon.icon = AnimatedIcon.Default.INSTANCE
+            loadingIcon.toolTipText = ArendBundle.message("arend.proof.search.loading.tooltip")
+        }
+        try {
+            action()
+        } finally {
+            runInEdt {
+                loadingIcon.setIconWithAlignment(ArendIcons.CHECKMARK, SwingConstants.LEFT, SwingConstants.TOP)
+                loadingIcon.toolTipText = ArendBundle.message("arend.proof.search.completed.tooltip")
             }
         }
     }

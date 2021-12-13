@@ -36,6 +36,7 @@ object ArendIcons {
     val MOVE_RIGHT = getIcon("/icons/moveRight.svg")
 
     val TURNSTILE = getIcon("/icons/turnstile.svg")
+    val CHECKMARK = getIcon("/icons/checkmark.svg")
 
     // Source code elements
 
