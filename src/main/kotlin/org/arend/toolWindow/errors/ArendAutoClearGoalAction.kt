@@ -11,12 +11,11 @@ import javax.swing.JLabel
 import javax.swing.SwingConstants
 
 class ArendAutoClearGoalAction: ToggleAction("Clear Goals Automatically", "Clear goals when they are removed from the source code", ICON) {
-    override fun isSelected(e: AnActionEvent): Boolean = e.project?.service<ArendMessagesService>()?.isAutoClearGoals ?: false
+    override fun isSelected(e: AnActionEvent): Boolean =
+            e.project?.service<ArendMessagesService>()?.isAutoClearGoals?.get() ?: false
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
-        val service = e.project?.service<ArendMessagesService>()
-        service?.isAutoClearGoals = state
-        if (!state) service?.updateEditor()
+        e.project?.service<ArendMessagesService>()?.isAutoClearGoals?.set(state)
     }
 
     companion object {

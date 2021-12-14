@@ -91,6 +91,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             isShowErrorsPanel.afterReset { secondComponent.isVisible = false }
         }
 
+        project.service<ArendMessagesService>().isAutoClearGoals.afterChange { updateEditor() }
+
         update()
     }
 
@@ -133,7 +135,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
         } else {
             if (!isGoalTextPinned() && shouldClear(goalEditor)) {
-                if (project.service<ArendMessagesService>().isAutoClearGoals) {
+                if (project.service<ArendMessagesService>().isAutoClearGoals.get()) {
                     clearGoalText()
                     return
                 }

@@ -29,6 +29,7 @@ class ArendProjectSettingsState {
     var showResolving = true
     var showParsing = false
 
+    var isAutoClearGoals = false
     var isShowErrorsPanel = true
 
     // Printing options
