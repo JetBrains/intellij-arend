@@ -3,6 +3,9 @@ package org.arend.actions
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
@@ -18,6 +21,7 @@ import org.arend.refactoring.*
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.subexpr.FindBinding
+import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
 class ArendShowTypeAction : ArendPopupAction() {
@@ -47,7 +51,14 @@ class ArendShowTypeAction : ArendPopupAction() {
             if (normalizePopup) normalizeExpr(project, e, NormalizationMode.RNF, definitionRenamer) { exprStr ->
                 displayEditorHint(exprStr.toString(), project, editor, AD_TEXT_N)
             } else {
-                displayEditorHint(exprToConcrete(project, e, NormalizationMode.RNF, definitionRenamer).toString(), project, editor, AD_TEXT)
+                ProgressManager.getInstance().run(object : Task.Backgroundable(project, ArendBundle.message("arend.show.type.progress"), true) {
+                    override fun shouldStartInBackground(): Boolean = true
+
+                    override fun run(indicator: ProgressIndicator) {
+                        val concrete = exprToConcrete(project, e, NormalizationMode.RNF, definitionRenamer).toString()
+                        displayEditorHint(concrete, project, editor, AD_TEXT)
+                    }
+                })
             }
         } else throw SubExprException("failed to synthesize type from given expr")
 
