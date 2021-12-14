@@ -45,9 +45,12 @@ fun Project.findExternalLibrary(root: Path, libName: String): ExternalLibraryCon
 
 fun Module.register() {
     val service = project.service<TypeCheckingService>()
-    service.initialize()
-    val config = ArendModuleConfigService.getInstance(this) ?: return
-    config.copyFromYAML(false)
+    val config = runReadAction {
+        service.initialize()
+        val config = ArendModuleConfigService.getInstance(this) ?: return@runReadAction null
+        config.copyFromYAML(false)
+        config
+    } ?: return
     refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
     runReadAction {
         service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))

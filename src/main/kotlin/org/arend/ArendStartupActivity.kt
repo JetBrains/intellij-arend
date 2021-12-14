@@ -4,17 +4,21 @@ import com.intellij.ProjectTopics
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.project.DumbModeTask
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.ArendBundle
 import org.arend.util.arendModules
 import org.arend.util.register
 
 
-class ArendStartupActivity : StartupActivity {
+class ArendStartupActivity : StartupActivity.RequiredForSmartMode {
     override fun runActivity(project: Project) {
         val libraryManager = project.service<TypeCheckingService>().libraryManager
 
@@ -42,8 +46,18 @@ class ArendStartupActivity : StartupActivity {
         })
         */
 
-        for (module in project.arendModules) {
-            module.register()
-        }
+        DumbService.getInstance(project).queueTask(object : DumbModeTask(ArendStartupActivity::class.java) {
+            override fun performInDumbMode(indicator: ProgressIndicator) {
+                val modules = project.arendModules
+                indicator.text = ArendBundle.message("arend.startup.loading.arend.modules")
+                indicator.isIndeterminate = false
+                indicator.fraction = 0.0
+                val progressFraction = 1.0 / modules.size.toDouble()
+                for (module in modules) {
+                    module.register()
+                    indicator.fraction = indicator.fraction + progressFraction
+                }
+            }
+        })
     }
 }
