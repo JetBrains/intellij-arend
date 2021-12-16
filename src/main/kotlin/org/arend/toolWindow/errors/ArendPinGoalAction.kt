@@ -5,8 +5,13 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
 import org.arend.ArendIcons
+import org.arend.util.ArendBundle
 
-class ArendPinGoalAction: ToggleAction("Pin Goal", "When the goal is pinned, other goals will not be displayed", ArendIcons.PIN) {
+class ArendPinGoalAction : ToggleAction(
+        ArendBundle.message("arend.pin.goal.action.name"),
+        ArendBundle.message("arend.pin.goal.action.description"),
+        ArendIcons.PIN
+) {
     override fun isSelected(e: AnActionEvent): Boolean {
         val service = getMessagesService(e)
         return service?.isGoalTextPinned ?: false

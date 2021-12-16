@@ -6,9 +6,14 @@ import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
 import com.intellij.ui.LayeredIcon
 import com.intellij.util.IconUtil
+import org.arend.util.ArendBundle
 import javax.swing.SwingConstants
 
-class ArendShowErrorsPanelAction : ToggleAction("Show Errors Panel", "Show errors panel ", ICON) {
+class ArendShowErrorsPanelAction : ToggleAction(
+        ArendBundle.message("arend.show.errors.panel.action.name"),
+        ArendBundle.message("arend.show.errors.panel.action.description"),
+        ICON
+) {
     override fun isSelected(e: AnActionEvent): Boolean =
             e.project?.service<ArendMessagesService>()?.isShowErrorsPanel?.get() ?: true
 

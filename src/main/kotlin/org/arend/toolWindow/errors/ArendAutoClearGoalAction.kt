@@ -7,10 +7,15 @@ import com.intellij.ui.LayeredIcon
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.IconUtil
 import org.arend.ArendIcons
+import org.arend.util.ArendBundle
 import javax.swing.JLabel
 import javax.swing.SwingConstants
 
-class ArendAutoClearGoalAction: ToggleAction("Clear Goals Automatically", "Clear goals when they are removed from the source code", ICON) {
+class ArendAutoClearGoalAction : ToggleAction(
+        ArendBundle.message("arend.auto.clear.goal.action.name"),
+        ArendBundle.message("arend.auto.clear.goal.action.description"),
+        ICON
+) {
     override fun isSelected(e: AnActionEvent): Boolean =
             e.project?.service<ArendMessagesService>()?.isAutoClearGoals?.get() ?: false
 
