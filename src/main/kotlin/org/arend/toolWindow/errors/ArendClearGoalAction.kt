@@ -12,7 +12,7 @@ class ArendClearGoalAction : AnAction(
         ArendIcons.CLEAR
 ) {
     override fun actionPerformed(e: AnActionEvent) {
-        e.project?.service<ArendMessagesService>()?.clearGoalText()
+        e.project?.service<ArendMessagesService>()?.clearGoalEditor()
     }
 
     companion object {

@@ -6,7 +6,7 @@ import org.arend.ext.error.GeneralError
 import org.arend.injection.InjectedArendEditor
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
 
-class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeElement)
+class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeElement, private val isGoalEditor: Boolean)
     : InjectedArendEditor(project, "Arend Messages", treeElement) {
     init {
         setupActions()
@@ -26,10 +26,9 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
     }
 
     private fun setupActions() {
-        if (treeElement?.highestError?.error?.level == GeneralError.Level.GOAL) {
+        if (isGoalEditor) {
             actionGroup.add(ActionManager.getInstance().getAction(ArendClearGoalAction.ID))
             actionGroup.add(ActionManager.getInstance().getAction(ArendPinGoalAction.ID))
-            actionGroup.add(ArendAutoClearGoalAction())
         }
         val enablePrintOptions = treeElement?.errors?.any { it.error.hasExpressions() } ?: false
         actionGroup.add(ArendPrintOptionsActionGroup(project, printOptionKind, enablePrintOptions))
