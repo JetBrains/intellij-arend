@@ -29,7 +29,7 @@ class ArendProjectSettingsState {
     var showResolving = true
     var showParsing = false
 
-    var isShowErrorsPanel = true
+    var isShowAllMessagesPanel = true
 
     // Printing options
     var consolePrintingOptions = ArendPrintingOptions()

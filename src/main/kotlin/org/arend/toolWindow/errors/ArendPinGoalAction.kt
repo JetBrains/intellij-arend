@@ -20,7 +20,7 @@ class ArendPinGoalAction : ToggleAction(
     override fun setSelected(e: AnActionEvent, state: Boolean) {
         val service = getMessagesService(e)
         service?.isGoalTextPinned = state
-        if (!state) service?.updateEditor()
+        if (!state) service?.updateEditors()
     }
 
     private fun getMessagesService(e: AnActionEvent): ArendMessagesService? =
