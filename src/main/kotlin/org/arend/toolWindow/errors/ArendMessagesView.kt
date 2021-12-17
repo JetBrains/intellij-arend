@@ -14,7 +14,10 @@ import com.intellij.psi.PsiElement
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.ui.tabs.TabInfo
+import com.intellij.ui.tabs.impl.SingleHeightTabs
 import com.intellij.util.castSafelyTo
+import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
@@ -28,6 +31,8 @@ import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.util.ArendBundle
+import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
@@ -46,6 +51,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val goalEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.goal.panel.text"))
     private var allMessagesEditor: ArendMessagesViewEditor? = null
     private val allMessagesEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.all.messages.panel.text"))
+    private val goalsPanel = JBUI.Panels.simplePanel(goalEmptyPanel)
+    private val allMessagesPanel = JBUI.Panels.simplePanel(allMessagesEmptyPanel)
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
@@ -80,8 +87,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         treeDetailsSplitter.secondComponent = goalsAllMessagesSplitter
 
         goalsAllMessagesSplitter.apply {
-            firstComponent = goalEmptyPanel
-            secondComponent = allMessagesEmptyPanel
+            firstComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
+                addTab(TabInfo(goalsPanel).apply { text = "Latest Goal" })
+            }
+            secondComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
+                addTab(TabInfo(allMessagesPanel).apply { text = "All Messages" })
+            }
             val isShowAllMessagesPanel = project.service<ArendMessagesService>().isShowAllMessagesPanel
             secondComponent.isVisible = isShowAllMessagesPanel.get()
             isShowAllMessagesPanel.afterSet {
@@ -97,8 +108,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun projectClosing(project: Project) {
         if (project == this.project) {
             root.removeAllChildren()
-            goalsAllMessagesSplitter.firstComponent = goalEmptyPanel
-            goalsAllMessagesSplitter.secondComponent = allMessagesEmptyPanel
+            goalsPanel.removeAll()
+            allMessagesPanel.removeAll()
             goalEditor?.release()
             goalEditor = null
             allMessagesEditor?.release()
@@ -116,14 +127,14 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     goalEditor = ArendMessagesViewEditor(project, treeElement, true)
                 }
                 updateEditor(goalEditor!!, treeElement)
-                goalsAllMessagesSplitter.firstComponent = goalEditor?.component ?: goalEmptyPanel
+                updatePanel(goalsPanel, goalEditor?.component ?: goalEmptyPanel)
             }
             if (isShowAllMessagesPanel()) {
                 if (allMessagesEditor == null) {
                     allMessagesEditor = ArendMessagesViewEditor(project, treeElement, false)
                 }
                 updateEditor(allMessagesEditor!!, treeElement)
-                goalsAllMessagesSplitter.secondComponent = allMessagesEditor?.component ?: allMessagesEmptyPanel
+                updatePanel(allMessagesPanel, allMessagesEditor?.component ?: allMessagesEmptyPanel)
             }
         } else {
             if (goalEditor?.treeElement != null && !isGoalTextPinned() && shouldClear(goalEditor)) {
@@ -133,7 +144,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
             if (isShowAllMessagesPanel() && shouldClear(allMessagesEditor)) {
                 allMessagesEditor?.clear()
-                goalsAllMessagesSplitter.secondComponent = allMessagesEmptyPanel
+                updatePanel(allMessagesPanel, allMessagesEmptyPanel)
             }
         }
     }
@@ -166,6 +177,13 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         return false
     }
 
+    private fun updatePanel(panel: JPanel, component: JComponent) {
+        panel.removeAll()
+        panel.add(component)
+        panel.revalidate()
+        panel.repaint()
+    }
+
     fun updateGoalText() {
         goalEditor?.updateErrorText()
         if (allMessagesEditor?.treeElement?.highestError?.error?.level == GeneralError.Level.GOAL) {
@@ -185,7 +203,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             tree.clearSelection()
         }
         goalEditor?.clear()
-        goalsAllMessagesSplitter.firstComponent = goalEmptyPanel
+        updatePanel(goalsPanel, goalEmptyPanel)
     }
 
     private fun configureError(error: GeneralError) {
