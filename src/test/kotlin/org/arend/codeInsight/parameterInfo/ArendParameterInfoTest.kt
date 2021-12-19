@@ -217,4 +217,12 @@ class ArendParameterInfoTest : ArendTestBase() {
         checkParameterInfo(code, expectedHint)
     }
 
+    fun `test constructor arguments`() = checkParameterInfo("""
+       \data List (A : \Type) \Type
+         | nil
+         | :: A (List A A)
+
+       \func lol => ::{-caret-} 
+    """, "{A : \\Type}, {_ : \\Type}, _ : A, _ : List A A")
+
 }

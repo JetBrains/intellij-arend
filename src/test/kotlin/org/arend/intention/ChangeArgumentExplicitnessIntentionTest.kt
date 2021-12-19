@@ -298,6 +298,16 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testInfixAsPostfix() = doTest("""
+        \func \infix 4 ++ {-caret-}(n m : Nat) => n Nat.+ m
+        
+        \func zoo => `++ 1
+    """, """
+        \func \infix 4 ++ {n m : Nat} => n Nat.+ m
+        
+        \func zoo => (\lam n => ++ {n} {1})
+    """)
+
     fun testFunctionIESaveFullNames() = doTest(
         """
         \func f {A B : \Type} ({-caret-}a : A) (b : B) => a
@@ -526,6 +536,20 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testInfixEIPreserveArguments() = doTest("""
+       \func foo (n : Nat) : n = n => idp
+
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} ({-caret-}p : a = a') (q : a' = a'') : a = a'' \elim q | idp => p
+
+       \func lol => (foo 1 *> idp)
+    """, """
+       \func foo (n : Nat) : n = n => idp
+
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} {p : a = a'} (q : a' = a'') : a = a'' \elim q | idp => p
+
+       \func lol => (*> {_} {_} {_} {_} {foo 1} idp) 
+    """)
+
     fun testFunctionEINested() = doTest(
         """
         \func \infixl 7 <> {A B : \Type} (a : A) (b : B) => a
@@ -652,5 +676,114 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        
        \func foo2 (x y z : Nat) : x + y + z + (x + y + z) = x + (y + z) + (x + (y + z))
          => pmap2 (+) +-assoc {_} {_} {+-assoc}   
+    """)
+
+    fun testData() = doTest("""
+       \data D ({-caret-}a : Nat)
+         | con (n : Nat)
+
+       \func foo : D 0 => con 3 
+    """, """
+       \data D {a : Nat}
+         | con (n : Nat)
+
+       \func foo : D {0} => con 3 
+    """)
+
+    fun testDataConstructor() = doTest("""
+       \data TruncP (A : \Type)
+         | inP A
+         | truncP (a a' : TruncP A) ({-caret-}i : I) \elim i {
+           | left  => a
+           | right => a'
+       } \where {
+         \use \level levelProp {A : \Type} (a a' : TruncP A) : a = a' => path (truncP a a')
+       }
+    """, """
+       \data TruncP (A : \Type)
+         | inP A
+         | truncP (a a' : TruncP A) {i : I} \elim i {
+           | left  => a
+           | right => a'
+       } \where {
+         \use \level levelProp {A : \Type} (a a' : TruncP A) : a = a' => path (\lam i => truncP a a' {i})
+       } 
+    """)
+
+    fun testDataConstructorClause() = doTest("""
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc ({-caret-}n < m)
+
+       \func lol : 1 < 2 => suc<suc (zero<suc {0}) 
+    """, """
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc {n < m}
+
+       \func lol : 1 < 2 => suc<suc {_} {_} {zero<suc {0}} 
+    """)
+
+    fun testDataConstructorClause2() = doTest("""
+       \data foo (n m : Nat) \with
+         | 0, suc _ => cons1
+         | suc n, suc m => cons2 (foo n m) ({-caret-}i : I)
+
+       \func lol => path (cons2 (cons1 {1}))
+    """, """
+       \data foo (n m : Nat) \with
+         | 0, suc _ => cons1
+         | suc n, suc m => cons2 (foo n m) {i : I}
+
+       \func lol => path (\lam i => cons2 (cons1 {1}) {i})         
+    """)
+
+    fun testPatterns() = doTest("""        
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc {k : Nat} ({-caret-}n < m)
+
+       \func foo {n m : Nat} (p : n < suc m) : Nat \elim n, m, p
+         | suc n, 0, suc<suc ()
+         | suc (suc n), suc (suc m), suc<suc (suc<suc q) => 2
+         | _, _, _ => 3
+    """, """        
+       \data \infix 4 < (n m : Nat) \with
+         | 0, suc _ => zero<suc
+         | suc n, suc m => suc<suc {k : Nat} {n < m}
+
+       \func foo {n m : Nat} (p : n < suc m) : Nat \elim n, m, p
+         | suc n, 0, suc<suc {_} {()}
+         | suc (suc n), suc (suc m), suc<suc {_} {suc<suc {_} {q}} => 2
+         | _, _, _ => 3
+    """)
+
+    fun testRangeForConcrete() = doTest("""
+       \open Nat(+)
+
+       \func \infix 2 ==< {A : \Type} (a : A) {a' : A} (p : a = a') => p
+
+       \func \infixr 1 >== {A : \Type} {a a' a'' : A} (p : a = a') ({-caret-}q : a' = a'') : a = a'' \elim q
+         | idp => p
+
+       \func \fix 2 qed {A : \Type} (a : A) : a = a => idp  
+
+       \func foo (x : Nat) =>
+         0 + x  ==< idp >==
+         0 + x  ==< idp >==
+         0 + x  ==< idp >==
+         0 + x `qed
+    """, """
+       \open Nat(+)
+
+       \func \infix 2 ==< {A : \Type} (a : A) {a' : A} (p : a = a') => p
+
+       \func \infixr 1 >== {A : \Type} {a a' a'' : A} (p : a = a') {q : a' = a''} : a = a'' \elim q
+         | idp => p
+
+       \func \fix 2 qed {A : \Type} (a : A) : a = a => idp  
+
+       \func foo (x : Nat) => 
+         >== (0 + x  ==< idp) {>== (0 + x  ==< idp) {>== (0 + x  ==< idp) {0 + x `qed}}}
     """)
 }

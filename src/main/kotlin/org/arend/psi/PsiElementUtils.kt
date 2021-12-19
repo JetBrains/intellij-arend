@@ -13,10 +13,11 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.castSafelyTo
+import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
+import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes.*
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.typechecking.error.ErrorService
@@ -351,12 +352,18 @@ fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
     else -> null
 }
 
-fun getTelesFromDef(def: PsiElement?): List<ArendCompositeElement> = when (def) {
-    is ArendDefFunction -> def.nameTeleList
-    is ArendDefClass -> def.fieldTeleList
-    is ArendClassField -> def.typeTeleList
-    else -> emptyList()
+fun getIdName(id: Referable): String? = when (id) {
+    is ArendDefIdentifier -> id.name
+    is ArendFieldDefIdentifier -> id.name
+    else -> null
 }
+
+fun getTelesFromDef(def: PsiElement?): List<Pair<String?, Boolean>>? =
+    (def as? Referable)?.let { referable ->
+        ArendParameterInfoHandler.getAllParametersForReferable(referable)
+            .map { it.referableList.map { v ->
+                Pair((v as? PsiElement)?.let{getIdName(v)}, it.isExplicit)
+            } }.flatten()}
 
 fun Editor.getSelectionWithoutErrors(): TextRange? =
     EditorUtil.getSelectionInAnyMode(this).takeIf { range ->
@@ -369,5 +376,5 @@ fun Editor.getSelectionWithoutErrors(): TextRange? =
         elementsWithErrors.all { !range.intersects(it.textRange) }
     }
 
-fun parentArgumentAppExpr(atomFieldsAcc: ArendAtomFieldsAcc?): ArendArgumentAppExpr? =
+ fun parentArgumentAppExpr(atomFieldsAcc: ArendAtomFieldsAcc?): ArendArgumentAppExpr? =
         atomFieldsAcc?.parent?.let { if (it is ArendAtomArgument) it.parent else it }?.castSafelyTo()

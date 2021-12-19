@@ -42,7 +42,6 @@ import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteExpressionVisitor
 import org.arend.typechecking.TypeCheckingService
-import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
 import java.math.BigInteger
 import java.util.Collections.singletonList
@@ -632,13 +631,15 @@ fun unwrapParens(tuple: ArendTuple): ArendExpr? {
 
 fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
                              argumentOrFieldsAcc: PsiElement,
-                             defArgsData: DefAndArgsInParsedBinopResult): ArendArgumentAppExpr? {
+                             ipName: ArendIPName,
+                             operatorConcrete: Concrete.Expression,
+                             rangeData: HashMap<Concrete.Expression, TextRange>? = null,
+                             rangeCallback: ((TextRange, Int) -> Unit)? = null): ArendArgumentAppExpr? {
     val argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
-    val ipName = defArgsData.functionReferenceContainer as ArendIPName
     val nodes = argumentAppExpr.firstChild.siblings().map { it.node }.toList()
-    val operatorConcrete = defArgsData.operatorConcrete.let { if (it is Concrete.LamExpression) it.body else it }
-    val operatorRange = getBounds(operatorConcrete, nodes)!!
+    val operatorRange = getBounds(operatorConcrete, nodes, rangeData)!!
     val psiElements = nodes.filter { operatorRange.contains(it.textRange) }.map { it.psi }
+    val psiElementsRange = TextRange(psiElements.first().textRange.startOffset, psiElements.last().textRange.endOffset)
 
     var resultingExpr = "${LongName(ipName.longName)} "
     val leadingElements = java.util.ArrayList<PsiElement>()
@@ -672,19 +673,25 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
         psiElements.size == nodes.size -> {
             val tupleExpr = surroundingTupleExpr(argumentAppExpr)
             val appExpr = psiFactory.createExpression(resultingExpr.trim()).childOfType<ArendArgumentAppExpr>()!!
-            if (tupleExpr != null && tupleExpr.colon == null && isLambda)
-                argumentAppExpr.replaceWithNotification(appExpr.childOfType<ArendLamExpr>()!!) as? ArendExpr
-            else
+            if (tupleExpr != null && tupleExpr.colon == null && isLambda) {
+                val newPsi = appExpr.childOfType<ArendLamExpr>()!!
+                rangeCallback?.invoke(argumentAppExpr.textRange, newPsi.textLength)
+                argumentAppExpr.parent.replaceWithNotification(newPsi) as? ArendExpr
+            } else {
+                rangeCallback?.invoke(argumentAppExpr.textRange, appExpr.textLength)
                 argumentAppExpr.replaceWithNotification(appExpr) as? ArendArgumentAppExpr
+            }
         }
         operatorRange.contains(nodes.first().textRange) -> {
             val atomFieldsAcc = psiFactory.createExpression("(${resultingExpr.trim()}) foo").childOfType<ArendAtomFieldsAcc>()!!
+            rangeCallback?.invoke(psiElementsRange, atomFieldsAcc.textLength)
             val insertedExpr = argumentAppExpr.addAfterWithNotification(atomFieldsAcc, psiElements.last())
             argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
             insertedExpr.childOfType<ArendArgumentAppExpr>()
         }
         else -> {
             val atom = psiFactory.createExpression("foo (${resultingExpr.trim()})").childOfType<ArendAtomArgument>()!!
+            rangeCallback?.invoke(TextRange(psiElements.first().textRange.startOffset, psiElements.last().textRange.endOffset), atom.textLength)
             val insertedExpr = argumentAppExpr.addBeforeWithNotification(atom, psiElements.first())
             argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
             insertedExpr.childOfType<ArendArgumentAppExpr>()

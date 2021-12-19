@@ -32,13 +32,17 @@ fun appExprToConcrete(appExpr: Abstract.Expression, setData: Boolean): Concrete.
                     resolveReference(data, referent, fixity)
         }, null)
 
-fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? {
+fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, rangesMap: HashMap<Concrete.Expression, TextRange>? = null): TextRange? {
     val cExprData = cExpr.data
+    var result: TextRange? = null
+
+    if (rangesMap != null && rangesMap[cExpr] != null) return rangesMap[cExpr]
+
     if (cExpr is Concrete.AppExpression) {
         val elements = ArrayList<TextRange>()
         val fData = cExpr.function.data
 
-        elements.addAll(cExpr.arguments.asSequence().mapNotNull { getBounds(it.expression, aaeBlocks) })
+        elements.addAll(cExpr.arguments.asSequence().mapNotNull { getBounds(it.expression, aaeBlocks, rangesMap) })
 
         if (fData is PsiElement) {
             val f = aaeBlocks.filter { it.textRange.contains(fData.textRange) }
@@ -49,14 +53,19 @@ fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>): TextRange? 
         val startOffset = elements.asSequence().map { it.startOffset }.minOrNull()
         val endOffset = elements.asSequence().map { it.endOffset }.maxOrNull()
         if (startOffset != null && endOffset != null) {
-            return TextRange.create(startOffset, endOffset)
+            result = TextRange.create(startOffset, endOffset)
         }
     } else if (cExprData is PsiElement) {
         for (psi in aaeBlocks) if (psi.textRange.contains(cExprData.node.textRange)) {
-            return psi.textRange
+            result = psi.textRange
+            break
         }
+    } else if (cExpr is Concrete.LamExpression) { //cExpr.data == null, so this is most likely a postfix or apply hole expression
+        result = getBounds(cExpr.body, aaeBlocks, rangesMap)
     }
-    return null
+
+    if (result != null) rangesMap?.put(cExpr, result)
+    return result
 }
 
 fun concreteDataToSourceNode(data: Any?): ArendSourceNode? = if (data is ArendIPName) (data.infix
