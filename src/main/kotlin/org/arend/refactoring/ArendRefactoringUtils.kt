@@ -632,11 +632,10 @@ fun unwrapParens(tuple: ArendTuple): ArendExpr? {
 
 fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
                              argumentOrFieldsAcc: PsiElement,
-                             defArgsData: DefAndArgsInParsedBinopResult): ArendArgumentAppExpr? {
+                             ipName: ArendIPName,
+                             operatorConcrete: Concrete.Expression): ArendArgumentAppExpr? {
     val argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
-    val ipName = defArgsData.functionReferenceContainer as ArendIPName
     val nodes = argumentAppExpr.firstChild.siblings().map { it.node }.toList()
-    val operatorConcrete = defArgsData.operatorConcrete.let { if (it is Concrete.LamExpression) it.body else it }
     val operatorRange = getBounds(operatorConcrete, nodes)!!
     val psiElements = nodes.filter { operatorRange.contains(it.textRange) }.map { it.psi }
 

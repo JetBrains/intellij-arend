@@ -1,35 +1,32 @@
 package org.arend.intention
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
+import com.intellij.psi.TokenType
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import org.arend.codeInsight.ArendParameterInfoHandler.Companion.findParamIndex
 import org.arend.codeInsight.ArendParameterInfoHandler.Companion.getAllParametersForReferable
-import org.arend.error.DummyErrorReporter
-import org.arend.ext.concrete.expr.ConcreteExpression
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.renamer.StringRenamer
-import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
 import org.arend.psi.ext.PsiReferable
-import org.arend.refactoring.getTele
-import org.arend.refactoring.splitTele
-import org.arend.resolving.ArendIdReferableConverter
+import org.arend.refactoring.*
 import org.arend.resolving.ArendReferableConverter
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
-import org.arend.typechecking.visitor.SyntacticDesugarVisitor
+import org.arend.util.appExprToConcrete
+import org.arend.util.getBounds
 import java.lang.IllegalArgumentException
 import java.lang.StringBuilder
 
@@ -51,6 +48,8 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
     ArendBundle.message("arend.coClause.changeArgumentExplicitness")
 ) {
     override fun isApplicableTo(element: ArendCompositeElement, caretOffset: Int, editor: Editor): Boolean {
+        if (DumbService.isDumb(element.project)) return false
+
         return when (element) {
             is ArendNameTele, is ArendFieldTele, is ArendTypeTele ->
                 element.parent?.let{ it is ArendDefinition || it is ArendClassField || it is ArendConstructor } ?: false
@@ -124,12 +123,9 @@ abstract class ChangeArgumentExplicitnessApplier {
         val indexInCons = if (def is ArendConstructor) getTeleIndexInDef(def, element, false) + indexInTele else -1
         val fCalls = ReferencesSearch.search(def).map { it.element }.filter { it.isValid }
         val insertedPsi = ArrayList<PsiElement>()
-        val scopes = HashMap<PsiElement, Scope>()
         if (element !is ArendTypeTele) {
-            for (fCall in fCalls.map { getParentPsiFunctionCall(it) }.sortedBy { it.textLength }) {
-                val scopeAnchor = (fCall.ancestor<ArendDefinition>()?: fCall) as? ArendCompositeElement
-                val scope = if (scopeAnchor != null) scopes.computeIfAbsent(scopeAnchor) { CachingScope.make(scopeAnchor.scope) } else null
-                if (scope != null) CallWrapper.wrapWithSubTerms(fCall as Abstract.Expression, def, insertedPsi, scope)
+            for (fCall in fCalls.map { getParentPsiFunctionCall(it) }.sortedBy { it.textLength }) if (fCall is ArendArgumentAppExpr) {
+                CallWrapper.wrapWithSubTerms(fCall, def, insertedPsi)
             }
         }
 
@@ -413,9 +409,8 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
 
     override fun convertCallToPrefix(call: PsiElement): PsiElement? {
         if (call !is Abstract.Expression) return null
-        val scope = CachingScope.make((((call.ancestor<ArendDefinition>() ?: call) as? ArendCompositeElement) ?: return null).scope)
-        val concrete = convertCallToConcrete(call, scope) ?: return null
-        val functionCallText = textOfConcreteAppExpression(concrete)
+        val concrete = appExprToConcrete(call) as? Concrete.AppExpression ?: return null
+        val functionCallText = textOfConcreteAppExpression(concrete, HashMap())
         return factory.createArgumentAppExpr(functionCallText)
     }
 
@@ -446,7 +441,6 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
     }
 
     override fun getCallingParametersWithPhantom(call: PsiElement): List<String> {
-        val scope = CachingScope.make(((call.ancestor<ArendDefinition>() ?: call) as? ArendCompositeElement)?.scope)
         return when (call) {
             is ArendPattern -> {
                 val concretePattern = ConcreteBuilder.convertPattern(call, ArendReferableConverter, null, null)
@@ -457,7 +451,7 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
                 }
             }
             is Abstract.Expression -> {
-                val concrete = convertCallToConcrete(call, scope)
+                val concrete = appExprToConcrete(call) as? Concrete.AppExpression
                 concrete?.arguments?.map { if (it.isExplicit) it.toString() else "{$it}" } ?: emptyList()
             }
             else -> throw IllegalArgumentException()
@@ -502,34 +496,58 @@ private object CallWrapper {
     /**
         Wraps into parens all calls in `call`-element where resolve of function equals `def`
     */
-    fun wrapWithSubTerms(call: Abstract.Expression, def: PsiElement, insertedPsi: MutableList<PsiElement>, scope: Scope) {
-        fun wrapInArguments(appExpr: Concrete.AppExpression, def: PsiElement, index: Int, needResult: Boolean): Concrete.AppExpression? {
-            var concrete = appExpr
-            val cntArguments = concrete.arguments.size
-            val function = concrete.function.data as PsiElement
 
-            // It's important to update concrete, because its `data` becomes dummy after rewriting
-            for (i in 0 until cntArguments) {
-                val argument = concrete.arguments[i].expression
-                if (argument is Concrete.AppExpression) {
-                    val currentCall = wrapInArguments(argument, def, i, true)!!
-                    // it's hard to find after wrapping psi-call corresponding argument
-                    concrete = if (currentCall.toString() != appExpr.toString()) {
-                        val newCall = currentCall.arguments.getOrNull(index)?.expression as? Concrete.AppExpression
-                        if (newCall == null || newCall.toString() != appExpr.toString()) continue
-                        newCall
-                    } else {
-                        currentCall
-                    }
+    fun convertToConcreteAndGetBounds(psi: ArendArgumentAppExpr, rangesMap: HashMap<Concrete.Expression, TextRange>): Concrete.Expression? {
+        val cExpr = appExprToConcrete(psi)
+        val children = psi.node.getChildren(null).filter { it.elementType != TokenType.WHITE_SPACE }.toList()
+        if (cExpr != null) getBounds(cExpr, children, rangesMap)
+        return cExpr
+    }
+
+    fun wrapWithSubTerms(call: ArendArgumentAppExpr, def: PsiElement, insertedPsi: MutableList<PsiElement>) {
+        val rangeData = HashMap<Concrete.Expression, TextRange>()
+        factory = ArendPsiFactory(def.project)
+        val concrete = convertToConcreteAndGetBounds(call, rangeData)
+
+        fun wrapInArguments(appExpr: Concrete.Expression, def: PsiElement) {
+            if (appExpr is Concrete.AppExpression) {
+                val function = appExpr.function.data as PsiElement
+                val resolve = tryResolveFunctionName(function)
+
+                for (argument in appExpr.arguments) {
+                    wrapInArguments(argument.expression, def)
                 }
+
+                if (def == resolve) {
+                    if (function is ArendIPName && function.postfix != null) {
+                        //TODO: Process postfix call here
+                    } else
+                        wrapCall(appExpr, insertedPsi, rangeData)
+                }
+
+            } else if (appExpr is Concrete.LamExpression && appExpr.data == null) { //postfix or apply hole expression
+                wrapInArguments(appExpr.body, def)
             }
-            val resolve = tryResolveFunctionName(function)
-            return if (def == resolve) wrapCall(concrete, insertedPsi, scope, needResult) else concrete
         }
 
-        factory = ArendPsiFactory(def.project)
-        val concrete = convertCallToConcrete(call, scope) ?: return
-        wrapInArguments(concrete, def, -1, false)
+        if (concrete != null) wrapInArguments(concrete, def)
+    }
+
+    fun updateTextRanges(rangeData: HashMap<Concrete.Expression, TextRange>, modifiedTextRange: TextRange, insertedLength: Int) {
+        val lenDiff = insertedLength - modifiedTextRange.length
+        for (rangeEntry1 in rangeData.entries.toList()) {
+            if (rangeEntry1.value.contains(modifiedTextRange)) {
+                rangeData[rangeEntry1.key] = TextRange(rangeEntry1.value.startOffset, rangeEntry1.value.endOffset + lenDiff)
+            } else if (rangeEntry1.value.startOffset > modifiedTextRange.endOffset) {
+                rangeData[rangeEntry1.key] = rangeEntry1.value.shiftRight(lenDiff)
+            } else if (rangeEntry1.value.endOffset < modifiedTextRange.startOffset) {
+                //Do nothing
+            } else if (modifiedTextRange.contains(rangeEntry1.value)) {
+                rangeData.remove(rangeEntry1.key) // information no longer valid
+            } else if (rangeEntry1.value.endOffset > modifiedTextRange.startOffset) {
+                throw java.lang.IllegalStateException()
+            }
+        }
     }
 
     /**
@@ -537,18 +555,18 @@ private object CallWrapper {
      *
      * @return  concrete, where call is wrapped
      */
-    fun wrapCall(concrete: Concrete.AppExpression, insertedPsi: MutableList<PsiElement>, scope: Scope, needResult: Boolean): Concrete.AppExpression? {
-        val call = (concrete.function.data as PsiElement).ancestor<ArendArgumentAppExpr>() ?: return concrete
-        val (first, last) = getRangeForConcrete(concrete, call) ?: return concrete
+    fun wrapCall(concrete: Concrete.AppExpression, insertedPsi: MutableList<PsiElement>, rangeData: HashMap<Concrete.Expression, TextRange>) {
+        val call = (concrete.function.data as PsiElement).ancestor<ArendArgumentAppExpr>() ?: return
+        val (first, last) = getRangeForConcrete(concrete, call, rangeData) ?: return
         val isCurrentCallOnTop = (call.firstChild == first && call.lastChild == last)
         val isAlreadyWrapped =
             wrapped.contains(call) ||
                     !call.isValid ||
                     ("(${call.text})" == call.ancestor<ArendTuple>()?.text && isCurrentCallOnTop)
 
-        if (isAlreadyWrapped) return concrete
+        if (isAlreadyWrapped) return
 
-        val callText = textOfConcreteAppExpression(concrete)
+        val callText = textOfConcreteAppExpression(concrete, rangeData)
         val newCall = buildString {
             for (child in call.children) {
                 if (child == first) {
@@ -561,12 +579,12 @@ private object CallWrapper {
         }.trimEnd()
 
         val wrappedCall = factory.createArgumentAppExpr(newCall).lastChild
+        updateTextRanges(rangeData, TextRange(first.textRange.startOffset, last.textRange.endOffset), wrappedCall.textLength)
+
         val insertedCall = call.addAfterWithNotification(wrappedCall, last)
         call.deleteChildRangeWithNotification(first, last)
         wrapped.add(insertedCall.childOfType<ArendArgumentAppExpr>()!!)
         insertedPsi.add(insertedCall)
-
-        return if (needResult) convertCallToConcrete(insertedCall.ancestor<ArendArgumentAppExpr>() ?: insertedCall as Abstract.Expression, scope) ?: concrete else null
     }
 
     fun unwrapCall(call: PsiElement) {
@@ -627,7 +645,7 @@ private fun rewriteArg(text: String): String {
 
     if (toExplicit) {
         newText = text.substring(1, text.length - 1)
-        if (needToWrapInBrackets(text)) {
+        if (needToWrapInParens(text)) {
             newText = "($newText)"
         }
         return newText
@@ -695,7 +713,7 @@ private fun tryResolveFunctionName(element: PsiElement): PsiElement? =
         element.reference?.resolve()
     }
 
-private fun needToWrapInBrackets(expr: String): Boolean {
+private fun needToWrapInParens(expr: String): Boolean {
     val stack = ArrayDeque<Char>()
     for (sym in expr) {
         when (sym) {
@@ -707,27 +725,16 @@ private fun needToWrapInBrackets(expr: String): Boolean {
     return false
 }
 
-private fun convertCallToConcrete(call: Abstract.Expression, scope: Scope): Concrete.AppExpression? {
-    var convertedExpression = ConcreteBuilder.convertExpression(call)
-        .accept(
-            ExpressionResolveNameVisitor(
-                ArendIdReferableConverter,
-                scope,
-                ArrayList(),
-                DummyErrorReporter.INSTANCE,
-                null
-            ), null
-        )
-        .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
-    if (convertedExpression is Concrete.LamExpression)
-        convertedExpression = convertedExpression.body // expression contained implicit lambda "__"
-    return convertedExpression as? Concrete.AppExpression ?: return null
-}
+private fun containsApplyHole(expr: Any?) : Boolean =
+    (expr as? ArendLiteral)?.applyHole != null ||
+            (expr as? ArendArgumentAppExpr)?.argumentList?.any {
+                ((it as? ArendAtomArgument)?.atomFieldsAcc?.atom?.literal)?.applyHole != null
+            } == true
 
 /**
  * Returns original text(as in editor, not pretty-printing) for concrete
  */
-private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression): String =
+private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression, rangeData: HashMap<Concrete.Expression, TextRange>): String =
     buildString {
         val function = concrete.function.data as PsiElement
         val call = function.ancestor<ArendArgumentAppExpr>() ?: function
@@ -736,19 +743,17 @@ private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression): Strin
 
         for (arg in concrete.arguments) {
             val concreteArg = arg.expression
-            fun isLiteral (p : Any?) : Boolean = (p as? ArendLiteral)?.applyHole != null
-            var parens = false
+            var needToWrap = false
             val argText =
-                if (concreteArg is Concrete.LamExpression &&
-                    (isLiteral(concreteArg.data) || (concreteArg.data as? ArendArgumentAppExpr)?.argumentList?.any { isLiteral((it as? ArendAtomArgument)?.atomFieldsAcc?.atom?.literal) } == true)) {
+                if (concreteArg is Concrete.LamExpression && containsApplyHole(concreteArg.data)) {
                     (concreteArg.body.data as PsiElement).text
                 } else if (concreteArg !is Concrete.AppExpression) {
-                    if (concreteArg is Concrete.ReferenceExpression) {
-                        parens = concreteArg.referent is GlobalReferable && (concreteArg.referent as GlobalReferable).representablePrecedence.isInfix
+                    if (concreteArg is Concrete.ReferenceExpression && concreteArg.referent is GlobalReferable && (concreteArg.referent as GlobalReferable).representablePrecedence.isInfix) {
+                        needToWrap = true
                     }
                     (concreteArg.data as PsiElement).text
-                } else {
-                    val (first, last) = getRangeForConcrete(concreteArg, call) ?: continue
+                } else { // concreteArg is Concrete.AppExpression
+                    val (first, last) = getRangeForConcrete(concreteArg, call, rangeData) ?: continue
                     getTextForRange(first, last)
                 }
 
@@ -759,7 +764,7 @@ private fun textOfConcreteAppExpression(concrete: Concrete.AppExpression): Strin
             }
 
             if (arg.isExplicit) {
-                if (needToWrapInBrackets(argText) || parens) {
+                if (needToWrapInParens(argText) || needToWrap) {
                     append("($argText) ")
                 } else {
                     append("$argText ")
@@ -790,28 +795,14 @@ private fun getTopChildOnPath(element: PsiElement, parent: PsiElement): PsiEleme
  * @param topCall  call that the `concrete`-expression is inside
  * @return  psi-range corresponding to this `concrete`
  */
-private fun getRangeForConcrete(concrete: Concrete.Expression, topCall: PsiElement): Pair<PsiElement, PsiElement>? {
-    fun getTopExprByComparator(
-        argumentsSequence: List<ConcreteExpression>,
-        comp: (List<ConcreteExpression>) -> ConcreteExpression?
-    ): ConcreteExpression? {
-        val argOrAppExpr = comp(argumentsSequence) ?: return null
-        return if (argOrAppExpr is Concrete.AppExpression) comp(argOrAppExpr.argumentsSequence.map { it.expression })
-        else argOrAppExpr
+private fun getRangeForConcrete(concrete: Concrete.Expression, topCall: PsiElement, rangeData: HashMap<Concrete.Expression, TextRange>): Pair<PsiElement, PsiElement>? {
+    val textRange = rangeData[concrete]
+    if (textRange != null) {
+        val first1 = topCall.children.first { textRange.contains(it.textRange) }
+        val last1 = topCall.children.reversed().first { textRange.contains(it.textRange) }
+        return Pair(first1, last1)
     }
-
-    val argumentsSequence = concrete.argumentsSequence.map { it.expression }
-    val first =
-        getTopExprByComparator(argumentsSequence) { seq -> seq.minByOrNull { (it.data as PsiElement).textOffset } }
-            ?: return null
-    val last =
-        getTopExprByComparator(argumentsSequence) { seq -> seq.maxByOrNull { (it.data as PsiElement).textOffset } }
-            ?: return null
-
-    return Pair(
-        getTopChildOnPath(first.data as PsiElement, topCall),
-        getTopChildOnPath(last.data as PsiElement, topCall)
-    )
+    return null
 }
 
 /**

@@ -29,6 +29,7 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
+import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
 import org.arend.util.findDefAndArgsInParsedBinop
 import java.util.ArrayList
@@ -499,7 +500,8 @@ class ArendMoveRefactoringProcessor(project: Project,
                     if (ipName != null) when {
                         ipName.infix != null -> addImplicitArgAfter(psiFactory, localArgumentOrFieldsAcc, argument, true)
                         ipName.postfix != null -> {
-                            val transformedAtomFieldsAcc = transformPostfixToPrefix(psiFactory, localArgumentOrFieldsAcc, defArgsData)?.atomFieldsAcc
+                            val operatorConcrete = defArgsData.operatorConcrete.let { if (it is Concrete.LamExpression) it.body else it }
+                            val transformedAtomFieldsAcc = transformPostfixToPrefix(psiFactory, localArgumentOrFieldsAcc, ipName, operatorConcrete)?.atomFieldsAcc
                             if (transformedAtomFieldsAcc != null) addImplicitArgAfter(psiFactory, transformedAtomFieldsAcc, argument, true)
                         }
                     } else {

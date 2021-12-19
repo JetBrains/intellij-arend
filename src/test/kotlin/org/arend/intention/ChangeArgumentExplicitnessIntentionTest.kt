@@ -508,7 +508,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testInfixIEArgumentsIsAppExpr() = doTest(
+    fun testInfixIEArgumentsIsAppExpr() = doTest(//Fixme
         """
         \func mp {A B : \Type} (a : A) (b : B) => (a, b)
 
@@ -742,5 +742,34 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          | suc n, 0, suc<suc {_} {()}
          | suc (suc n), suc (suc m), suc<suc {_} {suc<suc {_} {q}} => 2
          | _, _, _ => 3
+    """)
+
+    fun testRangeForConcrete() = doTest("""
+       \open Nat(+)
+
+       \func \infix 2 ==< {A : \Type} (a : A) {a' : A} (p : a = a') => p
+
+       \func \infixr 1 >== {A : \Type} {a a' a'' : A} (p : a = a') ({-caret-}q : a' = a'') : a = a'' \elim q
+         | idp => p
+
+       \func \fix 2 qed {A : \Type} (a : A) : a = a => idp  
+
+       \func foo (x : Nat) =>
+         0 + x  ==< idp >==
+         0 + x  ==< idp >==
+         0 + x  ==< idp >==
+         0 + x `qed
+    """, """
+       \open Nat(+)
+
+       \func \infix 2 ==< {A : \Type} (a : A) {a' : A} (p : a = a') => p
+
+       \func \infixr 1 >== {A : \Type} {a a' a'' : A} (p : a = a') {q : a' = a''} : a = a'' \elim q
+         | idp => p
+
+       \func \fix 2 qed {A : \Type} (a : A) : a = a => idp  
+
+       \func foo (x : Nat) => 
+         >== (0 + x  ==< idp) {>== (0 + x  ==< idp) {>== (0 + x  ==< idp) {0 + x `qed}}}
     """)
 }
