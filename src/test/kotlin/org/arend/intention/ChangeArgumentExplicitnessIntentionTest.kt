@@ -299,13 +299,13 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     )
 
     fun testInfixAsPostfix() = doTest("""
-        \func \infix 4 ++ ({-caret-}n m : Nat) => n Nat.+ m
+        \func \infix 4 ++ {-caret-}(n m : Nat) => n Nat.+ m
         
         \func zoo => `++ 1
     """, """
         \func \infix 4 ++ {n m : Nat} => n Nat.+ m
         
-        \func zoo => (\lam x => ++ {x} {1})
+        \func zoo => (\lam n => ++ {n} {1})
     """)
 
     fun testFunctionIESaveFullNames() = doTest(
@@ -508,7 +508,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun testInfixIEArgumentsIsAppExpr() = doTest(//Fixme
+    fun testInfixIEArgumentsIsAppExpr() = doTest(
         """
         \func mp {A B : \Type} (a : A) (b : B) => (a, b)
 
@@ -535,6 +535,20 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func test => f {1} 2 Nat.+ f {1} 3 Nat.+ 1
         """
     )
+
+    fun testInfixEIPreserveArguments() = doTest("""
+       \func foo (n : Nat) : n = n => idp
+
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} ({-caret-}p : a = a') (q : a' = a'') : a = a'' \elim q | idp => p
+
+       \func lol => (foo 1 *> idp)
+    """, """
+       \func foo (n : Nat) : n = n => idp
+
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} {p : a = a'} (q : a' = a'') : a = a'' \elim q | idp => p
+
+       \func lol => (*> {_} {_} {_} {_} {foo 1} idp) 
+    """)
 
     fun testFunctionEINested() = doTest(
         """

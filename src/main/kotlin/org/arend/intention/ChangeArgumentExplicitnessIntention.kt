@@ -123,11 +123,11 @@ abstract class ChangeArgumentExplicitnessApplier {
         val indexInCons = if (def is ArendConstructor) getTeleIndexInDef(def, element, false) + indexInTele else -1
         val fCalls = ReferencesSearch.search(def).map { it.element }.filter { it.isValid }
         val insertedPsi = ArrayList<PsiElement>()
-        if (element !is ArendTypeTele) {
-            for (fCall in fCalls.map { getParentPsiFunctionCall(it) }.sortedBy { it.textLength }) if (fCall is ArendArgumentAppExpr) {
+
+        for (fCall in fCalls.map { getParentPsiFunctionCall(it) }.sortedBy { it.textLength })
+            if (fCall is ArendArgumentAppExpr) {
                 CallWrapper.wrapWithSubTerms(fCall, def, insertedPsi)
             }
-        }
 
         val updatedCalls = ArrayList(fCalls)
         insertedPsi.filter { it.isValid }.map { call -> updatedCalls.addAll(searchRefsInPsiElement(def, call).map { it.element }) }
@@ -409,8 +409,9 @@ class NameFieldApplier : ChangeArgumentExplicitnessApplier() {
 
     override fun convertCallToPrefix(call: PsiElement): PsiElement? {
         if (call !is Abstract.Expression) return null
-        val concrete = appExprToConcrete(call) as? Concrete.AppExpression ?: return null
-        val functionCallText = textOfConcreteAppExpression(concrete, HashMap())
+        val rangesMap = HashMap<Concrete.Expression, TextRange>()
+        val concrete = if (call is ArendArgumentAppExpr) CallWrapper.convertToConcreteAndGetBounds(call, rangesMap) else null
+        val functionCallText = if (concrete is Concrete.AppExpression) textOfConcreteAppExpression(concrete, rangesMap) else return null
         return factory.createArgumentAppExpr(functionCallText)
     }
 
@@ -519,8 +520,10 @@ private object CallWrapper {
                 }
 
                 if (def == resolve) {
-                    if (function is ArendIPName && function.postfix != null) {
-                        //TODO: Process postfix call here
+                    val atomFieldsAcc = function.parent?.parent?.parent
+                    if (function is ArendIPName && function.postfix != null && atomFieldsAcc is ArendAtomFieldsAcc) {
+                        val transformedAppExpr = transformPostfixToPrefix(factory, atomFieldsAcc, function, appExpr, rangeData) { range, i -> updateTextRanges(rangeData, range, i) }
+                        if (transformedAppExpr is PsiElement) insertedPsi.add(transformedAppExpr)
                     } else
                         wrapCall(appExpr, insertedPsi, rangeData)
                 }

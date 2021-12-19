@@ -36,6 +36,8 @@ fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, rangesMap: H
     val cExprData = cExpr.data
     var result: TextRange? = null
 
+    if (rangesMap != null && rangesMap[cExpr] != null) return rangesMap[cExpr]
+
     if (cExpr is Concrete.AppExpression) {
         val elements = ArrayList<TextRange>()
         val fData = cExpr.function.data
