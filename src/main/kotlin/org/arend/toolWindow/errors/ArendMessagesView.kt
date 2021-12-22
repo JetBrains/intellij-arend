@@ -13,6 +13,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.psi.PsiElement
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.impl.SingleHeightTabs
@@ -22,7 +23,6 @@ import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
-import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.settings.ArendProjectSettings
@@ -53,6 +53,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val allMessagesEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.all.messages.panel.text"))
     private val goalsPanel = JBUI.Panels.simplePanel(goalEmptyPanel)
     private val allMessagesPanel = JBUI.Panels.simplePanel(allMessagesEmptyPanel)
+    private val goalsTabInfo = TabInfo(goalsPanel).apply {
+        text = ArendBundle.message("arend.messages.view.latest.goal.title")
+    }
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
@@ -88,10 +91,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         goalsAllMessagesSplitter.apply {
             firstComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
-                addTab(TabInfo(goalsPanel).apply { text = "Latest Goal" })
+                addTab(goalsTabInfo)
             }
             secondComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
-                addTab(TabInfo(allMessagesPanel).apply { text = "All Messages" })
+                addTab(TabInfo(allMessagesPanel).apply {
+                    text = ArendBundle.message("arend.messages.view.all.messages.title")
+                })
             }
             val isShowAllMessagesPanel = project.service<ArendMessagesService>().isShowAllMessagesPanel
             secondComponent.isVisible = isShowAllMessagesPanel.get()
@@ -127,7 +132,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     goalEditor = ArendMessagesViewEditor(project, treeElement, true)
                 }
                 updateEditor(goalEditor!!, treeElement)
-                updatePanel(goalsPanel, goalEditor?.component ?: goalEmptyPanel)
+                updateGoalsView(goalEditor?.component ?: goalEmptyPanel)
             }
             if (isShowAllMessagesPanel()) {
                 if (allMessagesEditor == null) {
@@ -139,8 +144,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         } else {
             if (goalEditor?.treeElement != null && !isGoalTextPinned() && shouldClear(goalEditor)) {
                 goalEditor?.treeElement = null
-                val outdatedMessage = "\n[${ArendBundle.message("arend.messages.view.outdated.goal")}]"
-                goalEditor?.addDoc(DocFactory.text(outdatedMessage), null, false)
+                val goalRemovedTitle = " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})"
+                goalsTabInfo.append(goalRemovedTitle, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
             }
             if (isShowAllMessagesPanel() && shouldClear(allMessagesEditor)) {
                 allMessagesEditor?.clear()
@@ -184,6 +189,11 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         panel.repaint()
     }
 
+    private fun updateGoalsView(component: JComponent) {
+        updatePanel(goalsPanel, component)
+        goalsTabInfo.text = ArendBundle.message("arend.messages.view.latest.goal.title")
+    }
+
     fun updateGoalText() {
         goalEditor?.updateErrorText()
         if (allMessagesEditor?.treeElement?.highestError?.error?.level == GeneralError.Level.GOAL) {
@@ -203,7 +213,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             tree.clearSelection()
         }
         goalEditor?.clear()
-        updatePanel(goalsPanel, goalEmptyPanel)
+        updateGoalsView(goalEmptyPanel)
     }
 
     private fun configureError(error: GeneralError) {

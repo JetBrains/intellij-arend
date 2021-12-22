@@ -135,7 +135,7 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         }
     }
 
-    fun addDoc(doc: Doc, docScope: Scope?, scroll: Boolean = true) {
+    fun addDoc(doc: Doc, docScope: Scope) {
         if (editor == null) return
 
         val builder = StringBuilder()
@@ -148,14 +148,10 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
             val document = editor.document
             val length = document.textLength
             document.insertString(length, text)
-            if (scroll) {
-                editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
-            }
+            editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
 
             getInjectionFile()?.apply {
-                if (docScope != null) {
-                    scope = docScope
-                }
+                scope = docScope
                 injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
                 injectedExpressions.addAll(visitor.expressions)
             }
