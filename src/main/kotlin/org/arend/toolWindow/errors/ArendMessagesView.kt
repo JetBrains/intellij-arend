@@ -47,15 +47,17 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val toolWindowPanel = SimpleToolWindowPanel(false)
     private val treeDetailsSplitter = OnePixelSplitter(false, 0.25f)
     private val goalsAllMessagesSplitter = OnePixelSplitter(false, 0.5f)
+
     private var goalEditor: ArendMessagesViewEditor? = null
     private val goalEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.goal.panel.text"))
-    private var allMessagesEditor: ArendMessagesViewEditor? = null
-    private val allMessagesEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.all.messages.panel.text"))
     private val goalsPanel = JBUI.Panels.simplePanel(goalEmptyPanel)
-    private val allMessagesPanel = JBUI.Panels.simplePanel(allMessagesEmptyPanel)
     private val goalsTabInfo = TabInfo(goalsPanel).apply {
         text = ArendBundle.message("arend.messages.view.latest.goal.title")
     }
+
+    private var allMessagesEditor: ArendMessagesViewEditor? = null
+    private val allMessagesEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.all.messages.panel.text"))
+    private val allMessagesPanel = JBUI.Panels.simplePanel(allMessagesEmptyPanel)
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
