@@ -53,6 +53,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val goalsPanel = JBUI.Panels.simplePanel(goalEmptyPanel)
     private val goalsTabInfo = TabInfo(goalsPanel).apply {
         text = ArendBundle.message("arend.messages.view.latest.goal.title")
+        tooltipText = ArendBundle.message("arend.messages.view.latest.goal.tooltip")
     }
 
     private var allMessagesEditor: ArendMessagesViewEditor? = null
@@ -98,6 +99,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             secondComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
                 addTab(TabInfo(allMessagesPanel).apply {
                     text = ArendBundle.message("arend.messages.view.all.messages.title")
+                    tooltipText = ArendBundle.message("arend.messages.view.all.messages.tooltip")
                 })
             }
             val isShowAllMessagesPanel = project.service<ArendMessagesService>().isShowAllMessagesPanel
