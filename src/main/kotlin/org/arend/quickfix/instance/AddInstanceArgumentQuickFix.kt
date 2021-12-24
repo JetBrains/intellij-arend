@@ -10,7 +10,6 @@ import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.expr.ClassCallExpression
-import org.arend.core.subst.LevelPair
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.variable.VariableImpl
@@ -69,7 +68,7 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
                 } while (iterator.hasNext() && parameterIndex >= 0)
             }
 
-            val sampleVar = (error.classRef.typechecked as? ClassDefinition)?.let{ TypedBinding(null, ClassCallExpression(it, LevelPair.STD)) } ?: VariableImpl("_")
+            val sampleVar = (error.classRef.typechecked as? ClassDefinition)?.let{ TypedBinding(null, ClassCallExpression(it, it.makeIdLevels())) } ?: VariableImpl("_")
             addImplicitClassDependency(psiFactory, ambientDefinition, classCall, sampleVar, anchor = anchor)
         }
     }

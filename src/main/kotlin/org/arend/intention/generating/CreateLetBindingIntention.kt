@@ -20,6 +20,7 @@ import com.intellij.psi.util.parents
 import com.intellij.psi.util.parentsOfType
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
+import com.intellij.util.castSafelyTo
 import org.arend.core.context.binding.Binding
 import org.arend.intention.AbstractGenerateFunctionIntention
 import org.arend.intention.BaseArendIntention
@@ -29,10 +30,10 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.TCDefinition
 import org.arend.refactoring.addNewClause
 import org.arend.refactoring.replaceExprSmart
-import org.arend.resolving.util.parseBinOp
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
 import org.arend.util.ParameterExplicitnessState
+import org.arend.util.appExprToConcrete
 import org.arend.util.forEachRange
 import org.jetbrains.annotations.NonNls
 import java.awt.Component
@@ -63,12 +64,14 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         file ?: return false
         if (!BaseArendIntention.canModify(file)) return false
         val selection = editor.getSelectionWithoutErrors()?.takeIf { !it.isEmpty } ?: return false
-        return file
-                .findElementAt(editor.caretModel.offset)
-                ?.parents(true)
-                ?.firstOrNull { it.textRange.contains(selection) }
-                ?.let(this::acceptableParents)
-                ?.firstOrNull() != null
+        val wrappablePsi = file
+            .findElementAt(editor.caretModel.offset)
+            ?.parents(true)
+            ?.firstOrNull { it.textRange.contains(selection) }
+            ?.let(this::acceptableParents)
+            ?.firstOrNull() ?: return false
+        return (wrappablePsi.textRange.contains(selection) && wrappablePsi.textRange != selection) ||
+                collectWrappableOptions(wrappablePsi, selection).isNotEmpty()
     }
 
     override fun getText(): String = ArendBundle.message("arend.create.let.binding")
@@ -146,7 +149,8 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
                         it is ArendLamExpr ||
                         it is ArendPiExpr ||
                         it is ArendSigmaExpr ||
-                        it is ArendTupleExpr
+                        it is ArendTupleExpr ||
+                        (it is ArendNewExpr && it.firstChild.castSafelyTo<ArendAppPrefix>() != null)
             }
 
     private fun collectWrappableOptions(rootPsi: ArendCompositeElement, rangeOfReplacement: TextRange): List<WrappableOption> {
@@ -165,6 +169,9 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         }
         val wrappableOptions = mutableListOf<WrappableOption>()
         for ((range, exprWithLet) in rangeMap) {
+            if (range == rangeOfReplacement) {
+                continue
+            }
             val (expr, let) = exprWithLet
             val basicText = rootPsi.containingFile.text.substring(range.startOffset, range.endOffset)
             val strippedText = stripText(basicText, expr, range)
@@ -182,7 +189,7 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
     }
 
     private fun collectInterestingSubranges(rootPsi: ArendCompositeElement, binop: ArendExpr, rootSelection: TextRange): List<TextRange> {
-        val parsed = parseBinOp(binop) ?: return listOf(rootPsi.textRange)
+        val parsed = appExprToConcrete(binop, true) ?: return listOf(rootPsi.textRange)
         val ranges = mutableListOf<TextRange>()
         forEachRange(parsed) { range, concrete ->
             if (concrete is Concrete.AppExpression && range.contains(rootSelection) && range != rootSelection) ranges.add(range)

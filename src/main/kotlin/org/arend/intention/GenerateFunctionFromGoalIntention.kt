@@ -16,6 +16,7 @@ import org.arend.core.expr.Expression
 import org.arend.core.expr.PiExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.core.expr.type.TypeExpression
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.extImpl.UncheckedExpressionImpl
 import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.ArendAtomFieldsAcc
@@ -53,7 +54,7 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
         val goalExpr = goal.expr?.let {
             tryCorrespondedSubExpr(it.textRange, file, project, editor)
         }?.subCore
-        return SelectionResult(modifiedType ?: goalType,
+        return SelectionResult((modifiedType ?: goalType)?.normalize(NormalizationMode.RNF),
                 goal,
                 goal.textRange,
                 null,

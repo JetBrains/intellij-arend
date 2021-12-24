@@ -7,13 +7,14 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.text.Strings
 import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
@@ -21,6 +22,7 @@ import org.arend.core.expr.ReferenceExpression
 import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
 import org.arend.ext.concrete.ConcreteSourceNode
+import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.ext.error.*
 import org.arend.ext.error.quickFix.ErrorQuickFix
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
@@ -46,6 +48,9 @@ import org.arend.quickfix.instance.InstanceInferenceQuickFix
 import org.arend.quickfix.instance.ReplaceWithLocalInstanceQuickFix
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
+import org.arend.quickfix.replacers.ReplaceAbsurdPatternQuickFix
+import org.arend.quickfix.replacers.ReplaceFunctionKindQuickFix
+import org.arend.quickfix.replacers.ReplaceWithWildcardPatternQuickFix
 import org.arend.refactoring.replaceExprSmart
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.IncompleteExpressionError
@@ -169,7 +174,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                                 ?: it
                             else -> it
                         }
-                        val action: (Document, Concrete.Expression, String) -> Unit = { doc, concrete, text ->
+                        val action: (Editor, Concrete.Expression, String) -> Unit = { editor, concrete, text ->
                             if (incomplete) {
                                 var offset = cause.textRange.endOffset
                                 var reformat = false
@@ -191,13 +196,23 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                                     cause is LeafPsiElement -> ""
                                     else -> " "
                                 }
-                                doc.insertString(offset, "$prefix$text")
+                                editor.document.insertString(offset, "$prefix$text")
 
                                 if (reformat) {
                                     val file = cause.containingFile
                                     CodeStyleManager.getInstance(file.project).reformatText(file, offset, offset + prefix.length + text.length)
                                 }
-                            } else replaceExprSmart(doc, expr, null, expr.textRange, null, concrete, text)
+                            } else {
+                                replaceExprSmart(editor.document, expr, null, expr.textRange, null, concrete, text)
+                                if (text.contains("{?}")) {
+                                    val goalOffset = editor.document.charsSequence.let { charSeq ->
+                                        Strings.indexOf(charSeq, "{?}", expr.startOffset, expr.startOffset + text.length)
+                                    }
+                                    if (goalOffset != -1) {
+                                        editor.caretModel.moveToOffset(goalOffset)
+                                    }
+                                }
+                            }
                         }
                         registerFix(info, GoalSolverFillingQuickFix(expr, error, action))
                         for (solver in error.goalSolver.additionalSolvers) {
@@ -290,6 +305,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                             }
                         }
                     PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) registerFix(info, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                    COULD_BE_LEMMA -> if (cause is ArendDefFunction) registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
                     else -> {}
                 }
 
@@ -392,6 +408,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     CertainTypecheckingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
                     CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseOpt
+                    COULD_BE_LEMMA -> (element as? ArendDefFunction)?.functionKw
                     else -> null
                 }
                 is LevelMismatchError -> if (error.isLemma) {

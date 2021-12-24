@@ -29,6 +29,7 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
+import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
 import org.arend.util.findDefAndArgsInParsedBinop
 import java.util.ArrayList
@@ -309,7 +310,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                             if (remainderAnchor.children.isNotEmpty()) remainderAnchor.firstChild else null
                         } else remainderAnchor
 
-                        val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole)
+                        val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole).first
                         for (nsId in nsIds) {
                             val target = nsId.refIdentifier.reference?.resolve()
                             val name = nsId.refIdentifier.referenceName
@@ -499,7 +500,8 @@ class ArendMoveRefactoringProcessor(project: Project,
                     if (ipName != null) when {
                         ipName.infix != null -> addImplicitArgAfter(psiFactory, localArgumentOrFieldsAcc, argument, true)
                         ipName.postfix != null -> {
-                            val transformedAtomFieldsAcc = transformPostfixToPrefix(psiFactory, localArgumentOrFieldsAcc, defArgsData)?.atomFieldsAcc
+                            val operatorConcrete = defArgsData.operatorConcrete.let { if (it is Concrete.LamExpression) it.body else it }
+                            val transformedAtomFieldsAcc = transformPostfixToPrefix(psiFactory, localArgumentOrFieldsAcc, ipName, operatorConcrete)?.atomFieldsAcc
                             if (transformedAtomFieldsAcc != null) addImplicitArgAfter(psiFactory, transformedAtomFieldsAcc, argument, true)
                         }
                     } else {

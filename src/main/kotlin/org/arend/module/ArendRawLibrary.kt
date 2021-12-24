@@ -12,9 +12,7 @@ import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
-import org.arend.naming.reference.EmptyLocatedReferable
-import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.MetaReferable
+import org.arend.naming.reference.*
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
@@ -158,45 +156,47 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
                 }
 
                 builder.append(prefix)
-                if (element is MetaReferable) {
-                    if (element.description.isNotEmpty()) {
-                        val lines = element.description.split('\n')
-                        if (lines.size == 1) {
-                            builder.append("-- | ").append(lines[0])
-                        } else {
-                            builder.append("{- | ")
-                            var firstLine = true
-                            for (line in lines) {
-                                if (firstLine) {
-                                    firstLine = false
-                                } else if (line.isNotEmpty()) {
-                                    builder.append(" - ")
-                                }
-                                builder.append(line).append('\n')
+                if (element is TCReferable && element.description.isNotEmpty()) {
+                    val lines = element.description.split('\n')
+                    if (lines.size == 1) {
+                        builder.append("-- | ").append(lines[0])
+                    } else {
+                        builder.append("{- | ")
+                        var firstLine = true
+                        for (line in lines) {
+                            if (firstLine) {
+                                firstLine = false
+                            } else if (line.isNotEmpty()) {
+                                builder.append(" - ")
                             }
-                            builder.append(" -}")
+                            builder.append(line).append('\n')
                         }
-                        builder.append('\n')
+                        builder.append(" -}")
                     }
+                    builder.append('\n')
+                }
 
-                    builder.append("\\meta ")
-                    val prec = element.precedence
-                    if (prec != Precedence.DEFAULT && prec.priority >= 0) {
-                        builder.append('\\').append(prec).append(' ')
-                    }
-                    builder.append(name)
-
-                    val alias = element.aliasName
-                    if (alias != null) {
-                        builder.append(" \\alias")
-                        val aliasPrec = element.aliasPrecedence
-                        if (aliasPrec != Precedence.DEFAULT && aliasPrec.priority >= 0) {
-                            builder.append(" \\").append(aliasPrec)
+                when (element) {
+                    is MetaReferable -> {
+                        builder.append("\\meta ")
+                        val prec = element.precedence
+                        if (prec != Precedence.DEFAULT && prec.priority >= 0) {
+                            builder.append('\\').append(prec).append(' ')
                         }
-                        builder.append(' ').append(alias)
+                        builder.append(name)
+
+                        val alias = element.aliasName
+                        if (alias != null) {
+                            builder.append(" \\alias")
+                            val aliasPrec = element.aliasPrecedence
+                            if (aliasPrec != Precedence.DEFAULT && aliasPrec.priority >= 0) {
+                                builder.append(" \\").append(aliasPrec)
+                            }
+                            builder.append(' ').append(alias)
+                        }
                     }
-                } else {
-                    builder.append("\\module ").append(name)
+                    is ConcreteLocatedReferable -> builder.append(element.definition)
+                    else -> builder.append("\\module ").append(name)
                 }
 
                 if (subscope != null) {

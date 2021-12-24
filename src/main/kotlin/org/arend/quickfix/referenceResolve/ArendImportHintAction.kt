@@ -14,7 +14,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.psi.PsiFile
-import com.intellij.psi.search.ProjectAndLibrariesScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
@@ -149,8 +148,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
                 result
             }
             return SlowOperations.allowSlowOperations<List<PsiLocatedReferable>, Exception> {
-                StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ProjectAndLibrariesScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
-                        StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ProjectAndLibrariesScope(project), ArendFile::class.java) +
+                StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
+                        StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ArendFileScope(project), ArendFile::class.java) +
                         libRefs + service.getAdditionalReferables(name)
             }
         }

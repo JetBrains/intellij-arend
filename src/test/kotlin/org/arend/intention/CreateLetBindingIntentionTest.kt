@@ -8,8 +8,10 @@ import org.arend.util.ArendBundle
 import org.intellij.lang.annotations.Language
 
 class CreateLetBindingIntentionTest : QuickFixTestBase() {
-    private fun doTestLet(expr: String, @Language("Arend") contents: String, @Language("Arend") result: String) {
-        UiInterceptors.register(ChooserInterceptor(null, StringUtil.escapeToRegexp(expr)))
+    private fun doTestLet(expr: String, @Language("Arend") contents: String, @Language("Arend") result: String, uiShown: Boolean = true) {
+        if (uiShown) {
+            UiInterceptors.register(ChooserInterceptor(null, StringUtil.escapeToRegexp(expr)))
+        }
         simpleQuickFixTest(ArendBundle.message("arend.create.let.binding"), contents.trimIndent(), result.trimIndent())
     }
 
@@ -74,4 +76,14 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
             x : Nat => 4 ^ 10
           \in (2 + 2) * x) + 12 + 13 + 14
     """)
+
+    fun testNoNPEWithContractions() = doTestLet("", """
+        \func \infix 4 f : Nat -> Nat -> Nat => {?}
+
+        \func g : Nat => ({-selection-}`f {-caret-}3{-end_selection-}) 1
+    """, """
+        \func \infix 4 f : Nat -> Nat -> Nat => {?}
+
+        \func g : Nat => (`f {-caret-}3) 1
+        """, false)
 }

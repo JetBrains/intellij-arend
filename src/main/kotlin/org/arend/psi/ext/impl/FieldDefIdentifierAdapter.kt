@@ -14,7 +14,7 @@ import org.arend.psi.stubs.ArendClassFieldParamStub
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendReference
 import org.arend.resolving.FieldDataLocatedReferable
-import org.arend.term.ClassFieldKind
+import org.arend.ext.concrete.definition.ClassFieldKind
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ReferableExtractVisitor
 

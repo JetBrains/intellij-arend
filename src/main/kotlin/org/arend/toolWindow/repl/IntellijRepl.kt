@@ -6,6 +6,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.core.expr.Expression
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
@@ -19,6 +20,7 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.repl.Repl
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
@@ -35,7 +37,7 @@ import java.util.function.Consumer
 
 abstract class IntellijRepl private constructor(
     val handler: ArendReplExecutionHandler,
-    private val service: TypeCheckingService,
+    service: TypeCheckingService,
     extensionProvider: LibraryArendExtensionProvider,
     errorReporter: ListErrorReporter,
     psiConcreteProvider: PsiConcreteProvider,
@@ -65,8 +67,9 @@ abstract class IntellijRepl private constructor(
         myScope = ConvertingScope(ArendReferableConverter, myScope)
     }
 
-    private val definitionModificationTracker = service.project.service<ArendPsiChangeService>().definitionModificationTracker
-    private val psiFactory = ArendPsiFactory(service.project, replModulePath.libraryName)
+    private val project = service.project
+    private val definitionModificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
+    private val psiFactory = ArendPsiFactory(project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
         ?.also { resetCurrentLineScope() }
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
@@ -74,6 +77,17 @@ abstract class IntellijRepl private constructor(
 
     fun clearScope() {
         myMergedScopes.clear()
+    }
+
+    override fun getPrettyPrinterFlags() = project.service<ArendProjectSettings>().replPrintingOptionsFilterSet
+
+    override fun getNormalizationMode(): NormalizationMode? {
+        val modeString = project.service<ArendProjectSettings>().data.replNormalizationMode
+        return if (modeString == "NULL") null else NormalizationMode.valueOf(modeString)
+    }
+
+    override fun setNormalizationMode(mode: NormalizationMode?) {
+        project.service<ArendProjectSettings>().data.replNormalizationMode = mode?.toString() ?: "NULL"
     }
 
     override fun loadCommands() {
@@ -86,6 +100,7 @@ abstract class IntellijRepl private constructor(
     }
 
     final override fun loadLibraries() {
+        val service = project.service<TypeCheckingService>()
         if (service.initialize()) println("[INFO] Initialized prelude.")
         val prelude = service.preludeScope.also(myReplScope::addPreludeScope)
         if (prelude.elements.isEmpty()) eprintln("[FATAL] Failed to obtain prelude scope")
@@ -97,7 +112,7 @@ abstract class IntellijRepl private constructor(
         return myScope
     }
 
-    private val myLibraryConfig = object : LibraryConfig(service.project) {
+    private val myLibraryConfig = object : LibraryConfig(project) {
         override val name: String get() = replModulePath.libraryName
         override val root: VirtualFile? get() = null
         override val dependencies: List<LibraryDependency>

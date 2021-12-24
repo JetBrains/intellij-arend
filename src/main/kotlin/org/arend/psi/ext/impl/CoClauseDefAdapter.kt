@@ -12,7 +12,7 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.stubs.ArendCoClauseDefStub
-import org.arend.term.FunctionKind
+import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.resolving.util.ReferableExtractVisitor

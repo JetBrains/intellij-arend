@@ -827,16 +827,6 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                \func test3 => Nat.`mod 1 
             """)
 
-    fun `test self import`() =
-            simpleImportFixTest("""
-               --! Main.ard
-               \func foo => Main{-caret-} 
-            """, """
-               \import Main
-                
-               \func foo => Main 
-            """)
-
     fun `test importing of meta`() {
         addGeneratedModules {
             declare(ModulePath("Foo"), LongName("foo"), "", Precedence.DEFAULT, null)

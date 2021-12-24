@@ -42,7 +42,6 @@ import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteExpressionVisitor
 import org.arend.typechecking.TypeCheckingService
-import org.arend.util.DefAndArgsInParsedBinopResult
 import org.arend.util.getBounds
 import java.math.BigInteger
 import java.util.Collections.singletonList
@@ -86,13 +85,14 @@ private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using:
     return null
 }
 
-fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): ArrayList<ArendNsId> {
+fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): Pair<ArrayList<ArendNsId>, Boolean /* true if success */> {
     val insertedNsIds = ArrayList<ArendNsId>()
     val factory = ArendPsiFactory(statCmd.project)
     val insertAnchor = statCmd.longName
+    val usingBlockRequired = idList.any { it.second != null }
 
     val actualNsUsing: ArendNsUsing? = statCmd.nsUsing
-            ?: if (idList.any { it.second != null } && insertAnchor != null) {
+            ?: if (usingBlockRequired && insertAnchor != null) {
                 val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
                 val insertedUsing = insertAnchor.parent.addAfterWithNotification(newUsing, insertAnchor)
                 insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
@@ -101,7 +101,7 @@ fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): 
 
     val actualIdList = if (actualNsUsing?.usingKw != null) idList.filter { it.second != null } else idList
     if (actualNsUsing != null) insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
-    return insertedNsIds
+    return Pair(insertedNsIds, insertedNsIds.isNotEmpty() || !usingBlockRequired && actualNsUsing == null)
 }
 
 private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElement, name: String, factory: ArendPsiFactory): ArendRefIdentifier {
@@ -322,7 +322,7 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
                     data?.first?.execute()
                     if (data != null) LongName(data.second).toString() else null
                 } else null) ?: LongName(openedName.subList(0, openedName.size - 1)).toString()
-                return addIdToUsing(mySourceContainer, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).isNotEmpty()
+                return addIdToUsing(mySourceContainer, targetContainer, openPrefix, singletonList(Pair(openedName.last(), null)), psiFactory, anchor).second
             }
 
         }
@@ -335,7 +335,7 @@ fun addIdToUsing(groupMember: PsiElement?,
                  targetContainerName: String,
                  renamings: List<Pair<String, String?>>,
                  factory: ArendPsiFactory,
-                 relativePosition: RelativePosition): List<ArendNsId> {
+                 relativePosition: RelativePosition): Pair<List<ArendNsId>, Boolean> {
     (groupMember?.ancestor<ArendGroup>())?.namespaceCommands?.map { statCmd ->
         if (statCmd is ArendStatCmd) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
@@ -352,9 +352,10 @@ fun addIdToUsing(groupMember: PsiElement?,
                 createStatCmdStatement(factory, targetContainerName, renamings, ArendPsiFactory.StatCmdKind.OPEN),
                 relativePosition)
         val statCmd = insertedStatement.childOfType<ArendStatCmd>()
-        return statCmd?.nsUsing?.nsIdList ?: emptyList()
+        val nsIds = statCmd?.nsUsing?.nsIdList ?: emptyList()
+        return Pair(nsIds, nsIds.isNotEmpty())
     }
-    return emptyList()
+    return Pair(emptyList(), false)
 }
 
 fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<Pair<String, ArendNsId?>> {
@@ -630,13 +631,15 @@ fun unwrapParens(tuple: ArendTuple): ArendExpr? {
 
 fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
                              argumentOrFieldsAcc: PsiElement,
-                             defArgsData: DefAndArgsInParsedBinopResult): ArendArgumentAppExpr? {
+                             ipName: ArendIPName,
+                             operatorConcrete: Concrete.Expression,
+                             rangeData: HashMap<Concrete.Expression, TextRange>? = null,
+                             rangeCallback: ((TextRange, Int) -> Unit)? = null): ArendArgumentAppExpr? {
     val argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
-    val ipName = defArgsData.functionReferenceContainer as ArendIPName
     val nodes = argumentAppExpr.firstChild.siblings().map { it.node }.toList()
-    val operatorConcrete = defArgsData.operatorConcrete.let { if (it is Concrete.LamExpression) it.body else it }
-    val operatorRange = getBounds(operatorConcrete, nodes)!!
+    val operatorRange = getBounds(operatorConcrete, nodes, rangeData)!!
     val psiElements = nodes.filter { operatorRange.contains(it.textRange) }.map { it.psi }
+    val psiElementsRange = TextRange(psiElements.first().textRange.startOffset, psiElements.last().textRange.endOffset)
 
     var resultingExpr = "${LongName(ipName.longName)} "
     val leadingElements = java.util.ArrayList<PsiElement>()
@@ -670,19 +673,25 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
         psiElements.size == nodes.size -> {
             val tupleExpr = surroundingTupleExpr(argumentAppExpr)
             val appExpr = psiFactory.createExpression(resultingExpr.trim()).childOfType<ArendArgumentAppExpr>()!!
-            if (tupleExpr != null && tupleExpr.colon == null && isLambda)
-                argumentAppExpr.replaceWithNotification(appExpr.childOfType<ArendLamExpr>()!!) as? ArendExpr
-            else
+            if (tupleExpr != null && tupleExpr.colon == null && isLambda) {
+                val newPsi = appExpr.childOfType<ArendLamExpr>()!!
+                rangeCallback?.invoke(argumentAppExpr.textRange, newPsi.textLength)
+                argumentAppExpr.parent.replaceWithNotification(newPsi) as? ArendExpr
+            } else {
+                rangeCallback?.invoke(argumentAppExpr.textRange, appExpr.textLength)
                 argumentAppExpr.replaceWithNotification(appExpr) as? ArendArgumentAppExpr
+            }
         }
         operatorRange.contains(nodes.first().textRange) -> {
             val atomFieldsAcc = psiFactory.createExpression("(${resultingExpr.trim()}) foo").childOfType<ArendAtomFieldsAcc>()!!
+            rangeCallback?.invoke(psiElementsRange, atomFieldsAcc.textLength)
             val insertedExpr = argumentAppExpr.addAfterWithNotification(atomFieldsAcc, psiElements.last())
             argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
             insertedExpr.childOfType<ArendArgumentAppExpr>()
         }
         else -> {
             val atom = psiFactory.createExpression("foo (${resultingExpr.trim()})").childOfType<ArendAtomArgument>()!!
+            rangeCallback?.invoke(TextRange(psiElements.first().textRange.startOffset, psiElements.last().textRange.endOffset), atom.textLength)
             val insertedExpr = argumentAppExpr.addBeforeWithNotification(atom, psiElements.first())
             argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
             insertedExpr.childOfType<ArendArgumentAppExpr>()

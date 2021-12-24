@@ -3,10 +3,7 @@ package org.arend.injection
 import com.intellij.execution.impl.EditorHyperlinkSupport
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.application.runUndoTransparentWriteAction
-import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.application.*
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
@@ -85,38 +82,39 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         if (editor == null) return
         val treeElement = treeElement ?: return
 
-        val builder = StringBuilder()
-        val visitor = CollectingDocStringBuilder(builder, treeElement.sampleError.error)
-        var fileScope: Scope = EmptyScope.INSTANCE
-        runReadAction {
-            var first = true
-            for (arendError in treeElement.errors) {
-                if (first) {
-                    first = false
-                } else {
-                    builder.append("\n\n")
-                }
+        invokeLater {
+            val builder = StringBuilder()
+            val visitor = CollectingDocStringBuilder(builder, treeElement.sampleError.error)
+            var fileScope: Scope = EmptyScope.INSTANCE
 
-                val error = arendError.error
-                val causeSourceNode = error.causeSourceNode
-                val data = (causeSourceNode?.data as? DataContainer)?.data ?: causeSourceNode?.data
-                val unresolvedRef = (data as? Reference)?.referent
-                val scope = if (unresolvedRef != null || error.hasExpressions()) (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) } else null
-                if (scope != null) {
-                    fileScope = scope
+            runReadAction {
+                var first = true
+                for (arendError in treeElement.errors) {
+                    if (first) {
+                        first = false
+                    } else {
+                        builder.append("\n\n")
+                    }
+
+                    val error = arendError.error
+                    val causeSourceNode = error.causeSourceNode
+                    val data = (causeSourceNode?.data as? DataContainer)?.data ?: causeSourceNode?.data
+                    val unresolvedRef = (data as? Reference)?.referent
+                    val scope = if (unresolvedRef != null || error.hasExpressions()) (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) } else null
+                    if (scope != null) {
+                        fileScope = scope
+                    }
+                    val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
+                    val ppConfig = ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
+                    val doc = if ((ref as? MetaAdapter)?.metaRef?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
+                        error.getDoc(ppConfig)
+                    else
+                        DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))
+                    doc.accept(visitor, false)
                 }
-                val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
-                val ppConfig = ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
-                val doc = if ((ref as? MetaAdapter)?.metaRef?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
-                    error.getDoc(ppConfig)
-                else
-                    DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))
-                doc.accept(visitor, false)
             }
-        }
 
-        val text = builder.toString()
-        ApplicationManager.getApplication().invokeLater {
+            val text = builder.toString()
             if (editor.isDisposed) return@invokeLater
             runWriteAction {
                 editor.document.setText(text)

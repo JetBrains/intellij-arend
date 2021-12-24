@@ -26,7 +26,6 @@ import org.arend.ext.instance.InstanceSearchParameters
 import org.arend.ext.instance.SubclassSearchParameters
 import org.arend.ext.module.LongName
 import org.arend.ext.typechecking.DefinitionListener
-import org.arend.extImpl.ArendDependencyProviderImpl
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
 import org.arend.library.LibraryManager
@@ -109,7 +108,10 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             if (!successful || !service<ArendSettings>().checkForUpdates) return
             for (dependency in library.dependencies) {
                 if (dependency.name == AREND_LIB) {
-                    checkForUpdates(project, getRegisteredLibrary(AREND_LIB)?.version)
+                    val arendLib = getRegisteredLibrary(AREND_LIB)
+                    if (arendLib != null) {
+                        checkForUpdates(project, arendLib.version)
+                    }
                     break
                 }
             }
@@ -251,7 +253,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         fun getFunction(expr: Concrete.Expression?) =
             (((expr as? Concrete.ReferenceExpression)?.referent as? TCDefReferable)?.typechecked as? FunctionDefinition)?.let { listOf(it) }
 
-        val result = pool.getInstance(classifyingExpression, parameters, null, null)
+        val result = pool.findInstance(classifyingExpression, parameters, null, null, null)
         getFunction(result)?.let { return it }
         if (result !is Concrete.AppExpression) return emptyList()
 
@@ -382,17 +384,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
 
-        val library = extensionDefinitions[tcReferable]
-        if (library != null) {
-            project.service<TypecheckingTaskQueue>().addTask {
-                val provider = ArendDependencyProviderImpl(ArendTypechecking.create(project), libraryManager.getAvailableModuleScopeProvider(library), libraryManager.definitionRequester, library)
-                try {
-                    runReadAction {
-                        service<ArendExtensionChangeListener>().notifyIfNeeded(project)
-                    }
-                } finally {
-                    provider.disable()
-                }
+        if (extensionDefinitions.containsKey(tcReferable)) {
+            runReadAction {
+                service<ArendExtensionChangeListener>().notifyIfNeeded(project)
             }
         }
 

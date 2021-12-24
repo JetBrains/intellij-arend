@@ -15,6 +15,7 @@ import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.param.TypedSingleDependentLink
 import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.extImpl.ConcreteFactoryImpl
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.extImpl.definitionRenamer.ScopeDefinitionRenamer
@@ -36,6 +37,7 @@ import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.util.ArendBundle
 import org.arend.util.FreeVariablesWithDependenciesCollector
 import org.arend.util.ParameterExplicitnessState
+import java.util.*
 
 abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     companion object {
@@ -120,6 +122,10 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
                 } catch (e: Exception) {
                     log.error(e)
                     ToAbstractVisitor.convert(expr, object : PrettyPrinterConfig {
+                        override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> {
+                            return EnumSet.of(PrettyPrinterFlag.SHOW_PROOFS, *super.getExpressionFlags().toTypedArray())
+                        }
+
                         override fun getDefinitionRenamer() = renamer
                     })
                 }
