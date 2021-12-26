@@ -1,6 +1,7 @@
 package org.arend.resolving.util
 
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.error.ErrorReporter
 import org.arend.naming.BinOpParser
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -33,13 +34,13 @@ private fun getExpression(expr: Abstract.Expression?): Concrete.Expression {
 fun parseBinOp(left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>): Concrete.Expression =
         parseBinOp(null, left, sequence)
 
-fun parseBinOp(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>): Concrete.Expression {
+fun parseBinOp(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE): Concrete.Expression {
     val concreteSeq = mutableListOf<Concrete.BinOpSequenceElem>()
     concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(left)))
     for (elem in sequence) {
         concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(elem.expression), if (elem.isVariable) Fixity.UNKNOWN else Fixity.NONFIX, elem.isExplicit))
     }
-    return BinOpParser(DummyErrorReporter.INSTANCE).parse(Concrete.BinOpSequenceExpression(data, concreteSeq, null))
+    return BinOpParser(errorReporter).parse(Concrete.BinOpSequenceExpression(data, concreteSeq, null))
 }
 
 /**
