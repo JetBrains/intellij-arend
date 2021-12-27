@@ -259,7 +259,9 @@ abstract class ChangeArgumentExplicitnessApplier(project: Project) {
      * @return  psi with rewritten call
      */
     private fun rewriteCall(call: PsiElement, def: PsiElement, indexInDef: Int): PsiElement {
-        val argsText = getCallingParameters(call).map { it.text } as MutableList<String>
+        val callingParameters = getCallingParameters(call)
+        val argsText = callingParameters.map { it.text } as MutableList<String>
+        val implicitHoles = callingParameters.map { it is ArendImplicitArgument && it.tupleExprList.size == 1 && it.tupleExprList.first().text == "_" }
         val indices = getParametersIndices(def, call) as MutableList<Int>
         val lastIndex = indices.maxOrNull() ?: -1
         val notEnoughArguments = (lastIndex < indexInDef)
@@ -283,6 +285,9 @@ abstract class ChangeArgumentExplicitnessApplier(project: Project) {
         }
 
         val indexInArgs = indices.indexOf(indexInDef)
+        var firstImplicitHole = -1; if (indexInArgs > 0 && indexInArgs < implicitHoles.size && callingParameters[indexInArgs] is ArendImplicitArgument)
+            for ((i, isHole) in implicitHoles.subList(0, indexInArgs-1).withIndex().reversed()) if (isHole) firstImplicitHole = i else break
+
         val isNextExplicit = if (indexInArgs != indices.size - 1) (argsText[indexInArgs + 1].first() != '{') else true
         val needToRemoveArg = (argsText[indexInArgs] == "_") && isNextExplicit
 
@@ -291,6 +296,9 @@ abstract class ChangeArgumentExplicitnessApplier(project: Project) {
         } else {
             val newArgText = rewriteArg(argsText[indexInArgs])
             changeArgumentInIndex(call, newArgText, def, indexInArgs)
+            if (firstImplicitHole != -1) repeat(indexInArgs - firstImplicitHole) {
+                deleteArgumentInIndex(call, firstImplicitHole)
+            }
         }
         return call
     }
