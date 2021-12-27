@@ -106,8 +106,8 @@ class SubExprTest : ArendTestBase() {
         \func valis (a : Nat) => a
         \func sxyha => valis ({-caret-}valis 1)
         """).run {
-        assertEquals("valis 1", subConcrete.toString())
-        assertEquals("valis 1", subCore.toString())
+        assertEquals("valis", subConcrete.toString())
+        assertEquals("valis", subCore.toString())
     }
 
     fun `test #162`() = subexpr("""
