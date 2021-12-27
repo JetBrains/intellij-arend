@@ -84,6 +84,9 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
     """, """
         \func \infix 4 f : Nat -> Nat -> Nat => {?}
 
-        \func g : Nat => (`f {-caret-}3) 1
+        \func g : Nat =>
+          \let
+            x : Nat -> Nat => `f 3
+          \in (x) 1
         """, false)
 }
