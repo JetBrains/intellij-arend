@@ -59,6 +59,7 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
                 goal.textRange,
                 null,
                 goal.defIdentifier?.name,
+                goal.expr?.text,
                 goalExpr,
                 customArguments)
     }

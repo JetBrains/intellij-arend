@@ -27,7 +27,6 @@ import org.arend.intention.BaseArendIntention
 import org.arend.intention.ExtractExpressionToFunctionIntention
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.TCDefinition
 import org.arend.refactoring.addNewClause
 import org.arend.refactoring.replaceExprSmart
 import org.arend.term.concrete.Concrete
@@ -204,22 +203,20 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         val project = elementToWrap.project
         val scope = elementToWrap.scope
         val actualFreeVariables = freeVariables.filter { scope.resolveName(it.first.name) == null }
-        val representation = buildRepresentations(
-                selection.contextPsi.parentOfType<TCDefinition>()!!,
-                selection,
-                actualFreeVariables,
-                { "x" }) ?: return
+        val freeName = generateFreeName("x", scope)
+        val concrete = buildNewCallConcrete(actualFreeVariables, freeName)
+        val newFunction = buildNewFunctionRepresentation(selection, actualFreeVariables, freeName)
 
         executeCommand(project, null, COMMAND_GROUP_ID) {
             runWriteAction {
                 val (clauseInBindingOffset, invocationPlaceOffset) = performDocumentModifications(
-                        elementToWrap,
-                        wrappableOption.optionRange,
-                        representation.first,
-                        representation.second,
-                        editor,
-                        selection)
-                        ?: return@runWriteAction
+                    elementToWrap,
+                    wrappableOption.optionRange,
+                    concrete,
+                    newFunction,
+                    editor,
+                    selection
+                ) ?: return@runWriteAction
                 editor.caretModel.moveToOffset(invocationPlaceOffset)
                 invokeRenamer(editor, clauseInBindingOffset, project)
             }

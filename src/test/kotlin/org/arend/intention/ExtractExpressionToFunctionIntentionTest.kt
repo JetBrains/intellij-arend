@@ -17,25 +17,26 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
 
         \func foo : Nat => bar (foo-lemma)
           \where {
-            \func foo-lemma : Fin 21 => 20
+            \func foo-lemma : Fin 21 => (10 Nat.+ 10)
           }
     """)
 
     fun `test extract from selection 2`() = doTest("""
         \func bar {A : \Prop} (x y : A) : x = y => {-selection-}Path.i{-caret-}nProp{-end_selection-} _ _
     """, """
-        \func bar {A : \Prop} (x y : A) : x = y => bar-lemma x y
+        \func bar {A : \Prop} (x y : A) : x = y => (bar-lemma x) _ _
           \where {
-            \func bar-lemma {A : \Prop} (x y : A) : x = y => Path.inProp x y
+            \func bar-lemma {A : \Prop} (x : A) : \Pi (a' : A) -> x = a' => Path.inProp
           }
     """)
 
+    // yes, it is intended. normalizing expressions would result in awful function bodies
     fun `test extract from selection 3`() = doTest("""
         \func bar {A : \Prop} (x y : A) : x = y => Path.inProp {-selection-}{-caret-}_{-end_selection-} _
     """, """
         \func bar {A : \Prop} (x y : A) : x = y => Path.inProp (bar-lemma x) _
           \where {
-            \func bar-lemma {A : \Prop} (x : A) : A => x
+            \func bar-lemma {A : \Prop} (x : A) : A => _
           }
     """)
 
@@ -46,7 +47,7 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
         \func f (x : Nat) => x
         \func foo (x y : Nat) => f (foo-lemma x)
           \where {
-            \func foo-lemma (x : Nat) : Nat => x Nat.+ x
+            \func foo-lemma (x : Nat) : Nat => (x Nat.+ x)
           }
     """.trimIndent())
 
@@ -128,4 +129,34 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
             \func foo-lemma (x : Nat) : Nat => x Nat.+ x
           }
     """)
+
+    fun `test this reference`() = doTest("""
+\record R {}
+
+\record D { | Y : R }
+
+\record U \extends R { | A : D }
+
+\lemma f : U \cowith
+  | A => {-selection-}\new{-caret-} D {
+    | Y => (\this : U)
+  }{-end_selection-}
+""", """
+\record R {}
+
+\record D { | Y : R }
+
+\record U \extends R { | A : D }
+
+\lemma f : U \cowith
+  | A => f-lemma (\this : U)
+  \where {
+    \func f-lemma (this : U) : D => \new D {
+      | Y => (this : U)
+    }
+  }
+
+""")
+
+
 }
