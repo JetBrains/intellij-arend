@@ -126,7 +126,12 @@ abstract class ChangeArgumentExplicitnessApplier(project: Project) {
         val def = element.ancestor() as? PsiReferable ?: return element
         val indexInDef = getTeleIndexInDef(def, element) + indexInTele
         val indexInCons = if (def is ArendConstructor) getTeleIndexInDef(def, element, false) + indexInTele else -1
-        val fCalls = ReferencesSearch.search(def).map { it.element }.filter { it.isValid }
+        val fCalls = ReferencesSearch.search(def).map { it.element }.filter {
+            when (it) {
+                is ArendRefIdentifier -> (it.parent as? ArendLongName)?.let { longName -> longName.refIdentifierList.lastOrNull() == it } ?: true
+                else -> true
+            }
+        }
         val fCallParents = fCalls.mapNotNull { getParentPsiFunctionCall(it) as? ArendArgumentAppExpr }.sortedBy { it.textLength }.toCollection(LinkedHashSet())
         val insertedPsi = ArrayList<PsiElement>()
         val concreteSet = LinkedHashSet<Pair<ArendArgumentAppExpr, Concrete.Expression>>()
