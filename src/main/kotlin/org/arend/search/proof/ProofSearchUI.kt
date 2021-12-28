@@ -250,6 +250,10 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         }
     }
 
+    override fun getInitialHints(): Array<String> = arrayOf(
+        ArendBundle.message("arend.proof.search.quick.preview.tip"),
+    )
+
     override fun createSearchField(): ExtendableTextField {
         val res: SearchField = object : SearchField() {
             override fun getAccessibleContext(): AccessibleContext {
