@@ -16,7 +16,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.parentOfType
-import com.intellij.psi.util.parents
 import com.intellij.psi.util.parentsOfType
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
@@ -28,7 +27,9 @@ import org.arend.intention.ExtractExpressionToFunctionIntention
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.refactoring.addNewClause
+import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.replaceExprSmart
+import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
 import org.arend.util.ParameterExplicitnessState
@@ -63,14 +64,8 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         file ?: return false
         if (!BaseArendIntention.canModify(file)) return false
         val selection = editor.getSelectionWithoutErrors()?.takeIf { !it.isEmpty } ?: return false
-        val wrappablePsi = file
-            .findElementAt(editor.caretModel.offset)
-            ?.parents(true)
-            ?.firstOrNull { it.textRange.contains(selection) }
-            ?.let(this::acceptableParents)
-            ?.firstOrNull() ?: return false
-        return (wrappablePsi.textRange.contains(selection) && wrappablePsi.textRange != selection) ||
-                collectWrappableOptions(wrappablePsi, selection).isNotEmpty()
+        val (_, subConcrete, subPsi) = tryCorrespondedSubExpr(selection, file, project, editor, false) ?: return false
+        return collectWrappableOptions(subPsi, rangeOfConcrete(subConcrete)).isNotEmpty()
     }
 
     override fun getText(): String = ArendBundle.message("arend.create.let.binding")

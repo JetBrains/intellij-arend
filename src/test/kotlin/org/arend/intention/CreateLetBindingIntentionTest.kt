@@ -77,16 +77,9 @@ class CreateLetBindingIntentionTest : QuickFixTestBase() {
           \in (2 + 2) * x) + 12 + 13 + 14
     """)
 
-    fun testNoNPEWithContractions() = doTestLet("", """
+    fun testNoNPEWithContractions() = checkNoQuickFixes(ArendBundle.message("arend.create.let.binding"), """
         \func \infix 4 f : Nat -> Nat -> Nat => {?}
 
         \func g : Nat => ({-selection-}`f {-caret-}3{-end_selection-}) 1
-    """, """
-        \func \infix 4 f : Nat -> Nat -> Nat => {?}
-
-        \func g : Nat =>
-          \let
-            x : Nat -> Nat => `f 3
-          \in (x) 1
-        """, false)
+    """)
 }

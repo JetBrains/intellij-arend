@@ -22,11 +22,11 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
     """)
 
     fun `test extract from selection 2`() = doTest("""
-        \func bar {A : \Prop} (x y : A) : x = y => {-selection-}Path.i{-caret-}nProp{-end_selection-} _ _
+        \func bar {A : \Prop} (x y : A) : x = y => {-selection-}Path.i{-caret-}nProp _ _{-end_selection-}
     """, """
-        \func bar {A : \Prop} (x y : A) : x = y => (bar-lemma x) _ _
+        \func bar {A : \Prop} (x y : A) : x = y => bar-lemma x y
           \where {
-            \func bar-lemma {A : \Prop} (x : A) : \Pi (a' : A) -> x = a' => Path.inProp
+            \func bar-lemma {A : \Prop} (x y : A) : x = y => Path.inProp _ _
           }
     """)
 
