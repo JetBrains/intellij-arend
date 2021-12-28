@@ -3,7 +3,6 @@ package org.arend.search.proof
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
 import com.intellij.openapi.vfs.newvfs.VfsPresentationUtil
-import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
@@ -14,7 +13,6 @@ import org.apache.commons.lang.StringEscapeUtils.escapeHtml
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.*
-import org.arend.psi.parentOfType
 import org.arend.term.concrete.Concrete
 import java.awt.BorderLayout
 import java.awt.Color
@@ -85,24 +83,9 @@ private fun buildHtml(
     nameColor: Color
 ): String? {
     val name = def.name ?: return null
-    val parameters = getRepresentableParameters(def)
     val typeRepresentation = (if (def is FunctionDefinitionAdapter) def.resultType?.text else null) ?: type.toString()
     val locationText = (def.containingFile as ArendFile).moduleLocation?.modulePath?.toString() ?: ""
-    return buildDefinitionHTML(name, parameters, typeRepresentation, locationText, nameColor)
-}
-
-private fun getRepresentableParameters(adapter: ReferableAdapter<*>): List<String> = when (adapter) {
-    is FunctionDefinitionAdapter -> adapter.parameters.map { (it as PsiElement).text }
-    is ConstructorAdapter ->
-        (adapter.parentOfType<DataDefinitionAdapter>()?.parameters?.map { modifyRepr(it.text) } ?: emptyList()) +
-                adapter.parameters.map { it.text }
-    else -> emptyList()
-}
-
-private fun modifyRepr(param: String): String = if (param.startsWith("(") && param.endsWith(")")) {
-    "{${param.subSequence(1, param.length - 1)}}"
-} else {
-    "{$param}"
+    return buildDefinitionHTML(name, typeRepresentation, locationText, nameColor)
 }
 
 private fun Color.asHex(): String {
@@ -111,18 +94,16 @@ private fun Color.asHex(): String {
 
 private fun buildDefinitionHTML(
     name: String,
-    parameters: List<String>,
     type: String,
     locationText: String,
-    nameColor: Color
+    secondaryColor: Color
 ): String {
     val locationRepresentation =
-        if (locationText != "") "<span style=\"color: ${nameColor.asHex()}\">(in ${escapeHtml(locationText)})</span>" else ""
+        if (locationText != "") "<span style=\"color: ${secondaryColor.asHex()}\">(in ${escapeHtml(locationText)})</span>" else ""
     return """
            <html>
            <body>
-           <span style="color: ${nameColor.asHex()}">${escapeHtml(name)}</span> 
-           ${parameters.joinToString(" ") { escapeHtml(it) }} : <b>${escapeHtml(type)}</b> $locationRepresentation
+           ${escapeHtml(name)} : <b>${escapeHtml(type)}</b> $locationRepresentation
            </body>
            </html>
         """.trimIndent()
