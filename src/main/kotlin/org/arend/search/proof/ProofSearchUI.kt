@@ -7,6 +7,7 @@ import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.DumbAwareAction
@@ -25,6 +26,7 @@ import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
+import org.arend.psi.navigate
 import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import java.awt.FlowLayout
@@ -124,6 +126,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         registerSearchAction()
         registerEscapeAction()
         registerEnterAction()
+        registerGoToDefinitionAction()
         registerMouseActions()
 
         adjustEmptyText(mySearchField)
@@ -152,6 +155,16 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
                 onEntrySelected(model.getElementAt(indices[0]))
             }
         }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
+    }
+
+
+    private fun registerGoToDefinitionAction() {
+        DumbAwareAction.create {
+            val indices = myResultsList.selectedIndices
+            if (indices.isNotEmpty()) {
+                goToDeclaration(model.getElementAt(indices[0]))
+            }
+        }.registerCustomShortcutSet(CommonShortcuts.getViewSource(), this, this)
     }
 
     private fun registerEscapeAction() {
@@ -192,6 +205,14 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             model.remove(element)
             runProofSearch(element.sequence)
         }
+    }
+
+    private fun goToDeclaration(element: ProofSearchUIEntry) = when (element) {
+        is DefElement -> {
+            close()
+            element.entry.def.navigationElement.navigate()
+        }
+        else -> Unit
     }
 
     fun runProofSearch(results: Sequence<ProofSearchEntry>?) {
@@ -252,6 +273,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     override fun getInitialHints(): Array<String> = arrayOf(
         ArendBundle.message("arend.proof.search.quick.preview.tip"),
+        ArendBundle.message("arend.proof.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE))
     )
 
     override fun createSearchField(): ExtendableTextField {
