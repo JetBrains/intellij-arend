@@ -1,12 +1,10 @@
 package org.arend.search.proof
 
 import com.intellij.accessibility.TextFieldWithListAccessibleContext
+import com.intellij.codeInsight.hint.actions.QuickPreviewAction
 import com.intellij.ide.actions.BigPopupUI
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.ActionToolbar
-import com.intellij.openapi.actionSystem.CommonShortcuts
-import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.progress.ProgressIndicator
@@ -27,7 +25,6 @@ import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
-import org.arend.psi.navigate
 import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import java.awt.FlowLayout
@@ -45,6 +42,8 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     private val model: CollectionListModel<ProofSearchUIEntry> = CollectionListModel()
 
     private val loadingIcon: JBLabel = JBLabel(EmptyIcon.ICON_16)
+
+    private val previewAction: QuickPreviewAction = QuickPreviewAction()
 
     @Volatile
     private var progressIndicator: ProgressIndicator? = null
@@ -181,9 +180,13 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private fun onEntrySelected(element: ProofSearchUIEntry) = when (element) {
         is DefElement -> {
-            val navigationElement = element.entry.def.navigationElement
-            close()
-            navigationElement.navigate(true)
+            previewAction.performForContext({
+                when (it) {
+                    CommonDataKeys.PROJECT.name -> project
+                    CommonDataKeys.PSI_ELEMENT.name -> element.entry.def
+                    else -> null
+                }
+            }, false)
         }
         is MoreElement -> {
             model.remove(element)
