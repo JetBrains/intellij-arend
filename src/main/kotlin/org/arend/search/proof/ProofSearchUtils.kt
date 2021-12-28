@@ -18,7 +18,6 @@ import org.arend.core.definition.Constructor
 import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.expr.Expression
-import org.arend.core.subst.LevelPair
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.CoClauseDefAdapter
@@ -101,7 +100,7 @@ fun getConcreteType(referable: PsiReferable): Concrete.Expression? {
 
 private fun getType(def: Definition): Expression? = when (def) {
     is FunctionDefinition -> def.resultType
-    is Constructor -> def.getDataTypeExpression(LevelPair.STD)
+    is Constructor -> def.getDataTypeExpression(def.dataType.makeIdLevels())
     is ClassField -> def.resultType
     else -> null
 }
