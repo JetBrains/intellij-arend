@@ -269,8 +269,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             val visitor = CheckTypeVisitor(DummyErrorReporter.INSTANCE, pool, null)
             visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor, LocalInstancePool(visitor))
             val tcResult = visitor.checkExpr(result, null)
-            if (tcResult != null && classifyingExpression != null && classDef.classifyingField != null) {
-                CompareVisitor.compare(visitor.equations, CMP.EQ, classifyingExpression, FieldCallExpression.make(classDef.classifyingField, tcResult.expression), null, null)
+            val field = classDef.classifyingField
+            if (tcResult != null && classifyingExpression != null && field != null) {
+                CompareVisitor.compare(visitor.equations, CMP.EQ, classifyingExpression, FieldCallExpression.make(field, field.makeIdLevels(), tcResult.expression), null, null)
             }
             val resultExpr = visitor.finalize(tcResult, result, false)?.expression
             if (resultExpr != null) {
