@@ -51,8 +51,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private var goalEditor: ArendMessagesViewEditor? = null
     private val goalEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.goal.panel.text"))
     private val goalsPanel = JBUI.Panels.simplePanel(goalEmptyPanel)
+    private val defaultGoalsTabTitle = ArendBundle.message("arend.messages.view.latest.goal.title")
     private val goalsTabInfo = TabInfo(goalsPanel).apply {
-        text = ArendBundle.message("arend.messages.view.latest.goal.title")
+        text = defaultGoalsTabTitle
         tooltipText = ArendBundle.message("arend.messages.view.latest.goal.tooltip")
     }
 
@@ -146,8 +147,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 updatePanel(allMessagesPanel, allMessagesEditor?.component ?: allMessagesEmptyPanel)
             }
         } else {
-            if (goalEditor?.treeElement != null && !isGoalTextPinned() && shouldClear(goalEditor)) {
-                goalEditor?.treeElement = null
+            if (!isGoalTextPinned() && goalsTabInfo.text == defaultGoalsTabTitle && shouldClear(goalEditor)) {
                 val goalRemovedTitle = " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})"
                 goalsTabInfo.append(goalRemovedTitle, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
             }
@@ -195,7 +195,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private fun updateGoalsView(component: JComponent) {
         updatePanel(goalsPanel, component)
-        goalsTabInfo.text = ArendBundle.message("arend.messages.view.latest.goal.title")
+        goalsTabInfo.text = defaultGoalsTabTitle
     }
 
     fun updateGoalText() {
