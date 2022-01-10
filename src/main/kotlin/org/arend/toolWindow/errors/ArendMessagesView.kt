@@ -147,13 +147,28 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 updatePanel(allMessagesPanel, allMessagesEditor?.component ?: allMessagesEmptyPanel)
             }
         } else {
-            if (!isGoalTextPinned() && goalsTabInfo.text == defaultGoalsTabTitle && shouldClear(goalEditor)) {
-                val goalRemovedTitle = " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})"
-                goalsTabInfo.append(goalRemovedTitle, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+            if (!isGoalTextPinned()) {
+                val currentGoal = goalEditor?.treeElement?.sampleError
+                if (currentGoal != null) {
+                    val goalFile = currentGoal.file
+                    if (goalFile != null && goalFile.isBackgroundTypecheckingFinished) {
+                        if (isParentDefinitionRemoved(currentGoal)) {
+                            goalEditor?.clear()
+                            updateGoalsView(goalEmptyPanel)
+                        }
+                        else if (isCauseRemoved(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
+                            val goalRemovedTitle = " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})"
+                            goalsTabInfo.append(goalRemovedTitle, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+                        }
+                    }
+                }
             }
-            if (isShowAllMessagesPanel() && shouldClear(allMessagesEditor)) {
-                allMessagesEditor?.clear()
-                updatePanel(allMessagesPanel, allMessagesEmptyPanel)
+            if (isShowAllMessagesPanel()) {
+                val currentMessage = allMessagesEditor?.treeElement?.sampleError
+                if (currentMessage != null && isParentDefinitionRemoved(currentMessage)) {
+                    allMessagesEditor?.clear()
+                    updatePanel(allMessagesPanel, allMessagesEmptyPanel)
+                }
             }
         }
     }
@@ -175,15 +190,14 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         }
     }
 
-    private fun shouldClear(editor: ArendMessagesViewEditor?): Boolean {
-        val activeError = editor?.treeElement?.sampleError
-        if (activeError != null) {
-            val def = activeError.definition
-            if (def == null || !tree.containsNode(def)) {
-                return true
-            }
-        }
-        return false
+    private fun isParentDefinitionRemoved(error: ArendError): Boolean {
+        val definition = error.definition
+        return definition == null || !tree.containsNode(definition)
+    }
+
+    private fun isCauseRemoved(error: ArendError): Boolean {
+        val cause = error.cause
+        return cause == null || !cause.isValid
     }
 
     private fun updatePanel(panel: JPanel, component: JComponent) {
