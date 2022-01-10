@@ -41,7 +41,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
             return true
         }
 
-        if (file.lastDefinitionModification >= modificationCount) {
+        if (file.lastDefinitionModification.get() >= modificationCount) {
             return false
         }
 
@@ -68,13 +68,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
                 if (runAnalyzer) runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
             }
         }
-
-        synchronized(BackgroundTypechecker::class.java) {
-            if (file.lastDefinitionModification < modificationCount) {
-                file.lastDefinitionModification = modificationCount
-            }
-        }
-
+        file.lastDefinitionModification.updateAndGet { maxOf(it, modificationCount) }
         return true
     }
 
