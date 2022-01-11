@@ -46,7 +46,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val autoScrollFromSource = ArendErrorTreeAutoScrollFromSource(project, tree)
 
     private val treePanel = SimpleToolWindowPanel(!toolWindow.anchor.isHorizontal)
-    private val treeDetailsSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.25f)
+    private val treeDetailsSplitter = OnePixelSplitter()
     private val goalsAllMessagesSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.5f)
 
     private var goalEditor: ArendMessagesViewEditor? = null
@@ -74,8 +74,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
         })
 
-        treeDetailsSplitter.firstComponent = treePanel
-        treeDetailsSplitter.secondComponent = goalsAllMessagesSplitter
+        setupTreeDetailsSplitter(!toolWindow.anchor.isHorizontal)
 
         tree.cellRenderer = ArendErrorTreeCellRenderer()
         tree.addTreeSelectionListener(this)
@@ -121,13 +120,23 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         update()
     }
 
+    private fun setupTreeDetailsSplitter(vertical: Boolean) {
+        treeDetailsSplitter.orientation = vertical
+        treeDetailsSplitter.proportion = if (vertical) 0.75f else 0.25f
+        // We first set components to null to clear the splitter. Without that, it might not be repainted properly.
+        treeDetailsSplitter.firstComponent = null
+        treeDetailsSplitter.secondComponent = null
+        treeDetailsSplitter.firstComponent = if (vertical) goalsAllMessagesSplitter else treePanel
+        treeDetailsSplitter.secondComponent = if (vertical) treePanel else goalsAllMessagesSplitter
+    }
+
     private fun updateOrientation(toolWindow: ToolWindow) {
         if (toolWindow.id == ArendMessagesFactory.TOOL_WINDOW_ID) {
             val isVertical = !toolWindow.anchor.isHorizontal
-            if (treePanel.isVertical != isVertical) {
+            if (treeDetailsSplitter.isVertical != isVertical) {
                 treePanel.isVertical = isVertical
-                treeDetailsSplitter.orientation = isVertical
                 goalsAllMessagesSplitter.orientation = isVertical
+                setupTreeDetailsSplitter(isVertical)
             }
         }
     }
