@@ -117,6 +117,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             isShowAllMessagesPanel.afterReset { secondComponent.isVisible = false }
         }
 
+        project.service<ArendMessagesService>().isShowGoalsInErrorsPanel.afterChange { updateEditors() }
+
         update()
     }
 
@@ -157,14 +159,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     fun updateEditors() {
         val treeElement = getSelectedMessage()
         if (treeElement != null) {
-            if (treeElement.highestError.error.level == GeneralError.Level.GOAL && !isGoalTextPinned()) {
+            if (isGoal(treeElement) && !isGoalTextPinned()) {
                 if (goalEditor == null) {
                     goalEditor = ArendMessagesViewEditor(project, treeElement, true)
                 }
                 updateEditor(goalEditor!!, treeElement)
                 updateGoalsView(goalEditor?.component ?: goalEmptyPanel)
             }
-            if (isShowAllMessagesPanel()) {
+            if (isShowAllMessagesPanel() &&
+                    (!isGoal(treeElement) || project.service<ArendMessagesService>().isShowGoalsInErrorsPanel.get())) {
                 if (allMessagesEditor == null) {
                     allMessagesEditor = ArendMessagesViewEditor(project, treeElement, false)
                 }
@@ -201,6 +204,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private fun getSelectedMessage(): ArendErrorTreeElement? =
             tree.lastSelectedPathComponent.castSafelyTo<DefaultMutableTreeNode>()
                     ?.userObject?.castSafelyTo<ArendErrorTreeElement>()
+
+    private fun isGoal(treeElement: ArendErrorTreeElement?) =
+            treeElement?.highestError?.error?.level == GeneralError.Level.GOAL
 
     private fun isGoalTextPinned() = project.service<ArendMessagesService>().isGoalTextPinned
 
@@ -239,7 +245,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     fun updateGoalText() {
         goalEditor?.updateErrorText()
-        if (allMessagesEditor?.treeElement?.highestError?.error?.level == GeneralError.Level.GOAL) {
+        if (isGoal(allMessagesEditor?.treeElement)) {
             allMessagesEditor?.updateErrorText()
         }
     }

@@ -19,6 +19,10 @@ class ArendMessagesService(private val project: Project) {
             AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowAllMessagesPanel).apply {
                 afterChange { project.service<ArendProjectSettings>().data.isShowAllMessagesPanel = it }
             }
+    var isShowGoalsInErrorsPanel: BooleanProperty =
+            AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowGoalsInErrorsPanel).apply {
+                afterChange { project.service<ArendProjectSettings>().data.isShowGoalsInErrorsPanel = it }
+            }
 
     fun activate(project: Project, selectFirst: Boolean) {
         runInEdt {
