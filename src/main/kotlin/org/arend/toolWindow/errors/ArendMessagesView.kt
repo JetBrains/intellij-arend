@@ -10,6 +10,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.wm.ToolWindow
+import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 import com.intellij.psi.PsiElement
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
@@ -44,9 +45,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     val tree = ArendErrorTree(treeModel, this)
     private val autoScrollFromSource = ArendErrorTreeAutoScrollFromSource(project, tree)
 
-    private val toolWindowPanel = SimpleToolWindowPanel(false)
-    private val treeDetailsSplitter = OnePixelSplitter(false, 0.25f)
-    private val goalsAllMessagesSplitter = OnePixelSplitter(false, 0.5f)
+    private val toolWindowPanel = SimpleToolWindowPanel(!toolWindow.anchor.isHorizontal)
+    private val treeDetailsSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.25f)
+    private val goalsAllMessagesSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.5f)
 
     private var goalEditor: ArendMessagesViewEditor? = null
     private val goalEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.goal.panel.text"))
@@ -67,6 +68,11 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         toolWindow.setIcon(ArendIcons.MESSAGES)
         val contentManager = toolWindow.contentManager
         contentManager.addContent(contentManager.factory.createContent(toolWindowPanel, "", false))
+        project.messageBus.connect(project).subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
+            override fun toolWindowShown(toolWindow: ToolWindow) {
+                updateOrientation(toolWindow)
+            }
+        })
 
         tree.cellRenderer = ArendErrorTreeCellRenderer()
         tree.addTreeSelectionListener(this)
@@ -113,6 +119,17 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         }
 
         update()
+    }
+
+    private fun updateOrientation(toolWindow: ToolWindow) {
+        if (toolWindow.id == ArendMessagesFactory.TOOL_WINDOW_ID) {
+            val isVertical = !toolWindow.anchor.isHorizontal
+            if (toolWindowPanel.isVertical != isVertical) {
+                toolWindowPanel.isVertical = isVertical
+                treeDetailsSplitter.orientation = isVertical
+                goalsAllMessagesSplitter.orientation = isVertical
+            }
+        }
     }
 
     override fun projectClosing(project: Project) {
