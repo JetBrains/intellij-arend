@@ -45,7 +45,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     val tree = ArendErrorTree(treeModel, this)
     private val autoScrollFromSource = ArendErrorTreeAutoScrollFromSource(project, tree)
 
-    private val treePanel = SimpleToolWindowPanel(!toolWindow.anchor.isHorizontal)
+    private val treePanel = SimpleToolWindowPanel(false)
     private val treeDetailsSplitter = OnePixelSplitter()
     private val goalsAllMessagesSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.5f)
 
@@ -134,7 +134,6 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         if (toolWindow.id == ArendMessagesFactory.TOOL_WINDOW_ID) {
             val isVertical = !toolWindow.anchor.isHorizontal
             if (treeDetailsSplitter.isVertical != isVertical) {
-                treePanel.isVertical = isVertical
                 goalsAllMessagesSplitter.orientation = isVertical
                 setupTreeDetailsSplitter(isVertical)
             }
