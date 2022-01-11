@@ -45,7 +45,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     val tree = ArendErrorTree(treeModel, this)
     private val autoScrollFromSource = ArendErrorTreeAutoScrollFromSource(project, tree)
 
-    private val toolWindowPanel = SimpleToolWindowPanel(!toolWindow.anchor.isHorizontal)
+    private val treePanel = SimpleToolWindowPanel(!toolWindow.anchor.isHorizontal)
     private val treeDetailsSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.25f)
     private val goalsAllMessagesSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.5f)
 
@@ -67,12 +67,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         toolWindow.setIcon(ArendIcons.MESSAGES)
         val contentManager = toolWindow.contentManager
-        contentManager.addContent(contentManager.factory.createContent(toolWindowPanel, "", false))
+        contentManager.addContent(contentManager.factory.createContent(treeDetailsSplitter, "", false))
         project.messageBus.connect(project).subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
             override fun toolWindowShown(toolWindow: ToolWindow) {
                 updateOrientation(toolWindow)
             }
         })
+
+        treeDetailsSplitter.firstComponent = treePanel
+        treeDetailsSplitter.secondComponent = goalsAllMessagesSplitter
 
         tree.cellRenderer = ArendErrorTreeCellRenderer()
         tree.addTreeSelectionListener(this)
@@ -92,12 +95,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         actionGroup.add(ArendShowAllMessagesPanelAction())
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, false)
-        toolbar.setTargetComponent(toolWindowPanel)
-
-        toolWindowPanel.toolbar = toolbar.component
-        toolWindowPanel.setContent(treeDetailsSplitter)
-        treeDetailsSplitter.firstComponent = ScrollPaneFactory.createScrollPane(tree, true)
-        treeDetailsSplitter.secondComponent = goalsAllMessagesSplitter
+        toolbar.setTargetComponent(treePanel)
+        treePanel.toolbar = toolbar.component
+        treePanel.setContent(ScrollPaneFactory.createScrollPane(tree, true))
 
         goalsAllMessagesSplitter.apply {
             firstComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
@@ -124,8 +124,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private fun updateOrientation(toolWindow: ToolWindow) {
         if (toolWindow.id == ArendMessagesFactory.TOOL_WINDOW_ID) {
             val isVertical = !toolWindow.anchor.isHorizontal
-            if (toolWindowPanel.isVertical != isVertical) {
-                toolWindowPanel.isVertical = isVertical
+            if (treePanel.isVertical != isVertical) {
+                treePanel.isVertical = isVertical
                 treeDetailsSplitter.orientation = isVertical
                 goalsAllMessagesSplitter.orientation = isVertical
             }
