@@ -28,11 +28,16 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
         if (isGoalEditor) {
             actionGroup.add(ActionManager.getInstance().getAction(ArendClearGoalAction.ID))
             actionGroup.add(ActionManager.getInstance().getAction(ArendPinGoalAction.ID))
-        }
-        val enablePrintOptions = treeElement?.errors?.any { it.error.hasExpressions() } ?: false
-        actionGroup.add(ArendPrintOptionsActionGroup(project, printOptionKind, enablePrintOptions))
-        if (!isGoalEditor) {
+            actionGroup.add(createPrintOptionsActionGroup())
+        } else {
+            actionGroup.add(ActionManager.getInstance().getAction(ArendPinErrorAction.ID))
+            actionGroup.add(createPrintOptionsActionGroup())
             actionGroup.add(ArendShowGoalsInErrorsPanelAction())
         }
+    }
+
+    private fun createPrintOptionsActionGroup(): ArendPrintOptionsActionGroup {
+        val enablePrintOptions = treeElement?.errors?.any { it.error.hasExpressions() } ?: false
+        return ArendPrintOptionsActionGroup(project, printOptionKind, enablePrintOptions)
     }
 }

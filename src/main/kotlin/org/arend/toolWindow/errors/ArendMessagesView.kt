@@ -166,7 +166,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 updateEditor(goalEditor!!, treeElement)
                 updateGoalsView(goalEditor?.component ?: goalEmptyPanel)
             }
-            if (isShowErrorsPanel() &&
+            if (isShowErrorsPanel() && !isErrorTextPinned() &&
                     (!isGoal(treeElement) || project.service<ArendMessagesService>().isShowGoalsInErrorsPanel.get())) {
                 if (errorEditor == null) {
                     errorEditor = ArendMessagesViewEditor(project, treeElement, false)
@@ -191,7 +191,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     }
                 }
             }
-            if (isShowErrorsPanel()) {
+            if (isShowErrorsPanel() && !isErrorTextPinned()) {
                 val currentError = errorEditor?.treeElement?.sampleError
                 if (currentError != null && isParentDefinitionRemoved(currentError)) {
                     errorEditor?.clear()
@@ -209,6 +209,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             treeElement?.highestError?.error?.level == GeneralError.Level.GOAL
 
     private fun isGoalTextPinned() = project.service<ArendMessagesService>().isGoalTextPinned
+
+    private fun isErrorTextPinned() = project.service<ArendMessagesService>().isErrorTextPinned
 
     private fun isShowErrorsPanel() = project.service<ArendMessagesService>().isShowErrorsPanel.get()
 
