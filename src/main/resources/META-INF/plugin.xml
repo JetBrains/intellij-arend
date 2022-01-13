@@ -393,6 +393,12 @@
             <keyboard-shortcut keymap="$default" first-keystroke="control shift Y"/>
         </action>
 
+        <action id="Arend.PinError"
+                class="org.arend.toolWindow.errors.ArendPinErrorAction"
+                text="Pin Error"
+                description="Pin error">
+        </action>
+
         <action id="Arend.ClearGoal"
                 class="org.arend.toolWindow.errors.ArendClearGoalAction"
                 text="Clear Goal"
