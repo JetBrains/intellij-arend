@@ -6,15 +6,15 @@ import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
 import org.arend.util.ArendBundle
 
-class ArendShowAllMessagesPanelAction : ToggleAction(
-        ArendBundle.message("arend.show.all.messages.panel.action.name"),
-        ArendBundle.message("arend.show.all.messages.panel.action.description"),
+class ArendShowErrorsPanelAction : ToggleAction(
+        ArendBundle.message("arend.show.errors.panel.action.name"),
+        ArendBundle.message("arend.show.errors.panel.action.description"),
         AllIcons.Actions.PreviewDetails
 ) {
     override fun isSelected(e: AnActionEvent): Boolean =
-            e.project?.service<ArendMessagesService>()?.isShowAllMessagesPanel?.get() ?: true
+            e.project?.service<ArendMessagesService>()?.isShowErrorsPanel?.get() ?: true
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
-        e.project?.service<ArendMessagesService>()?.isShowAllMessagesPanel?.set(state)
+        e.project?.service<ArendMessagesService>()?.isShowErrorsPanel?.set(state)
     }
 }

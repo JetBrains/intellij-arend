@@ -47,7 +47,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private val treePanel = SimpleToolWindowPanel(false)
     private val treeDetailsSplitter = OnePixelSplitter()
-    private val goalsAllMessagesSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.5f)
+    private val goalsErrorsSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.5f)
 
     private var goalEditor: ArendMessagesViewEditor? = null
     private val goalEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.goal.panel.text"))
@@ -58,9 +58,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         tooltipText = ArendBundle.message("arend.messages.view.latest.goal.tooltip")
     }
 
-    private var allMessagesEditor: ArendMessagesViewEditor? = null
-    private val allMessagesEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.all.messages.panel.text"))
-    private val allMessagesPanel = JBUI.Panels.simplePanel(allMessagesEmptyPanel)
+    private var errorEditor: ArendMessagesViewEditor? = null
+    private val errorEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.error.panel.text"))
+    private val errorsPanel = JBUI.Panels.simplePanel(errorEmptyPanel)
 
     init {
         ProjectManager.getInstance().addProjectManagerListener(project, this)
@@ -91,30 +91,30 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         actionGroup.addSeparator()
         actionGroup.add(ArendMessagesFilterActionGroup(project, autoScrollFromSource))
         actionGroup.addSeparator()
-        actionGroup.add(ArendShowAllMessagesPanelAction())
+        actionGroup.add(ArendShowErrorsPanelAction())
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, false)
         toolbar.setTargetComponent(treePanel)
         treePanel.toolbar = toolbar.component
         treePanel.setContent(ScrollPaneFactory.createScrollPane(tree, true))
 
-        goalsAllMessagesSplitter.apply {
+        goalsErrorsSplitter.apply {
             firstComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
                 addTab(goalsTabInfo)
             }
             secondComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
-                addTab(TabInfo(allMessagesPanel).apply {
-                    text = ArendBundle.message("arend.messages.view.all.messages.title")
-                    tooltipText = ArendBundle.message("arend.messages.view.all.messages.tooltip")
+                addTab(TabInfo(errorsPanel).apply {
+                    text = ArendBundle.message("arend.messages.view.error.title")
+                    tooltipText = ArendBundle.message("arend.messages.view.error.tooltip")
                 })
             }
-            val isShowAllMessagesPanel = project.service<ArendMessagesService>().isShowAllMessagesPanel
-            secondComponent.isVisible = isShowAllMessagesPanel.get()
-            isShowAllMessagesPanel.afterSet {
+            val isShowErrorsPanel = project.service<ArendMessagesService>().isShowErrorsPanel
+            secondComponent.isVisible = isShowErrorsPanel.get()
+            isShowErrorsPanel.afterSet {
                 secondComponent.isVisible = true
                 updateEditors()
             }
-            isShowAllMessagesPanel.afterReset { secondComponent.isVisible = false }
+            isShowErrorsPanel.afterReset { secondComponent.isVisible = false }
         }
 
         project.service<ArendMessagesService>().isShowGoalsInErrorsPanel.afterChange { updateEditors() }
@@ -128,15 +128,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         // We first set components to null to clear the splitter. Without that, it might not be repainted properly.
         treeDetailsSplitter.firstComponent = null
         treeDetailsSplitter.secondComponent = null
-        treeDetailsSplitter.firstComponent = if (vertical) goalsAllMessagesSplitter else treePanel
-        treeDetailsSplitter.secondComponent = if (vertical) treePanel else goalsAllMessagesSplitter
+        treeDetailsSplitter.firstComponent = if (vertical) goalsErrorsSplitter else treePanel
+        treeDetailsSplitter.secondComponent = if (vertical) treePanel else goalsErrorsSplitter
     }
 
     private fun updateOrientation(toolWindow: ToolWindow) {
         if (toolWindow.id == ArendMessagesFactory.TOOL_WINDOW_ID) {
             val isVertical = !toolWindow.anchor.isHorizontal
             if (treeDetailsSplitter.isVertical != isVertical) {
-                goalsAllMessagesSplitter.orientation = isVertical
+                goalsErrorsSplitter.orientation = isVertical
                 setupTreeDetailsSplitter(isVertical)
             }
         }
@@ -146,11 +146,11 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         if (project == this.project) {
             root.removeAllChildren()
             goalsPanel.removeAll()
-            allMessagesPanel.removeAll()
+            errorsPanel.removeAll()
             goalEditor?.release()
             goalEditor = null
-            allMessagesEditor?.release()
-            allMessagesEditor = null
+            errorEditor?.release()
+            errorEditor = null
         }
     }
 
@@ -166,13 +166,13 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 updateEditor(goalEditor!!, treeElement)
                 updateGoalsView(goalEditor?.component ?: goalEmptyPanel)
             }
-            if (isShowAllMessagesPanel() &&
+            if (isShowErrorsPanel() &&
                     (!isGoal(treeElement) || project.service<ArendMessagesService>().isShowGoalsInErrorsPanel.get())) {
-                if (allMessagesEditor == null) {
-                    allMessagesEditor = ArendMessagesViewEditor(project, treeElement, false)
+                if (errorEditor == null) {
+                    errorEditor = ArendMessagesViewEditor(project, treeElement, false)
                 }
-                updateEditor(allMessagesEditor!!, treeElement)
-                updatePanel(allMessagesPanel, allMessagesEditor?.component ?: allMessagesEmptyPanel)
+                updateEditor(errorEditor!!, treeElement)
+                updatePanel(errorsPanel, errorEditor?.component ?: errorEmptyPanel)
             }
         } else {
             if (!isGoalTextPinned()) {
@@ -191,11 +191,11 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     }
                 }
             }
-            if (isShowAllMessagesPanel()) {
-                val currentMessage = allMessagesEditor?.treeElement?.sampleError
-                if (currentMessage != null && isParentDefinitionRemoved(currentMessage)) {
-                    allMessagesEditor?.clear()
-                    updatePanel(allMessagesPanel, allMessagesEmptyPanel)
+            if (isShowErrorsPanel()) {
+                val currentError = errorEditor?.treeElement?.sampleError
+                if (currentError != null && isParentDefinitionRemoved(currentError)) {
+                    errorEditor?.clear()
+                    updatePanel(errorsPanel, errorEmptyPanel)
                 }
             }
         }
@@ -210,7 +210,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private fun isGoalTextPinned() = project.service<ArendMessagesService>().isGoalTextPinned
 
-    private fun isShowAllMessagesPanel() = project.service<ArendMessagesService>().isShowAllMessagesPanel.get()
+    private fun isShowErrorsPanel() = project.service<ArendMessagesService>().isShowErrorsPanel.get()
 
     private fun updateEditor(editor: ArendMessagesViewEditor, treeElement: ArendErrorTreeElement) {
         if (editor.treeElement != treeElement) {
@@ -245,15 +245,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     fun updateGoalText() {
         goalEditor?.updateErrorText()
-        if (isGoal(allMessagesEditor?.treeElement)) {
-            allMessagesEditor?.updateErrorText()
+        if (isGoal(errorEditor?.treeElement)) {
+            errorEditor?.updateErrorText()
         }
     }
 
     fun updateErrorText() {
-        val level = allMessagesEditor?.treeElement?.highestError?.error?.level
+        val level = errorEditor?.treeElement?.highestError?.error?.level
         if (level != null &&  level != GeneralError.Level.GOAL) {
-            allMessagesEditor?.updateErrorText()
+            errorEditor?.updateErrorText()
         }
     }
 
