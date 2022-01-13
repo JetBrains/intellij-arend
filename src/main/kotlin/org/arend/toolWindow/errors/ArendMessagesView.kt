@@ -25,6 +25,7 @@ import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
 import org.arend.psi.ArendFile
+import org.arend.psi.ArendGoal
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
@@ -117,6 +118,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             isShowErrorsPanel.afterReset { secondComponent.isVisible = false }
         }
 
+        project.service<ArendMessagesService>().isShowImplicitGoals.afterChange { updateEditors() }
         project.service<ArendMessagesService>().isShowGoalsInErrorsPanel.afterChange { updateEditors() }
 
         update()
@@ -159,7 +161,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     fun updateEditors() {
         val treeElement = getSelectedMessage()
         if (treeElement != null) {
-            if (isGoal(treeElement) && !isGoalTextPinned()) {
+            if (isGoal(treeElement) && !isGoalTextPinned() && (!isImplicitGoal(treeElement) || isShowImplicitGoals())) {
                 if (goalEditor == null) {
                     goalEditor = ArendMessagesViewEditor(project, treeElement, true)
                 }
@@ -204,8 +206,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             tree.lastSelectedPathComponent.castSafelyTo<DefaultMutableTreeNode>()
                     ?.userObject?.castSafelyTo<ArendErrorTreeElement>()
 
+    private fun isImplicitGoal(treeElement: ArendErrorTreeElement?): Boolean {
+        val error = treeElement?.highestError?.error ?: return false
+        return error.level == GeneralError.Level.GOAL && error.cause !is ArendGoal
+    }
+
     private fun isGoal(treeElement: ArendErrorTreeElement?) =
             treeElement?.highestError?.error?.level == GeneralError.Level.GOAL
+
+    private fun isShowImplicitGoals() = project.service<ArendMessagesService>().isShowImplicitGoals.get()
 
     private fun isGoalTextPinned() = project.service<ArendMessagesService>().isGoalTextPinned
 
