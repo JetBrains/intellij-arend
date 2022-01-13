@@ -29,6 +29,7 @@ class ArendProjectSettingsState {
     var showResolving = true
     var showParsing = false
 
+    var isShowImplicitGoals = false
     var isShowErrorsPanel = true
     var isShowGoalsInErrorsPanel = false
 

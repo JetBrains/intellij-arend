@@ -2,6 +2,7 @@ package org.arend
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.util.IconLoader
+import com.intellij.util.IconUtil
 import org.arend.core.definition.*
 import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.error.GeneralError
@@ -57,6 +58,7 @@ object ArendIcons {
     val ERROR = AllIcons.RunConfigurations.ToolbarError
     val WARNING = AllIcons.RunConfigurations.ToolbarFailed
     val GOAL = getIcon("/icons/goal.svg")
+    val IMPLICIT_GOAL = IconUtil.desaturate(GOAL)
     val INFO = AllIcons.General.NotificationInfo
 
     fun getErrorLevelIcon(level: GeneralError.Level) = when (level) {

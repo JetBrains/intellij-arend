@@ -30,6 +30,7 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
             actionGroup.add(ActionManager.getInstance().getAction(ArendClearGoalAction.ID))
             actionGroup.addSeparator()
             actionGroup.add(createPrintOptionsActionGroup())
+            actionGroup.add(ArendShowImplicitGoalsAction())
         } else {
             actionGroup.add(ActionManager.getInstance().getAction(ArendPinErrorAction.ID))
             actionGroup.addSeparator()
