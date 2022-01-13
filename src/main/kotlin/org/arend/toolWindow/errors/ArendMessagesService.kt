@@ -15,9 +15,9 @@ class ArendMessagesService(private val project: Project) {
     var view: ArendMessagesView? = null
         private set
     var isGoalTextPinned: Boolean = false
-    var isShowAllMessagesPanel: BooleanProperty =
-            AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowAllMessagesPanel).apply {
-                afterChange { project.service<ArendProjectSettings>().data.isShowAllMessagesPanel = it }
+    var isShowErrorsPanel: BooleanProperty =
+            AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowErrorsPanel).apply {
+                afterChange { project.service<ArendProjectSettings>().data.isShowErrorsPanel = it }
             }
     var isShowGoalsInErrorsPanel: BooleanProperty =
             AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowGoalsInErrorsPanel).apply {
