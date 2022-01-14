@@ -179,13 +179,16 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             if (!isGoalTextPinned()) {
                 val currentGoal = goalEditor?.treeElement?.sampleError
                 if (currentGoal != null) {
-                    val goalFile = currentGoal.file
-                    if (goalFile != null && goalFile.isBackgroundTypecheckingFinished) {
-                        if (isParentDefinitionRemoved(currentGoal)) {
+                    if (isParentDefinitionPsiInvalid(currentGoal)) {
+                        goalEditor?.clear()
+                        updateGoalsView(goalEmptyPanel)
+                    }
+                    else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) {
+                        if (isParentDefinitionRemovedFromTree(currentGoal)) {
                             goalEditor?.clear()
                             updateGoalsView(goalEmptyPanel)
                         }
-                        else if (isCauseRemoved(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
+                        else if (isCausePsiInvalid(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
                             val goalRemovedTitle = " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})"
                             goalsTabInfo.append(goalRemovedTitle, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
                         }
@@ -194,7 +197,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
             if (isShowErrorsPanel() && !isErrorTextPinned()) {
                 val currentError = errorEditor?.treeElement?.sampleError
-                if (currentError != null && isParentDefinitionRemoved(currentError)) {
+                if (currentError != null && isParentDefinitionRemovedFromTree(currentError)) {
                     errorEditor?.clear()
                     updatePanel(errorsPanel, errorEmptyPanel)
                 }
@@ -233,12 +236,17 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         }
     }
 
-    private fun isParentDefinitionRemoved(error: ArendError): Boolean {
+    private fun isParentDefinitionPsiInvalid(error: ArendError): Boolean {
+        val definition = error.definition
+        return definition == null || !definition.isValid
+    }
+
+    private fun isParentDefinitionRemovedFromTree(error: ArendError): Boolean {
         val definition = error.definition
         return definition == null || !tree.containsNode(definition)
     }
 
-    private fun isCauseRemoved(error: ArendError): Boolean {
+    private fun isCausePsiInvalid(error: ArendError): Boolean {
         val cause = error.cause
         return cause == null || !cause.isValid
     }
