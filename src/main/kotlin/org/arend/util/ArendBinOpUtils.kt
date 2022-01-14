@@ -82,8 +82,8 @@ fun concreteDataToSourceNode(data: Any?): ArendSourceNode? = if (data is ArendIP
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 } */
 
-fun checkConcreteExprIsArendExpr(aExpr: ArendSourceNode, cExpr: Concrete.Expression): Boolean {
-    val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
+fun checkConcreteExprIsArendExpr(aExpr: Abstract.SourceNode, cExpr: Concrete.Expression): Boolean {
+    val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: Abstract.SourceNode ->
         // Rewrite in a less ad-hoc way
         if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
                 cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
