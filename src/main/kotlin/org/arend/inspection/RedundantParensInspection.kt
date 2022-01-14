@@ -12,7 +12,8 @@ import com.intellij.util.castSafelyTo
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
-import org.arend.psi.parentArgumentAppExpr
+import org.arend.psi.ext.ArendSourceNode
+import org.arend.refactoring.psiOfConcrete
 import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.visitor.VoidConcreteVisitor
@@ -135,13 +136,13 @@ private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: Aren
 
 private fun directParentAppExpression(
     parentAppExpr: ArendArgumentAppExpr,
-    argument: PsiElement
+    argument: ArendExpr
 ): Concrete.AppExpression? {
     val concreteParentAppExpr = appExprToConcrete(parentAppExpr, true) ?: return null
     var directParent: Concrete.AppExpression? = null
     concreteParentAppExpr.accept(object : VoidConcreteVisitor<Void?, Void?>() {
         override fun visitApp(app: Concrete.AppExpression?, params: Void?): Void? {
-            if (app != null && app.arguments.any { it.expression.data == argument }) {
+            if (app != null && app.arguments.any { getArendExpression(it) == argument }) {
                 directParent = app
                 return null
             }
@@ -150,6 +151,9 @@ private fun directParentAppExpression(
     }, null)
     return directParent
 }
+
+private fun getArendExpression(it: Concrete.Argument): ArendExpr? =
+    psiOfConcrete(it.expression)?.castSafelyTo<ArendSourceNode>()?.topmostEquivalentSourceNode as? ArendExpr
 
 private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tuple) {
     override fun getFamilyName(): String = ArendBundle.message("arend.unwrap.parentheses.fix")

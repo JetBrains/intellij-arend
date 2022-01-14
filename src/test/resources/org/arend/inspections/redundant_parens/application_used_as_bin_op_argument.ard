@@ -28,3 +28,5 @@
 
 \func test17 => + (suc 0) (suc 1)
 \func test18 => +(suc 0) (suc 1)
+
+\func test19 => (`+ 2) 1 = 3
