@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import org.arend.injection.InjectedArendEditor
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
 
-class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeElement)
+class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeElement, private val isGoalEditor: Boolean)
     : InjectedArendEditor(project, "Arend Messages", treeElement) {
     init {
         setupActions()
@@ -25,8 +25,22 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
     }
 
     private fun setupActions() {
-        actionGroup.add(ActionManager.getInstance().getAction("Arend.PinErrorMessage"))
+        if (isGoalEditor) {
+            actionGroup.add(ActionManager.getInstance().getAction(ArendPinGoalAction.ID))
+            actionGroup.add(ActionManager.getInstance().getAction(ArendClearGoalAction.ID))
+            actionGroup.addSeparator()
+            actionGroup.add(createPrintOptionsActionGroup())
+            actionGroup.add(ArendShowImplicitGoalsAction())
+        } else {
+            actionGroup.add(ActionManager.getInstance().getAction(ArendPinErrorAction.ID))
+            actionGroup.addSeparator()
+            actionGroup.add(createPrintOptionsActionGroup())
+            actionGroup.add(ArendShowGoalsInErrorsPanelAction())
+        }
+    }
+
+    private fun createPrintOptionsActionGroup(): ArendPrintOptionsActionGroup {
         val enablePrintOptions = treeElement?.errors?.any { it.error.hasExpressions() } ?: false
-        actionGroup.add(ArendPrintOptionsActionGroup(project, printOptionKind, enablePrintOptions))
+        return ArendPrintOptionsActionGroup(project, printOptionKind, enablePrintOptions)
     }
 }

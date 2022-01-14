@@ -651,10 +651,13 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
         else -> trailingElements.add(element)
     }
 
-    val requiresLeadingArgumentParentheses = leadingElements.filter { it !is PsiComment && it !is PsiWhiteSpace }.size > 1
-    var leadingText = leadingElements.fold("") { acc, element -> acc + element.text }.trim()
-    if (requiresLeadingArgumentParentheses) leadingText = "(${leadingText})"
-    val trailingText = trailingElements.fold("") { acc, element -> acc + element.text }.trim()
+    fun getElementsText(elements: ArrayList<PsiElement>): String = elements.fold("") { acc, element -> acc + element.text }.trim().let { text ->
+        if (elements.filter { it !is PsiComment && it !is PsiWhiteSpace }.size > 1) "($text)" else text
+    }
+
+    val leadingText = getElementsText(leadingElements)
+    val trailingText = getElementsText(trailingElements)
+
     val isLambda = leadingElements.size == 0
 
     if (isLambda) {

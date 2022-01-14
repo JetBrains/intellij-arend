@@ -370,7 +370,7 @@
 
         <!-- Tool Windows -->
 
-        <toolWindow id="Arend Errors" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
+        <toolWindow id="Arend Messages" anchor="bottom" factoryClass="org.arend.toolWindow.errors.ArendMessagesFactory"/>
 
         <!-- Search everywhere contributor-->
         <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
@@ -386,11 +386,24 @@
             <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
         </action>
 
-        <action id="Arend.PinErrorMessage"
-                class="org.arend.toolWindow.errors.ArendPinErrorAction"
-                text="Pin Error Message"
-                description="Pin error message">
+        <action id="Arend.PinGoal"
+                class="org.arend.toolWindow.errors.ArendPinGoalAction"
+                text="Pin Goal"
+                description="Pin goal">
             <keyboard-shortcut keymap="$default" first-keystroke="control shift Y"/>
+        </action>
+
+        <action id="Arend.PinError"
+                class="org.arend.toolWindow.errors.ArendPinErrorAction"
+                text="Pin Error"
+                description="Pin error">
+        </action>
+
+        <action id="Arend.ClearGoal"
+                class="org.arend.toolWindow.errors.ArendClearGoalAction"
+                text="Clear Goal"
+                description="Clear goal">
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
         </action>
 
         <action id="Arend.ReloadLibrary"
@@ -451,6 +464,13 @@
                 text="Goto Arend File"
                 description="Go to Arend file">
             <add-to-group group-id="GoToTargetEx" anchor="last" />
+        </action>
+
+        <action class="org.arend.search.proof.ArendProofSearchAction"
+                text="Proof Search"
+                description="Run search for pattern expression in functions' codomains">
+            <add-to-group group-id="SearchEverywhereActions" anchor="last" />
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt P" />
         </action>
 
         <group id="ToolbarArendGroup"

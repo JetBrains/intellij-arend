@@ -23,8 +23,8 @@
 \func test13 => 0 + suc (suc 1) + 2
 \func test14 => 0 + 1 + suc (suc 2)
 
-\func test15 => suc 1 + (suc \levels \lp \lh 1)
-\func test16 => suc 0 + (suc \lp \lh 1)
+\func test15 {A : \Type} (l : Array A) (a : A) => a :: (:: \levels \lp \lh a l)
+\func test16 {A : \Type} (l : Array A) (a : A) => a :: (:: \lp \lh a l)
 
 \func test17 => + (suc 0) (suc 1)
 \func test18 => +(suc 0) (suc 1)

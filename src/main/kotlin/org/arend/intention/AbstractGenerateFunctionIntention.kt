@@ -13,16 +13,25 @@ import com.intellij.util.SmartList
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.param.TypedSingleDependentLink
+import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.Expression
+import org.arend.ext.core.ops.NormalizationMode
+import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
+import org.arend.ext.variable.Variable
 import org.arend.extImpl.ConcreteFactoryImpl
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.extImpl.definitionRenamer.ScopeDefinitionRenamer
+import org.arend.naming.reference.DataLocalReferable
+import org.arend.naming.reference.LocalReferable
+import org.arend.naming.renamer.MapReferableRenamer
+import org.arend.naming.renamer.ReferableRenamer
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.*
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
@@ -34,10 +43,11 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.MinimizedRepresentation
 import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.PsiInstanceProviderSet
-import org.arend.util.ArendBundle
-import org.arend.util.FreeVariablesWithDependenciesCollector
-import org.arend.util.ParameterExplicitnessState
+import org.arend.typechecking.instance.provider.InstanceProvider
+import org.arend.util.*
+import org.arend.util.ParameterExplicitnessState.*
 import java.util.*
+import java.util.function.Supplier
 
 abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     companion object {
@@ -48,23 +58,32 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
 
     internal abstract fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult?
 
+    private fun getName(context: PsiElement): String {
+        return context.parentOfType<ArendGroup>()?.defIdentifier?.name?.let { "$it-lemma" } ?: "lemma"
+    }
+
     internal data class SelectionResult(
-            val expectedType: Expression?,
-            val contextPsi: ArendCompositeElement,
-            val rangeOfReplacement: TextRange,
-            val selectedConcrete : Concrete.Expression?,
-            val identifier: String?,
-            val body: Expression?,
-            val additionalArguments: List<TypedSingleDependentLink> = emptyList()
+        val expectedType: Expression?,
+        val contextPsi: ArendCompositeElement,
+        val rangeOfReplacement: TextRange,
+        val selectedConcrete: Concrete.Expression?,
+        val identifier: String?,
+        val bodyRepresentation: String?,
+        val bodyCore: Expression?,
+        val additionalArguments: List<TypedSingleDependentLink> = emptyList()
     )
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         editor ?: return
         file ?: return
         val selectionResult = extractSelectionData(file, editor, project) ?: return
-        val expressions = listOfNotNull(selectionResult.expectedType, selectionResult.body, *selectionResult.additionalArguments.map { it.typeExpr }.toTypedArray())
+        val expressions = listOfNotNull(
+            selectionResult.expectedType,
+            selectionResult.bodyCore,
+            *selectionResult.additionalArguments.map { it.typeExpr }.toTypedArray()
+        )
         val freeVariables = FreeVariablesWithDependenciesCollector.collectFreeVariables(expressions)
-                .filter { freeArg -> freeArg.first.name !in selectionResult.additionalArguments.map { it.name } }
+            .filter { freeArg -> freeArg.first.name !in selectionResult.additionalArguments.map { it.name } }
         performRefactoring(freeVariables, selectionResult, editor, project)
     }
 
@@ -73,84 +92,136 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             selection: SelectionResult,
             editor: Editor, project: Project
     ) {
-        val (enclosingDefinition, name) = getEnclosingDefinitionWithName(selection.contextPsi) ?: return
-        val enclosingDefinitionReferable = selection.contextPsi.parentOfType<TCDefinition>()!!
-        val (newFunctionCall, newFunctionDefinition) = buildRepresentations(
-                enclosingDefinitionReferable, selection,
-                freeVariables
-        ) { "$name-lemma" } ?: return
+        val baseIdentifier = selection.identifier ?: getName(selection.contextPsi)
+        val newFunctionName = generateFreeName(baseIdentifier, selection.contextPsi.scope)
+        val newCallConcrete = buildNewCallConcrete(freeVariables, newFunctionName)
+        val definitionRepresentation = buildNewFunctionRepresentation(selection, freeVariables, newFunctionName)
 
-        val globalOffsetOfNewDefinition =
-                modifyDocument(editor,
-                        newFunctionCall,
-                        selection.rangeOfReplacement,
-                        selection.selectedConcrete,
-                        selection.contextPsi,
-                        newFunctionDefinition,
-                        enclosingDefinition,
-                        project)
+        val globalOffsetOfNewDefinition = modifyDocument(
+            editor,
+            newCallConcrete,
+            selection.rangeOfReplacement,
+            selection.selectedConcrete,
+            selection.contextPsi,
+            definitionRepresentation,
+            project
+        )
 
         invokeRenamer(editor, globalOffsetOfNewDefinition, project)
     }
 
-    private fun getEnclosingDefinitionWithName(context: PsiElement): Pair<ArendGroup, String>? {
-        val parentGroup = context.parentOfType<ArendGroup>()
-        if (parentGroup != null) {
-            val name = parentGroup.defIdentifier?.name ?: return null
-            return parentGroup to name
-        }
-        return null
-    }
+    internal open fun buildNewFunctionRepresentation(
+        selection: SelectionResult,
+        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
+        name: String
+    ): String {
+        val allParameters = getAllParameters(freeVariables, selection)
 
+        val prettyPrinter = getMinimizationPrettyPrinter(selection, allParameters)
 
-    internal open fun buildRepresentations(
-            enclosingDefinitionReferable: TCDefinition,
-            selection: SelectionResult,
-            freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
-            nameProducer : () -> String
-    ): Pair<Concrete.Expression, String>? {
-        val baseName = selection.identifier ?: nameProducer()
-        val newFunctionName = generateFreeName(baseName, selection.contextPsi.scope)
-
-        val prettyPrinter: (Expression, Boolean) -> Concrete.Expression = run {
-            val ip = PsiInstanceProviderSet().get(ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)!!)
-            val renamer = CachingDefinitionRenamer(ScopeDefinitionRenamer(selection.contextPsi.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }));
-
-            { expr, useReturnType ->
-                try {
-                    MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, renamer, useReturnType)
-                } catch (e: Exception) {
-                    log.error(e)
-                    ToAbstractVisitor.convert(expr, object : PrettyPrinterConfig {
-                        override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> {
-                            return EnumSet.of(PrettyPrinterFlag.SHOW_PROOFS, *super.getExpressionFlags().toTypedArray())
-                        }
-
-                        override fun getDefinitionRenamer() = renamer
-                    })
-                }
+        val parametersRepresentation =
+            allParameters
+            .collapseTelescopes()
+            .joinToString(" ") { (bindings, explicitness) ->
+                val bindingsRepresentation = bindings.joinToString(" ") { it.name }
+                val typeRepresentation = prettyPrinter(bindings.first().typeExpr)
+                " " + "$bindingsRepresentation : $typeRepresentation".let(explicitness::surround)
             }
+
+        val bodyRepresentation = selection.bodyRepresentation?.replace("\\this", "this") ?: "{?}"
+
+        val newFunctionDefinitionType =
+            if (selection.expectedType != null) " : ${prettyPrinter(selection.expectedType)}" else ""
+        return buildString {
+            append(name)
+            append(parametersRepresentation)
+            append(newFunctionDefinitionType)
+            append(" => ")
+            append(bodyRepresentation)
         }
-
-        val mappedAdditionalArguments = selection.additionalArguments.map { TypedBinding(it.name, it.typeExpr) to it.isExplicit.toExplicitnessState() }
-        val parameters = (freeVariables + mappedAdditionalArguments)
-                .collapseTelescopes()
-                .joinToString("") { (bindings, explicitness) ->
-                    " ${explicitness.openingBrace}${bindings.joinToString(" ") { it.name }} : ${prettyPrinter(bindings.first().typeExpr, false)}${explicitness.closingBrace}"
-                }
-
-        val actualBody = selection.body?.let { prettyPrinter(it, true) } ?: "{?}"
-        val newFunctionCall = with(ConcreteFactoryImpl(null)) {
-            app(ref(TypedBinding(newFunctionName, null)), freeVariables.filter { it.second == ParameterExplicitnessState.EXPLICIT }.map { arg(ref(TypedBinding(it.first.name, null)), true) })
-        } as Concrete.Expression
-        val newFunctionDefinitionType = if (selection.expectedType != null) " : ${prettyPrinter(selection.expectedType, false)}" else ""
-        val newFunctionDefinitionTail = "$newFunctionName$parameters$newFunctionDefinitionType => $actualBody"
-        return newFunctionCall to newFunctionDefinitionTail
     }
 
-    private fun Boolean.toExplicitnessState(): ParameterExplicitnessState = if (this) ParameterExplicitnessState.EXPLICIT else ParameterExplicitnessState.IMPLICIT
+    internal fun buildNewCallConcrete(
+        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
+        newFunctionName: String
+    ) = with(ConcreteFactoryImpl(null)) {
+        app(ref(TypedBinding(newFunctionName, null)),
+            freeVariables.filter { it.second == EXPLICIT }.map { arg(getArgumentConcrete(it), true) })
+    } as Concrete.Expression
 
-    private tailrec fun generateFreeName(baseName: String, scope: Scope): String =
+    private fun getMinimizationPrettyPrinter(
+        selection: SelectionResult,
+        allParameters: List<Pair<Binding, ParameterExplicitnessState>>
+    ): (Expression) -> Concrete.Expression {
+        val enclosingDefinitionReferable = selection.contextPsi.parentOfType<TCDefinition>()!!
+
+        val ip = getInstanceProvider(enclosingDefinitionReferable)
+
+        val definitionRenamer = getDefinitionRenamer(selection)
+        val referableRenamer = getReferableRenamer(allParameters.mapToSet(Pair<Binding, ParameterExplicitnessState>::first))
+
+        val config = object : PrettyPrinterConfig {
+            override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> =
+                EnumSet.of(PrettyPrinterFlag.SHOW_PROOFS, *super.getExpressionFlags().toTypedArray())
+
+            override fun getNormalizationMode(): NormalizationMode? = null
+
+            override fun getDefinitionRenamer() = definitionRenamer
+        }
+
+        return { expr ->
+            val concrete = try {
+                MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, definitionRenamer, referableRenamer)
+            } catch (e: Exception) {
+                log.error(e)
+                ToAbstractVisitor.convert(expr, config)
+            }
+            contractFields(concrete)
+        }
+    }
+
+    private fun getArgumentConcrete(binding: Pair<Binding, ParameterExplicitnessState>): Concrete.Expression {
+        if (binding.first is ClassCallExpression.ClassCallBinding) {
+            val def = binding.first.typeExpr as ClassCallExpression
+            return Concrete.TypedExpression(null,
+                Concrete.ThisExpression(null, null),
+                Concrete.ReferenceExpression(null, LocalReferable(def.definition.name))
+            )
+        }
+        return ConcreteFactoryImpl(null).ref(TypedBinding(binding.first.name, null)) as Concrete.ReferenceExpression
+    }
+
+    private fun getReferableRenamer(bindings: Set<Binding>): Supplier<ReferableRenamer>? {
+        val classBindings = bindings.filterIsInstance<ClassCallExpression.ClassCallBinding>()
+        if (classBindings.isEmpty()) {
+            return null
+        }
+        val thisMapping: Map<Variable, Concrete.Expression> = classBindings.associateWithWellTyped {
+            Concrete.ReferenceExpression(null, DataLocalReferable(it.typeExpr, "this"))
+        }
+        return Supplier { MapReferableRenamer(thisMapping) }
+    }
+
+    private fun getInstanceProvider(enclosingDefinitionReferable: TCDefinition): InstanceProvider? =
+        ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)
+            ?.let { PsiInstanceProviderSet().get(it) }
+
+    private fun getAllParameters(
+        freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
+        selection: SelectionResult
+    ): List<Pair<Binding, ParameterExplicitnessState>> {
+        val mappedAdditionalArguments = selection.additionalArguments.map {
+            TypedBinding(it.name, it.typeExpr) to it.isExplicit.toExplicitnessState()
+        }
+        return freeVariables + mappedAdditionalArguments
+    }
+
+    private fun getDefinitionRenamer(selection: SelectionResult): DefinitionRenamer =
+        CachingDefinitionRenamer(ScopeDefinitionRenamer(selection.contextPsi.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }))
+
+    private fun Boolean.toExplicitnessState(): ParameterExplicitnessState = if (this) EXPLICIT else IMPLICIT
+
+    internal tailrec fun generateFreeName(baseName: String, scope: Scope): String =
             if (scope.resolveName(baseName) == null) {
                 baseName
             } else {
@@ -158,8 +229,8 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             }
 
     private fun List<Pair<Binding, ParameterExplicitnessState>>.collapseTelescopes(): List<Pair<List<Binding>, ParameterExplicitnessState>> =
-            fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
-            if (collector.isEmpty() || collector.last().second == ParameterExplicitnessState.IMPLICIT) {
+        fold(mutableListOf<Pair<MutableList<Binding>, ParameterExplicitnessState>>()) { collector, (binding, explicitness) ->
+            if (collector.isEmpty() || collector.last().second == IMPLICIT) {
                 collector.add(SmartList(binding) to explicitness)
             } else {
                 val lastEntry = collector.last()
@@ -179,13 +250,14 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             replacedConcrete: Concrete.Expression?,
             replaceablePsi: ArendCompositeElement,
             newFunctionDefinition: String,
-            oldFunction: ArendGroup,
             project: Project
     ): Int {
         val document = editor.document
         val startOffset = replaceablePsi.startOffset
         val newCallRepresentation = newCall.toString()
-        val newFunction = ArendPsiFactory(replaceablePsi.project).createFromText("\\func $newFunctionDefinition")!!.statements[0].definition as ArendDefFunction
+        val newFunction =
+            ArendPsiFactory(replaceablePsi.project).createFromText("\\func $newFunctionDefinition")!!.statements[0].definition as ArendDefFunction
+        val oldFunction = replaceablePsi.parentOfType<ArendGroup>()!!
         val newDefinition = oldFunction.addToWhere(newFunction)
         val newDefPointer = SmartPointerManager.createPointer(newDefinition)
         PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
@@ -198,9 +270,16 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     }
 
     protected fun invokeRenamer(editor: Editor, functionOffset: Int, project: Project) {
-        val newFunctionDefinition =
-                PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.findElementAt(functionOffset)
-                        ?.parentOfType<PsiNameIdentifierOwner>() ?: return
+        val newFunctionDefinition = PsiDocumentManager
+            .getInstance(project)
+            .getPsiFile(editor.document)
+            ?.findElementAt(functionOffset)
+            ?.parentOfType<PsiNameIdentifierOwner>() ?: return
         ArendGlobalReferableRenameHandler().doRename(newFunctionDefinition, editor, null)
+    }
+
+    private fun contractFields(expandedConcrete: Concrete.Expression): Concrete.Expression = when (expandedConcrete) {
+        is Concrete.ClassExtExpression -> expandedConcrete.baseClassExpression
+        else -> expandedConcrete
     }
 }

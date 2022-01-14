@@ -35,11 +35,13 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.TCDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ArendInternalReferable
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.libraryName
 import org.arend.util.mapFirstNotNull
+import java.util.concurrent.atomic.AtomicLong
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
     var generatedModuleLocation: ModuleLocation? = null
@@ -54,8 +56,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     val isRepl: Boolean
         get() = enforcedLibraryConfig != null
 
-    var lastModification: Long = -1
-    var lastDefinitionModification: Long = -1
+    var lastModification: AtomicLong = AtomicLong(-1)
+    var lastDefinitionModification: AtomicLong = AtomicLong(-1)
+
+    val isBackgroundTypecheckingFinished: Boolean
+        get() = lastDefinitionModification.get() >= project.service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
 
     val moduleLocation: ModuleLocation?
         get() = generatedModuleLocation ?: CachedValuesManager.getCachedValue(this) {

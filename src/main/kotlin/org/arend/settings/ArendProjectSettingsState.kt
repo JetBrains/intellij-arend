@@ -29,6 +29,10 @@ class ArendProjectSettingsState {
     var showResolving = true
     var showParsing = false
 
+    var isShowImplicitGoals = false
+    var isShowErrorsPanel = true
+    var isShowGoalsInErrorsPanel = false
+
     // Printing options
     var consolePrintingOptions = ArendPrintingOptions()
     var errorPrintingOptions = ArendPrintingOptions()
@@ -44,6 +48,11 @@ class ArendProjectSettingsState {
 
     // Libraries
     var librariesRoot: String? = null
+
+    // Proof search
+    var includeTestLocations : Boolean = false
+    var includeNonProjectLocations : Boolean = true
+    var truncateSearchResults : Boolean = true
 }
 
 class ArendPrintingOptions {

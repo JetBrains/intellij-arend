@@ -6,23 +6,23 @@ import com.intellij.openapi.components.service
 import org.arend.ArendIcons
 import org.arend.util.ArendBundle
 
-class ArendPinErrorAction : ToggleAction(
-        ArendBundle.message("arend.pin.error.action.name"),
-        ArendBundle.message("arend.pin.error.action.description"),
+class ArendPinGoalAction : ToggleAction(
+        ArendBundle.message("arend.pin.goal.action.name"),
+        ArendBundle.message("arend.pin.goal.action.description"),
         ArendIcons.PIN
 ) {
     override fun isSelected(e: AnActionEvent): Boolean =
-            e.project?.service<ArendMessagesService>()?.isErrorTextPinned ?: false
+            e.project?.service<ArendMessagesService>()?.isGoalTextPinned ?: false
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
         val service = e.project?.service<ArendMessagesService>() ?: return
-        service.isErrorTextPinned = state
+        service.isGoalTextPinned = state
         if (!state) {
             service.updateEditors()
         }
     }
 
     companion object {
-        const val ID = "Arend.PinError"
+        const val ID = "Arend.PinGoal"
     }
 }

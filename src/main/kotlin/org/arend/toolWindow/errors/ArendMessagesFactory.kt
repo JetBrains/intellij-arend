@@ -10,4 +10,8 @@ class ArendMessagesFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         project.getService(ArendMessagesService::class.java).initView(toolWindow)
     }
+
+    companion object {
+        const val TOOL_WINDOW_ID = "Arend Messages"
+    }
 }

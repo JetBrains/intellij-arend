@@ -32,6 +32,7 @@ open class ExtractExpressionToFunctionIntention : AbstractGenerateFunctionIntent
                 enclosingRange,
                 subexprResult.subConcrete,
                 null,
+                editor.document.getText(range),
                 subexprResult.subCore)
         }
     }

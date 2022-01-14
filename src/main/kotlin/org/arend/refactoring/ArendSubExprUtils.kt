@@ -121,7 +121,10 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val (head, tail) = collectArendExprs(parent, range)
         ?: throw SubExprException("cannot find a suitable concrete expression")
     val subExpr =
-        if (tail.isNotEmpty()) parseBinOp(head, tail)
+        if (tail.isNotEmpty()) {
+            val data = if (exprAncestor.textRange == range) exprAncestor else null
+            parseBinOp(data, head, tail)
+        }
         else ConcreteBuilder.convertExpression(head).accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
     val resolver = subExpr.underlyingReferenceExpression?.let { refExpr -> refExpr.data?.let { MyResolverListener(it) } }
 

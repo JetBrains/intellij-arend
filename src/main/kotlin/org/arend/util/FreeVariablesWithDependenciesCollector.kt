@@ -10,8 +10,13 @@ import org.arend.ext.core.ops.NormalizationMode
 import kotlin.Pair
 
 
-enum class ParameterExplicitnessState(val openingBrace : String, val closingBrace : String) {
-    EXPLICIT("(", ")"), IMPLICIT("{", "}")
+enum class ParameterExplicitnessState {
+    EXPLICIT, IMPLICIT;
+
+    fun surround(string : String) : String = when(this) {
+        EXPLICIT -> "($string)"
+        IMPLICIT -> "{$string}"
+    }
 }
 
 class FreeVariablesWithDependenciesCollector private constructor() : VoidExpressionVisitor<ParameterExplicitnessState>() {
@@ -19,20 +24,23 @@ class FreeVariablesWithDependenciesCollector private constructor() : VoidExpress
         fun collectFreeVariables(expressions : List<Expression>) : List<Pair<Binding, ParameterExplicitnessState>> =
             FreeVariablesWithDependenciesCollector()
                 .apply { expressions.forEach { it.accept(this, ParameterExplicitnessState.EXPLICIT) } }
-                .apply {
+                .run {
                     val allImplicitBindings = freeBindings.mapNotNull { if (it.second == ParameterExplicitnessState.IMPLICIT) it.first else null }
+                    val classRefs = classReferences.filter { it.typeExpr !in recognizedClasses }.map { it to ParameterExplicitnessState.EXPLICIT }
                     freeBindings.removeIf { it.first in toRemove || (it.second == ParameterExplicitnessState.EXPLICIT && it.first in allImplicitBindings) }
+                    classRefs + freeBindings.toList()
                 }
-                .freeBindings
-                .toList()
     }
 
     private val freeBindings : MutableSet<Pair<Binding, ParameterExplicitnessState>> = LinkedHashSet()
     private val toRemove : MutableSet<Binding> = HashSet()
+    private val recognizedClasses : MutableSet<ClassCallExpression> = HashSet()
+    private val classReferences : MutableSet<ClassCallExpression.ClassCallBinding>  = HashSet()
 
     override fun visitReference(expr: ReferenceExpression, state: ParameterExplicitnessState): Void? {
         val currentBinding = expr.binding
         if (currentBinding is ClassCallExpression.ClassCallBinding) {
+            classReferences.add(currentBinding)
             return null
         }
         currentBinding.type.normalize(NormalizationMode.RNF).expr.accept(this, ParameterExplicitnessState.IMPLICIT)
@@ -50,6 +58,7 @@ class FreeVariablesWithDependenciesCollector private constructor() : VoidExpress
     }
 
     override fun visitClassCall(expr: ClassCallExpression, state: ParameterExplicitnessState): Void? {
+        recognizedClasses.add(expr)
         visitDefCall(expr, state)
         for ((_, value) in expr.implementedHere) {
             value.accept(this, state)
