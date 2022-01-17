@@ -18,7 +18,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.refactoring.addToWhere
 import org.arend.typechecking.TypeCheckingService
 import org.jetbrains.annotations.Contract
 import kotlin.reflect.jvm.internal.impl.utils.SmartSet
@@ -36,21 +35,27 @@ class ArendImportOptimizer : ImportOptimizer {
         val optimalTree = getOptimalImportStructure(file)
 
         return Runnable {
-            runPsiChanges(file, optimalTree)
+            runPsiChanges(listOf(), file, optimalTree)
         }
     }
 }
 
 @RequiresWriteLock
-private fun runPsiChanges(group : ArendGroup, rootStructure: OptimalModuleStructure) {
+private fun runPsiChanges(currentPath: List<String>, group : ArendGroup, rootStructure: OptimalModuleStructure) {
     val statCommands = group.statements.mapNotNull { it.statCmd }
     statCommands.forEach { it.delete() }
     if (rootStructure.usages.isNotEmpty()) {
-        insertNewImports(group, rootStructure)
+        insertNewImports(currentPath, group, rootStructure)
+    }
+    for (subgroup in group.subgroups) {
+        val substructure = rootStructure.subgroups.find { it.name == subgroup.name }
+        if (substructure != null) {
+            runPsiChanges(currentPath + listOf(substructure.name), subgroup, substructure)
+        }
     }
 }
 
-private fun insertNewImports(group: ArendGroup, rootStructure: OptimalModuleStructure) {
+private fun insertNewImports(currentPath: List<String>, group: ArendGroup, rootStructure: OptimalModuleStructure) {
     val reverseMapping = mutableMapOf<List<String>, MutableSet<String>>()
     rootStructure.usages.forEach { (id, path) -> reverseMapping.computeIfAbsent(path) { HashSet() }.add(id) }
     // todo: \hiding
@@ -60,23 +65,23 @@ private fun insertNewImports(group: ArendGroup, rootStructure: OptimalModuleStru
     val preludeDefinitions = mutableListOf<List<String>>()
     Prelude.forEach { def -> preludeDefinitions.add(Prelude.MODULE_PATH.toList() + def.name) }
     for ((path, identifiers) in reverseMapping) {
-        if (path.isEmpty()) {
-            continue
-        }
-        if (path == Prelude.MODULE_PATH.toList()) {
-            continue
-        }
         val actualPath = if (path in preludeDefinitions) {
             path.drop(Prelude.MODULE_PATH.size())
         } else {
-            path
+            path.shorten(currentPath)
+        }
+        if (actualPath.isEmpty()) {
+            continue
+        }
+        if (actualPath == Prelude.MODULE_PATH.toList()) {
+            continue
         }
         val isStandaloneModule = typecheckingService.libraryManager.registeredLibraries.any { it.containsModule(ModulePath(actualPath)) }
         val prefix = "\\${if (isStandaloneModule) "import" else "open"} ${actualPath.joinToString(".")}"
         if (identifiers.size > 3) {
             importStatements.add(prefix)
         } else {
-            importStatements.add(prefix + identifiers.joinToString(", ", " (", ")"))
+            importStatements.add(prefix + identifiers.sorted().joinToString(", ", " (", ")"))
         }
     }
     importStatements.sort()
@@ -87,7 +92,15 @@ private fun insertNewImports(group: ArendGroup, rootStructure: OptimalModuleStru
         if (group is ArendFile) {
             group.addBefore(it, group.firstChild)
         }  else {
-            group.addToWhere(it)
+            val where = group.where!! // if there is a nested definition, there is certainly a nested \where
+            val lbrace = where.lbrace ?: run {
+                val (lbrace, rbrace) = ArendPsiFactory(group.project).createPairOfBraces()
+                where.addAfter(rbrace, where.statementList.lastOrNull() ?: where.whereKw)
+                val newLBrace = where.addAfter(lbrace, where.whereKw)
+                where.addAfter(ArendPsiFactory(group.project).createWhitespace(" "), where.whereKw)
+                newLBrace
+            }
+            where.addAfter(it, lbrace)
         }.let(newElements::add)
     }
     if (newElements.isNotEmpty()) {
@@ -199,7 +212,7 @@ private data class MutableFrame(
                 subgroups.forEach { it.usages.remove(identifier) }
             }
         }
-        subgroups.filter { it.usages.isNotEmpty() }
+        subgroups.filter { it.usages.isNotEmpty() || it.subgroups.isNotEmpty() }
     }
 }
 

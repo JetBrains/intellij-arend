@@ -177,11 +177,11 @@ class OptimizeImportsTest : ArendTestBase() {
             --! Main.ard
             \import Foo
             
-            \func f : Foo.foo = Foo.bar => {?}
+            \func f : foo.apply = bar.apply => {?}
             """, """
-            \import Foo (foo, bar)
+            \import Foo (bar, foo)
             
-            \func f : Foo.foo = Foo.bar => {?}
+            \func f : foo.apply = bar.apply => {?}
             """,
         )
     }
@@ -193,11 +193,12 @@ class OptimizeImportsTest : ArendTestBase() {
             \import Foo
             \open foo
             
-            \func f : foo = Foo.bar => {?}
+            \func f : apply = bar.apply => {?}
             """, """
-            \import Foo (foo, bar)
+            \import Foo (bar)
+            \open Foo.foo (apply)
             
-            \func f : foo = Foo.bar => {?}
+            \func f : apply = bar.apply => {?}
             """,
         )
     }
@@ -220,20 +221,38 @@ class OptimizeImportsTest : ArendTestBase() {
               \func f => apply
             }
             """, """
-            \import Playground3
-
             \module A \where {
-              \open foo
+              \open Foo.foo (apply)
             
               \func f => apply
             }
             
             \module B \where {
-              \open bar
+              \open Foo.bar (apply)
             
               \func f => apply
             }
             """,
         )
     }
+
+    fun `test single-import`() {
+        doTest("""
+            --! Foo.ard
+            \data Bar
+            
+            --! Main.ard
+            \import Foo
+            \func f => 1 \where \func g : Bar => {?}
+            """, """
+            \func f => 1 \where {
+              \import Foo (Bar)
+            
+              \func g : Bar => {?}
+            }
+            """,
+        )
+    }
+
+
 }
