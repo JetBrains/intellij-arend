@@ -292,4 +292,61 @@ class OptimizeImportsTest : ArendTestBase() {
         """
         )
     }
+
+    fun `test constructor in pattern`() {
+        doTest(
+            """
+            --! Foo.ard
+            \data D | d Nat
+            --! Main.ard
+            \import Foo
+            
+            \func foo (dd : D) : Nat \elim dd
+              | d n => 1
+        """, """
+            \import Foo (D, d)
+            
+            \func foo (dd : D) : Nat \elim dd
+              | d n => 1
+        """
+        )
+    }
+
+    fun `test record`() {
+        doTest(
+            """
+            --! Foo.ard
+            \record R {
+              | rr : Nat
+            }
+            --! Main.ard
+            \import Foo
+            
+            \func f : R \cowith {
+              | rr => 1
+            }
+        """, """
+            \import Foo (R)
+
+            \func f : R \cowith {
+              | rr => 1
+            }
+        """
+        )
+    }
+
+    fun `test array`() {
+        doTest(
+            """
+            --! Main.ard
+            \func f => \new Array { | A => \lam _ => Nat
+                                    | len => 1
+                                    | at (0) => 1  }
+        """, """
+            \func f => \new Array { | A => \lam _ => Nat
+                                    | len => 1
+                                    | at (0) => 1  }
+        """
+        )
+    }
 }

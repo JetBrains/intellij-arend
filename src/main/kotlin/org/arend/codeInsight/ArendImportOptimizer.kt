@@ -151,7 +151,7 @@ private fun doAddNamespaceCommands(
 
 private fun subtract(fullQualifier: List<String>, shortQualifier: List<String>): List<String> {
     if (shortQualifier.size == 1) return fullQualifier
-    return fullQualifier.take(fullQualifier.size - (shortQualifier.size - 1)) // drop suffix in case of partially qualified name
+    return fullQualifier.take((fullQualifier.size - (shortQualifier.size - 1)).coerceAtLeast(0)) // drop suffix in case of partially qualified name
 }
 
 private fun collectQualifier(element: ArendCompositeElement): Pair<ModulePath, ModulePath> {
@@ -212,9 +212,12 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
 
         private fun visitReferenceElement(element: ArendReferenceElement) {
             // todo stubs
-            val resolved = element.resolve.castSafelyTo<PsiStubbedReferableImpl<*>>() ?: return
-            if (resolved.parentOfType<ArendGroup>() == element.parentOfType<ArendGroup>() ||
-                resolved is ArendDefModule) {
+            val resolved = element.reference?.resolve().castSafelyTo<PsiStubbedReferableImpl<*>>() ?: return
+            if (resolved is ArendDefModule ||
+                resolved is ArendClassField ||
+                resolved is ArendFieldDefIdentifier ||
+                element.parentOfType<ArendCoClause>()?.resolvedImplementedField === resolved
+            ) {
                 return
             }
             val characteristics = element.longName.first()
