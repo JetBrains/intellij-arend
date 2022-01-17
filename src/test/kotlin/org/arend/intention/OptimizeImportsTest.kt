@@ -1,7 +1,6 @@
 package org.arend.intention
 
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.psi.codeStyle.CodeStyleManager
 import org.arend.*
 import org.arend.codeInsight.ArendImportOptimizer
 import org.intellij.lang.annotations.Language
@@ -42,7 +41,7 @@ class OptimizeImportsTest : ArendTestBase() {
             --! Foo.ard
             \data Bar | bar
             """, """
-            \import Foo (Bar)
+            \import Foo (Bar, bar)
             
             \func foo : Bar => bar
             """
@@ -269,15 +268,28 @@ class OptimizeImportsTest : ArendTestBase() {
     }
 
     fun `test self-contained datatype`() {
-        doTest("""
+        doTest(
+            """
             --! Main.ard
             \data D (a : Nat)
               | d (D a)
         """, """
             \data D (a : Nat)
               | d (D a)
-        """)
+        """
+        )
     }
 
-
+    fun `test self-contained function`() {
+        doTest(
+            """
+            --! Main.ard
+            \func foo => bar
+              \where \func bar => 1
+        """, """
+            \func foo => bar
+              \where \func bar => 1
+        """
+        )
+    }
 }
