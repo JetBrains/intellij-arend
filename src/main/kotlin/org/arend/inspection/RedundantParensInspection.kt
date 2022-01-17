@@ -9,14 +9,13 @@ import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
+import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
-import org.arend.psi.ext.ArendSourceNode
 import org.arend.refactoring.psiOfConcrete
 import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.visitor.VoidConcreteVisitor
 import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
 import org.arend.util.isBinOp
@@ -121,39 +120,34 @@ private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: A
             grand is ArendImplicitArgument
 }
 
-private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: ArendExpr): Boolean {
+private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, tupleExpression: ArendExpr): Boolean {
     val parentAtomFieldsAcc = getParentAtomFieldsAcc(tuple) ?: return false
     val parentAppExprPsi = parentArgumentAppExpr(parentAtomFieldsAcc) ?: return false
-    val parentAppExpr = directParentAppExpression(parentAppExprPsi, parentAtomFieldsAcc) ?: return false
-    if (BinOpIntentionUtil.isBinOpInfixApp(parentAppExpr)) {
-        val childAppExpr = if (expression is ArendNewExpr && isAtomic(expression)) expression.argumentAppExpr else null
+    val parentAppExpr = appExprToConcrete(parentAppExprPsi, true) ?: return false
+    var result = false
+    parentAppExpr.accept(object : ArendInspectionConcreteVisitor() {
+        override fun visitHole(expr: Concrete.HoleExpression?, params: Void?): Void? {
+            super.visitHole(expr, params)
+            if (expr != null && psiOfConcrete(expr) == tuple) {
+                result = isApplicationUsedAsBinOpArgument(parent, tupleExpression)
+            }
+            return null
+        }
+    }, null)
+    return result
+}
+
+private fun isApplicationUsedAsBinOpArgument(tupleParent: ConcreteSourceNode?, tupleExpression: ArendExpr): Boolean {
+    if (tupleParent is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(tupleParent)) {
+        val childAppExpr =
+            if (tupleExpression is ArendNewExpr && isAtomic(tupleExpression)) tupleExpression.argumentAppExpr
+            else null
         return childAppExpr != null &&
                 hasNoLevelArguments(childAppExpr) &&
                 BinOpIntentionUtil.toConcreteBinOpInfixApp(childAppExpr) == null
     }
     return false
 }
-
-private fun directParentAppExpression(
-    parentAppExpr: ArendArgumentAppExpr,
-    argument: ArendExpr
-): Concrete.AppExpression? {
-    val concreteParentAppExpr = appExprToConcrete(parentAppExpr, true) ?: return null
-    var directParent: Concrete.AppExpression? = null
-    concreteParentAppExpr.accept(object : VoidConcreteVisitor<Void?, Void?>() {
-        override fun visitApp(app: Concrete.AppExpression?, params: Void?): Void? {
-            if (app != null && app.arguments.any { getArendExpression(it) == argument }) {
-                directParent = app
-                return null
-            }
-            return super.visitApp(app, params)
-        }
-    }, null)
-    return directParent
-}
-
-private fun getArendExpression(it: Concrete.Argument): ArendExpr? =
-    psiOfConcrete(it.expression)?.castSafelyTo<ArendSourceNode>()?.topmostEquivalentSourceNode as? ArendExpr
 
 private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tuple) {
     override fun getFamilyName(): String = ArendBundle.message("arend.unwrap.parentheses.fix")
