@@ -149,6 +149,7 @@
         <langCodeStyleSettingsProvider implementation="org.arend.formatting.ArendCodeStyleSettingsProvider"/>
         <editor.backspaceModeOverride language="Arend" implementationClass="org.arend.formatting.ArendBackspaceDisabler"/>
         <enterHandlerDelegate implementation="org.arend.formatting.ArendEnterAtIndentHandler" order="first"/>
+        <lang.importOptimizer language="Arend" implementationClass="org.arend.codeInsight.ArendImportOptimizer"/>
 
         <!-- Code Insight -->
 

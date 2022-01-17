@@ -520,7 +520,7 @@ private fun ArendLetExpr.getKw(): PsiElement =
     letKw ?: haveKw ?: letsKw ?: havesKw ?: error("At least one of the keywords should be provided")
 
 @Suppress("UNCHECKED_CAST")
-fun <T : ArendDefinition> ArendGroup.addToWhere(elementToAdd: T): T {
+fun <T : ArendCompositeElement> ArendGroup.addToWhere(elementToAdd: T): T {
     val where = getCompleteWhere(this, ArendPsiFactory(project))
     return where.addBefore(elementToAdd, where.rbrace) as T
 }
