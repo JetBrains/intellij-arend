@@ -13,12 +13,8 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.arend.ext.module.ModulePath
-import org.arend.naming.reference.ModuleReferable
-import org.arend.naming.scope.Scope
-import org.arend.psi.ArendDefModule
-import org.arend.psi.ArendFile
-import org.arend.psi.ArendPsiFactory
-import org.arend.psi.ArendStatCmd
+import org.arend.prelude.Prelude
+import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.impl.ArendGroup
@@ -37,16 +33,16 @@ class ArendImportOptimizer : ImportOptimizer {
 
     override fun processFile(file: PsiFile): Runnable {
         if (file !is ArendFile) return EmptyRunnable.getInstance()
-        val optimalTree = getOptimalModuleStructure(file)
+        val optimalTree = getOptimalImportStructure(file)
 
         return Runnable {
-            optimizeGroup(file, optimalTree)
+            runPsiChanges(file, optimalTree)
         }
     }
 }
 
 @RequiresWriteLock
-private fun optimizeGroup(group : ArendGroup, rootStructure: OptimalModuleStructure) {
+private fun runPsiChanges(group : ArendGroup, rootStructure: OptimalModuleStructure) {
     val statCommands = group.statements.mapNotNull { it.statCmd }
     statCommands.forEach { it.delete() }
     if (rootStructure.usages.isNotEmpty()) {
@@ -61,12 +57,22 @@ private fun insertNewImports(group: ArendGroup, rootStructure: OptimalModuleStru
     // todo: \as
     val importStatements = mutableListOf<String>()
     val typecheckingService = group.project.service<TypeCheckingService>()
+    val preludeDefinitions = mutableListOf<List<String>>()
+    Prelude.forEach { def -> preludeDefinitions.add(Prelude.MODULE_PATH.toList() + def.name) }
     for ((path, identifiers) in reverseMapping) {
-        if (path.singleOrNull() == "Prelude") {
+        if (path.isEmpty()) {
             continue
         }
-        val isStandaloneModule = typecheckingService.libraryManager.registeredLibraries.any { it.containsModule(ModulePath(path)) }
-        val prefix = "\\${if (isStandaloneModule) "import" else "open"} ${path.joinToString(".")}"
+        if (path == Prelude.MODULE_PATH.toList()) {
+            continue
+        }
+        val actualPath = if (path in preludeDefinitions) {
+            path.drop(Prelude.MODULE_PATH.size())
+        } else {
+            path
+        }
+        val isStandaloneModule = typecheckingService.libraryManager.registeredLibraries.any { it.containsModule(ModulePath(actualPath)) }
+        val prefix = "\\${if (isStandaloneModule) "import" else "open"} ${actualPath.joinToString(".")}"
         if (identifiers.size > 3) {
             importStatements.add(prefix)
         } else {
@@ -97,15 +103,19 @@ private fun subtract(fullQualifier: List<String>, shortQualifier: List<String>):
 }
 
 private fun collectQualifier(element: ArendCompositeElement): List<String> {
-    var initialGroup = element.parentOfType<ArendGroup>()
+    var currentGroup = element.parentOfType<ArendGroup>()
+    if (element is ArendConstructor) {
+        @Suppress("RemoveExplicitTypeArguments")
+        currentGroup = currentGroup?.parentOfType<ArendGroup>()
+    }
     val container = mutableListOf<String>()
-    while (initialGroup != null) {
-        if (initialGroup is ArendFile) {
-            initialGroup.moduleLocation?.modulePath?.toList()?.reversed()?.forEach(container::add)
+    while (currentGroup != null) {
+        if (currentGroup is ArendFile) {
+            currentGroup.moduleLocation?.modulePath?.toList()?.reversed()?.forEach(container::add)
         } else {
-            container.add(initialGroup.refName)
+            container.add(currentGroup.refName)
         }
-        initialGroup = initialGroup.parentGroup
+        currentGroup = currentGroup.parentGroup
     }
     container.reverse()
     return container
@@ -117,7 +127,7 @@ data class OptimalModuleStructure(
     val usages: Map<String, List<String>>,
 )
 
-fun getOptimalModuleStructure(file: ArendFile): OptimalModuleStructure {
+fun getOptimalImportStructure(file: ArendFile): OptimalModuleStructure {
     val rootFrame = MutableFrame("")
     val filePath = file.moduleLocation?.modulePath?.toList()
 
@@ -125,8 +135,10 @@ fun getOptimalModuleStructure(file: ArendFile): OptimalModuleStructure {
         private val currentScopePath: MutableList<MutableFrame> = mutableListOf(rootFrame)
 
         override fun visitElement(element: PsiElement) {
-            if (element is ArendGroup && element !is ArendFile) {
-                currentScopePath.add(MutableFrame(element.refName))
+            if (element is ArendWhere) {
+                val groupName = element.parentOfType<ArendGroup>()?.refName
+                groupName ?: return // looks like a bare \where block, just skip it
+                currentScopePath.add(MutableFrame(groupName))
             }
             if (element !is ArendStatCmd) {
                 super.visitElement(element)
@@ -137,7 +149,7 @@ fun getOptimalModuleStructure(file: ArendFile): OptimalModuleStructure {
         }
 
         override fun elementFinished(element: PsiElement?) {
-            if (element is ArendGroup && element !is ArendFile) {
+            if (element is ArendWhere) {
                 val last = currentScopePath.removeLast()
                 currentScopePath.last().subgroups.add(last)
             }
@@ -151,8 +163,7 @@ fun getOptimalModuleStructure(file: ArendFile): OptimalModuleStructure {
             }
             val qualifier = collectQualifier(resolved).shorten(filePath)
             val requiredPath = subtract(qualifier, element.longName)
-            currentScopePath.last().usages[element.referenceName] =
-                requiredPath // todo: maybe list of identifiers as a key? like Substitution.apply
+            currentScopePath.last().usages[element.longName.first()] = requiredPath
         }
     })
 
@@ -170,8 +181,12 @@ private data class MutableFrame(
     @Contract(mutates = "this")
     fun contract() {
         subgroups.forEach { it.contract() }
-        val allIdentifiers = subgroups.flatMapTo(HashSet()) { it.usages.keys } + usages.keys
-        for (identifier in allIdentifiers) {
+        val allInnerIdentifiers = subgroups.flatMapTo(HashSet()) { it.usages.keys }
+
+        for (identifier in allInnerIdentifiers) {
+            if (identifier !in usages) {
+                continue
+            }
             val paths = subgroups.mapNotNullTo(SmartSet.create()) { it.usages[identifier] }
             usages[identifier]?.let(paths::add)
             if (paths.size > 1) {
