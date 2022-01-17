@@ -1,7 +1,7 @@
 package org.arend.codeInsight
 
 import com.intellij.lang.ImportOptimizer
-import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.EmptyRunnable
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -18,11 +18,10 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.impl.ArendGroup
-import org.arend.typechecking.TypeCheckingService
 import org.jetbrains.annotations.Contract
 import kotlin.reflect.jvm.internal.impl.utils.SmartSet
 
-// each group has its own import scope, so each of the scopes should be processed separately
+// each group has its own \open scope, so each of the scopes should be processed separately
 // imports are inherited for nested subgroups
 // solution -- merge imports in subgroups and move them up if there are no conflicts
 // todo more than 3 imports -- try to fold in everything import
@@ -32,20 +31,42 @@ class ArendImportOptimizer : ImportOptimizer {
 
     override fun processFile(file: PsiFile): Runnable {
         if (file !is ArendFile) return EmptyRunnable.getInstance()
-        val optimalTree = getOptimalImportStructure(file)
+        val (fileImports, optimalTree) = getOptimalImportStructure(file)
 
         return Runnable {
+            addImportCommands(file, fileImports)
             runPsiChanges(listOf(), file, optimalTree)
         }
     }
+
+}
+
+private val LOG = Logger.getInstance(ArendImportOptimizer::class.java)
+
+@RequiresWriteLock
+private fun addImportCommands(file: ArendFile, importMap: Map<ModulePath, Set<String>>) {
+    file.statements.mapNotNull { it.statCmd }.forEach { it.delete() }
+    val correctedMap = importMap
+        .filter { it.key != file.moduleLocation?.modulePath && it.key != Prelude.MODULE_PATH }
+        .mapKeys { it.key.toList() }
+    doAddNamespaceCommands(file, correctedMap, "\\import")
 }
 
 @RequiresWriteLock
-private fun runPsiChanges(currentPath: List<String>, group : ArendGroup, rootStructure: OptimalModuleStructure) {
-    val statCommands = group.statements.mapNotNull { it.statCmd }
-    statCommands.forEach { it.delete() }
+private fun runPsiChanges(currentPath: List<String>, group: ArendGroup, rootStructure: OptimalModuleStructure) {
+    if (group !is PsiFile) {
+        val statCommands = group.statements.mapNotNull { it.statCmd }
+        statCommands.forEach { it.delete() }
+    }
     if (rootStructure.usages.isNotEmpty()) {
-        insertNewImports(currentPath, group, rootStructure)
+        val reverseMapping = mutableMapOf<List<String>, MutableSet<String>>()
+        rootStructure.usages.forEach { (id, path) ->
+            val shortPath = path.shorten(currentPath).takeIf { it.isNotEmpty() } ?: return@forEach
+            reverseMapping.computeIfAbsent(shortPath) { HashSet() }.add(id)
+        }
+        if (reverseMapping.isNotEmpty()) {
+            doAddNamespaceCommands(group, reverseMapping)
+        }
     }
     for (subgroup in group.subgroups) {
         val substructure = rootStructure.subgroups.find { it.name == subgroup.name }
@@ -55,58 +76,70 @@ private fun runPsiChanges(currentPath: List<String>, group : ArendGroup, rootStr
     }
 }
 
-private fun insertNewImports(currentPath: List<String>, group: ArendGroup, rootStructure: OptimalModuleStructure) {
-    val reverseMapping = mutableMapOf<List<String>, MutableSet<String>>()
-    rootStructure.usages.forEach { (id, path) -> reverseMapping.computeIfAbsent(path) { HashSet() }.add(id) }
-    // todo: \hiding
-    // todo: \as
+private fun List<String>.shorten(currentPath: List<String>): List<String> {
+    for (index in currentPath.indices) {
+        if (index > this.lastIndex) {
+            return emptyList()
+        }
+        if (this[index] != currentPath[index]) {
+            return this.drop(index)
+        }
+    }
+    return this.drop(currentPath.size)
+}
+
+private fun doAddNamespaceCommands(
+    group: ArendGroup,
+    importMap: Map<List<String>, Set<String>>,
+    prefix: String = "\\open"
+) {
     val importStatements = mutableListOf<String>()
-    val typecheckingService = group.project.service<TypeCheckingService>()
     val preludeDefinitions = mutableListOf<List<String>>()
     Prelude.forEach { def -> preludeDefinitions.add(Prelude.MODULE_PATH.toList() + def.name) }
-    for ((path, identifiers) in reverseMapping) {
-        val actualPath = if (path in preludeDefinitions) {
-            path.drop(Prelude.MODULE_PATH.size())
-        } else {
-            path.shorten(currentPath)
-        }
-        if (actualPath.isEmpty()) {
+    for ((path, identifiers) in importMap) {
+        if (path.isEmpty()) {
             continue
         }
-        if (actualPath == Prelude.MODULE_PATH.toList()) {
-            continue
-        }
-        val isStandaloneModule = typecheckingService.libraryManager.registeredLibraries.any { it.containsModule(ModulePath(actualPath)) }
-        val prefix = "\\${if (isStandaloneModule) "import" else "open"} ${actualPath.joinToString(".")}"
+        val longPrefix = "$prefix ${path.joinToString(".")}"
         if (identifiers.size > 3) {
-            importStatements.add(prefix)
+            importStatements.add(longPrefix)
         } else {
-            importStatements.add(prefix + identifiers.sorted().joinToString(", ", " (", ")"))
+            importStatements.add(longPrefix + identifiers.sorted().joinToString(", ", " (", ")"))
         }
     }
     importStatements.sort()
-    val commands = ArendPsiFactory(group.project).createFromText(importStatements.joinToString("\n"))?.namespaceCommands ?: return
+    val commands =
+        ArendPsiFactory(group.project).createFromText(importStatements.joinToString("\n"))?.namespaceCommands ?: return
     val codeStyleManager = CodeStyleManager.getInstance(group.manager)
-    val newElements = mutableListOf<PsiElement>()
-    commands.reversed().forEach {
-        if (group is ArendFile) {
-            group.addBefore(it, group.firstChild)
-        }  else {
-            val where = group.where!! // if there is a nested definition, there is certainly a nested \where
-            val lbrace = where.lbrace ?: run {
-                val (lbrace, rbrace) = ArendPsiFactory(group.project).createPairOfBraces()
-                where.addAfter(rbrace, where.statementList.lastOrNull() ?: where.whereKw)
-                val newLBrace = where.addAfter(lbrace, where.whereKw)
-                where.addAfter(ArendPsiFactory(group.project).createWhitespace(" "), where.whereKw)
-                newLBrace
-            }
-            where.addAfter(it, lbrace)
-        }.let(newElements::add)
+    val (holder, anchorElement) = if (group is ArendFile) {
+        group to group.statements.lastOrNull { it.statCmd != null }
+    } else {
+        val where = group.where!! // if there is a nested definition, there is certainly a nested \where
+        where to (where.lbrace ?: run {
+            val (lbrace, rbrace) = ArendPsiFactory(group.project).createPairOfBraces()
+            where.addAfter(rbrace, where.statementList.lastOrNull() ?: where.whereKw)
+            val newLBrace = where.addAfter(lbrace, where.whereKw)
+            where.addAfter(ArendPsiFactory(group.project).createWhitespace(" "), where.whereKw)
+            newLBrace
+        })
+    }
+    val newElements = commands.reversed().map {
+        if (anchorElement == null)
+            holder.addBefore(it, group.firstChild)
+        else
+            holder.addAfter(it, anchorElement)
+    }
+    if (anchorElement != null) {
+        holder.addAfter(ArendPsiFactory(group.project).createWhitespace("\n"), anchorElement)
     }
     if (newElements.isNotEmpty()) {
         val minOffset = newElements.minOf { it.startOffset }
         val maxOffset = newElements.maxOf { it.endOffset }
-        codeStyleManager.reformatText(group.containingFile, minOffset, maxOffset + 1)
+        codeStyleManager.reformatText(
+            group.containingFile,
+            (minOffset - 1).coerceAtLeast(0),
+            (maxOffset + 1).coerceAtMost(group.endOffset)
+        )
     }
 }
 
@@ -115,7 +148,7 @@ private fun subtract(fullQualifier: List<String>, shortQualifier: List<String>):
     return fullQualifier.take(fullQualifier.size - (shortQualifier.size - 1)) // drop suffix in case of partially qualified name
 }
 
-private fun collectQualifier(element: ArendCompositeElement): List<String> {
+private fun collectQualifier(element: ArendCompositeElement): Pair<ModulePath, ModulePath> {
     var currentGroup = element.parentOfType<ArendGroup>()
     if (element is ArendConstructor) {
         @Suppress("RemoveExplicitTypeArguments")
@@ -124,14 +157,16 @@ private fun collectQualifier(element: ArendCompositeElement): List<String> {
     val container = mutableListOf<String>()
     while (currentGroup != null) {
         if (currentGroup is ArendFile) {
-            currentGroup.moduleLocation?.modulePath?.toList()?.reversed()?.forEach(container::add)
+            val modulePath = currentGroup.moduleLocation?.modulePath?.toList()
+            container.reverse()
+            return ModulePath(modulePath) to ModulePath(container)
         } else {
             container.add(currentGroup.refName)
         }
         currentGroup = currentGroup.parentGroup
     }
-    container.reverse()
-    return container
+    LOG.error("Every stub hierarchy should end in PsiFile")
+    error("unreachable")
 }
 
 data class OptimalModuleStructure(
@@ -140,9 +175,9 @@ data class OptimalModuleStructure(
     val usages: Map<String, List<String>>,
 )
 
-fun getOptimalImportStructure(file: ArendFile): OptimalModuleStructure {
+fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>>, OptimalModuleStructure> {
     val rootFrame = MutableFrame("")
-    val filePath = file.moduleLocation?.modulePath?.toList()
+    val fileImports: MutableMap<ModulePath, MutableSet<String>> = mutableMapOf()
 
     file.accept(object : PsiRecursiveElementWalkingVisitor() {
         private val currentScopePath: MutableList<MutableFrame> = mutableListOf(rootFrame)
@@ -170,17 +205,21 @@ fun getOptimalImportStructure(file: ArendFile): OptimalModuleStructure {
         }
 
         private fun visitReferenceElement(element: ArendReferenceElement) {
+            // todo stubs
             val resolved = element.resolve.castSafelyTo<ArendCompositeElement>() ?: return
             if (resolved is ArendDefModule || resolved is ArendFile || resolved == element) {
                 return
             }
-            val qualifier = collectQualifier(resolved).shorten(filePath)
-            val requiredPath = subtract(qualifier, element.longName)
-            currentScopePath.last().usages[element.longName.first()] = requiredPath
+            val characteristics = element.longName.first()
+            val (importedFile, openingQualifier) = collectQualifier(resolved)
+            val minimalImportedElement = openingQualifier.firstName ?: characteristics
+            fileImports.computeIfAbsent(importedFile) { HashSet() }.add(minimalImportedElement)
+            val openingPath = subtract(openingQualifier.toList(), element.longName)
+            currentScopePath.last().usages[characteristics] = openingPath
         }
     })
 
-    return rootFrame.apply(MutableFrame::contract).asOptimalTree()
+    return fileImports to rootFrame.apply(MutableFrame::contract).asOptimalTree()
 }
 
 private data class MutableFrame(
@@ -214,12 +253,4 @@ private data class MutableFrame(
         }
         subgroups.filter { it.usages.isNotEmpty() || it.subgroups.isNotEmpty() }
     }
-}
-
-fun List<String>.shorten(other: List<String>?) : List<String> {
-    if (other == null || other.size > size) return this
-    for (i in other.indices) {
-        if (get(i) != other[i]) return this
-    }
-    return this.drop(other.size)
 }

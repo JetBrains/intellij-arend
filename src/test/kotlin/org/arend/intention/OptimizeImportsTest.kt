@@ -20,10 +20,7 @@ class OptimizeImportsTest : ArendTestBase() {
     ) {
         fileTreeFromText(before).prepareFileSystem()
         val optimizer = ArendImportOptimizer()
-        WriteCommandAction.runWriteCommandAction(myFixture.project) {
-            optimizer.processFile(myFixture.file).run()
-            CodeStyleManager.getInstance(myFixture.project).reformat(myFixture.file)
-        }
+        WriteCommandAction.runWriteCommandAction(myFixture.project, optimizer.processFile(myFixture.file))
         myFixture.checkResult(replaceCaretMarker(after.trimIndent()))
     }
 
@@ -143,7 +140,7 @@ class OptimizeImportsTest : ArendTestBase() {
             """, """
             \data Bar \where {
               \func foo : Nat => 1
-            
+              
               \func bar : Nat => foo
             }
             """,
@@ -195,8 +192,8 @@ class OptimizeImportsTest : ArendTestBase() {
             
             \func f : apply = bar.apply => {?}
             """, """
-            \import Foo (bar)
-            \open Foo.foo (apply)
+            \import Foo (bar, foo)
+            \open foo (apply)
             
             \func f : apply = bar.apply => {?}
             """,
@@ -221,14 +218,16 @@ class OptimizeImportsTest : ArendTestBase() {
               \func f => apply
             }
             """, """
+            \import Foo (bar, foo)
+            
             \module A \where {
-              \open Foo.foo (apply)
+              \open foo (apply)
             
               \func f => apply
             }
             
             \module B \where {
-              \open Foo.bar (apply)
+              \open bar (apply)
             
               \func f => apply
             }
@@ -236,7 +235,7 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
-    fun `test single-import`() {
+    fun `test single import`() {
         doTest("""
             --! Foo.ard
             \data Bar
@@ -245,14 +244,30 @@ class OptimizeImportsTest : ArendTestBase() {
             \import Foo
             \func f => 1 \where \func g : Bar => {?}
             """, """
-            \func f => 1 \where {
-              \import Foo (Bar)
-            
-              \func g : Bar => {?}
-            }
+            \import Foo (Bar)
+
+            \func f => 1 \where \func g : Bar => {?}
             """,
         )
     }
+
+    fun `test local module`() {
+        doTest("""
+            --! Main.ard
+            \module M \where { \func x => 1 }
+            \open M
+            
+            \func f => x
+            """, """
+            \open M (x)
+
+            \module M \where { \func x => 1 }
+            
+            \func f => x
+            """,
+        )
+    }
+
 
 
 }
