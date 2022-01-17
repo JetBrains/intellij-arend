@@ -42,7 +42,7 @@ class OptimizeImportsTest : ArendTestBase() {
             --! Foo.ard
             \data Bar | bar
             """, """
-            \import Foo (Bar, bar)
+            \import Foo (Bar)
             
             \func foo : Bar => bar
             """
@@ -268,6 +268,16 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test self-contained datatype`() {
+        doTest("""
+            --! Main.ard
+            \data D (a : Nat)
+              | d (D a)
+        """, """
+            \data D (a : Nat)
+              | d (D a)
+        """)
+    }
 
 
 }

@@ -18,6 +18,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.DefinitionAdapter
 import org.jetbrains.annotations.Contract
 import kotlin.reflect.jvm.internal.impl.utils.SmartSet
 
@@ -207,7 +208,7 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
         private fun visitReferenceElement(element: ArendReferenceElement) {
             // todo stubs
             val resolved = element.resolve.castSafelyTo<ArendCompositeElement>() ?: return
-            if (resolved is ArendDefModule || resolved is ArendFile || resolved == element) {
+            if (resolved is ArendDefModule || resolved is ArendFile || resolved !is DefinitionAdapter<*>) {
                 return
             }
             val characteristics = element.longName.first()
