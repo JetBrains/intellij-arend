@@ -22,6 +22,7 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.listener.ArendPsiChangeService
+import org.arend.term.abs.Abstract
 import org.jetbrains.annotations.Contract
 import kotlin.reflect.jvm.internal.impl.utils.SmartSet
 
@@ -223,9 +224,11 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
             // todo stubs
             val resolved = element.reference?.resolve().castSafelyTo<PsiStubbedReferableImpl<*>>() ?: return
             val resolvedGroup by lazy(LazyThreadSafetyMode.NONE) { resolved.parentOfType<ArendGroup>() }
+            val elementGroup by lazy(LazyThreadSafetyMode.NONE) { element.parentOfType<ArendGroup>() ?: element }
             if (resolved is ArendDefModule ||
                 element.parent?.parent is CoClauseBase ||
-                PsiTreeUtil.isAncestor(resolvedGroup, element.parentOfType<ArendGroup>() ?: element, false) // usage in parental scope
+                (resolved is Abstract.ClassField && PsiTreeUtil.isAncestor(resolvedGroup?.parentGroup, elementGroup, false)) ||
+                PsiTreeUtil.isAncestor(resolvedGroup, elementGroup, false) // usage in parental scope
             ) {
                 return
             }

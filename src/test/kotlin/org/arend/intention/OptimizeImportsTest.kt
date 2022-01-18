@@ -416,4 +416,23 @@ class OptimizeImportsTest : ArendTestBase() {
         """
         )
     }
+
+    fun `test record field`() {
+        doTest(
+            """
+            --! Main.ard
+            \record R {
+              | rr : Nat
+            }
+            
+            \func f {r : R} => rr
+        """, """
+            \record R {
+              | rr : Nat
+            }
+            
+            \func f {r : R} => rr
+        """
+        )
+    }
 }
