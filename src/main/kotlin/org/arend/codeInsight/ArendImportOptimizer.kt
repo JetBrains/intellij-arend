@@ -1,6 +1,7 @@
 package org.arend.codeInsight
 
 import com.intellij.lang.ImportOptimizer
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.EmptyRunnable
 import com.intellij.psi.PsiElement
@@ -19,13 +20,13 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.listener.ArendPsiChangeService
 import org.jetbrains.annotations.Contract
 import kotlin.reflect.jvm.internal.impl.utils.SmartSet
 
 // each group has its own \open scope, so each of the scopes should be processed separately
-// imports are inherited for nested subgroups
-// solution -- merge imports in subgroups and move them up if there are no conflicts
-// todo more than 3 imports -- try to fold in everything import
+// opens are inherited for nested subgroups
+// solution -- merge opens in subgroups and move them up if there are no conflicts
 class ArendImportOptimizer : ImportOptimizer {
 
     override fun supports(file: PsiFile): Boolean = file is ArendFile && file.isWritable
@@ -37,6 +38,7 @@ class ArendImportOptimizer : ImportOptimizer {
         return Runnable {
             addImportCommands(file, fileImports)
             runPsiChanges(listOf(), file, optimalTree)
+            file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
         }
     }
 
@@ -46,7 +48,7 @@ private val LOG = Logger.getInstance(ArendImportOptimizer::class.java)
 
 @RequiresWriteLock
 private fun addImportCommands(file: ArendFile, importMap: Map<ModulePath, Set<String>>) {
-    file.statements.mapNotNull { it.statCmd }.forEach { it.delete() }
+    file.statements.mapNotNull { it.statCmd }.forEach { it.deleteWithNotification() }
     val correctedMap = importMap
         .filter { it.key != file.moduleLocation?.modulePath && it.key != Prelude.MODULE_PATH }
         .mapKeys { it.key.toList() }
@@ -57,7 +59,7 @@ private fun addImportCommands(file: ArendFile, importMap: Map<ModulePath, Set<St
 private fun runPsiChanges(currentPath: List<String>, group: ArendGroup, rootStructure: OptimalModuleStructure) {
     if (group !is PsiFile) {
         val statCommands = group.statements.mapNotNull { it.statCmd }
-        statCommands.forEach { it.delete() }
+        statCommands.forEach { it.deleteWithNotification() }
     }
     if (rootStructure.usages.isNotEmpty()) {
         val reverseMapping = mutableMapOf<List<String>, MutableSet<String>>()
@@ -110,7 +112,7 @@ private fun doAddNamespaceCommands(
     }
     importStatements.sort()
     val commands =
-        ArendPsiFactory(group.project).createFromText(importStatements.joinToString("\n"))?.namespaceCommands ?: return
+        ArendPsiFactory(group.project).createFromText(importStatements.joinToString("\n"))?.statements ?: return
     val codeStyleManager = CodeStyleManager.getInstance(group.manager)
     val (holder, anchorElement) = if (group is ArendFile) {
         group to group.statements.lastOrNull { it.statCmd != null }
@@ -127,16 +129,16 @@ private fun doAddNamespaceCommands(
     val newline = ArendPsiFactory(group.project).createWhitespace("\n")
     val newElements = commands.reversed().mapIndexed { index, it ->
         val addedElement = if (anchorElement == null)
-            holder.addBefore(it, group.firstChild)
+            holder.addBeforeWithNotification(it, group.firstChild)
         else
-            holder.addAfter(it, anchorElement)
+            holder.addAfterWithNotification(it, anchorElement)
         if (index != 0) {
             addedElement.add(newline)
         }
         addedElement
     }
     if (anchorElement != null) {
-        holder.addAfter(ArendPsiFactory(group.project).createWhitespace("\n"), anchorElement)
+        holder.addAfterWithNotification(ArendPsiFactory(group.project).createWhitespace("\n"), anchorElement)
     }
     if (newElements.isNotEmpty()) {
         val minOffset = newElements.minOf { it.startOffset }
@@ -216,7 +218,7 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
             if (resolved is ArendDefModule ||
                 resolved is ArendClassField ||
                 resolved is ArendFieldDefIdentifier ||
-                element.parentOfType<ArendCoClause>()?.resolvedImplementedField === resolved
+                resolved.parentOfType<ArendGroup>() == element.parentOfType<ArendGroup>()
             ) {
                 return
             }
