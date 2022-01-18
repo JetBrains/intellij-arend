@@ -349,4 +349,42 @@ class OptimizeImportsTest : ArendTestBase() {
         """
         )
     }
+
+    fun `test dynamic definition`() {
+        doTest(
+            """
+            --! Main.ard
+            \record R {
+              | r : Nat
+            
+              \func rrr : Fin r => {?}
+            }
+        """, """
+            \record R {
+              | r : Nat
+            
+              \func rrr : Fin r => {?}
+            }
+        """
+        )
+    }
+
+    fun `test instance`() {
+        doTest(
+            """
+            --! Foo.ard
+            \class R (rr : Nat)
+            --! Main.ard
+            \import Foo (R)
+            \open R
+            
+            \func f {r : R} : Fin rr => {?}
+        """, """
+            \import Foo (R)
+            \open R (rr)
+            
+            \func f {r : R} : Fin rr => {?}
+        """
+        )
+    }
 }

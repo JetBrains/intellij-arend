@@ -8,6 +8,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiRecursiveElementWalkingVisitor
 import com.intellij.psi.codeStyle.CodeStyleManager
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
@@ -215,10 +216,10 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
         private fun visitReferenceElement(element: ArendReferenceElement) {
             // todo stubs
             val resolved = element.reference?.resolve().castSafelyTo<PsiStubbedReferableImpl<*>>() ?: return
+            val resolvedGroup by lazy(LazyThreadSafetyMode.NONE) { resolved.parentOfType<ArendGroup>() }
             if (resolved is ArendDefModule ||
-                resolved is ArendClassField ||
-                resolved is ArendFieldDefIdentifier ||
-                resolved.parentOfType<ArendGroup>() == element.parentOfType<ArendGroup>()
+                element.parent?.parent is CoClauseBase ||
+                PsiTreeUtil.isAncestor(resolvedGroup, element.parentOfType<ArendGroup>() ?: element, false) // usage in parental scope
             ) {
                 return
             }
