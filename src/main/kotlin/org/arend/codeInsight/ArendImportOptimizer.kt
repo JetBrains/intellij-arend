@@ -15,6 +15,7 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.arend.ext.module.ModulePath
+import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -37,10 +38,16 @@ class ArendImportOptimizer : ImportOptimizer {
         if (file !is ArendFile) return EmptyRunnable.getInstance()
         val (fileImports, optimalTree) = getOptimalImportStructure(file)
 
-        return Runnable {
-            addImportCommands(file, fileImports)
-            runPsiChanges(listOf(), file, optimalTree)
-            file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
+        return object : ImportOptimizer.CollectingInfoRunnable {
+            override fun run() {
+                addImportCommands(file, fileImports)
+                runPsiChanges(listOf(), file, optimalTree)
+                file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
+            }
+
+            override fun getUserNotificationInfo(): String {
+                return "Imports optimized. Necessary instances were guessed"
+            }
         }
     }
 
@@ -204,6 +211,11 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
         override fun visitElement(element: PsiElement) {
             if (element is ArendGroup && element !is ArendFile) {
                 currentScopePath.add(MutableFrame(element.refName))
+                Scope.traverse(element.scope) {
+                    if (it is ArendDefInstance) {
+                        currentScopePath.last().instances.add(it)
+                    }
+                }
             }
             if (element !is ArendStatCmd) {
                 super.visitElement(element)
@@ -242,26 +254,40 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
             if (characteristics == null) {
                 return
             }
+            // remove instance if it is resolved
             val minimalImportedElement = openingQualifier.firstName ?: characteristics
             fileImports.computeIfAbsent(importedFile) { HashSet() }.add(minimalImportedElement)
             currentScopePath.last().usages[characteristics] = openingPath
         }
     })
 
-    return fileImports to rootFrame.apply(MutableFrame::contract).asOptimalTree()
+    rootFrame.contract().forEach { (file, ids) -> fileImports.computeIfAbsent(file) { HashSet() }.addAll(ids) }
+    return fileImports to rootFrame.asOptimalTree()
 }
 
 private data class MutableFrame(
     val name: String,
     val subgroups: MutableList<MutableFrame> = mutableListOf(),
     val usages: MutableMap<String, List<String>> = mutableMapOf(),
+    val instances: MutableList<ArendDefInstance> = mutableListOf()
 ) {
     fun asOptimalTree(): OptimalModuleStructure =
         OptimalModuleStructure(name, subgroups.map { it.asOptimalTree() }, usages)
 
     @Contract(mutates = "this")
-    fun contract() {
-        subgroups.forEach { it.contract() }
+    fun contract(): Map<ModulePath, Set<String>> {
+        val submaps = subgroups.map { it.contract() }
+        val additionalFiles = mutableMapOf<ModulePath, MutableSet<String>>()
+        submaps.forEach {
+            it.forEach { (filePath, ids) ->
+                additionalFiles.computeIfAbsent(filePath) { HashSet() }.addAll(ids)
+            }
+        }
+        for (instance in instances) {
+            val (importedFile, qualifier) = collectQualifier(instance)
+            additionalFiles.computeIfAbsent(importedFile) { HashSet() }.add(qualifier.firstName ?: instance.refName)
+            usages[instance.refName] = qualifier.toList()
+        }
         val allInnerIdentifiers = subgroups.flatMapTo(HashSet()) { it.usages.keys }
 
         for (identifier in allInnerIdentifiers) {
@@ -278,5 +304,6 @@ private data class MutableFrame(
             }
         }
         subgroups.removeAll { it.usages.isEmpty() && it.subgroups.isEmpty() }
+        return additionalFiles
     }
 }

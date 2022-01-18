@@ -497,22 +497,14 @@ class OptimizeImportsTest : ArendTestBase() {
             
             \instance nat : A Nat 1
             --! Main.ard
-            \import Playground2
+            \import Foo
 
             \func p : Nat => t
         """, """
-            \class A {
-              | n : Nat
-              \func f : Nat => n
-            }
-            
-            \class B {
-              | n : Nat
-              \func f : Nat => n
-            }
-            
-            \func h {a : A} => a.f
-            \func g {b : B} => b.f
+            \import Foo (A, nat)
+            \open A (t)
+
+            \func p : Nat => t
         """
         )
     }
