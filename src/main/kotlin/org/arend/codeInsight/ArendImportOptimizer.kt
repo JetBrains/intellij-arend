@@ -16,6 +16,8 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.arend.ext.module.ModulePath
+import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.Referable
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -214,7 +216,10 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
 
         override fun visitElement(element: PsiElement) {
             if (element is ArendDefinition) {
-                currentScopePath.last().definitions.add(element.refName)
+                currentScopePath.last().definitions.add((element as Referable).refName)
+                if (element is ClassReferable) {
+                    element.fieldReferables.filterIsInstance<ArendClassField>().forEach { currentScopePath.last().definitions.add(it.refName) }
+                }
             }
             if (element is ArendGroup && element !is ArendFile) {
                 currentScopePath.add(MutableFrame(element.refName))
@@ -319,6 +324,9 @@ private data class MutableFrame(
         val allInnerIdentifiers = subgroups.flatMapTo(HashSet()) { it.usages.keys }
 
         for (identifier in allInnerIdentifiers) {
+            if (definitions.contains(identifier)) {
+                continue
+            }
             val paths = subgroups.mapNotNullTo(SmartSet.create()) { it.usages[identifier] }
             usages[identifier]?.let(paths::add)
             if (paths.size > 1) {

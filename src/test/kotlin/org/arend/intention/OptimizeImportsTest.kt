@@ -566,4 +566,32 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+
+    fun `test shadowed import`() {
+        doTest(
+            """
+            --! Main.ard
+            \class A (E : \Type) {
+                | + : E -> E -> E
+            }
+        
+            \instance a : A Nat
+              | + => +
+            \where {
+              \open Nat (+)
+            } 
+        """, """
+            \class A (E : \Type) {
+                | + : E -> E -> E
+            }
+        
+            \instance a : A Nat
+              | + => +
+            \where {
+              \open Nat (+)
+            } 
+        """
+        )
+    }
+
 }
