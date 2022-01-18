@@ -509,4 +509,61 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test file does not appear in import`() {
+        doTest(
+            """
+            --! Foo.ard
+            \func foo => 1
+            --! Main.ard
+            \import Foo
+
+            \func p => Foo.foo
+        """, """
+            \import Foo (foo)
+
+            \func p => Foo.foo
+        """
+        )
+    }
+
+    fun `test extension`() {
+        doTest(
+            """
+            --! Main.ard
+            \class R (rr : Nat)
+
+            \class E \extends R
+              | ee : Fin rr
+        """, """
+            \class R (rr : Nat)
+
+            \class E \extends R
+              | ee : Fin rr
+        """
+        )
+    }
+
+    fun `test extension3`() {
+        doTest(
+            """
+            --! Main.ard
+            \open A (B)
+
+            \class A \where \record B
+            
+            \class E \extends A {
+              | f : B
+            }
+        """, """
+            \open A (B)
+
+            \class A \where \record B
+            
+            \class E \extends A {
+              | f : B
+            }
+        """
+        )
+    }
+
 }

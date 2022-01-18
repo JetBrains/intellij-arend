@@ -10,6 +10,7 @@ import com.intellij.psi.PsiRecursiveElementWalkingVisitor
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
+import com.intellij.psi.util.parentsOfType
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
@@ -45,9 +46,7 @@ class ArendImportOptimizer : ImportOptimizer {
                 file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
             }
 
-            override fun getUserNotificationInfo(): String {
-                return "Imports optimized. Necessary instances were guessed"
-            }
+            override fun getUserNotificationInfo(): String = "Imports optimized. Necessary instances were guessed"
         }
     }
 
@@ -65,12 +64,12 @@ private fun addImportCommands(file: ArendFile, importMap: Map<ModulePath, Set<St
 }
 
 @RequiresWriteLock
-private fun runPsiChanges(currentPath: List<String>, group: ArendGroup, rootStructure: OptimalModuleStructure) {
+private fun runPsiChanges(currentPath: List<String>, group: ArendGroup, rootStructure: OptimalModuleStructure?) {
     if (group !is PsiFile) {
         val statCommands = group.statements.mapNotNull { it.statCmd }
         statCommands.forEach { it.deleteWithNotification() }
     }
-    if (rootStructure.usages.isNotEmpty()) {
+    if (rootStructure != null && rootStructure.usages.isNotEmpty()) {
         val reverseMapping = mutableMapOf<List<String>, MutableSet<String>>()
         rootStructure.usages.forEach { (id, path) ->
             val shortPath = path.shorten(currentPath).takeIf { it.isNotEmpty() } ?: return@forEach
@@ -81,10 +80,8 @@ private fun runPsiChanges(currentPath: List<String>, group: ArendGroup, rootStru
         }
     }
     for (subgroup in group.subgroups.flatMap { listOf(it) + it.dynamicSubgroups }) {
-        val substructure = rootStructure.subgroups.find { it.name == subgroup.name }
-        if (substructure != null) {
-            runPsiChanges(currentPath + listOf(substructure.name), subgroup, substructure)
-        }
+        val substructure = rootStructure?.subgroups?.find { it.name == subgroup.name }
+        runPsiChanges(currentPath + listOf(substructure?.name ?: ""), subgroup, substructure) // remove nested opens
     }
 }
 
@@ -160,7 +157,14 @@ private fun doAddNamespaceCommands(
     }
 }
 
-private fun subtract(fullQualifier: List<String>, shortQualifier: List<String>): Pair<List<String>, String?> {
+private fun subtract(
+    fullQualifier: List<String>,
+    fileName: List<String>,
+    shortQualifier: List<String>
+): Pair<List<String>, String?> {
+    if (shortQualifier.size > fileName.size && fileName == shortQualifier.take(fileName.size)) {
+        return fullQualifier to shortQualifier[fileName.size]
+    }
     if (shortQualifier.size == 1) return fullQualifier to shortQualifier.last()
     for (index in shortQualifier.indices.reversed().drop(1)) { // start checking module name
         val indexInFullQualifier = fullQualifier.lastIndex + (index - (shortQualifier.lastIndex - 1))
@@ -209,6 +213,9 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
         private val currentScopePath: MutableList<MutableFrame> = mutableListOf(rootFrame)
 
         override fun visitElement(element: PsiElement) {
+            if (element is ArendDefinition) {
+                currentScopePath.last().definitions.add(element.refName)
+            }
             if (element is ArendGroup && element !is ArendFile) {
                 currentScopePath.add(MutableFrame(element.refName))
                 Scope.traverse(element.scope) {
@@ -245,12 +252,16 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
                     elementGroup,
                     false
                 )) ||
-                PsiTreeUtil.isAncestor(resolvedGroup, elementGroup, false) // usage in parental scope
+                isSuperAffectsElement(resolvedGroup, resolved, elementGroup)
             ) {
                 return
             }
             val (importedFile, openingQualifier) = collectQualifier(resolved)
-            val (openingPath, characteristics) = subtract(openingQualifier.toList(), element.longName)
+            val (openingPath, characteristics) = subtract(
+                openingQualifier.toList(),
+                importedFile.toList(),
+                element.longName
+            )
             if (characteristics == null) {
                 return
             }
@@ -265,9 +276,26 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
     return fileImports to rootFrame.asOptimalTree()
 }
 
+private fun isSuperAffectsElement(
+    resolvedScope: ArendCompositeElement?,
+    resolved: ArendCompositeElement,
+    element: ArendCompositeElement
+): Boolean {
+    if (PsiTreeUtil.isAncestor(resolvedScope, element, false)) return true
+    if (resolvedScope is ArendDefClass && isFieldOrDynamic(resolvedScope, resolved)) {
+        return element.parentsOfType<ArendDefClass>().any { it.isSubClassOf(resolvedScope) }
+    }
+    return false
+}
+
+fun isFieldOrDynamic(resolvedScope: ArendDefClass, resolved: ArendCompositeElement): Boolean {
+    return !PsiTreeUtil.isAncestor(resolvedScope.where, resolved, true)
+}
+
 private data class MutableFrame(
     val name: String,
     val subgroups: MutableList<MutableFrame> = mutableListOf(),
+    val definitions: MutableSet<String> = mutableSetOf(),
     val usages: MutableMap<String, List<String>> = mutableMapOf(),
     val instances: MutableList<ArendDefInstance> = mutableListOf()
 ) {
