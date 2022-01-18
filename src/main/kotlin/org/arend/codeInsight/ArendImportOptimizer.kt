@@ -72,7 +72,7 @@ private fun runPsiChanges(currentPath: List<String>, group: ArendGroup, rootStru
             doAddNamespaceCommands(group, reverseMapping)
         }
     }
-    for (subgroup in group.subgroups) {
+    for (subgroup in group.subgroups.flatMap { listOf(it) + it.dynamicSubgroups }) {
         val substructure = rootStructure.subgroups.find { it.name == subgroup.name }
         if (substructure != null) {
             runPsiChanges(currentPath + listOf(substructure.name), subgroup, substructure)
@@ -105,7 +105,7 @@ private fun doAddNamespaceCommands(
             continue
         }
         val longPrefix = "$prefix ${path.joinToString(".")}"
-        if (identifiers.size > 3) {
+        if (identifiers.size > 1000) {
             importStatements.add(longPrefix)
         } else {
             importStatements.add(longPrefix + identifiers.sorted().joinToString(", ", " (", ")"))
@@ -152,9 +152,15 @@ private fun doAddNamespaceCommands(
     }
 }
 
-private fun subtract(fullQualifier: List<String>, shortQualifier: List<String>): List<String> {
-    if (shortQualifier.size == 1) return fullQualifier
-    return fullQualifier.take((fullQualifier.size - (shortQualifier.size - 1)).coerceAtLeast(0)) // drop suffix in case of partially qualified name
+private fun subtract(fullQualifier: List<String>, shortQualifier: List<String>): Pair<List<String>, String> {
+    if (shortQualifier.size == 1) return fullQualifier to shortQualifier.last()
+    for (index in shortQualifier.indices.reversed().drop(1)) { // start checking module name
+        val indexInFullQualifier = fullQualifier.lastIndex + (index - (shortQualifier.lastIndex - 1))
+        if (fullQualifier[indexInFullQualifier] != shortQualifier[index]) {
+            return fullQualifier.subList(0, indexInFullQualifier + 1) to shortQualifier[index + 1]
+        }
+    }
+    return fullQualifier.take((fullQualifier.size - (shortQualifier.size - 1)).coerceAtLeast(0)) to shortQualifier[0]
 }
 
 private fun collectQualifier(element: ArendCompositeElement): Pair<ModulePath, ModulePath> {
@@ -223,11 +229,10 @@ fun getOptimalImportStructure(file: ArendFile): Pair<Map<ModulePath, Set<String>
             ) {
                 return
             }
-            val characteristics = element.longName.first()
             val (importedFile, openingQualifier) = collectQualifier(resolved)
+            val (openingPath, characteristics) = subtract(openingQualifier.toList(), element.longName)
             val minimalImportedElement = openingQualifier.firstName ?: characteristics
             fileImports.computeIfAbsent(importedFile) { HashSet() }.add(minimalImportedElement)
-            val openingPath = subtract(openingQualifier.toList(), element.longName)
             currentScopePath.last().usages[characteristics] = openingPath
         }
     })

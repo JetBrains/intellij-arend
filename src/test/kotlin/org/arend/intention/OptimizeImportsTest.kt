@@ -387,4 +387,33 @@ class OptimizeImportsTest : ArendTestBase() {
         """
         )
     }
+
+    fun `test dynamic subgroup`() {
+        doTest(
+            """
+            --! Foo.ard
+            \class A {
+              | a : Nat
+            }
+            --! Main.ard
+            \import Foo
+
+            \class C {
+              \data D \where {
+                \func g {x : A} : Fin a => {?}
+              }
+            }
+        """, """
+            \import Foo (A)
+
+            \class C {
+              \data D \where {
+                \open A (a)
+            
+                \func g {x : A} : Fin a => {?}
+              }
+            }
+        """
+        )
+    }
 }
