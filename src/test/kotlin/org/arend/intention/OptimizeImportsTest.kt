@@ -405,11 +405,10 @@ class OptimizeImportsTest : ArendTestBase() {
             }
         """, """
             \import Foo (A)
+            \open A (a)
 
             \class C {
               \data D \where {
-                \open A (a)
-            
                 \func g {x : A} : Fin a => {?}
               }
             }
@@ -435,4 +434,87 @@ class OptimizeImportsTest : ArendTestBase() {
         """
         )
     }
+
+    fun `test record parameter`() {
+        doTest(
+            """
+            --! Main.ard
+            \open R (rr)
+            
+            \record R (rr : Nat)
+
+            \func f {r : R} => rr
+        """, """
+            \open R (rr)
+            
+            \record R (rr : Nat)
+            
+            \func f {r : R} => rr
+        """
+        )
+    }
+
+    fun `test two exporting classes`() {
+        doTest(
+            """
+            --! Main.ard
+            \class A {
+              | n : Nat
+              \func f : Nat => n
+            }
+            
+            \class B {
+              | n : Nat
+              \func f : Nat => n
+            }
+            
+            \func h {a : A} => a.f
+            \func g {b : B} => b.f
+        """, """
+            \class A {
+              | n : Nat
+              \func f : Nat => n
+            }
+            
+            \class B {
+              | n : Nat
+              \func f : Nat => n
+            }
+            
+            \func h {a : A} => a.f
+            \func g {b : B} => b.f
+        """
+        )
+    }
+
+    fun `test implicit instance import`() {
+        doTest(
+            """
+            --! Foo.ard
+            \class A (T : \Type) {
+              | t : T
+            }
+            
+            \instance nat : A Nat 1
+            --! Main.ard
+            \import Playground2
+
+            \func p : Nat => t
+        """, """
+            \class A {
+              | n : Nat
+              \func f : Nat => n
+            }
+            
+            \class B {
+              | n : Nat
+              \func f : Nat => n
+            }
+            
+            \func h {a : A} => a.f
+            \func g {b : B} => b.f
+        """
+        )
+    }
+
 }

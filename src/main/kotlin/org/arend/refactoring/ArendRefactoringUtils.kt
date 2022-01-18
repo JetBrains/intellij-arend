@@ -473,7 +473,7 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
     return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
 }
 
-private fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory): ArendWhere {
+fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory): ArendWhere {
     val oldWhereImpl = myTargetContainer.where
     val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
         val localAnchor = myTargetContainer.lastChild
