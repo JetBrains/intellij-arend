@@ -323,6 +323,7 @@ private fun isSuperAffectsElement(
     element: ArendCompositeElement
 ): Boolean {
     if (PsiTreeUtil.isAncestor(resolvedScope, element, false)) return true
+    if (element is ArendGroup && PsiTreeUtil.isAncestor(element.where, resolved, false)) return true
     if (resolvedScope is ArendDefClass && isFieldOrDynamic(resolvedScope, resolved)) {
         return element.parentsOfType<ArendDefClass>().any { it.isSubClassOf(resolvedScope) }
     }

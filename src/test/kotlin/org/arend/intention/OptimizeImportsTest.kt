@@ -340,6 +340,19 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test definition in where`() {
+        doTest(
+            """
+            -- ! Main.ard
+            \func f => gg \where
+              \data g | gg
+        """, """
+            \func f => gg \where
+              \data g | gg
+        """
+        )
+    }
+
     fun `test array`() {
         doTest(
             """
