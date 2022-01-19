@@ -353,6 +353,33 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test no big space`() {
+        doTest(
+            """
+            -- ! Main.ard
+            \open M
+
+            -- a comment
+            
+            \module M \where {
+              \func f => 1
+            }
+            
+            \func g => f
+        """, """
+            \open M (f)
+
+            -- a comment
+            
+            \module M \where {
+              \func f => 1
+            }
+            
+            \func g => f
+        """
+        )
+    }
+
     fun `test array`() {
         doTest(
             """
