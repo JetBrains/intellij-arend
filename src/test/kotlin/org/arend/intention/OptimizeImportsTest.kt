@@ -728,5 +728,27 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test deep open`() {
+        doTest(
+            """
+            -- ! Main.ard
+            \func f => a \where {
+              \class E {
+                \func a => 1
+              }
+              \open E (a)
+            }
+        """, """
+            \open f.E (a)
+            
+            \func f => a \where {
+              \class E {
+                \func a => 1
+              }
+            }
+        """
+        )
+    }
+
 
 }
