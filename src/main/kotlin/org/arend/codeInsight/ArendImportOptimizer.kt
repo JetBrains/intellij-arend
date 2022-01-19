@@ -365,7 +365,7 @@ private fun subtract(
     for (index in shortQualifier.indices.reversed().drop(1)) { // start checking module name
         val indexInFullQualifier = fullQualifier.lastIndex + (index - (shortQualifier.lastIndex - 1))
         if (indexInFullQualifier <= -1) {
-            return emptyList<String>() to shortQualifier.first()
+            return emptyList<String>() to shortQualifier.last()
         }
         if (fullQualifier[indexInFullQualifier] != shortQualifier[index]) {
             return fullQualifier.subList(0, indexInFullQualifier + 1) to null
@@ -376,7 +376,7 @@ private fun subtract(
 
 private fun collectQualifier(element: ArendCompositeElement): Pair<ModulePath, ModulePath> {
     var currentGroup = element.parentOfType<ArendGroup>()
-    if (element is ArendConstructor) {
+    if (element is ArendConstructor || element is ArendClassField) {
         @Suppress("RemoveExplicitTypeArguments")
         currentGroup = currentGroup?.parentOfType<ArendGroup>()
     }

@@ -449,8 +449,7 @@ class OptimizeImportsTest : ArendTestBase() {
               }
             }
         """, """
-            \import Foo (A)
-            \open A (a)
+            \import Foo (A, a)
 
             \class C {
               \data D \where {
@@ -546,8 +545,7 @@ class OptimizeImportsTest : ArendTestBase() {
 
             \func p : Nat => t
         """, """
-            \import Foo (A, nat)
-            \open A (t)
+            \import Foo (nat, t)
 
             \func p : Nat => t
         """
@@ -571,8 +569,7 @@ class OptimizeImportsTest : ArendTestBase() {
 
             \func p : Nat => t
         """, """
-            \import Foo (A, nat)
-            \open A (t)
+            \import Foo (nat, t)
 
             \func p : Nat => t
         """, true
@@ -750,5 +747,23 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test can import identifier without opening a class`() {
+        doTest(
+            """
+            -- ! Foo.ard
+            \class A {
+              | f : Nat
+            }
+            -- ! Main.ard
+            \import Foo (A, f)
+
+            \func g {a : A} => f
+        """, """
+            \import Foo (A, f)
+
+            \func g {a : A} => f
+        """
+        )
+    }
 
 }
