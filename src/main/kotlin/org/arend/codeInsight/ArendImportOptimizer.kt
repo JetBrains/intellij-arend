@@ -58,7 +58,7 @@ private val LOG = Logger.getInstance(ArendImportOptimizer::class.java)
 
 @RequiresWriteLock
 private fun addImportCommands(file: ArendFile, importMap: Map<ModulePath, Set<String>>) {
-    file.statements.mapNotNull { it.statCmd }.forEach { it.deleteWithNotification() }
+    file.statements.mapNotNull { it.statCmd }.forEach { it.delete() }
     val correctedMap = importMap
         .filter { it.key != file.moduleLocation?.modulePath && it.key != Prelude.MODULE_PATH }
         .mapKeys { it.key.toList() }
@@ -69,7 +69,11 @@ private fun addImportCommands(file: ArendFile, importMap: Map<ModulePath, Set<St
 private fun runPsiChanges(currentPath: List<String>, group: ArendGroup, rootStructure: OptimalModuleStructure?) {
     if (group !is PsiFile) {
         val statCommands = group.statements.mapNotNull { it.statCmd }
-        statCommands.forEach { it.deleteWithNotification() }
+        val deleteWhere = statCommands.size == group.statements.size
+        statCommands.forEach { it.delete() }
+        if (deleteWhere) {
+            group.where?.delete()
+        }
     }
     if (rootStructure != null && rootStructure.usages.isNotEmpty()) {
         val reverseMapping = mutableMapOf<List<String>, MutableSet<String>>()

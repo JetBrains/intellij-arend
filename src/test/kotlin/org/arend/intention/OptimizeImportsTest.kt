@@ -594,4 +594,40 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test remove where`() {
+        doTest(
+            """
+            --! Main.ard
+            \module M \where {}
+
+            \module N
+              \open M
+        """, """
+            \module M
+            
+            \module N
+            
+        """
+        )
+    }
+
+    fun `test remove where 2`() {
+        doTest(
+            """
+            --! Main.ard
+            \module M \where {}
+
+            \module N \where {
+              \open M            
+            }
+        """, """
+            \module M
+            
+            \module N
+                
+        """
+        )
+    }
+
+
 }
