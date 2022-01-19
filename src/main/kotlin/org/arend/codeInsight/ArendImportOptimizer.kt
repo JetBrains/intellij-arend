@@ -317,6 +317,11 @@ private data class MutableFrame(
 
         for (identifier in allInnerIdentifiers) {
             if (definitions.contains(identifier) || (name == "" && fileImports.contains(identifier))) {
+                subgroups.forEach {
+                    if (it.usages[identifier] == usages[identifier]) {
+                        it.usages.remove(identifier)
+                    }
+                }
                 continue
             }
             val paths = subgroups.mapNotNullTo(SmartSet.create()) { it.usages[identifier] }
