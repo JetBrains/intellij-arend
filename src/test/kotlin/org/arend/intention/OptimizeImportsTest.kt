@@ -698,5 +698,35 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test import from file and group`() {
+        doTest(
+            """
+            -- ! Foo.ard
+            \func f => 1
+            -- ! Main.ard
+            \import Foo
+            
+            \func g => f
+            \module M \where { \func f => 2 }
+
+            \module N \where {
+              \open M 
+              \func h => f
+            }
+        """, """
+            \import Foo (f)
+            
+            \func g => f
+            \module M \where { \func f => 2 }
+            
+            \module N \where {
+              \open M (f)
+            
+              \func h => f
+            }
+        """
+        )
+    }
+
 
 }

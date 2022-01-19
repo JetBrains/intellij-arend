@@ -102,6 +102,9 @@ private fun doAddNamespaceCommands(
         }
     }
     importStatements.sort()
+    if (importStatements.isEmpty()) {
+        return
+    }
     val factory = ArendPsiFactory(group.project)
     val (groupContainer, anchorElement) = if (group is ArendFile) {
         group to group.statements.lastOrNull { it.statCmd != null }
@@ -146,7 +149,7 @@ internal fun getOptimalImportStructure(file: ArendFile): OptimizationResult {
     val collector = ImportStructureCollector(rootFrame)
 
     file.accept(collector)
-    rootFrame.contract(collector.allDefinitionsTypechecked)
+    rootFrame.contract(collector.allDefinitionsTypechecked, collector.fileImports.values.flatMapTo(HashSet()) { it })
         .forEach { (file, ids) -> collector.fileImports.computeIfAbsent(file) { HashSet() }.addAll(ids) }
     return OptimizationResult(collector.fileImports.filter { it.key !in forbiddenFilesToImport }, rootFrame.asOptimalTree(), collector.allDefinitionsTypechecked)
 }
@@ -168,6 +171,9 @@ private class ImportStructureCollector(rootFrame: MutableFrame) : PsiRecursiveEl
             currentScopePath.add(MutableFrame(element.refName))
             currentModulePath.add(element.refName)
             addSyntacticGlobalInstances(currentScopePath[currentScopePath.lastIndex - 1], element)
+        }
+        if (element is ArendFile) {
+            addSyntacticGlobalInstances(MutableFrame(""), element)
         }
         if (element is ArendDefinition) {
             addCoreGlobalInstances(element)
@@ -293,8 +299,8 @@ private data class MutableFrame(
         })
 
     @Contract(mutates = "this")
-    fun contract(useTypecheckedInstances: Boolean): Map<ModulePath, Set<String>> {
-        val submaps = subgroups.map { it.contract(useTypecheckedInstances) }
+    fun contract(useTypecheckedInstances: Boolean, fileImports: Set<String>): Map<ModulePath, Set<String>> {
+        val submaps = subgroups.map { it.contract(useTypecheckedInstances, fileImports) }
         val additionalFiles = mutableMapOf<ModulePath, MutableSet<String>>()
         submaps.forEach {
             it.forEach { (filePath, ids) ->
@@ -310,7 +316,7 @@ private data class MutableFrame(
         val allInnerIdentifiers = subgroups.flatMapTo(HashSet()) { it.usages.keys }
 
         for (identifier in allInnerIdentifiers) {
-            if (definitions.contains(identifier)) {
+            if (definitions.contains(identifier) || (name == "" && fileImports.contains(identifier))) {
                 continue
             }
             val paths = subgroups.mapNotNullTo(SmartSet.create()) { it.usages[identifier] }
