@@ -200,17 +200,17 @@ class RenameTest : ArendTestBase() {
 
     fun `test rename file`() = checkByDirectory(
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import Foo
 
-                --! Foo.ard
+                -- ! Foo.ard
                 -- empty
             """,
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import Bar
 
-                --! Bar.ard
+                -- ! Bar.ard
                 -- empty
             """
     ) {
@@ -220,17 +220,17 @@ class RenameTest : ArendTestBase() {
 
     fun `test rename file without extension`() = checkByDirectory(
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import Foo
 
-                --! Foo.ard
+                -- ! Foo.ard
                 -- empty
             """,
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import Bar
 
-                --! Bar.ard
+                -- ! Bar.ard
                 -- empty
             """
     ) {
@@ -240,17 +240,17 @@ class RenameTest : ArendTestBase() {
 
     fun `test rename directory`() = checkByDirectory(
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import DirA.Foo
 
-                --! DirA/Foo.ard
+                -- ! DirA/Foo.ard
                 -- empty
             """,
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import DirB.Foo
 
-                --! DirB/Foo.ard
+                -- ! DirB/Foo.ard
                 -- empty
             """
     ) {

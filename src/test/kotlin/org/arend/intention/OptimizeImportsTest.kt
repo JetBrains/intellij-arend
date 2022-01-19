@@ -25,7 +25,7 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test prelude`() {
         doTest("""
-            --! Main.ard
+            -- ! Main.ard
             \func foo : Nat => 1
             """, """
             \func foo : Nat => 1
@@ -34,11 +34,11 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test constructor`() {
         doTest("""
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
             
             \func foo : Bar => bar
-            --! Foo.ard
+            -- ! Foo.ard
             \data Bar | bar
             """, """
             \import Foo (Bar, bar)
@@ -50,12 +50,12 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test partially qualified name`() {
         doTest("""
-            --! Bar.ard
+            -- ! Bar.ard
             \module A \where {
               \func bar : Nat => {?}            
             }
             
-            --! Main.ard
+            -- ! Main.ard
             \import Bar
             
             \func foo : Nat => A.bar
@@ -69,10 +69,10 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test import func`() {
         doTest("""
-            --! Bar.ard
+            -- ! Bar.ard
             \func f : Nat => 1
             
-            --! Main.ard
+            -- ! Main.ard
             \import Bar
             
             \func foo : Nat => f
@@ -86,13 +86,13 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test alphabetic order`() {
         doTest("""
-            --! ZZZ.ard
+            -- ! ZZZ.ard
             \func z : Nat => 1
             
-            --! AAA.ard
+            -- ! AAA.ard
             \func a : Nat => 1
             
-            --! Main.ard
+            -- ! Main.ard
             \import ZZZ
             \import AAA
             
@@ -108,7 +108,7 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test same-package modularized usage`() {
         doTest("""
-            --! Main.ard
+            -- ! Main.ard
             \data Bar \where {
               \data R \where {
                 \func f : Nat => 1
@@ -130,7 +130,7 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test same-package in-module usage`() {
         doTest("""
-            --! Main.ard
+            -- ! Main.ard
             \data Bar \where {
               \func foo : Nat => 1
               
@@ -160,7 +160,7 @@ class OptimizeImportsTest : ArendTestBase() {
     }
 
     private val collidedDefinitions = """
-        --! Foo.ard
+        -- ! Foo.ard
         \func foo => () \where \func apply => ()
 
         \func bar => () \where \func apply => ()
@@ -170,7 +170,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test collision 1`() {
         doTest("""
             $collidedDefinitions
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
             
             \func f : foo.apply = bar.apply => {?}
@@ -185,7 +185,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test collision 2`() {
         doTest("""
             $collidedDefinitions
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
             \open foo
             
@@ -202,7 +202,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test collision 3`() {
         doTest("""
             $collidedDefinitions
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
 
             \module A \where {
@@ -236,10 +236,10 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test single import`() {
         doTest("""
-            --! Foo.ard
+            -- ! Foo.ard
             \data Bar
             
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
             \func f => 1 \where \func g : Bar => {?}
             """, """
@@ -252,7 +252,7 @@ class OptimizeImportsTest : ArendTestBase() {
 
     fun `test local module`() {
         doTest("""
-            --! Main.ard
+            -- ! Main.ard
             \module M \where { \func x => 1 }
             \open M
             
@@ -270,7 +270,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test self-contained datatype`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \data D (a : Nat)
               | d (D a)
         """, """
@@ -283,7 +283,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test self-contained function`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \func foo => bar
               \where \func bar => 1
         """, """
@@ -296,9 +296,9 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test constructor in pattern`() {
         doTest(
             """
-            --! Foo.ard
+            -- ! Foo.ard
             \data D | d Nat
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
             
             \func foo (dd : D) : Nat \elim dd
@@ -315,11 +315,11 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test record`() {
         doTest(
             """
-            --! Foo.ard
+            -- ! Foo.ard
             \record R {
               | rr : Nat
             }
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
             
             \func f : R \cowith {
@@ -338,7 +338,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test array`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \func f => \new Array { | A => \lam _ => Nat
                                     | len => 1
                                     | at (0) => 1  }
@@ -353,7 +353,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test dynamic definition`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \record R {
               | r : Nat
             
@@ -372,9 +372,9 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test instance`() {
         doTest(
             """
-            --! Foo.ard
+            -- ! Foo.ard
             \class R (rr : Nat)
-            --! Main.ard
+            -- ! Main.ard
             \import Foo (R)
             \open R
             
@@ -391,11 +391,11 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test dynamic subgroup`() {
         doTest(
             """
-            --! Foo.ard
+            -- ! Foo.ard
             \class A {
               | a : Nat
             }
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
 
             \class C {
@@ -419,7 +419,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test record field`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \record R {
               | rr : Nat
             }
@@ -438,7 +438,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test record parameter`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \open R (rr)
             
             \record R (rr : Nat)
@@ -457,7 +457,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test two exporting classes`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \class A {
               | n : Nat
               \func f : Nat => n
@@ -490,13 +490,13 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test implicit instance import`() {
         doTest(
             """
-            --! Foo.ard
+            -- ! Foo.ard
             \class A (T : \Type) {
               | t : T
             }
             
             \instance nat : A Nat 1
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
 
             \func p : Nat => t
@@ -512,9 +512,9 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test file does not appear in import`() {
         doTest(
             """
-            --! Foo.ard
+            -- ! Foo.ard
             \func foo => 1
-            --! Main.ard
+            -- ! Main.ard
             \import Foo
 
             \func p => Foo.foo
@@ -529,7 +529,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test extension`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \class R (rr : Nat)
 
             \class E \extends R
@@ -546,7 +546,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test extension3`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \open A (B)
 
             \class A \where \record B
@@ -570,7 +570,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test shadowed import`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \class A (E : \Type) {
                 | + : E -> E -> E
             }
@@ -587,9 +587,9 @@ class OptimizeImportsTest : ArendTestBase() {
         
             \instance a : A Nat
               | + => +
-            \where {
-              \open Nat (+)
-            } 
+              \where {
+                \open Nat (+)
+              } 
         """
         )
     }
@@ -597,7 +597,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test remove where`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \module M \where {}
 
             \module N
@@ -606,7 +606,7 @@ class OptimizeImportsTest : ArendTestBase() {
             \module M
             
             \module N
-            
+              
         """
         )
     }
@@ -614,7 +614,7 @@ class OptimizeImportsTest : ArendTestBase() {
     fun `test remove where 2`() {
         doTest(
             """
-            --! Main.ard
+            -- ! Main.ard
             \module M \where {}
 
             \module N \where {
@@ -623,8 +623,7 @@ class OptimizeImportsTest : ArendTestBase() {
         """, """
             \module M
             
-            \module N
-                
+            \module N 
         """
         )
     }

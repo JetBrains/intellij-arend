@@ -86,13 +86,13 @@ class InstanceInferenceQuickFixTest: QuickFixTestBase() {
     """)
 
     fun testBasic4() = typedQuickFixTest(import, """
-       --! A.ard
+       -- ! A.ard
        \import Main
        
        \class M \where {         
          \instance Nat-X : X | A => Nat | B => \lam x => x         
        }
-       --! Main.ard
+       -- ! Main.ard
        \class X (A : \Type0) {
          | B : A -> Nat
        }

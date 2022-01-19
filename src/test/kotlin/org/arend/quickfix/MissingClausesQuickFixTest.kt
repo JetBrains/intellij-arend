@@ -12,9 +12,9 @@ import org.arend.util.ArendBundle
 
 class MissingClausesQuickFixTest: QuickFixTestBase() {
     private val fixName = ArendBundle.message("arend.clause.implement")
-    
+
     private fun doTest(contents: String, result: String) = simpleQuickFixTest(fixName, contents, result)
-    
+
     private val listDefinition =
         """
         \data List (A : \Type)
@@ -90,7 +90,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testImplicitPattern() = typedQuickFixTest(fixName,
         """
-        --! Main.ard
+        -- ! Main.ard
         \$listDefinition2
     
         \func length{-caret-} {A : \Type} (l : List A) : Nat \with
@@ -107,7 +107,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testImplicitPattern2() = typedQuickFixTest(fixName,
             """
-        --! Main.ard
+        -- ! Main.ard
         \$listDefinition3
     
         \func length{-caret-} {A : \Type} {l : List A} : Nat \with
@@ -124,7 +124,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testBasicTwoPatterns() = typedQuickFixTest(fixName,
         """
-        --! Main.ard 
+        -- ! Main.ard 
         \$listDefinition
 
         \func lol{-caret-} {A : \Type} (l : List A) (l2 : List A) : Nat \with
@@ -140,7 +140,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testMixedTwoPatterns() = typedQuickFixTest(fixName,
         """
-        --! Main.ard
+        -- ! Main.ard
         \$fooDefinition        
         
         \func bar{-caret-} (a : Foo) {b : Foo} : Nat2 \with
@@ -164,7 +164,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testElim() = typedQuickFixTest(fixName,
         """
-        --! Main.ard
+        -- ! Main.ard
         \$orDefinition
         
         \func Or-to-||{-caret-} {A B : \Prop} (a-or-b : Or A B) : Or A B \elim a-or-b
@@ -179,7 +179,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testCase() = typedQuickFixTest(fixName,
         """
-        --! Main.ard
+        -- ! Main.ard
         \$orDefinition
         
         \func Or-to-|| {A B : \Prop} (a-or-b : Or A B) : Or A B => \case a-or-b \with {
@@ -216,12 +216,12 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testResolveReference() = typedQuickFixTest(fixName,
         """
-        --! Logic.ard 
+        -- ! Logic.ard 
         \data || (A B : \Type)
           | byLeft A
           | byRight B
  
-        --! Main.ard    
+        -- ! Main.ard    
         \import Logic ()
 
         \func byLeft => 101
@@ -241,7 +241,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     fun testNaturalNumbers() = typedQuickFixTest(fixName,
         """
-        --! Main.ard    
+        -- ! Main.ard    
         \func plus{-caret-} (a b : Nat) : Nat
           | 0, 2 => 0        
         """, """
