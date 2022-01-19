@@ -18,6 +18,8 @@ import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
+import org.arend.naming.scope.EmptyScope
+import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -165,7 +167,7 @@ private class ImportStructureCollector(rootFrame: MutableFrame) : PsiRecursiveEl
         if (element is ArendGroup && element !is ArendFile) {
             currentScopePath.add(MutableFrame(element.refName))
             currentModulePath.add(element.refName)
-            addSyntacticGlobalInstances(element)
+            addSyntacticGlobalInstances(currentScopePath[currentScopePath.lastIndex - 1], element)
         }
         if (element is ArendDefinition) {
             addCoreGlobalInstances(element)
@@ -200,12 +202,17 @@ private class ImportStructureCollector(rootFrame: MutableFrame) : PsiRecursiveEl
         }, Unit)
     }
 
-    private fun addSyntacticGlobalInstances(element: ArendGroup) {
-        Scope.traverse(element.scope) {
+    private fun addSyntacticGlobalInstances(lastFrame : MutableFrame, element: ArendGroup) {
+        val scope = element.scope
+        val restrictedScope = if (scope is LexicalScope) {
+            LexicalScope.insideOf(element, EmptyScope.INSTANCE)
+        } else scope
+        Scope.traverse(restrictedScope) {
             if (it is ArendDefInstance) {
                 currentFrame.instancesFromScope.add(it)
             }
         }
+        currentFrame.instancesFromScope.addAll(lastFrame.instancesFromScope)
     }
 
     override fun elementFinished(element: PsiElement?) {
