@@ -15,9 +15,14 @@ class OptimizeImportsTest : ArendTestBase() {
 
     private fun doTest(
         @Language("Arend") before: String,
-        @Language("Arend") after: String
+        @Language("Arend") after: String,
+        typecheck: Boolean = false
     ) {
-        fileTreeFromText(before).prepareFileSystem()
+        val fileTree = fileTreeFromText(before)
+        fileTree.prepareFileSystem()
+        if (typecheck) {
+            typecheck(fileTree.fileNames)
+        }
         val optimizer = ArendImportOptimizer()
         WriteCommandAction.runWriteCommandAction(myFixture.project, optimizer.processFile(myFixture.file))
         myFixture.checkResult(replaceCaretMarker(after.trimIndent()))
@@ -506,6 +511,31 @@ class OptimizeImportsTest : ArendTestBase() {
 
             \func p : Nat => t
         """
+        )
+    }
+
+    fun `test implicit instance import 2`() {
+        doTest(
+            """
+            -- ! Foo.ard
+            \class A (T : \Type) {
+              | t : T
+            }
+            
+            \instance nat : A Nat 1
+            
+            \data D | d
+            \instance dd : A D d
+            -- ! Main.ard
+            \import Foo
+
+            \func p : Nat => t
+        """, """
+            \import Foo (A, nat)
+            \open A (t)
+
+            \func p : Nat => t
+        """, true
         )
     }
 
