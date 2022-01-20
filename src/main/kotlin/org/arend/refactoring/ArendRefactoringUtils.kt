@@ -629,18 +629,11 @@ fun unwrapParens(tuple: ArendTuple): ArendExpr? {
     return if (tupleExpr.colon == null) tupleExpr.exprList.singleOrNull() else null
 }
 
-fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
-                             argumentOrFieldsAcc: PsiElement,
-                             ipName: ArendIPName,
-                             operatorConcrete: Concrete.Expression,
-                             rangeData: HashMap<Concrete.Expression, TextRange>? = null,
-                             rangeCallback: ((TextRange, Int) -> Unit)? = null): ArendArgumentAppExpr? {
-    val argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
-    val nodes = argumentAppExpr.firstChild.siblings().map { it.node }.toList()
-    val operatorRange = getBounds(operatorConcrete, nodes, rangeData)!!
-    val psiElements = nodes.filter { operatorRange.contains(it.textRange) }.map { it.psi }
-    val psiElementsRange = TextRange(psiElements.first().textRange.startOffset, psiElements.last().textRange.endOffset)
-
+fun transformPostfixToPrefix1(argumentOrFieldsAcc: PsiElement,
+                              ipName: ArendIPName,
+                              operatorConcrete: Concrete.Expression,
+                              psiElements: List<PsiElement>,
+                              textGetter: (PsiElement) -> String = { it -> it.text }): Pair<String, Boolean> {
     var resultingExpr = "${LongName(ipName.longName)} "
     val leadingElements = java.util.ArrayList<PsiElement>()
     val trailingElements = java.util.ArrayList<PsiElement>()
@@ -651,7 +644,7 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
         else -> trailingElements.add(element)
     }
 
-    fun getElementsText(elements: ArrayList<PsiElement>): String = elements.fold("") { acc, element -> acc + element.text }.trim().let { text ->
+    fun getElementsText(elements: ArrayList<PsiElement>): String = elements.fold("") { acc, element -> acc + textGetter.invoke(element) }.trim().let { text ->
         if (elements.filter { it !is PsiComment && it !is PsiWhiteSpace }.size > 1) "($text)" else text
     }
 
@@ -672,6 +665,23 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
         val lambdaVarName = StringRenamer().generateFreshName(VariableImpl(baseName), operatorBindings.map { VariableImpl(it) }.toList())
         resultingExpr = "(\\lam $lambdaVarName => $resultingExpr$lambdaVarName $trailingText)"
     } else resultingExpr += "$leadingText $trailingText"
+
+    return Pair(resultingExpr, isLambda)
+}
+
+fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
+                             argumentOrFieldsAcc: PsiElement,
+                             ipName: ArendIPName,
+                             operatorConcrete: Concrete.Expression,
+                             rangeData: HashMap<Concrete.Expression, TextRange>? = null,
+                             rangeCallback: ((TextRange, Int) -> Unit)? = null): ArendArgumentAppExpr? {
+    val argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
+    val nodes = argumentAppExpr.firstChild.siblings().map { it.node }.toList()
+    val operatorRange = getBounds(operatorConcrete, nodes, rangeData)!!
+    val psiElements = nodes.filter { operatorRange.contains(it.textRange) }.map { it.psi }
+    val psiElementsRange = TextRange(psiElements.first().textRange.startOffset, psiElements.last().textRange.endOffset)
+    val (resultingExpr, isLambda) = transformPostfixToPrefix1(argumentOrFieldsAcc, ipName, operatorConcrete, psiElements)
+
     val result: ArendExpr? = when {
         psiElements.size == nodes.size -> {
             val tupleExpr = surroundingTupleExpr(argumentAppExpr)

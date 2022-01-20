@@ -49,7 +49,9 @@ fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, rangesMap: H
         if (fData is PsiElement) {
             val f = aaeBlocks.filter { it.textRange.contains(fData.textRange) }
             if (f.size != 1) throw IllegalStateException()
-            elements.add(f.first().textRange)
+            val functionRange = f.first().textRange
+            elements.add(functionRange)
+            rangesMap?.put(cExpr.function, functionRange)
         }
 
         val startOffset = elements.asSequence().map { it.startOffset }.minOrNull()

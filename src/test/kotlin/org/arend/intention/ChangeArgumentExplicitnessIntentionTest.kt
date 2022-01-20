@@ -74,7 +74,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => a
-        \func f => k {_} _ 1 (2, 3) Nat.+ k _ 4 5
+        \func f => k _ 1 (2, 3) Nat.+ k _ 4 5
         """
     )
 
@@ -305,7 +305,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     """, """
         \func \infix 4 ++ {n m : Nat} => n Nat.+ m
         
-        \func zoo => (\lam n => ++ {n} {1})
+        \func zoo => \lam n => ++ {n} {1}
     """)
 
     fun testFunctionIESaveFullNames() = doTest(
@@ -337,7 +337,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func f {A B : \Type} (a : A) ({-caret-}C : \Type) (b : B) (c : C) => (a, (b, c))
-        \func g => (f {_} {_} 1 _ 2) 3
+        \func g => (f 1 _ 2) 3
         """
     )
 
@@ -438,7 +438,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
         \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
         \func id {A : \Type} (a : A) => a
-        \func g => id (\lam {B} a b => f {Nat} B a b)
+        \func g => id (\lam {B} => f {Nat} B)
         """
     )
 
@@ -460,7 +460,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func f (A : \Type) {B{-caret-} : \Type} (a : A) (b : B) => (a, b)
-        \func g => (\lam B a b => f Nat {B} a b)
+        \func g => \lam B => f Nat {B}
         """
     )
 
@@ -482,7 +482,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func \infixl 6 !+! {A B : \Type} (a : A) {{-caret-}b : B} => (a, b)
-        \func g => (\lam b => !+! {Nat} {Nat} 1 {b})
+        \func g => \lam b => !+! {Nat} {Nat} 1 {b}
         """
     )
 
@@ -493,7 +493,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \class Test {A  : \Type} ({-caret-}B : \Type) (a : A) (b : B)
-        \func f => (\lam {B} a b => Test {Nat} B a b)
+        \func f => \lam {B} => Test {Nat} B
         """
     )
 
@@ -504,7 +504,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \func foo (a : Nat) {b{-caret-} : Nat} (b1 : Nat) => a
-        \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => (\lam b2 b3 => foo 0 {b2} b3)
+        \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => \lam b2 => foo 0 {b2}
         """
     )
 
@@ -563,7 +563,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
         \func k ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
 
-        \func test => k _ ((k _ 0 1) <> (k _ 2 3)) 4
+        \func test => k _ (k _ 0 1 <> k _ 2 3) 4
         """
     )
 
