@@ -1,0 +1,112 @@
+<templateSet group="Arend">
+    <template name="\func=&gt;" value="\func $NAME$$END$ =&gt; {?}" description="\func name =&gt; {?}"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\module\where" value="\module $NAME$ \where {$END$}" description="\module name \where {}"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\lemma=&gt;" value="\lemma $NAME$$END$ =&gt; {?}" description="\lemma name =&gt; {?}"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\sfunc=&gt;" value="\sfunc $NAME$$END$ =&gt; {?}" description="\sfunc name =&gt; {?}"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\type=&gt;" value="\type $NAME$ =&gt; $EXPR$" description="\type name =&gt; expr" toReformat="false"
+              toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <variable name="EXPR" expression="&quot;expr&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\cons=&gt;" value="\cons $NAME$$END$ =&gt; {?}" description="\cons name =&gt; {?}"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\meta=&gt;" value="\meta $NAME$$END$ =&gt; {?}" description="\meta name =&gt; {?}"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\use\coerce" value="\use \coerce $NAME$ ($PARAM_NAME$ : $PARAM_TYPE$$END$) =&gt; {?}"
+              description="\use \coerce name (p : T) =&gt; {?}" toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <variable name="PARAM_NAME" expression="&quot;param&quot;" defaultValue="" alwaysStopAt="true"/>
+        <variable name="PARAM_TYPE" expression="&quot;type&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\use\level" value="\use \level $NAME$$END$ =&gt; {?}" description="\use \level name =&gt; {?}"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\Pi-&gt;" value="\Pi $PARAM$ -&gt; $RES$" description="\Pi param -&gt; res" toReformat="false"
+              toShortenFQNames="true">
+        <variable name="PARAM" expression="&quot;param&quot;" defaultValue="" alwaysStopAt="true"/>
+        <variable name="RES" expression="&quot;res&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\lam=&gt;" value="\lam $PARAM$ =&gt; $EXPR$" description="\lam param =&gt; expr" toReformat="false"
+              toShortenFQNames="true">
+        <variable name="PARAM" expression="&quot;param&quot;" defaultValue="" alwaysStopAt="true"/>
+        <variable name="EXPR" expression="&quot;expr&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\let\in" value="\let $NAME$ =&gt; {?}$END$ \in " description="\let name =&gt; {?} \in"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\have\in" value="\have $NAME$ =&gt; {?}$END$ \in " description="\have name =&gt; {?} \in"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="&quot;name&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\case\with" value="\case $EXPR$ \with {$END$}" description="\case expr \with {}" toReformat="false"
+              toShortenFQNames="true">
+        <variable name="EXPR" expression="&quot;expr&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+    <template name="\scase\with" value="\scase $EXPR$ \with {$END$}" description="\scase expr \with {}"
+              toReformat="false" toShortenFQNames="true">
+        <variable name="EXPR" expression="&quot;expr&quot;" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="AREND" value="true"/>
+        </context>
+    </template>
+</templateSet>

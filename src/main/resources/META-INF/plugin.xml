@@ -377,6 +377,11 @@
         <searchEverywhereContributor implementation="org.arend.actions.ArendSECFactory" />
 
         <editorTabColorProvider implementation="org.arend.editor.ArendEditorTabColorProvider"/>
+
+        <!-- Live Templates -->
+
+        <defaultLiveTemplates file="/liveTemplates/Arend.xml"/>
+        <liveTemplateContext implementation="org.arend.liveTemplates.ArendTemplateContextType$Everywhere"/>
     </extensions>
 
     <actions>
