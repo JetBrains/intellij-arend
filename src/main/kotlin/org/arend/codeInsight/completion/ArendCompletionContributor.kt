@@ -563,7 +563,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(withParents(ArendTypeTele::class.java, ArendNameTele::class.java), withGrandParents(*TELE_CONTAINERS)),
                 withAncestors(*(LITERAL_PREFIX + arrayOf(ArendTypeTele::class.java))))
 
-        private val EXPRESSION_CONTEXT = and(
+        val EXPRESSION_CONTEXT = and(
                 or(withAncestors(*ATOM_PREFIX),
                         withParentOrGrandParent(ArendFunctionBody::class.java),
                         and(withParentOrGrandParent(ArendExpr::class.java), not(INSIDE_RETURN_EXPR_CONTEXT)),

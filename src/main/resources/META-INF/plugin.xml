@@ -381,7 +381,8 @@
         <!-- Live Templates -->
 
         <defaultLiveTemplates file="/liveTemplates/Arend.xml"/>
-        <liveTemplateContext implementation="org.arend.liveTemplates.ArendTemplateContextType"/>
+        <liveTemplateContext implementation="org.arend.liveTemplates.ArendTemplateContextType$Everywhere"/>
+        <liveTemplateContext implementation="org.arend.liveTemplates.ArendTemplateContextType$Expression"/>
     </extensions>
 
     <actions>
