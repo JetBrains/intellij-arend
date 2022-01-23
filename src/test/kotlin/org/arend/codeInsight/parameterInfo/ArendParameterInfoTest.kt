@@ -64,6 +64,20 @@ class ArendParameterInfoTest : ArendTestBase() {
         checkParameterInfo(code, expectedHint)
     }
 
+    fun `test new arg position`() {
+        val code = "\\func f (x y : Nat) => 0\n" +
+                "\\func g => f x {-caret-}"
+        val expectedHint = "x : Nat, <highlight>y : Nat</highlight>"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test new arg position implicit`() {
+        val code = "\\func f {x y : Nat} => 0\n" +
+                "\\func g => f {x} {-caret-}"
+        val expectedHint = "{x : Nat}, <highlight>{y : Nat}</highlight>"
+        checkParameterInfo(code, expectedHint)
+    }
+
     fun `test no hint in lam`() {
         val code = "\\func f (x y : Nat) => 0\n" +
                 "\\func h => f (\\lam x => {-caret-}x)"
@@ -129,6 +143,21 @@ class ArendParameterInfoTest : ArendTestBase() {
         val code = "\\func f (x y : Nat) {z : Nat} (w : Nat) => 0\n" +
                 "\\func h (x : Nat) => f 0 0 {f x{-caret-}}"
         val expectedHint = "<highlight>x : Nat</highlight>, y : Nat, {z : Nat}, w : Nat"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test implicit params cons`() {
+        val code = "\\data D (A : \\Type) (a : A) | con Nat\n" +
+                "\\func foo => con {Nat} {-caret-}"
+        val expectedHint = "{A : \\Type}, <highlight>{a : A}</highlight>, _ : Nat"
+        checkParameterInfo(code, expectedHint)
+    }
+
+    fun `test var as cons arg`() {
+        val code = "\\data D | cons (n : Nat) | \\infix 5 :: (_ _ : Nat)\n" +
+                "\\func foo (d : D) (f : (Nat -> D) -> Nat) : Nat \\elim d\n" +
+                "  | :: x y => f (x{-caret-} ::)"
+        val expectedHint = "<highlight>_ : Nat</highlight>, _ : Nat"
         checkParameterInfo(code, expectedHint)
     }
 

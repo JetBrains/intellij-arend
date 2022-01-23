@@ -5,6 +5,8 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.castSafelyTo
+import org.arend.error.DummyErrorReporter
+import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
@@ -22,10 +24,10 @@ import org.arend.term.concrete.Concrete
 
 fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appExprToConcrete(appExpr, false)
 
-fun appExprToConcrete(appExpr: Abstract.Expression, setData: Boolean): Concrete.Expression? =
+fun appExprToConcrete(appExpr: Abstract.Expression, setData: Boolean, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE): Concrete.Expression? =
         appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
             override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Concrete.Expression =
-                    parseBinOp(if (setData) data else null, left, sequence)
+                    parseBinOp(if (setData) data else null, left, sequence, errorReporter)
             override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) =
                     resolveReference(data, referent, null)
             override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) =
@@ -82,8 +84,8 @@ fun concreteDataToSourceNode(data: Any?): ArendSourceNode? = if (data is ArendIP
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 } */
 
-fun checkConcreteExprIsArendExpr(aExpr: ArendSourceNode, cExpr: Concrete.Expression): Boolean {
-    val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: ArendSourceNode ->
+fun checkConcreteExprIsArendExpr(aExpr: Abstract.SourceNode, cExpr: Concrete.Expression): Boolean {
+    val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: Abstract.SourceNode ->
         // Rewrite in a less ad-hoc way
         if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
                 cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode

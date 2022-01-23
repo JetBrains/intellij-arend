@@ -13,6 +13,7 @@ import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.navigate
+import org.arend.util.ArendBundle
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.JScrollPane
@@ -25,7 +26,7 @@ import kotlin.math.min
 class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErrorTreeListener? = null) : Tree(treeModel) {
     init {
         isRootVisible = false
-        emptyText.text = "No errors"
+        emptyText.text = ArendBundle.message("arend.messages.view.no.messages")
         selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
 
         addMouseListener(object : MouseAdapter() {

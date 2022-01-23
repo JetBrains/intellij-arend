@@ -14,7 +14,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \record Pair (A B : \Type) | fst : A | snd : \Sigma (b : B) (c : Nat)
        \record Pair2 (A : \Type) (B : \Type) | fst2 : Pair A B | snd2 : Pair A B 
     """
-    
+
     private fun doTest(contents: String, result: String) = typedQuickFixTest(ArendBundle.message("arend.pattern.split"), contents, result)
 
     fun testBasicSplit() = doTest("""
@@ -179,12 +179,12 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """)
 
     fun testSimpleResolving() = doTest("""
-       --! A.ard
+       -- ! A.ard
        \data List (A : \Type)
          | nil
          | \infixr 5 :: A (List A)
   
-       --! Main.ard
+       -- ! Main.ard
        \import A (List)
        
        \func foo (xs : List Nat) : Nat
@@ -198,7 +198,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """)
 
     fun testLongName() = doTest("""
-       --! MyNat.ard
+       -- ! MyNat.ard
        \module Foo \where { 
          \data MyNatural
            | myZero
@@ -211,7 +211,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | myZero => nil
          | mySuc n => cons A (Vec A n) 
          
-       --! Main.ard
+       -- ! Main.ard
        \import MyNat
        
        \func foo {A : \Type} (n : Foo.MyNatural) (xs : Vec A n) : \Sigma Foo.MyNatural Foo.MyNatural

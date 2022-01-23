@@ -25,16 +25,12 @@ class ArendHighlightingPassFactory : BasePassFactory<ArendFile>(ArendFile::class
     override fun createHighlightingPass(file: PsiFile, editor: Editor) =
         if (file is ArendFile) {
             val modCount = file.project.service<ArendPsiChangeService>().modificationTracker.modificationCount
-            if (file.lastModification < modCount) {
+            if (file.lastModification.get() < modCount) {
                 val pass = super.createHighlightingPass(file, editor)
                 if (pass is ArendHighlightingPass) {
                     pass.lastModification = modCount
                 } else {
-                    synchronized(ArendHighlightingPass::class.java) {
-                        if (file.lastModification < modCount) {
-                            file.lastModification = modCount
-                        }
-                    }
+                    file.lastModification.updateAndGet { maxOf(it, modCount) }
                 }
                 pass
             } else null

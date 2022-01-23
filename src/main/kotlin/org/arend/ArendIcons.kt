@@ -2,9 +2,11 @@ package org.arend
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.util.IconLoader
+import com.intellij.util.IconUtil
 import org.arend.core.definition.*
 import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.error.GeneralError
+import org.arend.psi.ArendGoal
 import javax.swing.Icon
 
 object ArendIcons {
@@ -35,6 +37,9 @@ object ArendIcons {
     val MOVE_LEFT = getIcon("/icons/moveLeft.svg")
     val MOVE_RIGHT = getIcon("/icons/moveRight.svg")
 
+    val TURNSTILE = getIcon("/icons/turnstile.svg")
+    val CHECKMARK = getIcon("/icons/checkmark.svg")
+
     // Source code elements
 
     val CLASS_DEFINITION = AllIcons.Nodes.Class
@@ -54,13 +59,14 @@ object ArendIcons {
     val ERROR = AllIcons.RunConfigurations.ToolbarError
     val WARNING = AllIcons.RunConfigurations.ToolbarFailed
     val GOAL = getIcon("/icons/goal.svg")
+    val IMPLICIT_GOAL = IconUtil.desaturate(GOAL)
     val INFO = AllIcons.General.NotificationInfo
 
-    fun getErrorLevelIcon(level: GeneralError.Level) = when (level) {
+    fun getErrorLevelIcon(error: GeneralError) = when (error.level) {
         GeneralError.Level.INFO -> INFO
         GeneralError.Level.WARNING_UNUSED -> WARNING
         GeneralError.Level.WARNING -> WARNING
-        GeneralError.Level.GOAL -> GOAL
+        GeneralError.Level.GOAL -> if (error.cause is ArendGoal) GOAL else IMPLICIT_GOAL
         GeneralError.Level.ERROR -> ERROR
     }
 

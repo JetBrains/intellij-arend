@@ -108,7 +108,7 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
     """, """
         \func lorem {A : \Prop} (x y : A) : x = y => lorem-lemma x y
           \where {
-            \func lorem-lemma {A : \Prop} (x y : A) : x = y => Path.inProp x y
+            \func lorem-lemma {A : \Prop} (x y : A) : x = y => Path.inProp _ _
           }
     """)
 

@@ -786,4 +786,16 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func foo (x : Nat) => 
          >== (0 + x  ==< idp) {>== (0 + x  ==< idp) {>== (0 + x  ==< idp) {0 + x `qed}}}
     """)
+
+    fun testBrackets() = doTest("""
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} {{-caret-}p : a = a'} (q : a' = a'') : a = a'' \elim q
+         | idp => p
+
+       \func foo {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') => *> {_} {_} {_} {_} {p} q 
+    """, """
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a'' \elim q
+         | idp => p
+
+       \func foo {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') => *> p q 
+    """)
 }

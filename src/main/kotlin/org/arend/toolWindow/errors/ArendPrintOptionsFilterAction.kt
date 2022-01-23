@@ -32,7 +32,8 @@ class ArendPrintOptionsFilterAction(private val project: Project,
 
         when (printOptionKind) {
             PrintOptionKind.CONSOLE_PRINT_OPTIONS -> project.service<ArendConsoleService>().updateText()
-            PrintOptionKind.ERROR_PRINT_OPTIONS, PrintOptionKind.GOAL_PRINT_OPTIONS -> project.service<ArendMessagesService>().updateErrorText()
+            PrintOptionKind.GOAL_PRINT_OPTIONS -> project.service<ArendMessagesService>().updateGoalText()
+            PrintOptionKind.ERROR_PRINT_OPTIONS -> project.service<ArendMessagesService>().updateErrorText()
             else -> {}
         }
     }

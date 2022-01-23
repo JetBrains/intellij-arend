@@ -21,9 +21,6 @@ class ArendError(val error: GeneralError, private val pointer: SmartPsiElementPo
     val definition: PsiConcreteReferable?
         get() = definitionPointer?.element
 
-    val inDefinition: Boolean
-        get() = definitionPointer != null
-
     val file: ArendFile?
         get() = (definitionPointer ?: pointer).element?.containingFile as? ArendFile
 

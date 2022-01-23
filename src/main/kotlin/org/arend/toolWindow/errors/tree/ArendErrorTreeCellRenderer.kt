@@ -15,7 +15,7 @@ class ArendErrorTreeCellRenderer : LabelBasedRenderer.Tree() {
         when (val obj = (value as? DefaultMutableTreeNode)?.userObject) {
             is ModulePath -> icon = ArendIcons.AREND_FILE
             is Iconable -> icon = obj.getIcon(0)
-            is ArendErrorTreeElement -> icon = ArendIcons.getErrorLevelIcon(obj.highestError.error.level)
+            is ArendErrorTreeElement -> icon = ArendIcons.getErrorLevelIcon(obj.highestError.error)
         }
         return this
     }

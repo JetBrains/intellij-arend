@@ -13,6 +13,6 @@ class ArendFileIndex : StringStubIndexExtension<ArendFile>() {
 
     companion object {
         val KEY: StubIndexKey<String, ArendFile> =
-                StubIndexKey.createIndexKey(ArendDefinitionIndex::class.java.canonicalName)
+                StubIndexKey.createIndexKey(ArendFileIndex::class.java.canonicalName)
     }
 }

@@ -9,7 +9,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding copatterns in instance`() = simpleQuickFixTest(implement,
             """
-                --! A.ard
+                -- ! A.ard
                 \class Foo {
                 | A : Nat
                 | B : Nat
@@ -28,7 +28,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding copatterns in instance 2`() = simpleQuickFixTest(implement,
             """
-                --! A.ard
+                -- ! A.ard
                 \class Foo {
                 | A : Nat
                 }
@@ -44,7 +44,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding implementation for a field`() = simpleQuickFixTest(replaceWithEmptyImplementation,
             """
-                --! A.ard
+                -- ! A.ard
                 \class Foo (A B : Nat)
                 \class Bar { | f : Foo }
                 \instance FooBar : Bar {
@@ -64,7 +64,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test implicitly implemented field`() = checkNoQuickFixes(remove,
             """
-                --! A.ard
+                -- ! A.ard
                 \class Foo (A B : Nat)
                 \class Bar {f : Foo}
                 \instance FooBar : Bar {
@@ -74,7 +74,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test removing implicitly implemented field`() = checkNoQuickFixes(remove,
             """
-                --! A.ard
+                -- ! A.ard
                 \class Foo (A B : Nat)
                 \class Bar {f : Foo}
                 \instance FooBar : Bar
@@ -83,7 +83,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding implementation of a new expression`() = simpleQuickFixTest(implement,
             """
-               --! A.ard
+               -- ! A.ard
                \class Foo (A : Nat)
                \class Bar { | f : Foo | B : Nat }
                \func lol => \new Bar{-caret-}
@@ -99,7 +99,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test completing incomplete implementation`() = simpleQuickFixTest(implement,
             """
-               --! A.ard
+               -- ! A.ard
                \class Bar { | A : Nat | B : Nat }
                \func lol => \new Bar {
                  | A => {?}{-caret-}
@@ -115,7 +115,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding implementation of cowith expression`() = simpleQuickFixTest(implement,
             """
-               --! A.ard
+               -- ! A.ard
                \class Foo (A : Nat)
                \class Bar { | f : Foo | B : Nat }
                {-caret-}\func lol : Bar \cowith
@@ -131,7 +131,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test removing redundant coclause`() = simpleQuickFixTest(remove,
             """
-                --! A.ard
+                -- ! A.ard
                 \class Foo (A : Nat)
                 \class Bar \extends Foo
                 \instance FooBar : Bar {
@@ -149,7 +149,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding empty implementations to a clause corresponding to an ancestor class`() = simpleQuickFixTest(ArendBundle.message("arend.coClause.implementParentFields", "A"),
             """
-                --! A.ard
+                -- ! A.ard
                 \record A (x y : Nat)
                 \record B (z w : Nat) \extends A
 
@@ -175,7 +175,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test remove already implemented coclause`() = simpleQuickFixTest(remove,
             """
-                --! A.ard
+                -- ! A.ard
                 \record C | x : Nat
                 \record D \extends C | x => 0
                 \func f : D \cowith | {-caret-}x => 1
@@ -188,7 +188,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding field implementation`() = simpleQuickFixTest(implement,
             """
-               --! A.ard
+               -- ! A.ard
                \class Foo1 {
                  | j1 : Int
                  | j2 : Int
@@ -217,7 +217,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding implementation of two fields with clashing names 1`() = simpleQuickFixTest(implement,
             """
-            --! A.ard
+            -- ! A.ard
             \class A {| Z : Nat}
             \class B {| Z : Nat}
             \class C \extends A, B {| A.Z => 0 }
@@ -234,7 +234,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding implementation of two fields with clashing names 2`() = simpleQuickFixTest(implement,
             """
-            --! A.ard
+            -- ! A.ard
             \class A {| Z : Nat}
             \class B {| Z : Nat}
             \class C \extends A, B {}
@@ -252,7 +252,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test no implement quickfix in ClassImplement with fat arrow`() = checkNoQuickFixes(implement,
             """
-            --! A.ard
+            -- ! A.ard
             \class A { a : Nat }
             \class B { b : A }
 
@@ -264,7 +264,7 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
 
     fun `test adding implementation in empty instance`() = simpleQuickFixTest(implement,
             """
-            --! A.ard
+            -- ! A.ard
             \class C (x y : Nat)
 
             {-caret-}\instance foo : C

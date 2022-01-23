@@ -14,14 +14,14 @@ import org.intellij.lang.annotations.Language
         FileTree(FileTreeBuilderImpl().apply { builder() }.intoDirectory()) */
 
 fun fileTreeFromText(@Language("Arend") text: String): FileTree {
-    val fileSeparator = """^\s* --! (\S+)\s*$""".toRegex(RegexOption.MULTILINE)
+    val fileSeparator = """^\s* -- ! (\S+)\s*$""".toRegex(RegexOption.MULTILINE)
     var fileNames = fileSeparator.findAll(text).map { it.groupValues[1] }.toList()
     val fileTexts = fileSeparator.split(text).filter(String::isNotBlank).map { it.trimIndent() }
 
     if (fileNames.isEmpty() && fileTexts.size == 1) {
         fileNames = listOf("Main.ard")
     } else {
-        check(fileNames.size == fileTexts.size) { "Have you placed `--! filename.ard` markers?" }
+        check(fileNames.size == fileTexts.size) { "Have you placed `-- ! filename.ard` markers?" }
     }
 
     val modulePaths = fileNames.map { ModulePath(it.removeSuffix('.' + ArendFileType.defaultExtension).split('/')) }

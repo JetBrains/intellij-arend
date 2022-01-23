@@ -3,10 +3,10 @@ package org.arend.codeInsight.completion
 class ArendModuleCompletionTest : ArendCompletionTestBase() {
     fun `test module name completion`() = doSingleCompletionMultifile(
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import My{-caret-}
 
-                --! MyModule.ard
+                -- ! MyModule.ard
                 -- empty
             """,
             """
@@ -16,10 +16,10 @@ class ArendModuleCompletionTest : ArendCompletionTestBase() {
 
     fun `test directory name completion`() = doSingleCompletionMultifile(
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import Dir{-caret-}
 
-                --! Directory/MyModule.ard
+                -- ! Directory/MyModule.ard
                 -- empty
             """,
             """
@@ -29,10 +29,10 @@ class ArendModuleCompletionTest : ArendCompletionTestBase() {
 
     fun `test module name completion subdirectory`() = doSingleCompletionMultifile(
             """
-                --! Main.ard
+                -- ! Main.ard
                 \import Directory.My{-caret-}
 
-                --! Directory/MyModule.ard
+                -- ! Directory/MyModule.ard
                 -- empty
             """,
             """

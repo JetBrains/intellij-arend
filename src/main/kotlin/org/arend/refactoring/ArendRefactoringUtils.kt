@@ -473,7 +473,7 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
     return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
 }
 
-private fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory): ArendWhere {
+fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory): ArendWhere {
     val oldWhereImpl = myTargetContainer.where
     val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
         val localAnchor = myTargetContainer.lastChild
@@ -520,7 +520,7 @@ private fun ArendLetExpr.getKw(): PsiElement =
     letKw ?: haveKw ?: letsKw ?: havesKw ?: error("At least one of the keywords should be provided")
 
 @Suppress("UNCHECKED_CAST")
-fun <T : ArendDefinition> ArendGroup.addToWhere(elementToAdd: T): T {
+fun <T : ArendCompositeElement> ArendGroup.addToWhere(elementToAdd: T): T {
     val where = getCompleteWhere(this, ArendPsiFactory(project))
     return where.addBefore(elementToAdd, where.rbrace) as T
 }
@@ -651,10 +651,13 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
         else -> trailingElements.add(element)
     }
 
-    val requiresLeadingArgumentParentheses = leadingElements.filter { it !is PsiComment && it !is PsiWhiteSpace }.size > 1
-    var leadingText = leadingElements.fold("") { acc, element -> acc + element.text }.trim()
-    if (requiresLeadingArgumentParentheses) leadingText = "(${leadingText})"
-    val trailingText = trailingElements.fold("") { acc, element -> acc + element.text }.trim()
+    fun getElementsText(elements: ArrayList<PsiElement>): String = elements.fold("") { acc, element -> acc + element.text }.trim().let { text ->
+        if (elements.filter { it !is PsiComment && it !is PsiWhiteSpace }.size > 1) "($text)" else text
+    }
+
+    val leadingText = getElementsText(leadingElements)
+    val trailingText = getElementsText(trailingElements)
+
     val isLambda = leadingElements.size == 0
 
     if (isLambda) {

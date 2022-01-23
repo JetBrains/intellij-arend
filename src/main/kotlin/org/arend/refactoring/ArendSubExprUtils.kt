@@ -17,6 +17,9 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.SyntaxTraverser
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
+import com.intellij.util.castSafelyTo
 import org.arend.core.expr.*
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
@@ -121,7 +124,10 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val (head, tail) = collectArendExprs(parent, range)
         ?: throw SubExprException("cannot find a suitable concrete expression")
     val subExpr =
-        if (tail.isNotEmpty()) parseBinOp(head, tail)
+        if (tail.isNotEmpty()) {
+            val data = if (exprAncestor.textRange == range) exprAncestor else null
+            parseBinOp(data, head, tail)
+        }
         else ConcreteBuilder.convertExpression(head).accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
     val resolver = subExpr.underlyingReferenceExpression?.let { refExpr -> refExpr.data?.let { MyResolverListener(it) } }
 
@@ -210,6 +216,25 @@ fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
             minOf(left.textRange.startOffset, right.textRange.startOffset),
             maxOf(left.textRange.endOffset, right.textRange.endOffset)
     )
+}
+
+/**
+ * Returns [PsiElement] that corresponds to [Concrete.Expression].
+ * Note that this method returns `null` if [Concrete.Expression] corresponds to multiple [PsiElement]s.
+ */
+fun psiOfConcrete(expr: Concrete.Expression): PsiElement? {
+    val range = rangeOfConcrete(expr)
+    if (range.isEmpty) {
+        return null
+    }
+    val file = expr.data?.castSafelyTo<PsiElement>()?.containingFile ?: return null
+    val first = file.findElementAt(range.startOffset)
+    val last = file.findElementAt(range.endOffset - 1)
+    if (first == null || last == null || first.startOffset != range.startOffset || last.endOffset != range.endOffset) {
+        throw IllegalStateException("Failed to calculate psi of concrete expression, unexpected range")
+    }
+    val commonParent = PsiTreeUtil.findCommonParent(first, last)
+    return if (commonParent?.textRange == range) commonParent else null
 }
 
 private fun collectArendExprs(

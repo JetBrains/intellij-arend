@@ -24,7 +24,8 @@ private class PsiHyperlinkInfo(private val sourceElement: SmartPsiElementPointer
 private class FixedHyperlinkInfo(private val error: GeneralError) : HyperlinkInfo {
     override fun navigate(project: Project) {
         val cause = BasePass.getCauseElement(error.cause) ?: return
-        val desc = OpenFileDescriptor(project, cause.containingFile.virtualFile, BasePass.getImprovedTextOffset(error, cause))
+        val file = cause.containingFile?.virtualFile ?: return
+        val desc = OpenFileDescriptor(project, file, BasePass.getImprovedTextOffset(error, cause))
         desc.isUseCurrentWindow = FileEditorManager.USE_CURRENT_WINDOW.isIn(cause)
         if (desc.canNavigate()) {
             desc.navigate(true)

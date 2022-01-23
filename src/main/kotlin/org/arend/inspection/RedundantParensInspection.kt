@@ -9,13 +9,13 @@ import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
+import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
-import org.arend.psi.parentArgumentAppExpr
+import org.arend.refactoring.psiOfConcrete
 import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.visitor.VoidConcreteVisitor
 import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
 import org.arend.util.isBinOp
@@ -27,8 +27,9 @@ class RedundantParensInspection : ArendInspectionBase() {
                 super.visitTuple(tuple)
                 val expression = unwrapParens(tuple) ?: return
                 if (neverNeedsParens(expression) ||
-                        isCommonRedundantParensPattern(tuple, expression) ||
-                        isApplicationUsedAsBinOpArgument(tuple, expression)) {
+                    isCommonRedundantParensPattern(tuple, expression) ||
+                    isApplicationUsedAsBinOpArgument(tuple, expression)
+                ) {
                     val message = ArendBundle.message("arend.inspection.redundant.parentheses.message")
                     holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
                 }
@@ -43,17 +44,17 @@ private fun neverNeedsParens(expression: ArendExpr): Boolean {
 }
 
 private fun isAtomic(expression: ArendNewExpr) =
-        // Excludes cases like `f (\new Unit) 1`
-        expression.appPrefix == null &&
-                // Excludes cases like `f (Pair { | x => 1 }) 1`
-                expression.localCoClauseList.isEmpty() &&
-                // Excludes cases like `f (mcases \with {}) 1`
-                expression.withBody == null
+    // Excludes cases like `f (\new Unit) 1`
+    expression.appPrefix == null &&
+            // Excludes cases like `f (Pair { | x => 1 }) 1`
+            expression.localCoClauseList.isEmpty() &&
+            // Excludes cases like `f (mcases \with {}) 1`
+            expression.withBody == null
 
 private fun isAtomic(argumentAppExpr: ArendArgumentAppExpr): Boolean =
-        argumentAppExpr.argumentList.isEmpty() &&
-                hasNoLevelArguments(argumentAppExpr) &&
-                argumentAppExpr.atomFieldsAcc != null
+    argumentAppExpr.argumentList.isEmpty() &&
+            hasNoLevelArguments(argumentAppExpr) &&
+            argumentAppExpr.atomFieldsAcc != null
 
 private fun hasNoLevelArguments(argumentAppExpr: ArendArgumentAppExpr): Boolean {
     val longNameExpr = argumentAppExpr.longNameExpr
@@ -71,10 +72,10 @@ private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
 
 private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendExpr): Boolean {
     val parentNewExpr = getParentAtomFieldsAcc(tuple)
-            ?.parent.castSafelyTo<ArendArgumentAppExpr>()
-            // Excludes cases like `(f a) b`
-            ?.takeIf { it.argumentList.isEmpty() }
-            ?.parent.castSafelyTo<ArendNewExpr>()
+        ?.parent.castSafelyTo<ArendArgumentAppExpr>()
+        // Excludes cases like `(f a) b`
+        ?.takeIf { it.argumentList.isEmpty() }
+        ?.parent.castSafelyTo<ArendNewExpr>()
     // Examples of the parent new expression: (f a), \new (f a), (f a) { x => 1 }
     val parent = parentNewExpr?.parent
     return isRedundantParensForAnyChild(parent) ||
@@ -82,32 +83,32 @@ private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendE
 }
 
 private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
-        tuple.parent.castSafelyTo<ArendAtom>()
-                ?.parent.castSafelyTo<ArendAtomFieldsAcc>()
-                // Excludes cases like `(f a).1`
-                ?.takeIf { it.fieldAccList.isEmpty() }
+    tuple.parent.castSafelyTo<ArendAtom>()
+        ?.parent.castSafelyTo<ArendAtomFieldsAcc>()
+        // Excludes cases like `(f a).1`
+        ?.takeIf { it.fieldAccList.isEmpty() }
 
 private fun isRedundantParensForAnyChild(parent: PsiElement?) =
-        parent is ArendReturnExpr ||
-                // Parameter types
-                parent is ArendNameTele ||
-                parent is ArendFieldTele ||
-                parent is ArendTypedExpr ||
-                // Bodies, Clauses, CoClauses
-                parent is ArendFunctionalBody ||
-                parent is ArendDefMeta ||
-                parent is ArendClause ||
-                parent is CoClauseBase ||
-                // Clause patterns
-                parent is ArendPattern ||
-                parent is ArendAsPattern ||
-                // Expressions
-                parent is ArendPiExpr ||
-                parent is ArendLamExpr ||
-                parent is ArendLamTele ||
-                parent is ArendLetExpr ||
-                parent is ArendLetClause ||
-                parent is ArendTypeAnnotation
+    parent is ArendReturnExpr ||
+            // Parameter types
+            parent is ArendNameTele ||
+            parent is ArendFieldTele ||
+            parent is ArendTypedExpr ||
+            // Bodies, Clauses, CoClauses
+            parent is ArendFunctionalBody ||
+            parent is ArendDefMeta ||
+            parent is ArendClause ||
+            parent is CoClauseBase ||
+            // Clause patterns
+            parent is ArendPattern ||
+            parent is ArendAsPattern ||
+            // Expressions
+            parent is ArendPiExpr ||
+            parent is ArendLamExpr ||
+            parent is ArendLamTele ||
+            parent is ArendLetExpr ||
+            parent is ArendLetClause ||
+            parent is ArendTypeAnnotation
 
 private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: ArendExpr): Boolean {
     if (parent.colon != null) {
@@ -119,32 +120,33 @@ private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: A
             grand is ArendImplicitArgument
 }
 
-private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, expression: ArendExpr): Boolean {
+private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, tupleExpression: ArendExpr): Boolean {
     val parentAtomFieldsAcc = getParentAtomFieldsAcc(tuple) ?: return false
     val parentAppExprPsi = parentArgumentAppExpr(parentAtomFieldsAcc) ?: return false
-    val parentAppExpr = directParentAppExpression(parentAppExprPsi, parentAtomFieldsAcc) ?: return false
-    if (BinOpIntentionUtil.isBinOpInfixApp(parentAppExpr)) {
-        val childAppExpr = if (expression is ArendNewExpr && isAtomic(expression)) expression.argumentAppExpr else null
+    val parentAppExpr = appExprToConcrete(parentAppExprPsi, true) ?: return false
+    var result = false
+    parentAppExpr.accept(object : ArendInspectionConcreteVisitor() {
+        override fun visitHole(expr: Concrete.HoleExpression?, params: Void?): Void? {
+            super.visitHole(expr, params)
+            if (expr != null && psiOfConcrete(expr) == tuple) {
+                result = isApplicationUsedAsBinOpArgument(parent, tupleExpression)
+            }
+            return null
+        }
+    }, null)
+    return result
+}
+
+private fun isApplicationUsedAsBinOpArgument(tupleParent: ConcreteSourceNode?, tupleExpression: ArendExpr): Boolean {
+    if (tupleParent is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(tupleParent)) {
+        val childAppExpr =
+            if (tupleExpression is ArendNewExpr && isAtomic(tupleExpression)) tupleExpression.argumentAppExpr
+            else null
         return childAppExpr != null &&
                 hasNoLevelArguments(childAppExpr) &&
                 BinOpIntentionUtil.toConcreteBinOpInfixApp(childAppExpr) == null
     }
     return false
-}
-
-private fun directParentAppExpression(parentAppExpr: ArendArgumentAppExpr, argument: PsiElement): Concrete.AppExpression? {
-    val concreteParentAppExpr = appExprToConcrete(parentAppExpr, true) ?: return null
-    var directParent: Concrete.AppExpression? = null
-    concreteParentAppExpr.accept(object : VoidConcreteVisitor<Void?, Void?>() {
-        override fun visitApp(app: Concrete.AppExpression?, params: Void?): Void? {
-            if (app != null && app.arguments.any { it.expression.data == argument }) {
-                directParent = app
-                return null
-            }
-            return super.visitApp(app, params)
-        }
-    }, null)
-    return directParent
 }
 
 private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tuple) {

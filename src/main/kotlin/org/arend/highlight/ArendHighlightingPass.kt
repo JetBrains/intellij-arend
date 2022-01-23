@@ -1,8 +1,6 @@
 package org.arend.highlight
 
-import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
-import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -181,11 +179,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
     }
 
     override fun applyInformationWithProgress() {
-        synchronized(ArendHighlightingPass::class.java) {
-            if (file.lastModification < lastModification) {
-                file.lastModification = lastModification
-            }
-        }
+        file.lastModification.updateAndGet { maxOf(it, lastModification) }
         myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
 
