@@ -812,4 +812,34 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func foo (p : 1 = 1) => >== {_} {_} {_} {_} {(p *> p) *> (p *> p)} p  
     """)
+
+    fun testBrackets3() = doTest("""
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a'' \elim q | idp => p
+       \func pmap {A B : \Type} (f : A -> B) {a {-caret-}a' : A} (p : a = a') : f a = f a' => path (\lam i => f (p @ i))
+       \func foo {a b : Nat}: a Nat.+ a = b Nat.+ b => idp
+
+       \lemma pred-right {x n : Nat} : x Nat.+ x = x Nat.+ x =>
+         foo {x} {n} *> pmap (\lam x => x) foo
+    """, """
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a'' \elim q | idp => p
+       \func pmap {A B : \Type} (f : A -> B) {a : A} (a' : A) (p : a = a') : f a = f a' => path (\lam i => f (p @ i))
+       \func foo {a b : Nat}: a Nat.+ a = b Nat.+ b => idp
+
+       \lemma pred-right {x n : Nat} : x Nat.+ x = x Nat.+ x =>
+         foo {x} {n} *> pmap (\lam x => x) _ foo 
+    """)
+
+    fun testBrackets4() = doTest("""
+       \class C | F {Nat} Nat {Nat} : Nat
+
+       \func \infixl 9 ++ ({-caret-}a b : Nat) => a Nat.+ b
+
+       \func foo {A B : \Type} (f : A -> B) (x : C) => x.F {1} 2 {3} ++ 2
+    """, """
+       \class C | F {Nat} Nat {Nat} : Nat
+       
+       \func \infixl 9 ++ {a : Nat} (b : Nat) => a Nat.+ b
+       
+       \func foo {A B : \Type} (f : A -> B) (x : C) => ++ {x.F {1} 2 {3}} 2 
+    """)
 }

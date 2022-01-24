@@ -42,7 +42,7 @@ import java.util.Collections.singletonList
 import kotlin.math.max
 
 data class ProcessAppExprResult(val text: String, val strippedText: String?, val isAtomic: Boolean)
-data class ArgumentDescriptor(val text: String, val textStripped: String?, val isExplicit: Boolean, val isAtomic: Boolean)
+data class ArgumentDescriptor(val text: String, val strippedText: String?, val isExplicit: Boolean, val isAtomic: Boolean)
 
 abstract class UsageEntry(val refactoringContext: RefactoringContext, val contextPsi: ArendCompositeElement) {
     abstract fun getArguments(): List<ArgumentDescriptor>
@@ -69,13 +69,13 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
 
         val functionBlock = getBlocksInRange(refactoringContext.rangeData[expr.function]!!).let{ if (it.size != 1)
             throw IllegalStateException() else it.first()}
-        replacementMap[Pair(functionBlock, functionBlock)] = FUNCTION_INDEX
 
         for (argument in expr.arguments) refactoringContext.rangeData[argument.expression]?.let { argRange ->
             val processedArg = processAppExpr(argument.expression, argumentAppExpr, defName, refactoringContext)
             procArguments.add(ArgumentDescriptor(processedArg.text, processedArg.strippedText, argument.isExplicit, processedArg.isAtomic))
             replacementMap[getBlocksInRange(argRange).let{ Pair(it.first(), it.last()) }] = procArguments.size - 1
         }
+        replacementMap[Pair(functionBlock, functionBlock)] = FUNCTION_INDEX
 
         procFunction = textGetter(expr.function.data as PsiElement, refactoringContext.textReplacements)
         for (e in replacementMap) {
@@ -194,7 +194,7 @@ fun doProcessEntry(entry: UsageEntry, defName: String?): String = buildString {
         val param = oldParameters[i]
         val arg = entry.getArguments()[j]
         if (arg.isExplicit == param.isExplicit) {
-            parameterMap[param] = Pair(arg.textStripped ?: arg.text, !arg.isAtomic)
+            parameterMap[param] = Pair(arg.strippedText ?: arg.text, !arg.isAtomic)
             i++
             j++
         } else if (!param.isExplicit) {
@@ -245,6 +245,47 @@ fun doProcessEntry(entry: UsageEntry, defName: String?): String = buildString {
     }
 }
 
+fun getStrippedPsi(exprData2: PsiElement): Pair<PsiElement, Boolean> {
+    var exprData = exprData2
+    stripLoop@while (true) {
+        val exprData1 = exprData
+        when (exprData1) {
+            is ArendImplicitArgument -> if (exprData1.tupleExprList.size == 1) {
+                exprData = exprData1.tupleExprList[0]; continue
+            }
+            is ArendAtomArgument -> {
+                exprData = exprData1.atomFieldsAcc; continue
+            }
+            is ArendAtomFieldsAcc -> if (exprData1.fieldAccList.size == 0) {
+                exprData = exprData1.atom; continue
+            }
+            is ArendTuple -> if (exprData1.tupleExprList.size == 1) {
+                exprData = exprData1.tupleExprList[0]; continue
+            }
+            is ArendTupleExpr -> if (exprData1.exprList.size == 1) {
+                exprData = exprData1.exprList[0]; continue
+            }
+            is ArendAtom -> {
+                val tuple = exprData1.tuple
+                val literal = exprData1.literal
+                if (tuple != null) {
+                    exprData = tuple; continue
+                } else if (literal != null) {
+                    exprData = literal; continue
+                }
+            }
+            is ArendNewExpr -> if (exprData1.appExpr?.let { it.textRange == exprData1.textRange } == true) {
+                exprData = exprData1.appExpr!!; continue
+            }
+            is ArendArgumentAppExpr -> if (exprData1.argumentList.isEmpty() && exprData1.atomFieldsAcc != null) {
+                exprData = exprData1.atomFieldsAcc!!; continue
+            }
+        }
+        break
+    }
+    return Pair(exprData, exprData is ArendAtom || exprData is ArendLongName || exprData is ArendTuple || exprData is ArendLiteral || exprData.text == "_")
+}
+
 fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, defName: String?, refactoringContext: RefactoringContext): ProcessAppExprResult {
     if (expr is Concrete.AppExpression) {
         val builder = StringBuilder()
@@ -252,16 +293,20 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
         val resolve = tryResolveFunctionName(function)
         val appExprEntry = AppExpressionEntry(expr, psiElement, defName, refactoringContext)
 
-        if (refactoringContext.def == resolve) {
+        return if (refactoringContext.def == resolve) {
             builder.append(doProcessEntry(appExprEntry, defName))
+            ProcessAppExprResult(builder.toString(), null, false)
         } else {
             val processedFunction = appExprEntry.procFunction
             for (block in appExprEntry.blocks) when (block) {
-                is Int -> if (block == FUNCTION_INDEX) builder.append(processedFunction) else builder.append(appExprEntry.getArguments()[block].text)
+                is Int -> if (block == FUNCTION_INDEX) builder.append(processedFunction) else builder.append(appExprEntry.getArguments()[block].let {
+                    if (it.isExplicit) it.text else "{${it.strippedText ?: it.text}}"
+                })
                 is PsiElement -> builder.append(textGetter(block, refactoringContext.textReplacements))
             }
+            val isAtomic = if (appExprEntry.blocks.size == 1 && appExprEntry.blocks[0] == FUNCTION_INDEX) getStrippedPsi(expr.function.data as PsiElement).second else false
+            ProcessAppExprResult(builder.toString(), null, isAtomic)
         }
-        return ProcessAppExprResult(builder.toString(), null, false)
     } else if (expr is Concrete.LamExpression && expr.data == null) {
         val builder = StringBuilder()
         val exprBody = expr.body
@@ -290,35 +335,10 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
         }
     }
 
-    var exprData = expr.data as PsiElement
-    stripLoop@while (true) {
-        val exprData1 = exprData
-        when (exprData1) {
-            is ArendImplicitArgument -> if (exprData1.tupleExprList.size == 1) {
-                exprData = exprData1.tupleExprList[0]; continue
-            }
-            is ArendTuple -> if (exprData1.tupleExprList.size == 1) {
-                exprData = exprData1.tupleExprList[0]; continue
-            }
-            is ArendTupleExpr -> if (exprData1.exprList.size == 1) {
-                exprData = exprData1.exprList[0]; continue
-            }
-            is ArendAtomFieldsAcc -> if (exprData1.fieldAccList.size == 0) {
-                exprData = exprData1.atom; continue
-            }
-            is ArendAtom -> {
-                val tuple = exprData1.tuple
-                if (tuple != null) {
-                    exprData = tuple; continue
-                }
-            }
-        }
-        break
-    }
+    val (exprData, isAtomic) = getStrippedPsi(expr.data as PsiElement)
 
     return ProcessAppExprResult(textGetter(expr.data as PsiElement, refactoringContext.textReplacements),
-        textGetter(exprData, refactoringContext.textReplacements),
-        exprData is ArendAtom || exprData is ArendLongName || exprData is ArendTuple || exprData.text == "_")
+        textGetter(exprData, refactoringContext.textReplacements), isAtomic)
 }
 
 fun textGetter(psi: PsiElement, textReplacements: HashMap<PsiElement, String>): String = textReplacements[psi] ?: buildString {
