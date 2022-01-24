@@ -316,6 +316,15 @@ private data class MutableFrame(
         val allInnerIdentifiers = subgroups.flatMapTo(HashSet()) { it.usages.keys }
 
         for (identifier in allInnerIdentifiers) {
+            if (usages.containsKey(identifier)) {
+                // the subgroups that open something to bring this identifier will shadow it
+                subgroups.forEach {
+                    // the 'open' of parent group will be inherited
+                    if (it.usages.containsKey(identifier)) {
+                        it.usages.remove(identifier)
+                    }
+                }
+            }
             if (definitions.contains(identifier) || (name == "" && fileImports.contains(identifier))) {
                 subgroups.forEach {
                     if (it.usages[identifier] == usages[identifier]) {
