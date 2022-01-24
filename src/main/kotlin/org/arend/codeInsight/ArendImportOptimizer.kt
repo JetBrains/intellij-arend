@@ -31,12 +31,23 @@ import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.getCompleteWhere
 import org.arend.typechecking.visitor.SearchVisitor
+import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Contract
 import kotlin.reflect.jvm.internal.impl.utils.SmartSet
 
-// each group has its own \open scope, so each of the scopes should be processed separately
-// opens are inherited for nested subgroups
-// solution -- merge opens in subgroups and move them up if there are no conflicts
+/**
+ * Import optimization is performed in 3 phases:
+ * 1) Collecting all references in the file. Responsible code is in [ImportStructureCollector].
+ * This stage determines _what_ should be referenced and with _what qualifier_.
+ * Global instances are gathered from core expressions if they exist or from the scope in the other case.
+ *
+ * 2) Optimizing ns-commands structure. Responsible code is in [MutableFrame.contract].
+ * This stage determines _where_ should go _what_ import.
+ * It removes an \open in a child group if parent group should have this \open.
+ *
+ * 3) Writing changes to the file. Responsible code is in [psiModificationRunnable].
+ * All ns-commands are sorted in alphabetic order, previous imports and opens are removed.
+ */
 class ArendImportOptimizer : ImportOptimizer {
 
     override fun supports(file: PsiFile): Boolean = file is ArendFile && file.isWritable
@@ -60,8 +71,8 @@ class ArendImportOptimizer : ImportOptimizer {
         }
 
         override fun getUserNotificationInfo(): String =
-            if (coreUsed) "Imports optimized. Instances were inferred from core"
-            else "Imports optimized. Necessary instances were guessed"
+            if (coreUsed) ArendBundle.message("arend.optimize.imports.message.core.used")
+            else ArendBundle.message("arend.optimize.imports.message.scope.used")
     }
 }
 
