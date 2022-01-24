@@ -4,6 +4,7 @@ import com.intellij.codeInsight.template.TemplateActionContext
 import com.intellij.codeInsight.template.TemplateContextType
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import org.arend.codeInsight.completion.ArendCompletionContributor
 import org.arend.psi.ArendFile
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
@@ -23,4 +24,14 @@ abstract class ArendTemplateContextType(
     protected open fun isInContext(element: PsiElement): Boolean = element !is PsiComment
 
     class Everywhere : ArendTemplateContextType("AREND", "Arend", null)
+
+    class Statement : ArendTemplateContextType("AREND_STATEMENT", "Statement", Everywhere::class.java) {
+        override fun isInContext(element: PsiElement): Boolean =
+            super.isInContext(element) && ArendCompletionContributor.STATEMENT_END_CONTEXT.accepts(element)
+    }
+
+    class Expression : ArendTemplateContextType("AREND_EXPRESSION", "Expression", Everywhere::class.java) {
+        override fun isInContext(element: PsiElement): Boolean =
+            super.isInContext(element) && ArendCompletionContributor.BASIC_EXPRESSION_KW_PATTERN.accepts(element)
+    }
 }

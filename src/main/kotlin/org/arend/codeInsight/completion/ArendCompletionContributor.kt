@@ -490,8 +490,10 @@ class ArendCompletionContributor : CompletionContributor() {
 
         private val NS_CMD_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendStatCmd::class.java)
 
-        private val STATEMENT_END_CONTEXT = or(withParents(PsiErrorElement::class.java, ArendRefIdentifier::class.java),
-                withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java)) //Needed for correct completion inside empty classes
+        val STATEMENT_END_CONTEXT = or(
+            withParents(PsiErrorElement::class.java, ArendRefIdentifier::class.java),
+            withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java) //Needed for correct completion inside empty classes
+        )
 
         private val INSIDE_RETURN_EXPR_CONTEXT = or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
 
