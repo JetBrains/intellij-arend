@@ -766,4 +766,21 @@ class OptimizeImportsTest : ArendTestBase() {
         )
     }
 
+    fun `test renamed import`() {
+        doTest(
+            """
+                -- ! Foo.ard
+                \func f => 1
+                -- ! Main.ard
+                \import Foo (f \as g)
+                
+                \func h => g
+            """, """
+                \import Foo (f \as g)
+                
+                \func h => g
+            """
+        )
+    }
+
 }
