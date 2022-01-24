@@ -143,62 +143,10 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(and(DATA_CONTEXT, afterLeaf(COLON)), DATA_UNIVERSE_KW, completionBehavior = KeywordCompletionBehavior.DEFAULT)
 
-        val bareSigmaOrPiPattern = elementPattern { o ->
-            var result: PsiElement? = o
-
-            val context = ofType(PI_KW, SIGMA_KW)
-
-            var tele: ArendTypeTele? = null
-            while (result != null) {
-                if (result is ArendTypeTele) tele = result
-                if (result is ArendExpr && result !is ArendUniverseAtom) break
-                result = result.parent
-            }
-
-            if (context.accepts(o)) true else
-                if (tele == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
-                    result is ArendSigmaExpr || result is ArendPiExpr
-        }
-
-        val allowedInReturnPattern = elementPattern { o ->
-            var result: PsiElement? = o
-            while (result != null) {
-                if (result is ArendReturnExpr) break
-                result = result?.parent
-            }
-            val resultC = result
-            val resultParent = resultC?.parent
-            when (resultC) {
-                is ArendReturnExpr -> when {
-                    resultC.levelKw != null -> false
-                    resultParent is ArendDefInstance -> false
-                    resultParent is ArendDefFunction -> !resultParent.isCowith
-                    else -> true
-                }
-                else -> true
-            }
-        }
-
-        val noExpressionKwsAfterPattern = ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW, EVAL_KW, PEVAL_KW)
-        val afterElimVarPattern = and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))
-
-        val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
-            not(or(after(withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)), //No keyword completion after field
-                    and(or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendReturnExpr::class.java)))), not(allowedInReturnPattern)),
-                    after(and(ofType(RBRACE), withParent(ArendWithBody::class.java))), //No keyword completion after \with or } in case expr
-                    after(ofType(LAM_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WITH_KW)), //No keyword completion after \lam or \let
-                    after(noExpressionKwsAfterPattern), //No expression keyword completion after universe literals or \new keyword
-                    or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
-                    after(afterElimVarPattern), //No expression keywords in \elim expression
-                    if (allowInBareSigmaOrPiExpressions) PlatformPatterns.alwaysFalse() else after(bareSigmaOrPiPattern), //Only universe expressions allowed inside Sigma or Pi expressions
-                    if (allowInArgumentExpressionContext) PlatformPatterns.alwaysFalse() else
-                        or(ARGUMENT_EXPRESSION, withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java))))
-        }
-
         basic(and(EXPRESSION_CONTEXT, expressionPattern.invoke(true, true)), DATA_UNIVERSE_KW, completionBehavior = KeywordCompletionBehavior.DEFAULT)
         basic(or(TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT), DATA_UNIVERSE_KW, completionBehavior = KeywordCompletionBehavior.DEFAULT)
 
-        basic(and(or(EXPRESSION_CONTEXT), expressionPattern.invoke(false, false)), BASIC_EXPRESSION_KW)
+        basic(BASIC_EXPRESSION_KW_PATTERN, BASIC_EXPRESSION_KW)
         basic(and(or(EXPRESSION_CONTEXT, TELE_CONTEXT), expressionPattern.invoke(false, true)), NEW_KW_LIST)
 
         val truncatedTypeInsertHandler = InsertHandler<LookupElement> { insertContext, _ ->
@@ -631,6 +579,57 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java),
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendLiteral::class.java, ArendAtom::class.java,
                         ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java))
+
+        private val bareSigmaOrPiPattern = elementPattern { o ->
+            var result: PsiElement? = o
+
+            val context = ofType(PI_KW, SIGMA_KW)
+
+            var tele: ArendTypeTele? = null
+            while (result != null) {
+                if (result is ArendTypeTele) tele = result
+                if (result is ArendExpr && result !is ArendUniverseAtom) break
+                result = result.parent
+            }
+
+            if (context.accepts(o)) true else
+                if (tele == null || tele.text.startsWith("(")) false else //Not Bare \Sigma or \Pi -- should display all expression keywords in completion
+                    result is ArendSigmaExpr || result is ArendPiExpr
+        }
+
+        private val allowedInReturnPattern = elementPattern { o ->
+            var result: PsiElement? = o
+            while (result != null) {
+                if (result is ArendReturnExpr) break
+                result = result.parent
+            }
+            val resultC = result
+            val resultParent = resultC?.parent
+            when (resultC) {
+                is ArendReturnExpr -> when {
+                    resultC.levelKw != null -> false
+                    resultParent is ArendDefInstance -> false
+                    resultParent is ArendDefFunction -> !resultParent.isCowith
+                    else -> true
+                }
+                else -> true
+            }
+        }
+
+        private val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
+            not(or(after(withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)), //No keyword completion after field
+                and(or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendReturnExpr::class.java)))), not(allowedInReturnPattern)),
+                after(and(ofType(RBRACE), withParent(ArendWithBody::class.java))), //No keyword completion after \with or } in case expr
+                after(ofType(LAM_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WITH_KW)), //No keyword completion after \lam or \let
+                after(ofType(SET, PROP_KW, UNIVERSE, TRUNCATED_UNIVERSE, NEW_KW, EVAL_KW, PEVAL_KW)), //No expression keyword completion after universe literals or \new keyword
+                or(LPH_CONTEXT, LPH_LEVEL_CONTEXT), //No expression keywords when completing levels in universes
+                after(and(ofType(ID), withAncestors(ArendRefIdentifier::class.java, ArendElim::class.java))), //No expression keywords in \elim expression
+                if (allowInBareSigmaOrPiExpressions) PlatformPatterns.alwaysFalse() else after(bareSigmaOrPiPattern), //Only universe expressions allowed inside Sigma or Pi expressions
+                if (allowInArgumentExpressionContext) PlatformPatterns.alwaysFalse() else
+                    or(ARGUMENT_EXPRESSION, withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java))))
+        }
+
+        val BASIC_EXPRESSION_KW_PATTERN = and(or(EXPRESSION_CONTEXT), expressionPattern.invoke(false, false))
 
         // Contribution to LookupElementBuilder
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
