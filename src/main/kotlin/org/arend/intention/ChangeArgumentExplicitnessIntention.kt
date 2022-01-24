@@ -21,6 +21,7 @@ import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
+import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.*
@@ -40,23 +41,11 @@ import org.arend.util.getBounds
 import java.util.Collections.singletonList
 import kotlin.math.max
 
-/*
-    The key steps of this intention:
-      * Wraps into parens all calls which contains function with changed argument. It helps not to go up very high in the term.
-        Firstly, we try to wrap the most inner calls and then the top
-
-      * Rewrite all usages. Again, we try to rewrite the most inner call and then the top.
-        It saves from the inner psi-element becoming invalid.
-
-      * Rewrite definition
-
-      * If many arguments were switched, the steps are repeated
- */
-data class ArgumentDescriptor(val isExplicit: Boolean, val isInsideParentheses: Boolean, val isEmptyPattern: Boolean)
+data class ProcessAppExprResult(val text: String, val strippedText: String?, val isAtomic: Boolean)
+data class ArgumentDescriptor(val text: String, val textStripped: String?, val isExplicit: Boolean, val isAtomic: Boolean)
 
 abstract class UsageEntry(val refactoringContext: RefactoringContext, val contextPsi: ArendCompositeElement) {
     abstract fun getArguments(): List<ArgumentDescriptor>
-    abstract fun getProcessedArguments(): List<String>
     open fun getLambdaParams(startFromIndex: Int): List<Parameter> = refactoringContext.oldParameters.subList(startFromIndex, max(startFromIndex, refactoringContext.oldParameters.size - refactoringContext.diffIndex))
     abstract fun getParameters(): Pair<List<Parameter>, List<NewParameter>>
 
@@ -68,7 +57,7 @@ const val FUNCTION_INDEX = -1
 
 open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppExpr: ArendArgumentAppExpr, private val defName: String?, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, argumentAppExpr) {
     private val exprPsi: List<PsiElement>? = refactoringContext.rangeData[expr]?.let { range -> argumentAppExpr.childrenWithLeaves.toList().filter { range.contains(it.textRange) }}
-    private val procArguments = ArrayList<String>()
+    private val procArguments = ArrayList<ArgumentDescriptor>()
     val procFunction: String
     val blocks: ArrayList<Any>
 
@@ -83,7 +72,8 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
         replacementMap[Pair(functionBlock, functionBlock)] = FUNCTION_INDEX
 
         for (argument in expr.arguments) refactoringContext.rangeData[argument.expression]?.let { argRange ->
-            procArguments.add(processAppExpr(argument.expression, argumentAppExpr, defName, refactoringContext))
+            val processedArg = processAppExpr(argument.expression, argumentAppExpr, defName, refactoringContext)
+            procArguments.add(ArgumentDescriptor(processedArg.text, processedArg.strippedText, argument.isExplicit, processedArg.isAtomic))
             replacementMap[getBlocksInRange(argRange).let{ Pair(it.first(), it.last()) }] = procArguments.size - 1
         }
 
@@ -97,11 +87,7 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
         }
     }
 
-    override fun getProcessedArguments(): List<String> = procArguments
-
-    override fun getArguments(): List<ArgumentDescriptor> = expr.arguments.map {
-        k -> ArgumentDescriptor(k.isExplicit, k.expression.toString().trim().startsWith("("), false)
-    }
+    override fun getArguments(): List<ArgumentDescriptor> = procArguments
 
     override fun getParameters(): Pair<List<Parameter>, List<NewParameter>> = Pair(refactoringContext.oldParameters, refactoringContext.newParameters)
 }
@@ -109,35 +95,64 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
 class NoArgumentsEntry(refExpr: Concrete.ReferenceExpression, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, refExpr.data as ArendCompositeElement) {
     override fun getArguments(): List<ArgumentDescriptor> = emptyList()
 
-    override fun getProcessedArguments(): List<String> = emptyList()
-
     override fun getParameters(): Pair<List<Parameter>, List<NewParameter>> = Pair(refactoringContext.oldParameters, refactoringContext.newParameters)
 }
 
-class PatternEntry(private val pattern: ArendPattern, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, pattern) {
+class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, pattern) {
+    private val procArguments = ArrayList<ArgumentDescriptor>()
+    init {
+        for (arg in pattern.arguments) {
+            val data = arg.data as PsiElement
+            var data1: PsiElement? = data
+            while (true) {
+                if (data1 is ArendAtomPatternOrPrefix && data1.atomPattern != null && data1.defIdentifier == null && data1.longName == null) {
+                    data1 = data1.atomPattern; continue
+                } else if (data1 is ArendAtomPattern && data1.patternList.size == 1 && (data1.lparen != null || data1.lbrace != null)) {
+                    data1 = data1.patternList[0]; continue
+                }
+                break
+            }
+            val text = textGetter(data, refactoringContext.textReplacements)
+            val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
+            val isAtomic = data1 is ArendDefIdentifier || data1 is ArendAtomPattern && (data1.patternList.size == 0 && data1.lparen != null || data1.underscore != null)
+            procArguments.add(ArgumentDescriptor(text, strippedText, arg.isExplicit, isAtomic))
+        }
+    }
+
     override fun getLambdaParams(startFromIndex: Int): List<Parameter> = emptyList()
 
-    override fun getArguments(): List<ArgumentDescriptor> = pattern.arguments.map {
-        k -> ArgumentDescriptor(k.isExplicit, (k.data as PsiElement).text.trim().startsWith("("), (k is ArendAtomPatternOrPrefix) && (k.text == "()"))
-    }
-
-    override fun getProcessedArguments(): List<String> = pattern.arguments.map {
-        textGetter(it.data as PsiElement, refactoringContext.textReplacements)
-    }
+    override fun getArguments(): List<ArgumentDescriptor> = procArguments
 
     override fun getParameters(): Pair<List<Parameter>, List<NewParameter>> = Pair(refactoringContext.oldParametersConstructor!!, refactoringContext.newParametersConstructor!!)
 }
 
 class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, localCoClause) {
+    private val procArguments = ArrayList<ArgumentDescriptor>()
+    init {
+        for (arg in localCoClause.lamParamList) {
+            val data = arg.data as PsiElement
+            var data1: PsiElement? = data
+            while (true) {
+                if (data1 is ArendAtomPattern && data1.patternList.size == 1 && (data1.lparen != null || data1.lbrace != null)) {
+                    data1 = data1.patternList[0]; continue
+                } else if (data1 is ArendLamTele && data1.identifierOrUnknownList.size == 1 && data1.expr == null) {
+                    data1 = data1.identifierOrUnknownList[0]; continue
+                }
+                break
+            }
+            val text = textGetter(data, refactoringContext.textReplacements)
+            val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
+            val isExplicit = when (data) {
+                is ArendLamTele -> data.isExplicit
+                is ArendAtomPattern -> data.isExplicit
+                else -> data.text.trim().startsWith("{")
+            }
+            procArguments.add(ArgumentDescriptor(text, strippedText, isExplicit, data1 is ArendIdentifierOrUnknown))
+        }
+    }
     override fun getLambdaParams(startFromIndex: Int): List<Parameter> = emptyList()
 
-    override fun getArguments(): List<ArgumentDescriptor> = localCoClause.lamParamList.map {
-        k -> ArgumentDescriptor(!(k as PsiElement).text.startsWith("{"), (k.data as PsiElement).text.trim().startsWith("("), false)
-    }
-
-    override fun getProcessedArguments(): List<String> = localCoClause.lamParamList.map {
-        textGetter(it.data as PsiElement, refactoringContext.textReplacements)
-    }
+    override fun getArguments(): List<ArgumentDescriptor> = procArguments
 
     override fun getParameters(): Pair<List<Parameter>, List<NewParameter>> = Pair(refactoringContext.oldParameters, refactoringContext.newParameters)
 
@@ -168,32 +183,25 @@ data class RefactoringContext(
 }
 
 fun doProcessEntry(entry: UsageEntry, defName: String?): String = buildString {
-    val processedArguments = entry.getProcessedArguments()
     val (oldParameters, newParameters) = entry.getParameters()
 
     entry.getUnmodifiablePrefix()?.let { append(it) }
 
     var i = 0
     var j = 0
-    val parameterMap = HashMap<Parameter, Pair<String, Boolean>?>()
+    val parameterMap = HashMap<Parameter, Pair<String, Boolean /* Needs to be surrounded by parentheses */>?>()
     while (i < oldParameters.size && j < entry.getArguments().size) {
         val param = oldParameters[i]
         val arg = entry.getArguments()[j]
-        val argExplicit = arg.isExplicit
-        if (argExplicit == param.isExplicit) {
-            parameterMap[param] = processedArguments[j].trim().let{
-                Pair(if (it.startsWith("{") && it.endsWith("}") && !argExplicit ||
-                    it.startsWith("(") && it.endsWith(")") && !arg.isEmptyPattern) it.substring(1, it.length-1) else it,
-                    it.trim().startsWith("(") || it.contains(" ") || arg.isInsideParentheses)
-            }
+        if (arg.isExplicit == param.isExplicit) {
+            parameterMap[param] = Pair(arg.textStripped ?: arg.text, !arg.isAtomic)
             i++
             j++
-        } else if (!param.isExplicit && argExplicit) {
+        } else if (!param.isExplicit) {
             parameterMap[param] = null
             i++
         } else throw IllegalArgumentException()
     }
-
 
     val context = entry.contextPsi.scope.elements.map { VariableImpl(it.textRepresentation()) }
     val referables = ArrayList<Variable>()
@@ -215,7 +223,9 @@ fun doProcessEntry(entry: UsageEntry, defName: String?): String = buildString {
     for ((newParamIndex, newParam) in newParameters.withIndex()) {
         val oldParam = newParam.oldParameter
         if (oldParameters.indexOf(oldParam) >= i && newParamIndex >= newParameters.size - entry.refactoringContext.diffIndex) break
-        val text = (oldParam?.let{ parameterMap[it] ?: Pair("_", false) } ?: Pair("{?}", false)).let { if (newParam.isExplicit) (if (it.second) "(${it.first})" else it.first ) else (if (it.first.startsWith("-")) "{ ${it.first}}" else "{${it.first}}") }
+        val text = (oldParam?.let{ parameterMap[it] ?: Pair("_", false) } ?: Pair("{?}", false)).let {
+            if (newParam.isExplicit) (if (it.second) "(${it.first})" else it.first ) else (if (it.first.startsWith("-")) "{ ${it.first}}" else "{${it.first}}")
+        }
         if (text == "{_}") implicitArgPrefix += " $text" else {
             if (!newParam.isExplicit) {
                 append(implicitArgPrefix)
@@ -226,7 +236,7 @@ fun doProcessEntry(entry: UsageEntry, defName: String?): String = buildString {
     }
 
     while (j < entry.getArguments().size) {
-        append(" ${processedArguments[j]}")
+        append(" ${entry.getArguments()[j].text}")
         j++
     }
 
@@ -235,51 +245,80 @@ fun doProcessEntry(entry: UsageEntry, defName: String?): String = buildString {
     }
 }
 
-fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, defName: String?, refactoringContext: RefactoringContext): String = buildString {
+fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, defName: String?, refactoringContext: RefactoringContext): ProcessAppExprResult {
     if (expr is Concrete.AppExpression) {
+        val builder = StringBuilder()
         val function = expr.function.data as PsiElement
         val resolve = tryResolveFunctionName(function)
         val appExprEntry = AppExpressionEntry(expr, psiElement, defName, refactoringContext)
 
         if (refactoringContext.def == resolve) {
-            append(doProcessEntry(appExprEntry, defName))
-            return@buildString
+            builder.append(doProcessEntry(appExprEntry, defName))
         } else {
-            val (processedFunction, processedArguments) = Pair(appExprEntry.procFunction, appExprEntry.getProcessedArguments())
-
+            val processedFunction = appExprEntry.procFunction
             for (block in appExprEntry.blocks) when (block) {
-                is Int -> if (block == FUNCTION_INDEX) append(processedFunction) else append(processedArguments[block])
-                is PsiElement -> append(textGetter(block, refactoringContext.textReplacements))
+                is Int -> if (block == FUNCTION_INDEX) builder.append(processedFunction) else builder.append(appExprEntry.getArguments()[block].text)
+                is PsiElement -> builder.append(textGetter(block, refactoringContext.textReplacements))
             }
-            return@buildString
         }
-
+        return ProcessAppExprResult(builder.toString(), null, false)
     } else if (expr is Concrete.LamExpression && expr.data == null) {
+        val builder = StringBuilder()
         val exprBody = expr.body
         if (exprBody is Concrete.AppExpression) {
             val function = exprBody.function.data as PsiElement
             val resolve = tryResolveFunctionName(function)
             val isPostfix = (function as ArendIPName).postfix != null
             if (isPostfix && refactoringContext.def == resolve) {
-                append(doProcessEntry(object: AppExpressionEntry(exprBody, psiElement, defName, refactoringContext) {
+                builder.append(doProcessEntry(object: AppExpressionEntry(exprBody, psiElement, defName, refactoringContext) {
                     override fun getLambdaParams(startFromIndex: Int): List<Parameter> = (this.getParameters().first.firstOrNull { it.isExplicit }?.let { listOf(it) } ?: emptyList()) + super.getLambdaParams(startFromIndex)
 
-                    override fun getProcessedArguments(): List<String> = listOf("") + super.getProcessedArguments()
+                    override fun getArguments(): List<ArgumentDescriptor> = listOf(ArgumentDescriptor("", "", true, true)) + super.getArguments()
                 }, defName))
-                return@buildString
+                return ProcessAppExprResult(builder.toString(), null, false)
             }
         }
-        append(processAppExpr(exprBody, psiElement, defName, refactoringContext))
-        return@buildString
+        builder.append(processAppExpr(exprBody, psiElement, defName, refactoringContext).text)
+        return ProcessAppExprResult(builder.toString(), null, false)
     } else if (expr is Concrete.ReferenceExpression) {
         if (expr.referent == refactoringContext.def) {
-            append("(${doProcessEntry(NoArgumentsEntry(expr, refactoringContext), defName)})")
-            return@buildString
+            val text = doProcessEntry(NoArgumentsEntry(expr, refactoringContext), defName)
+            return ProcessAppExprResult("(${text})", text, true)
+        } else if ((expr.referent as? GlobalReferable)?.precedence?.isInfix == true) {
+            val text = textGetter(expr.data as PsiElement, refactoringContext.textReplacements)
+            return ProcessAppExprResult("(${text})", null, true)
         }
     }
 
-    val exprData = expr.data
-    if (exprData is PsiElement) append(textGetter(exprData, refactoringContext.textReplacements))
+    var exprData = expr.data as PsiElement
+    stripLoop@while (true) {
+        val exprData1 = exprData
+        when (exprData1) {
+            is ArendImplicitArgument -> if (exprData1.tupleExprList.size == 1) {
+                exprData = exprData1.tupleExprList[0]; continue
+            }
+            is ArendTuple -> if (exprData1.tupleExprList.size == 1) {
+                exprData = exprData1.tupleExprList[0]; continue
+            }
+            is ArendTupleExpr -> if (exprData1.exprList.size == 1) {
+                exprData = exprData1.exprList[0]; continue
+            }
+            is ArendAtomFieldsAcc -> if (exprData1.fieldAccList.size == 0) {
+                exprData = exprData1.atom; continue
+            }
+            is ArendAtom -> {
+                val tuple = exprData1.tuple
+                if (tuple != null) {
+                    exprData = tuple; continue
+                }
+            }
+        }
+        break
+    }
+
+    return ProcessAppExprResult(textGetter(expr.data as PsiElement, refactoringContext.textReplacements),
+        textGetter(exprData, refactoringContext.textReplacements),
+        exprData is ArendAtom || exprData is ArendLongName || exprData is ArendTuple || exprData.text == "_")
 }
 
 fun textGetter(psi: PsiElement, textReplacements: HashMap<PsiElement, String>): String = textReplacements[psi] ?: buildString {
@@ -425,7 +464,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                                 val expr = callEntry.second!!
                                 refactoringContext.rangeData.clear()
                                 getBounds(expr, psiElement.node.getChildren(null).toList(), rangeData)
-                                processAppExpr(expr, psiElement, defName, refactoringContext)
+                                processAppExpr(expr, psiElement, defName, refactoringContext).text
                             } catch (e: IllegalStateException) { // TODO: We could use custom exception in processAppExpr
                                 failingAppExprs.add(psiElement)
                                 null
