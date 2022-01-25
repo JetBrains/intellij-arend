@@ -842,4 +842,32 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        
        \func foo {A B : \Type} (f : A -> B) (x : C) => ++ {x.F {1} 2 {3}} 2 
     """)
+
+    fun testBrackets5() = doTest("""
+       \func \infixl 6 ++ (a b : Nat) => a Nat.+ b
+       
+       \func \infixl 7 ** ({-caret-}a b : Nat) => a Nat.+ b
+       
+       \func foo => 1 ** 2 ++ 3 ** 4
+    """, """
+       \func \infixl 6 ++ (a b : Nat) => a Nat.+ b
+       
+       \func \infixl 7 ** {a : Nat} (b : Nat) => a Nat.+ b
+       
+       \func foo => ** {1} 2 ++ (**) {3} 4 
+    """)
+
+    fun testBrackets6() = doTest("""
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} ({-caret-}p : a = a') (q : a' = a'') : a = a'' \elim q | idp => p
+
+       \func \infixr 1 >== {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') => p *> q
+
+       \func foo (x : Nat) (p : x = x) => p *> p >== p *> p >== p 
+    """, """
+       \func \infixr 9 *> {A : \Type} {a a' a'' : A} {p : a = a'} (q : a' = a'') : a = a'' \elim q | idp => p
+
+       \func \infixr 1 >== {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') => *> {_} {_} {_} {_} {p} q
+
+       \func foo (x : Nat) (p : x = x) => *> {_} {_} {_} {_} {p} p >== (*>) {_} {_} {_} {_} {p} p >== p 
+    """)
 }
