@@ -351,8 +351,6 @@
 
         <projectService serviceImplementation="org.arend.toolWindow.repl.ArendReplService"/>
 
-        <projectService serviceImplementation="org.arend.toolWindow.tracer.ArendTracerService"/>
-
         <projectService serviceImplementation="org.arend.ui.impl.session.ArendSessionsService"/>
 
         <projectService serviceImplementation="org.arend.ui.console.ArendConsoleService"/>
@@ -459,10 +457,10 @@
             <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 
-        <action id="Arend.ShowExpr.Tracer"
-                class="org.arend.toolWindow.tracer.StartTracerAction"
-                text="Trace to Cursor"
-                description="Run the tracing typechecker to the selected expression">
+        <action id="Arend.Trace"
+                class="org.arend.tracer.ArendTraceAction"
+                text="Trace Code At Cursor"
+                description="Run the tracing typechecker for a declaration or expression at cursor">
             <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 

@@ -1,0 +1,169 @@
+package org.arend.tracer
+
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiFile
+import com.intellij.ui.LayeredIcon
+import com.intellij.xdebugger.XDebugProcess
+import com.intellij.xdebugger.XDebugProcessStarter
+import com.intellij.xdebugger.XDebugSession
+import com.intellij.xdebugger.XDebuggerManager
+import org.arend.actions.ArendPopupAction
+import org.arend.codeInsight.ArendPopupHandler
+import org.arend.error.DummyErrorReporter
+import org.arend.ext.error.ErrorReporter
+import org.arend.ext.error.GeneralError
+import org.arend.naming.reference.TCDefReferable
+import org.arend.psi.*
+import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.ext.TCDefinition
+import org.arend.refactoring.collectArendExprs
+import org.arend.refactoring.selectedExpr
+import org.arend.resolving.PsiConcreteProvider
+import org.arend.term.concrete.Concrete
+import org.arend.typechecking.LibraryArendExtensionProvider
+import org.arend.typechecking.PsiInstanceProviderSet
+import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.instance.pool.GlobalInstancePool
+import org.arend.typechecking.visitor.DefinitionTypechecker
+import org.arend.typechecking.visitor.DesugarVisitor
+import org.arend.util.ArendBundle
+
+class ArendTraceAction : ArendPopupAction() {
+    init {
+        templatePresentation.icon = TRACE_ICON
+    }
+
+    override fun update(presentation: Presentation, project: Project, editor: Editor, file: PsiFile) {
+        if (file !is ArendFile) {
+            presentation.isEnabled = false
+            return
+        }
+        val expressionAtCaret = getExpressionAtCaret(file, editor)
+        if (expressionAtCaret != null) {
+            presentation.isEnabled = true
+            presentation.text = "Trace to Expression"
+            return
+        }
+        val declarationAtCaret = getDeclarationAtCaret(file, editor)
+        if (declarationAtCaret != null) {
+            presentation.isEnabled = true
+            presentation.text = "Trace '${declarationAtCaret.second.representableName}'"
+            return
+        }
+        presentation.isEnabled = false
+    }
+
+    override fun getHandler() = object : ArendPopupHandler(requestFocus) {
+        override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+            val (expression, definitionRef) = getElementAtCursor(file, editor)
+                ?: return displayErrorHint(editor, ArendBundle.message("arend.trace.action.cannot.find.expression"))
+            val definition = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
+                .getConcrete(definitionRef) as? Concrete.Definition
+                ?: return displayErrorHint(
+                    editor, ArendBundle.message(
+                        "arend.trace.action.cannot.find.concrete.definition",
+                        definitionRef.representableName
+                    )
+                )
+            val tracingData = runTracingTypechecker(project, definition, expression)
+            val starter = object : XDebugProcessStarter() {
+                override fun start(session: XDebugSession): XDebugProcess = ArendTraceProcess(session, tracingData)
+            }
+            XDebuggerManager.getInstance(project).startSessionAndShowTab(
+                definition.data.representableName,
+                TRACE_ICON,
+                null,
+                false,
+                starter
+            )
+        }
+    }
+
+    companion object {
+        private val TRACE_ICON = LayeredIcon.create(AllIcons.Actions.ListFiles, AllIcons.Nodes.RunnableMark)
+
+        internal fun getElementAtCursor(file: PsiFile, editor: Editor): Pair<ArendExpr, TCDefReferable>? {
+            return getExpressionAtCaret(file, editor) ?: getDeclarationAtCaret(file, editor)
+        }
+
+        private fun getExpressionAtCaret(file: PsiFile, editor: Editor): Pair<ArendExpr, TCDefReferable>? {
+            val range = EditorUtil.getSelectionInAnyMode(editor)
+            val sExpr = selectedExpr(file, range)
+            if (sExpr != null) {
+                val pair = collectArendExprs(sExpr.parent, range)
+                if (pair != null) {
+                    val def = sExpr.ancestor<TCDefinition>()?.tcReferable
+                    if (def != null) {
+                        return Pair(pair.first, def)
+                    }
+                }
+            }
+            return null
+        }
+
+        private fun getDeclarationAtCaret(file: PsiFile, editor: Editor): Pair<ArendExpr, TCDefReferable>? {
+            val def = file.findElementAt(editor.caretModel.currentCaret.offset)?.ancestor<TCDefinition>() ?: return null
+            val ref = def.tcReferable ?: return null
+            val head = when (def) {
+                is ArendFunctionalDefinition -> {
+                    val body = def.body ?: return null
+                    val expr = body.expr
+                    if (expr != null) expr else {
+                        val clauses = body.clauseList
+                        if (clauses.isNotEmpty()) clauses[0].expr else body.coClauseList.firstOrNull()?.expr
+                    }
+                }
+                is ArendDefData -> {
+                    val body = def.dataBody ?: return null
+                    val constructors = body.constructorList
+                    val constructor = constructors.firstOrNull()
+                        ?: body.constructorClauseList.find { it.constructorList.isNotEmpty() }?.constructorList?.firstOrNull()
+                    constructor?.typeTeleList?.firstOrNull()?.typedExpr?.expr
+                }
+                is ArendDefClass -> {
+                    val classStat = def.classStatList.firstOrNull() ?: return null
+                    classStat.classField?.returnExpr?.exprList?.firstOrNull()
+                        ?: classStat.classImplement?.expr
+                        ?: classStat.coClause?.expr
+                        ?: classStat.overriddenField?.returnExpr?.exprList?.firstOrNull()
+                }
+                else -> return null
+            } ?: return null
+            return Pair(head, ref)
+        }
+
+        internal fun runTracingTypechecker(
+            project: Project,
+            definition: Concrete.Definition,
+            expression: ArendExpr
+        ): ArendTracingData {
+            val extension = LibraryArendExtensionProvider(project.service<TypeCheckingService>().libraryManager)
+                .getArendExtension(definition.data)
+            val errorsConsumer = ErrorsConsumer()
+            val tracer = ArendTracingTypechecker(errorsConsumer, extension).apply {
+                instancePool = GlobalInstancePool(PsiInstanceProviderSet()[definition.data], this)
+            }
+            var firstTraceEntryIndex = -1
+            ActionUtil.underModalProgress(project, ArendBundle.message("arend.tracer.collecting.tracing.data")) {
+                DesugarVisitor.desugar(definition, tracer.errorReporter)
+                definition.accept(DefinitionTypechecker(tracer).apply { updateState(false) }, null)
+                firstTraceEntryIndex = tracer.trace.indexOfEntry(expression)
+            }
+            return ArendTracingData(tracer.trace, errorsConsumer.hasErrors, firstTraceEntryIndex)
+        }
+
+        private class ErrorsConsumer : ErrorReporter {
+            var hasErrors = false
+
+            override fun report(error: GeneralError) {
+                hasErrors = true
+            }
+        }
+    }
+}
