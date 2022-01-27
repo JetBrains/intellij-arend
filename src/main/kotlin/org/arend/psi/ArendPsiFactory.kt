@@ -14,7 +14,8 @@ class ArendPsiFactory(
 ) {
     enum class StatCmdKind {OPEN, IMPORT}
 
-    fun injected(): PsiFile = psiFactory().createFileFromText(fileName, InjectionTextLanguage.INSTANCE, "")
+    fun injected(text: String): PsiFile =
+        psiFactory().createFileFromText(fileName, InjectionTextLanguage.INSTANCE, text)
 
     fun createDefIdentifier(name: String): ArendDefIdentifier =
         createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
