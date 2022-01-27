@@ -51,7 +51,7 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         }
 
     init {
-        val psi = ArendPsiFactory(project, name).injected()
+        val psi = ArendPsiFactory(project, name).injected("")
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let { document ->
