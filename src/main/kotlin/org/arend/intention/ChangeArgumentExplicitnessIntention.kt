@@ -42,8 +42,8 @@ import java.util.Collections.singletonList
 import kotlin.math.max
 
 data class ProcessAppExprResult(val text: String, val strippedText: String?, val parenthesizedPrefixTest: String?, val isAtomic: Boolean)
-data class ArgumentDescriptor(val text: String, val strippedText: String?, val parenthesizedPrefixText: String?, val isExplicit: Boolean, val isAtomic: Boolean) {
-   constructor (processResult: ProcessAppExprResult, isExplicit: Boolean) : this(processResult.text, processResult.strippedText, processResult.parenthesizedPrefixTest, isExplicit, processResult.isAtomic)
+data class ArgumentDescriptor(val text: String, val strippedText: String?, val parenthesizedPrefixText: String?, val isExplicit: Boolean, val isAtomic: Boolean, val spacingText: String?) {
+   constructor (processResult: ProcessAppExprResult, isExplicit: Boolean, spaceText: String?) : this(processResult.text, processResult.strippedText, processResult.parenthesizedPrefixTest, isExplicit, processResult.isAtomic, spaceText)
 }
 
 abstract class UsageEntry(val refactoringContext: RefactoringContext, val contextPsi: ArendCompositeElement) {
@@ -71,10 +71,11 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
 
         val functionBlock = getBlocksInRange(refactoringContext.rangeData[expr.function]!!).let{ if (it.size != 1)
             throw IllegalStateException() else it.first()}
+        val argumentsWhichActuallyOccurInText = ArrayList<Concrete.Argument>()
 
         for (argument in expr.arguments) refactoringContext.rangeData[argument.expression]?.let { argRange ->
-            procArguments.add(ArgumentDescriptor(processAppExpr(argument.expression, argumentAppExpr, defName, refactoringContext), argument.isExplicit))
-            replacementMap[getBlocksInRange(argRange).let{ Pair(it.first(), it.last()) }] = procArguments.size - 1
+            replacementMap[getBlocksInRange(argRange).let{ Pair(it.first(), it.last()) }] = argumentsWhichActuallyOccurInText.size
+            argumentsWhichActuallyOccurInText.add(argument)
         }
         replacementMap[Pair(functionBlock, functionBlock)] = FUNCTION_INDEX
 
@@ -86,6 +87,22 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
             blocks.removeAll(blocks.subList(sI, eI + 1).toSet())
             blocks.add(sI, e.value)
         }
+
+        val spacingMap = HashMap<Int, String>()
+        var buffer: String? = null
+        for (block in blocks) when (block) {
+            is Int -> {
+                val correctedIndex = if (block == -1) 0 else block // needed for correct operation in binary expressions
+                if (buffer != null) spacingMap[correctedIndex] = buffer
+                buffer = ""
+            }
+            is PsiElement -> {
+                buffer += block.text
+            }
+        }
+
+        for ((index, argument) in argumentsWhichActuallyOccurInText.withIndex())
+            procArguments.add(ArgumentDescriptor(processAppExpr(argument.expression, argumentAppExpr, defName, refactoringContext), argument.isExplicit, spacingMap[index]))
     }
 
     override fun getArguments(): List<ArgumentDescriptor> = procArguments
@@ -116,7 +133,7 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
             val text = textGetter(data, refactoringContext.textReplacements)
             val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
             val isAtomic = data1 is ArendDefIdentifier || data1 is ArendAtomPattern && (data1.patternList.size == 0 && data1.lparen != null || data1.underscore != null)
-            procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic))
+            procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, null)) //TODO: Initialize spaceText
         }
     }
 
@@ -148,7 +165,7 @@ class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactor
                 is ArendAtomPattern -> data.isExplicit
                 else -> data.text.trim().startsWith("{")
             }
-            procArguments.add(ArgumentDescriptor(text, strippedText, null, isExplicit, data1 is ArendIdentifierOrUnknown))
+            procArguments.add(ArgumentDescriptor(text, strippedText, null, isExplicit, data1 is ArendIdentifierOrUnknown, null)) //TODO: Initialize spaceText
         }
     }
     override fun getLambdaParams(startFromIndex: Int): List<Parameter> = emptyList()
@@ -221,7 +238,7 @@ fun doProcessEntry(entry: UsageEntry, defName: String?, isInfix: Boolean = false
     }
 
     if (lambdaArgs != "") append("\\lam$lambdaArgs => ")
-    for (e in oldArgToLambdaArgMap) parameterMap[e.key] = ArgumentDescriptor(e.value, null, null, isExplicit = true, isAtomic = true)
+    for (e in oldArgToLambdaArgMap) parameterMap[e.key] = ArgumentDescriptor(e.value, null, null, isExplicit = true, isAtomic = true, spacingText = null)
 
     defaultBuilder.append(defName); parenthesizedPrefixBuilder.append(if (isInfix) "($defName)" else defName)
 
@@ -233,11 +250,13 @@ fun doProcessEntry(entry: UsageEntry, defName: String?, isInfix: Boolean = false
         val text = (oldParam?.let{ parameterMap[it]?.let{ d -> Pair(d.strippedText ?: d.text, !d.isAtomic) } ?: Pair("_", false) } ?: Pair("{?}", false)).let {
             if (newParam.isExplicit) (if (it.second) "(${it.first})" else it.first ) else (if (it.first.startsWith("-")) "{ ${it.first}}" else "{${it.first}}")
         }
-        if (text == "{_}") implicitArgPrefix += " $text" else {
+        val spacing = oldParam?.let{ parameterMap[it]?.spacingText } ?: " "
+
+        if (text == "{_}") implicitArgPrefix += spacing + text else {
             if (!newParam.isExplicit) {
                 append(implicitArgPrefix)
             }
-            append(" $text")
+            append(spacing + text)
             implicitArgPrefix = ""
         }
     }
@@ -334,7 +353,7 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
                 builder.append(doProcessEntry(object: AppExpressionEntry(exprBody, psiElement, defName, refactoringContext) {
                     override fun getLambdaParams(startFromIndex: Int): List<Parameter> = (this.getParameters().first.firstOrNull { it.isExplicit }?.let { listOf(it) } ?: emptyList()) + super.getLambdaParams(startFromIndex)
 
-                    override fun getArguments(): List<ArgumentDescriptor> = listOf(ArgumentDescriptor("", null,  null, isExplicit = true, isAtomic = true)) + super.getArguments()
+                    override fun getArguments(): List<ArgumentDescriptor> = listOf(ArgumentDescriptor("", null,  null, isExplicit = true, isAtomic = true, spacingText = null)) + super.getArguments()
                 }, defName).first)
                 return ProcessAppExprResult(builder.toString(), null, null, false)
             }
