@@ -1,5 +1,6 @@
 package org.arend.codeInsight
 
+import com.intellij.application.options.CodeStyle
 import com.intellij.lang.ImportOptimizer
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -15,6 +16,7 @@ import com.intellij.util.castSafelyTo
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.arend.core.expr.FunCallExpression
 import org.arend.ext.module.ModulePath
+import org.arend.library.LibraryManager
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
@@ -30,8 +32,11 @@ import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.getCompleteWhere
+import org.arend.settings.ArendCustomCodeStyleSettings
+import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.SearchVisitor
 import org.arend.util.ArendBundle
+import org.arend.util.mapToSet
 import org.jetbrains.annotations.Contract
 import kotlin.reflect.jvm.internal.impl.utils.SmartSet
 
@@ -104,13 +109,15 @@ private fun doAddNamespaceCommands(
     prefix: String = "\\open"
 ) {
     val importStatements = mutableListOf<String>()
+    val settings = CodeStyle.getCustomSettings(group.containingFile, ArendCustomCodeStyleSettings::class.java)
+    val allImportedNames by lazy(LazyThreadSafetyMode.NONE) { importMap.flatMapTo(HashSet()) { it.value.map(ImportedName::visibleName) } }
+    val typechecker = group.project.service<TypeCheckingService>()
     for ((path, identifiers) in importMap) {
         if (path.isEmpty()) continue
-        val longPrefix = "$prefix ${path.joinToString(".")}"
-        if (identifiers.size > 1000) {
-            importStatements.add(longPrefix)
+        if (settings.USE_IMPLICIT_IMPORTS && identifiers.size <= settings.EXPLICIT_IMPORTS_LIMIT) {
+            importStatements.add(createImplicitImport(prefix, path, allImportedNames, identifiers, typechecker.libraryManager))
         } else {
-            importStatements.add(longPrefix + identifiers.map { it.toString() }.sorted().joinToString(", ", " (", ")"))
+            importStatements.add(createExplicitImport("$prefix ${path.joinToString(".")}", identifiers))
         }
     }
     importStatements.sort()
@@ -130,6 +137,34 @@ private fun doAddNamespaceCommands(
             groupContainer.addBefore(command, group.firstChild)
         else
             groupContainer.addAfter(command, anchorElement)
+    }
+}
+
+private fun createExplicitImport(
+    longPrefix: String,
+    identifiers: Set<ImportedName>
+) = longPrefix + identifiers.map { it.toString() }.sorted().joinToString(", ", " (", ")")
+
+private fun createImplicitImport(
+    prefix: String,
+    modulePath: List<String>,
+    allImportedNames: Set<String>,
+    currentlyImportedNames: Set<ImportedName>,
+    libraryManager: LibraryManager
+) : String {
+    // todo: modules with equal names from different libraries
+    val scope: Scope? = libraryManager.registeredLibraries.firstNotNullOfOrNull { libraryManager.getAvailableModuleScopeProvider(it).forModule(ModulePath(modulePath)) }
+    if (scope == null) {
+        LOG.error("No library containing required module found while optimizing imports. Please report it to maintainers")
+    }
+    scope!!
+    val namesToImport = currentlyImportedNames.mapToSet { it.visibleName }
+    val namesToHide = allImportedNames.filter { it !in namesToImport && scope.resolveName(it) != null }
+    val baseName = "$prefix ${modulePath.joinToString(".")}"
+    return if (namesToHide.isEmpty()) {
+        baseName
+    } else {
+        "$baseName ${namesToHide.joinToString(", ", "\\hiding (", ")")}"
     }
 }
 
