@@ -947,4 +947,30 @@ class OptimizeImportsTest : ArendTestBase() {
         """)
     }
 
+    fun `test implicit imports with class`() {
+        doImplicitTest("""
+            -- ! Foo.ard
+            \class F {
+              | ff : Nat
+            } \where {
+              \func ff' : Nat => 1
+            }
+            -- ! Bar.ard
+            \func f => 4
+            \func h => 5
+            -- ! Main.ard
+            \import Foo
+            \open F
+            
+            \func g {f : F} => ff
+            \func h => ff'
+        """, """
+            \import Foo
+            \open F
+            
+            \func g {f : F} => ff
+            \func h => ff'
+        """)
+    }
+
 }
