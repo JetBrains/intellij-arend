@@ -3,6 +3,10 @@ package org.arend.highlight
 import com.intellij.codeHighlighting.TextEditorHighlightingPass
 import com.intellij.codeInsight.daemon.HighlightDisplayKey
 import com.intellij.codeInsight.daemon.impl.*
+import com.intellij.codeInsight.daemon.impl.quickfix.QuickFixAction
+import com.intellij.codeInspection.InspectionManager
+import com.intellij.codeInspection.ProblemHighlightType
+import com.intellij.codeInspection.ex.QuickFixWrapper
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.profile.codeInspection.InspectionProjectProfileManager
@@ -12,6 +16,7 @@ import org.arend.codeInsight.OptimalModuleStructure
 import org.arend.codeInsight.OptimizationResult
 import org.arend.codeInsight.getOptimalImportStructure
 import org.arend.inspection.ArendUnusedImportInspection
+import org.arend.intention.ArendOptimizeImportsQuickFix
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.impl.ArendGroup
@@ -36,7 +41,14 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
         val profile = InspectionProjectProfileManager.getInstance(myProject).currentProfile
         val key = HighlightDisplayKey.find(ArendUnusedImportInspection.ID)
         val highlightInfoType = if (key == null) HighlightInfoType.UNUSED_SYMBOL else HighlightInfoType.HighlightInfoTypeImpl(profile.getErrorLevel(key, element).severity, HighlightInfoType.UNUSED_SYMBOL.attributesKey)
-        UnusedSymbolUtil.createUnusedSymbolInfo(element, description, highlightInfoType, ArendUnusedImportInspection.ID)?.let(collector::add)
+        UnusedSymbolUtil.createUnusedSymbolInfo(element, description, highlightInfoType, ArendUnusedImportInspection.ID)?.let {
+            val actualOptimizationResult = optimizationResult
+            if (actualOptimizationResult != null) {
+                val intentionAction = QuickFixWrapper.wrap(InspectionManager.getInstance(element.project).createProblemDescriptor(element, description, ArendOptimizeImportsQuickFix(actualOptimizationResult), ProblemHighlightType.GENERIC_ERROR_OR_WARNING, true), 0)
+                QuickFixAction.registerQuickFixAction(it, intentionAction)
+            }
+            collector.add(it)
+        }
     }
 
     override fun doApplyInformationToEditor() {

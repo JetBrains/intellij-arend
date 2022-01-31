@@ -59,17 +59,16 @@ class ArendImportOptimizer : ImportOptimizer {
 
     override fun processFile(file: PsiFile): Runnable {
         if (file !is ArendFile) return EmptyRunnable.getInstance()
-        val (fileImports, optimalTree, coreUsed) = getOptimalImportStructure(file)
-        return psiModificationRunnable(file, fileImports, optimalTree, coreUsed)
+        val optimizationResult = getOptimalImportStructure(file)
+        return psiModificationRunnable(file, optimizationResult)
     }
 
-    private fun psiModificationRunnable(
+    internal fun psiModificationRunnable(
         file: ArendFile,
-        fileImports: Map<List<String>, Set<ImportedName>>,
-        optimalTree: OptimalModuleStructure,
-        coreUsed: Boolean
+        optimizationResult: OptimizationResult,
     ) = object : ImportOptimizer.CollectingInfoRunnable {
         override fun run() {
+            val (fileImports, optimalTree, _) = optimizationResult
             val definitelyToHide = HashMap<String, Referable>()
             val fileScopeProvider = getScopeProvider(true, file)
             fileImports.forEach { (path, names) ->
@@ -86,7 +85,7 @@ class ArendImportOptimizer : ImportOptimizer {
         }
 
         override fun getUserNotificationInfo(): String =
-            if (coreUsed) ArendBundle.message("arend.optimize.imports.message.core.used")
+            if (optimizationResult.coreDefinitionsUsed) ArendBundle.message("arend.optimize.imports.message.core.used")
             else ArendBundle.message("arend.optimize.imports.message.scope.used")
     }
 }
