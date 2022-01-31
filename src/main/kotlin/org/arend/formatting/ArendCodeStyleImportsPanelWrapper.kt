@@ -44,7 +44,7 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
     override fun getPanel(): JComponent = myPanel
 
     private val myPanel = panel {
-        labeledRow(ArendBundle.message("arend.code.style.settings.optimize.imports")) {
+        row(ArendBundle.message("arend.code.style.settings.optimize.imports")) {
             buttonGroup {
                 row {
                     radioButton(ArendBundle.message("arend.code.style.settings.use.implicit.imports"), this@ArendCodeStyleImportsPanelWrapper::myUseImplicitImports)

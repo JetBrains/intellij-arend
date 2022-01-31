@@ -180,6 +180,12 @@
                          enabledByDefault="true" level="WEAK WARNING"
                          implementationClass="org.arend.inspection.RedundantParensInspection"/>
 
+        <localInspection language="Arend" groupPath="Arend" key="arend.inspection.unused.import"
+                         groupBundle="messages.InspectionsBundle"
+                         groupKey="group.names.declaration.redundancy"
+                         enabledByDefault="true" level="WARNING"
+                         unfair="true"
+                         implementationClass="org.arend.inspection.ArendUnusedImportInspection"/>
         <!-- Intention Actions -->
         <intentionAction>
             <className>org.arend.intention.ImplementFieldsInCoClauseIntention</className>

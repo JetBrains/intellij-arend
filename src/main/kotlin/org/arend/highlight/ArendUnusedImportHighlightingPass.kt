@@ -11,6 +11,7 @@ import org.arend.codeInsight.ImportedName
 import org.arend.codeInsight.OptimalModuleStructure
 import org.arend.codeInsight.OptimizationResult
 import org.arend.codeInsight.getOptimalImportStructure
+import org.arend.inspection.ArendUnusedImportInspection
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
 import org.arend.psi.ext.impl.ArendGroup
@@ -35,6 +36,7 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
             .newHighlightInfo(HighlightInfoType.UNUSED_SYMBOL)
             .range(element)
             .descriptionAndTooltip(description)
+            .inspectionToolId(ArendUnusedImportInspection.ID)
             .create()
             ?.let(collector::add)
     }
