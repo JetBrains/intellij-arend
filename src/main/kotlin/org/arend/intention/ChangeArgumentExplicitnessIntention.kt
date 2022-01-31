@@ -14,6 +14,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiReference
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.elementType
 import com.intellij.util.containers.SortedList
 import org.arend.codeInsight.ArendParameterInfoHandler.Companion.getAllParametersForReferable
 import org.arend.error.CountingErrorReporter
@@ -72,8 +73,10 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
         val functionBlock = getBlocksInRange(refactoringContext.rangeData[expr.function]!!).let{ if (it.size != 1)
             throw IllegalStateException() else it.first()}
         val argumentsWhichActuallyOccurInText = ArrayList<Concrete.Argument>()
+        var firstExplicit : Int? = null
 
         for (argument in expr.arguments) refactoringContext.rangeData[argument.expression]?.let { argRange ->
+            if (firstExplicit == null && argument.isExplicit) firstExplicit = argumentsWhichActuallyOccurInText.size
             replacementMap[getBlocksInRange(argRange).let{ Pair(it.first(), it.last()) }] = argumentsWhichActuallyOccurInText.size
             argumentsWhichActuallyOccurInText.add(argument)
         }
@@ -92,7 +95,7 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
         var buffer: String? = null
         for (block in blocks) when (block) {
             is Int -> {
-                val correctedIndex = if (block == -1) 0 else block // needed for correct operation in binary expressions
+                val correctedIndex = if (block == -1 && firstExplicit != null) firstExplicit!! else block // needed for correct operation in binary expressions
                 if (buffer != null) spacingMap[correctedIndex] = buffer
                 buffer = ""
             }
@@ -119,6 +122,15 @@ class NoArgumentsEntry(refExpr: Concrete.ReferenceExpression, refactoringContext
 class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, pattern) {
     private val procArguments = ArrayList<ArgumentDescriptor>()
     init {
+        val spacingMap = HashMap<Abstract.Pattern, String>()
+        var buffer = ""
+        for (block in pattern.childrenWithLeaves) {
+            if (block is Abstract.Pattern) {
+                spacingMap[block] = buffer
+                buffer = ""
+            } else if (!pattern.children.contains(block)) buffer += block.text
+        }
+
         for (arg in pattern.arguments) {
             val data = arg.data as PsiElement
             var data1: PsiElement? = data
@@ -133,7 +145,7 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
             val text = textGetter(data, refactoringContext.textReplacements)
             val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
             val isAtomic = data1 is ArendDefIdentifier || data1 is ArendAtomPattern && (data1.patternList.size == 0 && data1.lparen != null || data1.underscore != null)
-            procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, null)) //TODO: Initialize spaceText
+            procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, spacingMap[arg]))
         }
     }
 
@@ -147,6 +159,17 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
 class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, localCoClause) {
     private val procArguments = ArrayList<ArgumentDescriptor>()
     init {
+        val spacingMap = HashMap<ArendLamParam, String>()
+        var buffer = ""
+        for (block in localCoClause.childrenWithLeaves) {
+            if (block is ArendLamParam) {
+                spacingMap[block] = buffer
+                buffer = ""
+            } else if (!localCoClause.children.contains(block) &&
+                block.elementType != ArendElementTypes.PIPE &&
+                block.prevSibling?.let{ it.elementType == ArendElementTypes.PIPE} != true) buffer += block.text
+        }
+
         for (arg in localCoClause.lamParamList) {
             val data = arg.data as PsiElement
             var data1: PsiElement? = data
@@ -165,7 +188,7 @@ class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactor
                 is ArendAtomPattern -> data.isExplicit
                 else -> data.text.trim().startsWith("{")
             }
-            procArguments.add(ArgumentDescriptor(text, strippedText, null, isExplicit, data1 is ArendIdentifierOrUnknown, null)) //TODO: Initialize spaceText
+            procArguments.add(ArgumentDescriptor(text, strippedText, null, isExplicit, data1 is ArendIdentifierOrUnknown, spacingMap[arg]))
         }
     }
     override fun getLambdaParams(startFromIndex: Int): List<Parameter> = emptyList()
@@ -243,6 +266,7 @@ fun doProcessEntry(entry: UsageEntry, defName: String?, isInfix: Boolean = false
     defaultBuilder.append(defName); parenthesizedPrefixBuilder.append(if (isInfix) "($defName)" else defName)
 
     var implicitArgPrefix = ""
+    var spacingContents = ""
     for ((newParamIndex, newParam) in newParameters.withIndex()) {
         val oldParam = newParam.oldParameter
         if (oldParameters.indexOf(oldParam) >= i && newParamIndex >= newParameters.size - entry.refactoringContext.diffIndex) break
@@ -252,12 +276,18 @@ fun doProcessEntry(entry: UsageEntry, defName: String?, isInfix: Boolean = false
         }
         val spacing = oldParam?.let{ parameterMap[it]?.spacingText } ?: " "
 
-        if (text == "{_}") implicitArgPrefix += spacing + text else {
+        if (text == "{_}") {
+            implicitArgPrefix += spacing + text
+            spacingContents += (if (spacing.endsWith(" ")) spacing.trimEnd() else spacing)
+        } else {
             if (!newParam.isExplicit) {
                 append(implicitArgPrefix)
+            } else {
+                append(spacingContents)
             }
             append(spacing + text)
             implicitArgPrefix = ""
+            spacingContents = ""
         }
     }
 

@@ -249,7 +249,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
           | k (A B : {-caret-}\Type) (a : A) (b : B) : A
 
         \func h => \new testRecord (\Sigma Nat Nat) {
-          | k _ _ a b => a
+          | k _ {- lol -} _ {- a -} a b => a
         }
         """,
         """
@@ -257,7 +257,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
           | k {A B : \Type} {-caret-}(a : A) (b : B) : A
 
         \func h => \new testRecord (\Sigma Nat Nat) {
-          | k a b => a
+          | k {- lol -} {- a -} a b => a
         }
         """
     )
@@ -333,11 +333,11 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     fun testFunctionIEInfixWithImplicit() = doTest(
         """
         \func f {A B : \Type} (a : A) {{-caret-}C : \Type} (b : B) (c : C) => (a, (b, c))
-        \func g => (1 `f` {_} {_} 2) 3
+        \func g => (1 {-foo-} `f` {-bar-} {_} {-bar2-} {_} {-baz-} 2) 3
         """,
         """
         \func f {A B : \Type} (a : A) ({-caret-}C : \Type) (b : B) (c : C) => (a, (b, c))
-        \func g => (f 1 _ 2) 3
+        \func g => (f {-bar-} {-bar2-} {-foo-} 1 _ {-baz-} 2) 3
         """
     )
 
@@ -388,11 +388,11 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     fun testOperatorIEPair() = doTest(
         """
         \func \infix 6 !+! {{-caret-}A B : \Type} (a : A) (b : B) => (a, b)
-        \func g => (1 !+! 2, 3 !+! {Nat} 4)
+        \func g => (1 !+! 2, 3 !+! {-foo-} {Nat} {-bar-} 4)
         """,
         """
         \func \infix 6 !+! ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
-        \func g => (!+! _ 1 2, !+! Nat 3 4)
+        \func g => (!+! _ 1 2, !+! {-foo-} Nat 3 {-bar-} 4)
         """
     )
 
@@ -744,7 +744,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          | suc n, suc m => suc<suc {k : Nat} ({-caret-}n < m)
 
        \func foo {n m : Nat} (p : n < suc m) : Nat \elim n, m, p
-         | suc n, 0, suc<suc ()
+         | suc n, 0, suc<suc {-foo-} ()
          | suc (suc n), suc (suc m), suc<suc (suc<suc q) => 2
          | _, _, _ => 3
     """, """        
@@ -753,7 +753,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          | suc n, suc m => suc<suc {k : Nat} {n < m}
 
        \func foo {n m : Nat} (p : n < suc m) : Nat \elim n, m, p
-         | suc n, 0, suc<suc {_} {()}
+         | suc n, 0, suc<suc {_} {-foo-} {()}
          | suc (suc n), suc (suc m), suc<suc {_} {suc<suc {_} {q}} => 2
          | _, _, _ => 3
     """)
