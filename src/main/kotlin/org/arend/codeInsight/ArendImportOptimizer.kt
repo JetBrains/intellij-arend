@@ -69,9 +69,9 @@ class ArendImportOptimizer : ImportOptimizer {
         coreUsed: Boolean
     ) = object : ImportOptimizer.CollectingInfoRunnable {
         override fun run() {
-            val topLevelImportedNames = (fileImports.values + optimalTree.usages.values).flatMapTo(HashSet()) { it.map(ImportedName::visibleName) }
-            addFileImports(file, fileImports, topLevelImportedNames)
-            addModuleOpens(listOf(), file, optimalTree, topLevelImportedNames)
+            val allIdentifiers = (fileImports.values + optimalTree.usages.values).flatMapTo(HashSet()) { it.map(ImportedName::visibleName)}
+            addFileImports(file, fileImports, allIdentifiers)
+            addModuleOpens(listOf(), file, optimalTree, allIdentifiers)
             file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
         }
 
@@ -84,9 +84,13 @@ class ArendImportOptimizer : ImportOptimizer {
 private val LOG = Logger.getInstance(ArendImportOptimizer::class.java)
 
 @RequiresWriteLock
-private fun addFileImports(file: ArendFile, imports: Map<ModulePath, Set<ImportedName>>, allImportedNames: Set<String>) {
+private fun addFileImports(
+    file: ArendFile,
+    imports: Map<ModulePath, Set<ImportedName>>,
+    allIdentifiers: HashSet<String>
+) {
     eraseNamespaceCommands(file)
-    doAddNamespaceCommands(file, imports.mapKeys { it.key.toList() }, allImportedNames,"\\import")
+    doAddNamespaceCommands(file, imports.mapKeys { it.key.toList() }, allIdentifiers,"\\import")
 }
 
 @RequiresWriteLock
@@ -94,37 +98,39 @@ private fun addModuleOpens(
     currentPath: List<String>,
     group: ArendGroup,
     rootStructure: OptimalModuleStructure?,
-    topLevelImportedNames: Set<String>
+    scope: HashSet<String>
 ) {
     if (group !is PsiFile) {
         eraseNamespaceCommands(group)
     }
     if (rootStructure != null && rootStructure.usages.isNotEmpty()) {
-        doAddNamespaceCommands(group, rootStructure.usages, topLevelImportedNames)
+        doAddNamespaceCommands(group, rootStructure.usages, scope)
     }
     for (subgroup in group.subgroups.flatMap { listOf(it) + it.dynamicSubgroups }) {
         val substructure = rootStructure?.subgroups?.find { it.name == subgroup.name }
-        addModuleOpens(currentPath + listOf(substructure?.name ?: ""), subgroup, substructure, topLevelImportedNames + (substructure?.usages?.values?.flatMapTo(HashSet()) { it.map(ImportedName::visibleName) } ?: emptySet())) // remove nested opens
+        val subset = if (substructure == null) scope else HashSet(scope)
+        addModuleOpens(currentPath + listOf(substructure?.name ?: ""), subgroup, substructure, subset) // remove nested opens
     }
 }
 
 private fun doAddNamespaceCommands(
     group: ArendGroup,
     importMap: Map<List<String>, Set<ImportedName>>,
-    allImportedNames: Set<String>,
+    alreadyImportedIdentifiers: MutableSet<String>,
     prefix: String = "\\open"
 ) {
     val importStatements = mutableListOf<String>()
     val settings = CodeStyle.getCustomSettings(group.containingFile, ArendCustomCodeStyleSettings::class.java)
-    for ((path, identifiers) in importMap) {
+    val scopeProvider = getScopeProvider(prefix == "\\open", group)
+    for ((path, identifiers) in importMap.toSortedMap { a, b -> ModulePath(a).compareTo(ModulePath(b)) }) {
         if (path.isEmpty()) continue
         if (settings.USE_IMPLICIT_IMPORTS || identifiers.size > settings.EXPLICIT_IMPORTS_LIMIT) {
-            importStatements.add(createImplicitImport(prefix, path, allImportedNames, identifiers, getScopeProvider(prefix == "\\open", group)))
+            importStatements.add(createImplicitImport(prefix, path, scopeProvider, alreadyImportedIdentifiers, identifiers.mapToSet(ImportedName::visibleName)))
+            scopeProvider(path)?.globalSubscope?.elements?.forEach { alreadyImportedIdentifiers.add(it.refName) }
         } else {
             importStatements.add(createExplicitImport("$prefix ${path.joinToString(".")}", identifiers))
         }
     }
-    importStatements.sort()
     if (importStatements.isEmpty()) {
         return
     }
@@ -163,18 +169,17 @@ private typealias ScopeProvider = (List<String>) -> Scope?
 private fun createImplicitImport(
     prefix: String,
     modulePath: List<String>,
-    allImportedNames: Set<String>,
-    currentlyImportedNames: Set<ImportedName>,
-    scopeProvider: ScopeProvider
+    scopeProvider: ScopeProvider,
+    alreadyImportedNames: Set<String>,
+    toImportHere: Set<String>
 ) : String {
     // todo: modules with equal names from different libraries
-    val scope = scopeProvider(modulePath)
-    if (scope == null) {
+    val currentScope = scopeProvider(modulePath)
+    if (currentScope == null) {
         LOG.error("No library containing required module found while optimizing imports. Please report it to maintainers")
     }
-    scope!!
-    val namesToImport = currentlyImportedNames.mapToSet { it.visibleName }
-    val namesToHide = allImportedNames.filter { it !in namesToImport && scope.resolveName(it) != null }
+    currentScope!!
+    val namesToHide = currentScope.globalSubscope.elements.mapNotNull { ref -> ref.refName.takeIf { it in alreadyImportedNames && it !in toImportHere } }
     val baseName = "$prefix ${modulePath.joinToString(".")}"
     return if (namesToHide.isEmpty()) {
         baseName

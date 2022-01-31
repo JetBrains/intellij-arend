@@ -15,11 +15,11 @@ class OptimizeImportsTest : ArendTestBase() {
         return testProject
     }
 
-    private inline fun doWithSettings(useImplicitImports : Boolean, explicitLimit : Int, action : () -> Unit) {
+    private inline fun doWithSettings(useImplicitImports : Boolean, action : () -> Unit) {
         val settings = CodeStyle.createTestSettings()
         val arendSettings = settings.getCustomSettings(ArendCustomCodeStyleSettings::class.java)
         arendSettings.USE_IMPLICIT_IMPORTS = useImplicitImports
-        arendSettings.EXPLICIT_IMPORTS_LIMIT = explicitLimit
+        arendSettings.EXPLICIT_IMPORTS_LIMIT = 5000
         CodeStyle.setTemporarySettings(myFixture.project, settings)
         try {
             action()
@@ -47,12 +47,12 @@ class OptimizeImportsTest : ArendTestBase() {
         @Language("Arend") before: String,
         @Language("Arend") after: String,
         typecheck: Boolean = false
-    ) = doWithSettings(false, 5000) { doTest(before, after, typecheck) }
+    ) = doWithSettings(false) { doTest(before, after, typecheck) }
 
     private fun doImplicitTest(
         @Language("Arend") before: String,
         @Language("Arend") after: String,
-        typecheck: Boolean = false) = doWithSettings(true, 5000) { doTest(before, after, typecheck) }
+        typecheck: Boolean = false) = doWithSettings(true) { doTest(before, after, typecheck) }
 
     fun `test prelude`() {
         doExplicitTest("""
@@ -922,6 +922,28 @@ class OptimizeImportsTest : ArendTestBase() {
               \func h => f
               \func j => g
             }
+        """)
+    }
+
+    fun `test implicit imports with implicit collision`() {
+        doImplicitTest("""
+            -- ! Foo.ard
+            \func f => 2
+            \func g => 3
+            -- ! Bar.ard
+            \func f => 4
+            \func h => 5
+            -- ! Main.ard
+            \import Foo
+            \import Bar \hiding (f)
+            \func g' => g
+            \func h' => h
+        """, """
+            \import Bar
+            \import Foo \hiding (f)
+            
+            \func g' => g
+            \func h' => h
         """)
     }
 
