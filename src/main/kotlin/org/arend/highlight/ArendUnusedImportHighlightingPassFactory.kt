@@ -8,7 +8,7 @@ import org.arend.psi.ArendFile
 
 class ArendUnusedImportHighlightingPassFactory : TextEditorHighlightingPassFactory, TextEditorHighlightingPassFactoryRegistrar {
     override fun registerHighlightingPassFactory(registrar: TextEditorHighlightingPassRegistrar, project: Project) {
-        registrar.registerTextEditorHighlightingPass(this, TextEditorHighlightingPassRegistrar.Anchor.LAST, Pass.LAST_PASS, true, false)
+        registrar.registerTextEditorHighlightingPass(this, intArrayOf(Pass.UPDATE_ALL), null, true, -1)
     }
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor): TextEditorHighlightingPass {

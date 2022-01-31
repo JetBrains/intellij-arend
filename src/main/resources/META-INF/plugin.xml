@@ -183,7 +183,7 @@
         <localInspection language="Arend" groupPath="Arend" key="arend.inspection.unused.import"
                          groupBundle="messages.InspectionsBundle"
                          groupKey="group.names.declaration.redundancy"
-                         enabledByDefault="true" level="WARNING"
+                         enabledByDefault="true"
                          unfair="true"
                          implementationClass="org.arend.inspection.ArendUnusedImportInspection"/>
         <!-- Intention Actions -->

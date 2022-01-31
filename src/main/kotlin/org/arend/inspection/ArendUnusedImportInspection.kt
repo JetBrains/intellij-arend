@@ -1,17 +1,10 @@
 package org.arend.inspection
 
-import com.intellij.codeInspection.ProblemsHolder
-import org.arend.psi.ArendVisitor
+import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.codeInspection.ex.UnfairLocalInspectionTool
 
-class ArendUnusedImportInspection : ArendInspectionBase() {
-
+class ArendUnusedImportInspection : LocalInspectionTool(), UnfairLocalInspectionTool {
     companion object {
         const val ID = "ArendUnusedImportInspection"
-    }
-
-    override fun getID(): String = ID
-
-    override fun buildArendVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): ArendVisitor {
-        return ArendVisitor()
     }
 }
