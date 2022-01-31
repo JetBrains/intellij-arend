@@ -52,7 +52,7 @@ class OptimizeImportsTest : ArendTestBase() {
     private fun doImplicitTest(
         @Language("Arend") before: String,
         @Language("Arend") after: String,
-        typecheck: Boolean = false) = doWithSettings(true, 0) { doTest(before, after, typecheck) }
+        typecheck: Boolean = false) = doWithSettings(true, 5000) { doTest(before, after, typecheck) }
 
     fun `test prelude`() {
         doExplicitTest("""
@@ -807,6 +807,122 @@ class OptimizeImportsTest : ArendTestBase() {
                 \func h => g
             """
         )
+    }
+
+    fun `test implicit import`() {
+        doImplicitTest("""
+            -- ! Foo.ard
+            \func f => 1
+            -- ! Main.ard
+            \import Foo
+            
+            \func g => f
+        """, """
+            \import Foo
+            
+            \func g => f
+        """)
+    }
+
+    fun `test implicit import with module`() {
+        doImplicitTest("""
+            -- ! Main.ard
+            \module M \where {
+              \func f : Nat => 4
+              \func g => 5
+            }
+            
+            \module K \where {
+              \func f : Nat => 3
+            }
+            
+            \module N \where {
+              \open M \hiding (f)
+              \open K
+            
+              \func h => f
+              \func h' => g
+            }
+        """, """
+            \open K
+            \open M \hiding (f)
+            
+            \module M \where {
+              \func f : Nat => 4
+              \func g => 5
+            }
+            
+            \module K \where {
+              \func f : Nat => 3
+            }
+            
+            \module N \where {
+              \func h => f
+              \func h' => g
+            }
+        """)
+    }
+
+    fun `test implicit import combined with open`() {
+        doImplicitTest("""
+            -- ! Foo.ard
+            \func f => 2
+            \func g2 => 3
+            -- ! Main.ard
+            \import Foo \hiding (f)
+            \open K
+            
+            \module K \where {
+              \func f => 4
+            }
+            
+            \func h => g2
+            \func h' => f
+        """, """
+            \import Foo \hiding (f)
+            \open K
+            
+            \module K \where {
+              \func f => 4
+            }
+            
+            \func h => g2
+            \func h' => f
+        """)
+    }
+
+    fun `test nested implicit import`() {
+        doImplicitTest("""
+            -- ! Foo.ard
+            \func f => 2
+            -- ! Main.ard
+            \import Foo
+            \open K
+            
+            \module K \where {
+              \func f => 4
+              \func g => 5
+            }
+            
+            \module G \where {
+              \open K (g)
+              \func h => f
+              \func j => g
+            }
+        """, """
+            \import Foo
+            \open K \hiding (f)
+            
+            \module K \where {
+              \func f => 4
+              \func g => 5
+            }
+            
+            \module G \where {
+              \func h => f
+              \func j => g
+            }
+        """)
     }
 
 }

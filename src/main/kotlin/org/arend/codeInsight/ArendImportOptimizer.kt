@@ -16,7 +16,6 @@ import com.intellij.util.castSafelyTo
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.arend.core.expr.FunCallExpression
 import org.arend.ext.module.ModulePath
-import org.arend.library.LibraryManager
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
@@ -70,8 +69,9 @@ class ArendImportOptimizer : ImportOptimizer {
         coreUsed: Boolean
     ) = object : ImportOptimizer.CollectingInfoRunnable {
         override fun run() {
-            addFileImports(file, fileImports)
-            addModuleOpens(listOf(), file, optimalTree)
+            val topLevelImportedNames = (fileImports.values + optimalTree.usages.values).flatMapTo(HashSet()) { it.map(ImportedName::visibleName) }
+            addFileImports(file, fileImports, topLevelImportedNames)
+            addModuleOpens(listOf(), file, optimalTree, topLevelImportedNames)
             file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
         }
 
@@ -84,38 +84,42 @@ class ArendImportOptimizer : ImportOptimizer {
 private val LOG = Logger.getInstance(ArendImportOptimizer::class.java)
 
 @RequiresWriteLock
-private fun addFileImports(file: ArendFile, imports: Map<ModulePath, Set<ImportedName>>) {
+private fun addFileImports(file: ArendFile, imports: Map<ModulePath, Set<ImportedName>>, allImportedNames: Set<String>) {
     eraseNamespaceCommands(file)
-    doAddNamespaceCommands(file, imports.mapKeys { it.key.toList() }, "\\import")
+    doAddNamespaceCommands(file, imports.mapKeys { it.key.toList() }, allImportedNames,"\\import")
 }
 
 @RequiresWriteLock
-private fun addModuleOpens(currentPath: List<String>, group: ArendGroup, rootStructure: OptimalModuleStructure?) {
+private fun addModuleOpens(
+    currentPath: List<String>,
+    group: ArendGroup,
+    rootStructure: OptimalModuleStructure?,
+    topLevelImportedNames: Set<String>
+) {
     if (group !is PsiFile) {
         eraseNamespaceCommands(group)
     }
     if (rootStructure != null && rootStructure.usages.isNotEmpty()) {
-        doAddNamespaceCommands(group, rootStructure.usages)
+        doAddNamespaceCommands(group, rootStructure.usages, topLevelImportedNames)
     }
     for (subgroup in group.subgroups.flatMap { listOf(it) + it.dynamicSubgroups }) {
         val substructure = rootStructure?.subgroups?.find { it.name == subgroup.name }
-        addModuleOpens(currentPath + listOf(substructure?.name ?: ""), subgroup, substructure) // remove nested opens
+        addModuleOpens(currentPath + listOf(substructure?.name ?: ""), subgroup, substructure, topLevelImportedNames + (substructure?.usages?.values?.flatMapTo(HashSet()) { it.map(ImportedName::visibleName) } ?: emptySet())) // remove nested opens
     }
 }
 
 private fun doAddNamespaceCommands(
     group: ArendGroup,
     importMap: Map<List<String>, Set<ImportedName>>,
+    allImportedNames: Set<String>,
     prefix: String = "\\open"
 ) {
     val importStatements = mutableListOf<String>()
     val settings = CodeStyle.getCustomSettings(group.containingFile, ArendCustomCodeStyleSettings::class.java)
-    val allImportedNames by lazy(LazyThreadSafetyMode.NONE) { importMap.flatMapTo(HashSet()) { it.value.map(ImportedName::visibleName) } }
-    val typechecker = group.project.service<TypeCheckingService>()
     for ((path, identifiers) in importMap) {
         if (path.isEmpty()) continue
-        if (settings.USE_IMPLICIT_IMPORTS && identifiers.size <= settings.EXPLICIT_IMPORTS_LIMIT) {
-            importStatements.add(createImplicitImport(prefix, path, allImportedNames, identifiers, typechecker.libraryManager))
+        if (settings.USE_IMPLICIT_IMPORTS || identifiers.size > settings.EXPLICIT_IMPORTS_LIMIT) {
+            importStatements.add(createImplicitImport(prefix, path, allImportedNames, identifiers, getScopeProvider(prefix == "\\open", group)))
         } else {
             importStatements.add(createExplicitImport("$prefix ${path.joinToString(".")}", identifiers))
         }
@@ -140,20 +144,31 @@ private fun doAddNamespaceCommands(
     }
 }
 
+fun getScopeProvider(isForModule: Boolean, group: ArendGroup): ScopeProvider {
+    return if (isForModule) {
+        group.scope::resolveNamespace
+    } else {
+        val libraryManager = group.project.service<TypeCheckingService>().libraryManager
+        { path -> libraryManager.registeredLibraries.firstNotNullOfOrNull { libraryManager.getAvailableModuleScopeProvider(it).forModule(ModulePath(path)) } }
+    }
+}
+
 private fun createExplicitImport(
     longPrefix: String,
     identifiers: Set<ImportedName>
 ) = longPrefix + identifiers.map { it.toString() }.sorted().joinToString(", ", " (", ")")
+
+private typealias ScopeProvider = (List<String>) -> Scope?
 
 private fun createImplicitImport(
     prefix: String,
     modulePath: List<String>,
     allImportedNames: Set<String>,
     currentlyImportedNames: Set<ImportedName>,
-    libraryManager: LibraryManager
+    scopeProvider: ScopeProvider
 ) : String {
     // todo: modules with equal names from different libraries
-    val scope: Scope? = libraryManager.registeredLibraries.firstNotNullOfOrNull { libraryManager.getAvailableModuleScopeProvider(it).forModule(ModulePath(modulePath)) }
+    val scope = scopeProvider(modulePath)
     if (scope == null) {
         LOG.error("No library containing required module found while optimizing imports. Please report it to maintainers")
     }
