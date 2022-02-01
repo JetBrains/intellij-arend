@@ -16,6 +16,7 @@ class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java)
     override fun registerHighlightingPassFactory(registrar: TextEditorHighlightingPassRegistrar, project: Project) {
         val service = project.service<ArendPassFactoryService>()
         myPassId = registrar.registerTextEditorHighlightingPass(this, intArrayOf(service.highlightingPassId, service.backgroundTypecheckerPassId), null, false, -1)
+        service.typecheckerPassId = myPassId
     }
 
     override fun allowWhiteSpaces() = true

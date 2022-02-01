@@ -1,6 +1,7 @@
 package org.arend.highlight
 
 import com.intellij.codeHighlighting.*
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
@@ -8,7 +9,8 @@ import org.arend.psi.ArendFile
 
 class ArendUnusedImportHighlightingPassFactory : TextEditorHighlightingPassFactory, TextEditorHighlightingPassFactoryRegistrar {
     override fun registerHighlightingPassFactory(registrar: TextEditorHighlightingPassRegistrar, project: Project) {
-        registrar.registerTextEditorHighlightingPass(this, intArrayOf(Pass.UPDATE_ALL), null, true, -1)
+        val service = project.service<ArendPassFactoryService>()
+        registrar.registerTextEditorHighlightingPass(this, intArrayOf(service.typecheckerPassId), null, true, -1)
     }
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor): TextEditorHighlightingPass {

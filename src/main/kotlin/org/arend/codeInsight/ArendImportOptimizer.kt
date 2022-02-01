@@ -59,7 +59,7 @@ class ArendImportOptimizer : ImportOptimizer {
 
     override fun processFile(file: PsiFile): Runnable {
         if (file !is ArendFile) return EmptyRunnable.getInstance()
-        val optimizationResult = getOptimalImportStructure(file)
+        val optimizationResult = getOptimalImportStructure(file, false)
         return psiModificationRunnable(file, optimizationResult)
     }
 
@@ -80,7 +80,7 @@ class ArendImportOptimizer : ImportOptimizer {
                 names.forEach { refName -> scope.resolveName(refName.visibleName)?.let {definitelyToHide[refName.visibleName] = it } }
             }
             addFileImports(file, fileImports, definitelyToHide)
-            addModuleOpens(listOf(), file, optimalTree, definitelyToHide)
+            addModuleOpens(file, optimalTree, definitelyToHide)
             file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
         }
 
@@ -104,7 +104,6 @@ private fun addFileImports(
 
 @RequiresWriteLock
 private fun addModuleOpens(
-    currentPath: List<String>,
     group: ArendGroup,
     rootStructure: OptimalModuleStructure?,
     alreadyImported: HashMap<String, Referable>
@@ -118,7 +117,7 @@ private fun addModuleOpens(
     for (subgroup in group.subgroups.flatMap { listOf(it) + it.dynamicSubgroups }) {
         val substructure = rootStructure?.subgroups?.find { it.name == subgroup.name }
         val subset = if (substructure == null) alreadyImported else HashMap(alreadyImported)
-        addModuleOpens(currentPath + listOf(substructure?.name ?: ""), subgroup, substructure, subset) // remove nested opens
+        addModuleOpens(subgroup, substructure, subset) // remove nested opens
     }
 }
 
@@ -224,10 +223,10 @@ internal data class OptimalModuleStructure(
     val usages: Map<List<String>, Set<ImportedName>>,
 )
 
-internal fun getOptimalImportStructure(file: ArendFile, onlyCore : Boolean = false, progressIndicator: ProgressIndicator? = null): OptimizationResult {
+internal fun getOptimalImportStructure(file: ArendFile, forbidCoreExpressions: Boolean, progressIndicator: ProgressIndicator? = null): OptimizationResult {
     val rootFrame = MutableFrame("")
     val forbiddenFilesToImport = setOfNotNull(file.moduleLocation?.modulePath?.toList(), Prelude.MODULE_PATH?.toList())
-    val collector = ImportStructureCollector(rootFrame, onlyCore, progressIndicator)
+    val collector = ImportStructureCollector(rootFrame, forbidCoreExpressions, progressIndicator)
 
     file.accept(collector)
     rootFrame.contract(collector.allDefinitionsTypechecked, collector.fileImports.values.flatMapTo(HashSet()) { it })
@@ -235,9 +234,13 @@ internal fun getOptimalImportStructure(file: ArendFile, onlyCore : Boolean = fal
     return OptimizationResult(collector.fileImports.filter { it.key !in forbiddenFilesToImport }, rootFrame.asOptimalTree(), collector.allDefinitionsTypechecked)
 }
 
-private class ImportStructureCollector(rootFrame: MutableFrame, private val useOnlyCore : Boolean = false, private val progressIndicator : ProgressIndicator? = null)
+private class ImportStructureCollector(
+    rootFrame: MutableFrame,
+    forbidCoreExpressions: Boolean,
+    private val progressIndicator: ProgressIndicator? = null
+)
     : PsiRecursiveElementWalkingVisitor() {
-    var allDefinitionsTypechecked = true
+    var allDefinitionsTypechecked = !forbidCoreExpressions
     val fileImports: MutableMap<List<String>, MutableSet<ImportedName>> = mutableMapOf()
     private val currentScopePath: MutableList<MutableFrame> = mutableListOf(rootFrame)
     private val currentModulePath: MutableList<String> = mutableListOf()
@@ -253,11 +256,9 @@ private class ImportStructureCollector(rootFrame: MutableFrame, private val useO
         if (element is ArendGroup && element !is ArendFile) {
             currentScopePath.add(MutableFrame(element.refName))
             currentModulePath.add(element.refName)
-            if (!useOnlyCore) {
-                addSyntacticGlobalInstances(currentScopePath[currentScopePath.lastIndex - 1], element)
-            }
+            addSyntacticGlobalInstances(currentScopePath[currentScopePath.lastIndex - 1], element)
         }
-        if (element is ArendFile && !useOnlyCore) {
+        if (element is ArendFile) {
             addSyntacticGlobalInstances(MutableFrame(""), element)
         }
         if (element is ArendDefinition) {
@@ -396,7 +397,7 @@ private data class MutableFrame(
                 additionalFiles.computeIfAbsent(filePath) { HashSet() }.addAll(ids)
             }
         }
-        val instanceSource = if (useTypecheckedInstances) instancesFromCore else instancesFromScope
+        val instanceSource = if (useTypecheckedInstances) instancesFromCore intersect instancesFromScope.toSet() else instancesFromScope
         for (instance in instanceSource) {
             val (importedFile, qualifier) = collectQualifier(instance)
             additionalFiles.computeIfAbsent(importedFile) { HashSet() }.add(ImportedName(qualifier.firstName ?: instance.refName, null))

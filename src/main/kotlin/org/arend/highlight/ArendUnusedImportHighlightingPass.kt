@@ -11,6 +11,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.profile.codeInspection.InspectionProjectProfileManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.parentsOfType
+import com.intellij.util.castSafelyTo
 import org.arend.codeInsight.ImportedName
 import org.arend.codeInsight.OptimalModuleStructure
 import org.arend.codeInsight.OptimizationResult
@@ -19,6 +22,7 @@ import org.arend.inspection.ArendUnusedImportInspection
 import org.arend.intention.ArendOptimizeImportsQuickFix
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStatement
+import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
@@ -30,7 +34,7 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
     private var optimizationResult: OptimizationResult? = null
 
     override fun doCollectInformation(progress: ProgressIndicator) {
-        optimizationResult = getOptimalImportStructure(file, true, progress)
+        optimizationResult = getOptimalImportStructure(file, false, progress)
     }
 
     private fun registerUnusedThing(
@@ -81,7 +85,8 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
         for (importStatement in statements) {
             val statCmd = importStatement.statCmd ?: continue
             val path = statCmd.longName ?: continue
-            val imported = pattern[path.longName]
+            val qualifiedReference = statCmd.openedReference?.castSafelyTo<ArendReferenceContainer>()?.resolve?.qualifiedName() ?: path.longName
+            val imported = pattern[qualifiedReference]
             if (imported == null) {
                 registerUnusedThing(importStatement.statCmd!!, bigErrorDescription, collector)
                 continue
@@ -94,6 +99,16 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
                 }
             }
         }
+    }
+
+    private fun PsiElement?.qualifiedName() : List<String>? {
+        if (this is PsiFile) {
+            return null
+        }
+        if (this !is ArendGroup) {
+            return null
+        }
+        return this.parentsOfType<ArendGroup>(true).mapNotNull { it.name }.toList().reversed().drop(1)
     }
 
     private fun highlightOpens(
