@@ -33,6 +33,7 @@ import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.getCompleteWhere
 import org.arend.settings.ArendCustomCodeStyleSettings
+import org.arend.settings.ArendCustomCodeStyleSettings.OptimizeImportsPolicy
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.SearchVisitor
 import org.arend.util.ArendBundle
@@ -51,7 +52,7 @@ import kotlin.reflect.jvm.internal.impl.utils.SmartSet
  * It removes an \open in a child group if parent group should have this \open.
  *
  * 3) Writing changes to the file. Responsible code is in [psiModificationRunnable].
- * All ns-commands are sorted in alphabetic order, previous imports and opens are removed.
+ * @see ArendCustomCodeStyleSettings.OptimizeImportsPolicy
  */
 class ArendImportOptimizer : ImportOptimizer {
 
@@ -67,26 +68,83 @@ class ArendImportOptimizer : ImportOptimizer {
         file: ArendFile,
         optimizationResult: OptimizationResult,
     ) = object : ImportOptimizer.CollectingInfoRunnable {
+        val settings = CodeStyle.getCustomSettings(file, ArendCustomCodeStyleSettings::class.java)
+
         override fun run() {
             val (fileImports, optimalTree, _) = optimizationResult
+            if (settings.OPTIMIZE_IMPORTS_POLICY == OptimizeImportsPolicy.SOFT) {
+                optimizeImportsSoftly(fileImports, optimalTree)
+            } else {
+                optimizeImportsHard(fileImports, optimalTree)
+            }
+            file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
+        }
+
+        private fun optimizeImportsHard(
+            fileImports: Map<List<String>, Set<ImportedName>>,
+            optimalTree: OptimalModuleStructure
+        ) {
             val definitelyToHide = HashMap<String, Referable>()
             val fileScopeProvider = getScopeProvider(true, file)
             fileImports.forEach { (path, names) ->
                 val scope = fileScopeProvider(path.toList()) ?: return@forEach
-                names.forEach { refName -> scope.resolveName(refName.visibleName)?.let {definitelyToHide[refName.visibleName] = it } }
+                names.forEach { refName ->
+                    scope.resolveName(refName.visibleName)?.let { definitelyToHide[refName.visibleName] = it }
+                }
             }
             optimalTree.usages.forEach { (path, names) ->
                 val scope = fileScopeProvider(path) ?: return@forEach
-                names.forEach { refName -> scope.resolveName(refName.visibleName)?.let {definitelyToHide[refName.visibleName] = it } }
+                names.forEach { refName ->
+                    scope.resolveName(refName.visibleName)?.let { definitelyToHide[refName.visibleName] = it }
+                }
             }
             addFileImports(file, fileImports, definitelyToHide)
             addModuleOpens(file, optimalTree, definitelyToHide)
-            file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
+        }
+
+        private fun optimizeImportsSoftly(
+            fileImports: Map<List<String>, Set<ImportedName>>,
+            optimalTree: OptimalModuleStructure
+        ) {
+            processRedundantImportedDefinitions(file, fileImports, optimalTree) {
+                it.delete()
+            }
         }
 
         override fun getUserNotificationInfo(): String =
             if (optimizationResult.coreDefinitionsUsed) ArendBundle.message("arend.optimize.imports.message.core.used")
             else ArendBundle.message("arend.optimize.imports.message.scope.used")
+    }
+}
+
+internal fun processRedundantImportedDefinitions(file : ArendFile, fileImports: Map<List<String>, Set<ImportedName>>, moduleStructure: OptimalModuleStructure, action: (ArendCompositeElement) -> Unit) {
+    checkStatements(action, file.statements.filter { it.statCmd?.importKw != null }, fileImports)
+    visitModuleInconsistencies(action, file, moduleStructure, moduleStructure.usages)
+}
+
+private fun checkStatements(action: (ArendCompositeElement) -> Unit, statements: List<ArendStatement>, pattern: Map<List<String>, Set<ImportedName>>) {
+    for (import in statements) {
+        val statCmd = import.statCmd ?: continue
+        val imported = pattern[statCmd.longName?.longName]
+        if (imported == null) {
+            action(import)
+            continue
+        }
+        val using = statCmd.nsUsing?.nsIdList ?: continue
+        for (nsId in using) {
+            val importedName = ImportedName(nsId.refIdentifier.text, nsId.defIdentifier?.text)
+            if (importedName !in imported) {
+                action(import)
+            }
+        }
+    }
+}
+
+private fun visitModuleInconsistencies(action : (ArendCompositeElement) -> Unit, group: ArendGroup, moduleStructure: OptimalModuleStructure, treeUsages : Map<List<String>, Set<ImportedName>>) {
+    checkStatements(action, group.statements.filter { it.statCmd?.openKw != null }, treeUsages)
+    for (subgroup in group.subgroups + group.dynamicSubgroups) {
+        val substructure = moduleStructure.subgroups.find { it.name == subgroup.name } ?: continue
+        visitModuleInconsistencies(action, subgroup, substructure, treeUsages + substructure.usages)
     }
 }
 
@@ -96,7 +154,7 @@ private val LOG = Logger.getInstance(ArendImportOptimizer::class.java)
 private fun addFileImports(
     file: ArendFile,
     imports: Map<List<String>, Set<ImportedName>>,
-    allIdentifiers: HashMap<String, Referable>
+    allIdentifiers: HashMap<String, Referable>,
 ) {
     eraseNamespaceCommands(file)
     doAddNamespaceCommands(file, imports, allIdentifiers,"\\import")
@@ -132,7 +190,7 @@ private fun doAddNamespaceCommands(
     val scopeProvider = getScopeProvider(prefix == "\\open", group)
     for ((path, identifiers) in importMap.toSortedMap { a, b -> a.joinToString().compareTo(b.joinToString()) }) {
         if (path.isEmpty()) continue
-        if (settings.USE_IMPLICIT_IMPORTS || identifiers.size > settings.EXPLICIT_IMPORTS_LIMIT) {
+        if (settings.OPTIMIZE_IMPORTS_POLICY == OptimizeImportsPolicy.ONLY_IMPLICIT || identifiers.size > settings.EXPLICIT_IMPORTS_LIMIT) {
             importStatements.add(createImplicitImport(prefix, path, scopeProvider, alreadyImported, identifiers.mapToSet(ImportedName::visibleName)))
             scopeProvider(path)?.globalSubscope?.elements?.forEach { alreadyImported[it.refName] = it }
         } else {

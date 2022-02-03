@@ -2,7 +2,10 @@ package org.arend.highlight
 
 import com.intellij.codeHighlighting.TextEditorHighlightingPass
 import com.intellij.codeInsight.daemon.HighlightDisplayKey
-import com.intellij.codeInsight.daemon.impl.*
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.codeInsight.daemon.impl.HighlightInfoType
+import com.intellij.codeInsight.daemon.impl.UnusedSymbolUtil
+import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
 import com.intellij.codeInsight.daemon.impl.quickfix.QuickFixAction
 import com.intellij.codeInspection.InspectionManager
 import com.intellij.codeInspection.ProblemHighlightType
@@ -11,19 +14,12 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.profile.codeInspection.InspectionProjectProfileManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.util.parentsOfType
-import com.intellij.util.castSafelyTo
-import org.arend.codeInsight.ImportedName
-import org.arend.codeInsight.OptimalModuleStructure
 import org.arend.codeInsight.OptimizationResult
 import org.arend.codeInsight.getOptimalImportStructure
+import org.arend.codeInsight.processRedundantImportedDefinitions
 import org.arend.inspection.ArendUnusedImportInspection
 import org.arend.intention.ArendOptimizeImportsQuickFix
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendStatement
-import org.arend.psi.ext.ArendReferenceContainer
-import org.arend.psi.ext.impl.ArendGroup
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
@@ -33,8 +29,18 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
     @Volatile
     private var optimizationResult: OptimizationResult? = null
 
+    @Volatile
+    private var redundantElements: List<PsiElement> = emptyList()
+
     override fun doCollectInformation(progress: ProgressIndicator) {
-        optimizationResult = getOptimalImportStructure(file, false, progress)
+        val currentOptimizationResult = getOptimalImportStructure(file, false, progress)
+        val (fileImports, openStructure, _) = currentOptimizationResult
+        val toErase = mutableListOf<PsiElement>()
+        processRedundantImportedDefinitions(file, fileImports, openStructure) {
+            toErase.add(it)
+        }
+        optimizationResult = currentOptimizationResult
+        redundantElements = toErase
     }
 
     private fun registerUnusedThing(
@@ -56,15 +62,10 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
     }
 
     override fun doApplyInformationToEditor() {
-        val (fileImports, openStructure, _) = optimizationResult ?: return
         val infos = mutableListOf<HighlightInfo>()
-        highlightNsCommands(
-            file.statements.filter { it.statCmd?.importKw != null },
-            fileImports,
-            infos,
-            ArendBundle.message("arend.inspection.unused.import.message.unused.import")
-        )
-        highlightOpens(file, openStructure, openStructure.usages, infos)
+        for (element in redundantElements) {
+            registerUnusedThing(element, ArendBundle.message("arend.inspection.unused.import.message.unused.import"), infos)
+        }
         UpdateHighlightersUtil.setHighlightersToEditor(
             file.project,
             editor.document,
@@ -74,53 +75,5 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
             colorsScheme,
             id
         )
-    }
-
-    private fun highlightNsCommands(
-        statements: List<ArendStatement>,
-        pattern: Map<List<String>, Set<ImportedName>>,
-        collector: MutableList<HighlightInfo>,
-        bigErrorDescription: @Nls String
-    ) {
-        for (importStatement in statements) {
-            val statCmd = importStatement.statCmd ?: continue
-            val path = statCmd.longName ?: continue
-            val qualifiedReference = statCmd.openedReference?.castSafelyTo<ArendReferenceContainer>()?.resolve?.qualifiedName() ?: path.longName
-            val imported = pattern[qualifiedReference]
-            if (imported == null) {
-                registerUnusedThing(importStatement.statCmd!!, bigErrorDescription, collector)
-                continue
-            }
-            val using = statCmd.nsUsing ?: continue
-            for (nsId in using.nsIdList) {
-                val importedName = ImportedName(nsId.refIdentifier.text, nsId.defIdentifier?.text)
-                if (importedName !in imported) {
-                    registerUnusedThing(nsId, ArendBundle.message("arend.inspection.unused.import.message.unused.definition"), collector)
-                }
-            }
-        }
-    }
-
-    private fun PsiElement?.qualifiedName() : List<String>? {
-        if (this is PsiFile) {
-            return null
-        }
-        if (this !is ArendGroup) {
-            return null
-        }
-        return this.parentsOfType<ArendGroup>(true).mapNotNull { it.name }.toList().reversed().drop(1)
-    }
-
-    private fun highlightOpens(
-        group: ArendGroup,
-        structure: OptimalModuleStructure?,
-        patterns: Map<List<String>, Set<ImportedName>>,
-        collector: MutableList<HighlightInfo>
-    ) {
-        highlightNsCommands(group.statements.filter { it.statCmd?.openKw != null }, patterns, collector, ArendBundle.message("arend.inspection.unused.import.message.unused.open"))
-        for (subgroup in group.subgroups + group.dynamicSubgroups) {
-            val substructure = structure?.subgroups?.find { it.name == subgroup.refName }
-            highlightOpens(subgroup, substructure, patterns + (substructure?.usages ?: emptyMap()), collector)
-        }
     }
 }

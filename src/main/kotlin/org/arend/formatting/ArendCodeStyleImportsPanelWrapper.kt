@@ -11,14 +11,14 @@ import com.intellij.ui.layout.panel
 import com.intellij.ui.layout.selected
 import org.arend.ArendFileType
 import org.arend.settings.ArendCustomCodeStyleSettings
+import org.arend.settings.ArendCustomCodeStyleSettings.OptimizeImportsPolicy
 import org.arend.util.ArendBundle
-import org.arend.util.labeledRow
 import javax.swing.JComponent
 
 class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyleAbstractPanel(settings) {
 
-    var myUseImplicitImports : Boolean = settings.arendSettings().USE_IMPLICIT_IMPORTS
-    var myLimitOfExplicitImports : Int = settings.arendSettings().EXPLICIT_IMPORTS_LIMIT
+    var myOptimizeImportsPolicy: OptimizeImportsPolicy = settings.arendSettings().OPTIMIZE_IMPORTS_POLICY
+    var myLimitOfExplicitImports: Int = settings.arendSettings().EXPLICIT_IMPORTS_LIMIT
 
     override fun getRightMargin(): Int = 0
 
@@ -28,29 +28,54 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
 
     override fun getPreviewText(): String? = null
 
-    private fun CodeStyleSettings.arendSettings() = getCustomSettings(ArendCustomCodeStyleSettings::class.java)
+    private fun CodeStyleSettings.arendSettings(): ArendCustomCodeStyleSettings =
+        getCustomSettings(ArendCustomCodeStyleSettings::class.java)
 
     override fun apply(settings: CodeStyleSettings) {
         myPanel.apply()
         val arendSettings = settings.arendSettings()
-        arendSettings.USE_IMPLICIT_IMPORTS = myUseImplicitImports
+        arendSettings.OPTIMIZE_IMPORTS_POLICY = myOptimizeImportsPolicy
         arendSettings.EXPLICIT_IMPORTS_LIMIT = myLimitOfExplicitImports
     }
 
     override fun isModified(settings: CodeStyleSettings): Boolean {
-        return myPanel.isModified() || (settings.arendSettings().USE_IMPLICIT_IMPORTS != myUseImplicitImports) || (settings.arendSettings().EXPLICIT_IMPORTS_LIMIT != myLimitOfExplicitImports)
+        return myPanel.isModified() ||
+                settings.arendSettings().OPTIMIZE_IMPORTS_POLICY != myOptimizeImportsPolicy ||
+                settings.arendSettings().EXPLICIT_IMPORTS_LIMIT != myLimitOfExplicitImports
+    }
+
+    override fun resetImpl(settings: CodeStyleSettings) {
+        val arendSettings = settings.arendSettings()
+        myOptimizeImportsPolicy = arendSettings.OPTIMIZE_IMPORTS_POLICY
+        myLimitOfExplicitImports = arendSettings.EXPLICIT_IMPORTS_LIMIT
+        myPanel.reset()
     }
 
     override fun getPanel(): JComponent = myPanel
 
     private val myPanel = panel {
-        row(ArendBundle.message("arend.code.style.settings.optimize.imports")) {
+        row(ArendBundle.message("arend.code.style.settings.optimize.imports.policy")) {
             buttonGroup {
                 row {
-                    radioButton(ArendBundle.message("arend.code.style.settings.use.implicit.imports"), this@ArendCodeStyleImportsPanelWrapper::myUseImplicitImports)
+                    radioButton(
+                        ArendBundle.message("arend.code.style.settings.soft.optimize.imports"),
+                        { myOptimizeImportsPolicy == OptimizeImportsPolicy.SOFT },
+                        { myOptimizeImportsPolicy = OptimizeImportsPolicy.SOFT },
+                    )
                 }
                 row {
-                    val button = radioButton(ArendBundle.message("arend.code.style.settings.use.explicit.imports"), { !myUseImplicitImports }, { myUseImplicitImports = !it })
+                    radioButton(
+                        ArendBundle.message("arend.code.style.settings.use.implicit.imports"),
+                        { myOptimizeImportsPolicy == OptimizeImportsPolicy.ONLY_IMPLICIT },
+                        { myOptimizeImportsPolicy = OptimizeImportsPolicy.ONLY_EXPLICIT },
+                    )
+                }
+                row {
+                    val button = radioButton(
+                        ArendBundle.message("arend.code.style.settings.use.explicit.imports"),
+                        { myOptimizeImportsPolicy == OptimizeImportsPolicy.ONLY_EXPLICIT },
+                        { myOptimizeImportsPolicy = OptimizeImportsPolicy.ONLY_EXPLICIT },
+                    )
                     row {
                         label(ArendBundle.message("arend.code.style.settings.explicit.imports.limit"))
                         intTextField(this@ArendCodeStyleImportsPanelWrapper::myLimitOfExplicitImports, null, 0..5000)
@@ -58,18 +83,10 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
                             .growPolicy(GrowPolicy.SHORT_TEXT)
                     }
                 }
-
             }
         }
     }
 
-
-    override fun resetImpl(settings: CodeStyleSettings) {
-        val arendSettings = settings.arendSettings()
-        myUseImplicitImports = arendSettings.USE_IMPLICIT_IMPORTS
-        myLimitOfExplicitImports = arendSettings.EXPLICIT_IMPORTS_LIMIT
-        myPanel.reset()
-    }
 
     override fun getTabTitle(): String = ApplicationBundle.INSTANCE.getMessage("title.imports")
 }

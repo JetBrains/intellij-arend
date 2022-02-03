@@ -5,6 +5,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import org.arend.*
 import org.arend.codeInsight.ArendImportOptimizer
 import org.arend.settings.ArendCustomCodeStyleSettings
+import org.arend.settings.ArendCustomCodeStyleSettings.*
 import org.intellij.lang.annotations.Language
 
 class OptimizeImportsTest : ArendTestBase() {
@@ -15,10 +16,10 @@ class OptimizeImportsTest : ArendTestBase() {
         return testProject
     }
 
-    private inline fun doWithSettings(useImplicitImports : Boolean, action : () -> Unit) {
+    private inline fun doWithSettings(policy : OptimizeImportsPolicy, action : () -> Unit) {
         val settings = CodeStyle.createTestSettings()
         val arendSettings = settings.getCustomSettings(ArendCustomCodeStyleSettings::class.java)
-        arendSettings.USE_IMPLICIT_IMPORTS = useImplicitImports
+        arendSettings.OPTIMIZE_IMPORTS_POLICY = policy
         arendSettings.EXPLICIT_IMPORTS_LIMIT = 5000
         CodeStyle.setTemporarySettings(myFixture.project, settings)
         try {
@@ -47,12 +48,17 @@ class OptimizeImportsTest : ArendTestBase() {
         @Language("Arend") before: String,
         @Language("Arend") after: String,
         typecheck: Boolean = false
-    ) = doWithSettings(false) { doTest(before, after, typecheck) }
+    ) = doWithSettings(OptimizeImportsPolicy.ONLY_EXPLICIT) { doTest(before, after, typecheck) }
 
     private fun doImplicitTest(
         @Language("Arend") before: String,
         @Language("Arend") after: String,
-        typecheck: Boolean = false) = doWithSettings(true) { doTest(before, after, typecheck) }
+        typecheck: Boolean = false) = doWithSettings(OptimizeImportsPolicy.ONLY_IMPLICIT) { doTest(before, after, typecheck) }
+
+    private fun doSoftTest(
+        @Language("Arend") before: String,
+        @Language("Arend") after: String,
+        typecheck: Boolean = false) = doWithSettings(OptimizeImportsPolicy.SOFT) { doTest(before, after, typecheck) }
 
     fun `test prelude`() {
         doExplicitTest("""
