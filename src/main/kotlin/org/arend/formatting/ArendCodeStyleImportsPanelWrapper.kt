@@ -67,7 +67,7 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
                     radioButton(
                         ArendBundle.message("arend.code.style.settings.use.implicit.imports"),
                         { myOptimizeImportsPolicy == OptimizeImportsPolicy.ONLY_IMPLICIT },
-                        { myOptimizeImportsPolicy = OptimizeImportsPolicy.ONLY_EXPLICIT },
+                        { myOptimizeImportsPolicy = OptimizeImportsPolicy.ONLY_IMPLICIT },
                     )
                 }
                 row {

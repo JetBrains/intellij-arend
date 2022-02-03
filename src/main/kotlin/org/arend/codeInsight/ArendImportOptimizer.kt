@@ -122,6 +122,13 @@ class ArendImportOptimizer : ImportOptimizer {
                 }
                 element.delete()
             }
+            val factory = ArendPsiFactory(file.project)
+            val allImports = file.statements.filter { it.statCmd?.importKw != null }.map {
+                val text = it.text
+                it.delete()
+                factory.createFromText(text)!!.statements[0]
+            }.sortedByDescending { it.text }
+            allImports.forEach { file.addBefore(it, file.firstChild) }
         }
 
         override fun getUserNotificationInfo(): String =

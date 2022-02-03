@@ -1099,10 +1099,11 @@ class OptimizeImportsTest : ArendTestBase() {
             \func r''' => i''
             \func r'''' => j'
         """, """
-            \import Foo (f)
             \import Bar (h)
             \import Baz (i', i'')
+            \import Foo (f)
             \import Qux (j')
+
             \func r => f
             \func r' => h
             \func r'' => i'
@@ -1110,4 +1111,30 @@ class OptimizeImportsTest : ArendTestBase() {
             \func r'''' => j'
         """)
     }
+
+    fun `test soft imports 4`() {
+        doSoftTest("""
+            -- ! Aaa.ard
+            \func f => 1
+            -- ! Bbb.ard
+            \func g => 1
+            -- ! Ccc.ard
+            \func h => 1
+            -- ! Main.ard
+            \import Ccc
+            
+            \import Bbb (g)
+             
+            \import Aaa 
+             
+             \func p => f + g + h
+        """, """
+            \import Aaa
+            \import Bbb (g)
+            \import Ccc
+            
+            \func p => f + g + h
+        """)
+    }
+
 }
