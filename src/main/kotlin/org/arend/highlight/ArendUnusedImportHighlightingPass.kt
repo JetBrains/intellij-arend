@@ -20,6 +20,8 @@ import org.arend.codeInsight.processRedundantImportedDefinitions
 import org.arend.inspection.ArendUnusedImportInspection
 import org.arend.intention.ArendOptimizeImportsQuickFix
 import org.arend.psi.ArendFile
+import org.arend.psi.ArendNsId
+import org.arend.psi.ArendStatement
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
@@ -64,7 +66,13 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
     override fun doApplyInformationToEditor() {
         val infos = mutableListOf<HighlightInfo>()
         for (element in redundantElements) {
-            registerUnusedThing(element, ArendBundle.message("arend.inspection.unused.import.message.unused.import"), infos)
+            val message = when {
+                element is ArendStatement && element.statCmd?.importKw != null -> ArendBundle.message("arend.inspection.unused.import.message.unused.import")
+                element is ArendStatement && element.statCmd?.openKw != null -> ArendBundle.message("arend.inspection.unused.import.message.unused.open")
+                element is ArendNsId -> ArendBundle.message("arend.inspection.unused.import.message.unused.definition")
+                else -> error("Unexpected element. Please report")
+            }
+            registerUnusedThing(element, message, infos)
         }
         UpdateHighlightersUtil.setHighlightersToEditor(
             file.project,
