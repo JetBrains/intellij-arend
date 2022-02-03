@@ -961,9 +961,6 @@ class OptimizeImportsTest : ArendTestBase() {
             } \where {
               \func ff' : Nat => 1
             }
-            -- ! Bar.ard
-            \func f => 4
-            \func h => 5
             -- ! Main.ard
             \import Foo
             \open F
@@ -979,4 +976,138 @@ class OptimizeImportsTest : ArendTestBase() {
         """)
     }
 
+    fun `test soft imports with class`() {
+        doSoftTest("""
+            -- ! Foo.ard
+            \class F {
+              | ff : Nat
+            } \where {
+              \func ff' : Nat => 1
+            }
+            -- ! Main.ard
+            \import Foo (F, ff)
+            \open F
+            
+            \func g {f : F} => ff
+            \func h => ff'
+        """, """
+            \import Foo (F, ff)
+            \open F
+            
+            \func g {f : F} => ff
+            \func h => ff'
+        """)
+    }
+
+    fun `test soft imports redundant open`() {
+        doSoftTest("""
+            -- ! Main.ard
+            \module A \where {
+              \module X \where {}
+            
+              \open X
+            }
+        """, """
+           \module A \where {
+             \module X \where {}
+           }
+        """)
+    }
+
+    fun `test soft imports`() {
+        doSoftTest("""
+            -- ! Main.ard
+            \module A \where {
+              \module B \where {
+                \func f => 1
+                \where {
+                  \func g => {?}
+                }
+                \open f
+            
+                \func h => g
+              }
+            }
+        """, """
+            \module A \where {
+              \module B \where {
+                \func f => 1
+                \where {
+                  \func g => {?}
+                }
+                \open f
+            
+                \func h => g
+              }
+            }
+        """)
+    }
+
+    fun `test soft imports 2`() {
+        doSoftTest("""
+            -- ! Main.ard
+            \module A \where {
+              \module B \where {
+                \func f => 1
+                \where {
+                  \func g => {?}
+                }
+                \open B.f
+            
+                \func h => g
+              }
+            }
+        """, """
+            \module A \where {
+              \module B \where {
+                \func f => 1
+                \where {
+                  \func g => {?}
+                }
+                \open B.f
+            
+                \func h => g
+              }
+            }
+        """)
+    }
+
+    fun `test soft imports 3`() {
+        doSoftTest("""
+            -- ! Foo.ard
+            \func f => 1
+            \func f' => 2
+            -- ! Bar.ard
+            \func h' => 3
+            \func h => 3
+            \func h'' => 3
+            -- ! Baz.ard
+            \func i => 4
+            \func i' => 4
+            \func i'' => 4
+            -- ! Qux.ard
+            \func j => 4
+            \func j' => 4
+            -- ! Main.ard
+            \import Foo (f, f')
+            \import Bar (h', h, h'')
+            \import Baz (i', i, i'')
+            \import Qux (j, j')
+            \func r => f
+            \func r' => h
+            \func r'' => i'
+            \func r''' => i''
+            \func r'''' => j'
+        """, """
+            \import Foo (f)
+            \import Bar (h)
+            \import Baz (i', i'')
+            \import Qux (j')
+            \func r => f
+            \func r' => h
+            \func r'' => i'
+            \func r''' => i''
+            \func r'''' => j'
+        """)
+    }
 }

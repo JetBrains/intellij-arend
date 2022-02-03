@@ -11,6 +11,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiRecursiveElementWalkingVisitor
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.castSafelyTo
@@ -26,6 +27,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.ext.impl.ArendGroup
@@ -106,8 +108,19 @@ class ArendImportOptimizer : ImportOptimizer {
             fileImports: Map<List<String>, Set<ImportedName>>,
             optimalTree: OptimalModuleStructure
         ) {
-            processRedundantImportedDefinitions(file, fileImports, optimalTree) {
-                it.delete()
+            processRedundantImportedDefinitions(file, fileImports, optimalTree) { element ->
+                if (element is ArendNsId) {
+                    val nextComma = element.findNextSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
+                    val prevComma = element.findPrevSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
+                    if (nextComma != null) {
+                        nextComma.delete()
+                    } else if (prevComma != null) {
+                        prevComma.delete()
+                    } else {
+                        // at least one nsId was imported, if this function called
+                    }
+                }
+                element.delete()
             }
         }
 
@@ -125,7 +138,8 @@ internal fun processRedundantImportedDefinitions(file : ArendFile, fileImports: 
 private fun checkStatements(action: (ArendCompositeElement) -> Unit, statements: List<ArendStatement>, pattern: Map<List<String>, Set<ImportedName>>) {
     for (import in statements) {
         val statCmd = import.statCmd ?: continue
-        val imported = pattern[statCmd.longName?.longName]
+        val qualifiedReference = statCmd.openedReference?.castSafelyTo<ArendReferenceContainer>()?.resolve?.takeIf { it !is ArendFile }?.castSafelyTo<ArendGroup>()?.qualifiedName() ?: statCmd.longName?.longName
+        val imported = pattern[qualifiedReference]
         if (imported == null) {
             action(import)
             continue
@@ -134,17 +148,22 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit, statements:
         for (nsId in using) {
             val importedName = ImportedName(nsId.refIdentifier.text, nsId.defIdentifier?.text)
             if (importedName !in imported) {
-                action(import)
+                action(nsId)
             }
         }
     }
 }
 
-private fun visitModuleInconsistencies(action : (ArendCompositeElement) -> Unit, group: ArendGroup, moduleStructure: OptimalModuleStructure, treeUsages : Map<List<String>, Set<ImportedName>>) {
+private fun ArendGroup.qualifiedName() : MutableList<String> {
+    return if (this is ArendFile) mutableListOf()
+    else this.parentGroup?.qualifiedName()?.also { it.add(this.refName) } ?: mutableListOf()
+}
+
+private fun visitModuleInconsistencies(action : (ArendCompositeElement) -> Unit, group: ArendGroup, moduleStructure: OptimalModuleStructure?, treeUsages : Map<List<String>, Set<ImportedName>>) {
     checkStatements(action, group.statements.filter { it.statCmd?.openKw != null }, treeUsages)
     for (subgroup in group.subgroups + group.dynamicSubgroups) {
-        val substructure = moduleStructure.subgroups.find { it.name == subgroup.name } ?: continue
-        visitModuleInconsistencies(action, subgroup, substructure, treeUsages + substructure.usages)
+        val substructure = moduleStructure?.subgroups?.find { it.name == subgroup.name }
+        visitModuleInconsistencies(action, subgroup, substructure, treeUsages + (substructure?.usages ?: emptyMap()))
     }
 }
 
