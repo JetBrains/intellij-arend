@@ -422,7 +422,7 @@ private class ImportStructureCollector(
         }
         val (openingPath, preCharacteristics) = subtract(
             openingQualifier.toList(),
-            importedFile.toList(),
+            importedFile.toList() ?: emptyList(),
             element.longName
         )
         if (preCharacteristics == null) {
