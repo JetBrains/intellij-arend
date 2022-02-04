@@ -29,6 +29,7 @@ jobs:
     - uses: eskatos/gradle-command-action@v1
       with:
         wrapper-cache-enabled: false
+        cache-disabled: true
         build-root-directory: intellij-arend
         wrapper-directory: intellij-arend
         arguments: clean test --info --no-daemon --stacktrace
@@ -37,6 +38,7 @@ jobs:
       if: matrix.os == 'macOS-latest' && matrix.java == '11'
       with:
         wrapper-cache-enabled: false
+        cache-disabled: true
         build-root-directory: intellij-arend
         wrapper-directory: intellij-arend
         arguments: assemble --info --no-daemon --stacktrace
