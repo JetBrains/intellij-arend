@@ -31,7 +31,7 @@ jobs:
         wrapper-cache-enabled: false
         build-root-directory: intellij-arend
         wrapper-directory: intellij-arend
-        arguments: test --info --no-daemon --stacktrace
+        arguments: clean test --info --no-daemon --stacktrace
     - uses: eskatos/gradle-command-action@v1
       # Normally, macOS runs faster than the other two
       if: matrix.os == 'macOS-latest' && matrix.java == '11'
