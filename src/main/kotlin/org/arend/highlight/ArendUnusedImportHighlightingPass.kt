@@ -67,9 +67,15 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
         val infos = mutableListOf<HighlightInfo>()
         for (element in redundantElements) {
             val message = when {
-                element is ArendStatement && element.statCmd?.importKw != null -> ArendBundle.message("arend.inspection.unused.import.message.unused.import")
-                element is ArendStatement && element.statCmd?.openKw != null -> ArendBundle.message("arend.inspection.unused.import.message.unused.open")
-                element is ArendNsId -> ArendBundle.message("arend.inspection.unused.import.message.unused.definition")
+                element is ArendStatement && element.statCmd?.importKw != null -> element.statCmd?.longName?.text?.run {
+                    ArendBundle.message("arend.inspection.unused.import.message.unused.import.0", this)
+                } ?: ArendBundle.message("arend.inspection.unused.import.message.unused.import")
+                element is ArendStatement && element.statCmd?.openKw != null -> element.statCmd?.longName?.text?.run {
+                    ArendBundle.message("arend.inspection.unused.import.message.unused.open.0", this)
+                } ?: ArendBundle.message("arend.inspection.unused.import.message.unused.open")
+                element is ArendNsId -> element.name?.run {
+                    ArendBundle.message("arend.inspection.unused.import.message.unused.definition.0", this )
+                } ?: ArendBundle.message("arend.inspection.unused.import.message.unused.definition", this )
                 else -> error("Unexpected element. Please report")
             }
             registerUnusedThing(element, message, infos)

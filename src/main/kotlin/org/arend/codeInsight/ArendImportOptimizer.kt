@@ -119,7 +119,9 @@ class ArendImportOptimizer : ImportOptimizer {
                         // if this function was called, then at least two nsId was imported, and one of them is used
                     }
                 }
+                val singularWhere = element.parentOfType<ArendWhere>()?.takeIf { it.statementList.singleOrNull() == element }
                 element.delete()
+                singularWhere?.delete()
             }
             val factory = ArendPsiFactory(file.project)
             val allImports = file.statements.filter { it.statCmd?.importKw != null }.map {
@@ -592,6 +594,5 @@ private fun collectQualifier(element: ArendCompositeElement): Pair<FilePath, Mod
         }
         currentGroup = currentGroup.parentGroup
     }
-    LOG.error("Every stub hierarchy should end in PsiFile")
-    error("unreachable")
+    return ModulePath() to ModulePath()
 }
