@@ -112,6 +112,7 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 tasks.withType<Test>().configureEach {
+    maxHeapSize = "1024m"
     testLogging {
         if (prop("showTestStatus") == "true") {
             events = setOf(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)
