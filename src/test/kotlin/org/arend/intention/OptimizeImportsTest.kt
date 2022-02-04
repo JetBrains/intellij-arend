@@ -1137,4 +1137,33 @@ class OptimizeImportsTest : ArendTestBase() {
         """)
     }
 
+    fun `test soft imports 5`() {
+        doSoftTest("""
+            -- ! Main.ard
+            \class R | n : Nat
+            
+            \func ff {_ : R} => 10
+            
+            \instance G' : R | n => 2
+            
+            \module M \where {
+              \open Main (G')
+            
+              \func f : Nat => ff
+            }
+        """, """
+            \class R | n : Nat
+            
+            \func ff {_ : R} => 10
+            
+            \instance G' : R | n => 2
+            
+            \module M \where {
+              \open Main (G')
+            
+              \func f : Nat => ff
+            }
+        """)
+    }
+
 }

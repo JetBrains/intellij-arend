@@ -21,8 +21,7 @@ import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
-import org.arend.naming.scope.EmptyScope
-import org.arend.naming.scope.LexicalScope
+import org.arend.naming.scope.NamespaceCommandNamespace
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -336,16 +335,16 @@ private class ImportStructureCollector(
             currentFrame.definitions.add((element as Referable).refName)
             registerCoClauses(element)
         }
+        if (element is ArendDefinition) {
+            addCoreGlobalInstances(element)
+        }
         if (element is ArendGroup && element !is ArendFile) {
             frameStack.add(MutableFrame(element.refName))
             groupStack.add(element.refName)
-            addSyntacticGlobalInstances(frameStack[frameStack.lastIndex - 1], element)
+            addSyntacticGlobalInstances(element)
         }
         if (element is ArendFile) {
-            addSyntacticGlobalInstances(MutableFrame(""), element)
-        }
-        if (element is ArendDefinition) {
-            addCoreGlobalInstances(element)
+            addSyntacticGlobalInstances(element)
         }
 
         if (element !is ArendStatCmd) {
@@ -368,7 +367,8 @@ private class ImportStructureCollector(
         tcReferable!!.accept(object : SearchVisitor<Unit>() { // not-null assertion implied by '&&' above
             override fun visitFunCall(expr: FunCallExpression?, params: Unit?): Boolean {
                 val pointerToDefinition = expr?.definition?.referable?.data?.castSafelyTo<SmartPsiElementPointer<*>>()
-                val globalInstance = pointerToDefinition?.element?.castSafelyTo<ArendDefInstance>()?.takeIf { it.isDefinitelyInstance() }
+                val globalInstance =
+                    pointerToDefinition?.element?.castSafelyTo<ArendDefInstance>()?.takeIf { it.isDefinitelyInstance() }
                 if (globalInstance != null) {
                     currentFrame.instancesFromCore.add(globalInstance)
                 }
@@ -377,20 +377,19 @@ private class ImportStructureCollector(
         }, Unit)
     }
 
-    private fun addSyntacticGlobalInstances(lastFrame : MutableFrame, element: ArendGroup) {
+    private fun addSyntacticGlobalInstances(element: ArendGroup) {
+        // only \open-ed instances can participate in instance candidate resolution
         val scope = element.scope
-        val restrictedScope = if (scope is LexicalScope) {
-            LexicalScope.insideOf(element, EmptyScope.INSTANCE)
-        } else scope
-        Scope.traverse(restrictedScope) {
-            if (it is ArendDefInstance && it.isDefinitelyInstance()) {
-                currentFrame.instancesFromScope.add(it)
+        val referables =
+            element.namespaceCommands.flatMap { NamespaceCommandNamespace.makeNamespace(scope, it).elements }
+        for (instanceCandidate in referables) {
+            if (instanceCandidate is ArendDefInstance && instanceCandidate.isDefinitelyInstance()) {
+                currentFrame.instancesFromScope.add(instanceCandidate)
             }
         }
-        currentFrame.instancesFromScope.addAll(lastFrame.instancesFromScope)
     }
 
-    private fun ArendDefInstance.isDefinitelyInstance() : Boolean = this.instanceOrCons.instanceKw != null
+    private fun ArendDefInstance.isDefinitelyInstance(): Boolean = this.instanceOrCons.instanceKw != null
 
     override fun elementFinished(element: PsiElement?) {
         if (element is ArendGroup && element !is ArendFile) {
@@ -494,12 +493,6 @@ private data class MutableFrame(
                 additionalFiles.computeIfAbsent(filePath) { HashSet() }.addAll(ids)
             }
         }
-        val instanceSource = if (useTypecheckedInstances) instancesFromCore intersect instancesFromScope.toSet() else instancesFromScope
-        for (instance in instanceSource) {
-            val (importedFile, qualifier) = collectQualifier(instance)
-            additionalFiles.computeIfAbsent(importedFile) { HashSet() }.add(ImportedName(qualifier.firstName ?: instance.refName, null))
-            usages[ImportedName(instance.refName, null)] = qualifier
-        }
         val allInnerIdentifiers = subgroups.flatMapTo(HashSet()) { it.usages.keys }
 
         for (identifier in allInnerIdentifiers) {
@@ -531,6 +524,16 @@ private data class MutableFrame(
                 usages[identifier] = paths.first()
                 subgroups.forEach { it.usages.remove(identifier) }
             }
+        }
+        // the order is important. Implicitly used instances are not inherited, so they should be adder after erasing unnecessary usages
+        val instanceSource =
+            if (useTypecheckedInstances) instancesFromCore intersect instancesFromScope.toSet() else instancesFromScope
+        for (instance in instanceSource) {
+            val (importedFile, qualifier) = collectQualifier(instance)
+            additionalFiles.computeIfAbsent(importedFile) { HashSet() }
+                .add(ImportedName(qualifier.firstName ?: instance.refName, null))
+            usages[ImportedName(instance.refName, null)] =
+                qualifier.takeIf { this@MutableFrame.name == "" || it.toList().isNotEmpty() } ?: importedFile
         }
         subgroups.removeAll { it.usages.isEmpty() && it.subgroups.isEmpty() }
         return additionalFiles
