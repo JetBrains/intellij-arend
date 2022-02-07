@@ -11,6 +11,7 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.elementType
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.Consumer
+import org.arend.module.ModuleLocation
 import org.arend.naming.scope.ScopeFactory.isGlobalScopeVisible
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceElement
@@ -45,6 +46,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         }
         result.runRemainingContributors(parameters, tracker)
         val file = parameters.originalFile
+        val isTestFile = (file as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
         val refElementAtCaret = file.findElementAt(parameters.offset - 1)?.parent
         val parent = refElementAtCaret?.parent
         val allowedPosition = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName && refElementAtCaret.prevSibling == null && isGlobalScopeVisible(refElementAtCaret)
@@ -58,7 +60,8 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 if (BetterPrefixMatcher(result.prefixMatcher, Int.MIN_VALUE).prefixMatches(name)) {
                     val locatedReferables = refs ?: StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
                     locatedReferables.forEach {
-                        if (!tracker.variants.contains(it)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
+                        val isInsideTest = (it.containingFile as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
+                        if (!tracker.variants.contains(it) && (isTestFile || !isInsideTest)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
                             result.addElement(
                                     run {
                                         val oldHandler = it.insertHandler
