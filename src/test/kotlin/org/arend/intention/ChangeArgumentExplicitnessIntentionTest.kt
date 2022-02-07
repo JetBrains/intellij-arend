@@ -885,4 +885,28 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func foo => (++ {-1-}
        {1} {-2-} 2, ++ {-1-} {1} {-2-} 2)
     """)
+
+    fun testBrackets7() = doTest("""
+       \func \infixl 5 ++ ({-caret-}a b : Nat) => Nat.+ a b 
+
+       \func foo (a : \Sigma Nat Nat) => a.1 ++ a.2 
+    """, """
+       \func \infixl 5 ++ {a : Nat} (b : Nat) => Nat.+ a b 
+
+       \func foo (a : \Sigma Nat Nat) => ++ {a.1} a.2  
+    """)
+
+    fun testBrackets8() = doTest("""
+       \func \infixl 6 ++ (a b : Nat -> Nat) => a 1 Nat.+ b 1 
+ 
+       \func \infixl 7 ** (a : Nat) ({-caret-}b : Nat) => a Nat.+ b 
+ 
+       \func foo => ** 1 ++ (**) 3 
+    """, """
+       \func \infixl 6 ++ (a b : Nat -> Nat) => a 1 Nat.+ b 1
+
+       \func \infixl 7 ** (a : Nat) {b : Nat} => a Nat.+ b
+
+       \func foo => (\lam b => ** 1 {b}) ++ (\lam b => ** 3 {b}) 
+    """)
 }

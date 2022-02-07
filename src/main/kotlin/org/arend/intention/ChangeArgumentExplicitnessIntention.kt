@@ -223,7 +223,7 @@ data class RefactoringContext(
     val diffIndex = oldParameters.reversed().zip(newParameters.reversed()).indexOfFirst { (o, n) -> n.oldParameter != o || n.isExplicit != o.isExplicit }
 }
 
-fun doProcessEntry(entry: UsageEntry, defName: String?, isInfix: Boolean = false): Pair<String /* default version */, String /* version with parenthesized operator */ > {
+fun doProcessEntry(entry: UsageEntry, defName: String?, isInfix: Boolean = false): Pair<String /* default version */, String? /* version with parenthesized operator */ > {
     val defaultBuilder = StringBuilder()
     val parenthesizedPrefixBuilder = StringBuilder()
     fun append(text: String) { defaultBuilder.append(text); parenthesizedPrefixBuilder.append(text) }
@@ -299,7 +299,7 @@ fun doProcessEntry(entry: UsageEntry, defName: String?, isInfix: Boolean = false
     entry.getUnmodifiableSuffix()?.let {
         append(it)
     }
-    return Pair(defaultBuilder.toString(), parenthesizedPrefixBuilder.toString())
+    return Pair(defaultBuilder.toString(), if (lambdaArgs == "") parenthesizedPrefixBuilder.toString() else null)
 }
 
 fun getStrippedPsi(exprData2: PsiElement): Pair<PsiElement, Boolean> {
@@ -339,7 +339,7 @@ fun getStrippedPsi(exprData2: PsiElement): Pair<PsiElement, Boolean> {
         }
         break
     }
-    return Pair(exprData, exprData is ArendAtom || exprData is ArendLongName || exprData is ArendTuple || exprData is ArendLiteral || exprData.text == "_")
+    return Pair(exprData, exprData is ArendAtom || exprData is ArendLongName || exprData is ArendTuple || exprData is ArendLiteral || exprData.text == "_" || exprData is ArendAtomFieldsAcc)
 }
 
 fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, defName: String?, refactoringContext: RefactoringContext): ProcessAppExprResult {
@@ -351,7 +351,8 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
 
         return if (refactoringContext.def == resolve) {
             val processResult = doProcessEntry(appExprEntry, defName, resolveIsInfix)
-            ProcessAppExprResult(processResult.first, null, processResult.second,false)
+            val isLambda = processResult.second == null
+            ProcessAppExprResult(if (isLambda) "(${processResult.first})" else processResult.first, if (isLambda) processResult.first else null, processResult.second,false)
         } else {
             val builder = StringBuilder()
             val parenthesizedBuilder = StringBuilder()
@@ -549,7 +550,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                                 val expr = callEntry.second!!
                                 refactoringContext.rangeData.clear()
                                 getBounds(expr, psiElement.node.getChildren(null).toList(), rangeData)
-                                processAppExpr(expr, psiElement, defName, refactoringContext).text
+                                processAppExpr(expr, psiElement, defName, refactoringContext).let { it.strippedText ?: it.text }
                             } catch (e: IllegalStateException) { // TODO: We could use custom exception in processAppExpr
                                 failingAppExprs.add(psiElement)
                                 null
