@@ -909,4 +909,18 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func foo => (\lam b => ** 1 {b}) ++ (\lam b => ** 3 {b}) 
     """)
+
+    fun testRecord() = doTest("""
+       \record R {
+         \func foo {{-caret-}x : Nat} => x
+       }
+
+       \func bar (r : R) => r.foo {0} 
+    """, """
+       \record R {
+         \func foo (x : Nat) => x
+       }
+
+       \func bar (r : R) => r.foo 0  
+    """)
 }
