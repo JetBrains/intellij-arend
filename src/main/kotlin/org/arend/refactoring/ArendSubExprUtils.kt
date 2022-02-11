@@ -242,14 +242,14 @@ fun psiOfConcrete(expr: Concrete.Expression): PsiElement? {
 }
 
 fun collectArendExprs(
-        parent: PsiElement,
-        range: TextRange
-): Pair<ArendExpr, List<Abstract.BinOpSequenceElem>>? {
+    parent: PsiElement,
+    range: TextRange
+): Pair<Abstract.Expression, List<Abstract.BinOpSequenceElem>>? {
     val head: PsiElement
     val tail: Sequence<PsiElement>
     if (range.isEmpty) {
-        when (val firstExpr = parent.linearDescendants.filterIsInstance<ArendExpr>().lastOrNull()
-            ?: parent.childrenWithLeaves.filterIsInstance<ArendExpr>().toList().takeIf { it.size == 1 }?.first()) {
+        when (val firstExpr = parent.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()
+            ?: parent.childrenWithLeaves.filterIsInstance<Abstract.Expression>().toList().takeIf { it.size == 1 }?.first()) {
             is ArendTuple -> {
                 val tupleExprList = firstExpr.tupleExprList
                 head = tupleExprList.firstOrNull() ?: return null
@@ -277,9 +277,9 @@ fun collectArendExprs(
             val (_, tails) = subCollected
             if (tails.isNotEmpty()) return subCollected
         }
-        return if (head is ArendExpr) head to emptyList()
+        return if (head is Abstract.Expression) head to emptyList()
         else null
-    } else return when (val headExpr = head.linearDescendants.filterIsInstance<ArendExpr>().lastOrNull()) {
+    } else return when (val headExpr = head.linearDescendants.filterIsInstance<Abstract.Expression>().lastOrNull()) {
         null -> null
         else -> headExpr to tail.mapNotNull {
             it.linearDescendants.filterIsInstance<Abstract.BinOpSequenceElem>().firstOrNull()

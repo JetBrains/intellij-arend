@@ -96,11 +96,11 @@ class ArendTraceAction : ArendPopupAction() {
             val range = EditorUtil.getSelectionInAnyMode(editor)
             val sExpr = selectedExpr(file, range)
             if (sExpr != null) {
-                val pair = collectArendExprs(sExpr.parent, range)
-                if (pair != null) {
+                val expression = collectArendExprs(sExpr.parent, range)?.first as? ArendExpr
+                if (expression != null) {
                     val def = sExpr.ancestor<TCDefinition>()?.tcReferable
                     if (def != null) {
-                        return Pair(pair.first, def)
+                        return Pair(expression, def)
                     }
                 }
             }
