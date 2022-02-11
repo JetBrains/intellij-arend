@@ -11,26 +11,21 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiUtilCore
+import com.intellij.psi.util.parentOfType
 import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
-import org.arend.core.definition.ClassField
-import org.arend.core.definition.Constructor
-import org.arend.core.definition.Definition
-import org.arend.core.definition.FunctionDefinition
-import org.arend.core.expr.Expression
-import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.error.DummyErrorReporter
+import org.arend.psi.ArendDefClass
+import org.arend.psi.ArendDefData
+import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.impl.CoClauseDefAdapter
-import org.arend.psi.ext.impl.ConstructorAdapter
-import org.arend.psi.ext.impl.FunctionDefinitionAdapter
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.impl.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.resolving.DataLocatedReferable
+import org.arend.resolving.PsiConcreteProvider
 import org.arend.search.collectSearchScopes
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
-import org.arend.term.prettyprint.ToAbstractVisitor
-import org.arend.util.appExprToConcrete
 
 data class ProofSearchEntry(val def: ReferableAdapter<*>, val finalCodomain: Concrete.Expression)
 
@@ -39,10 +34,11 @@ fun generateProofSearchResults(
     pattern: String,
 ): Sequence<ProofSearchEntry> = sequence {
     val settings = ProofSearchUISettings(project)
-    val patternTree = PatternTree.fromRawPattern(pattern) ?: return@sequence
-    val matcher = ArendExpressionMatcher(patternTree)
+    val query = ProofSearchQuery.fromString(pattern).castSafelyTo<ParsingResult.OK<ProofSearchQuery>>()?.value
+        ?: return@sequence
+    val matcher = ArendExpressionMatcher(query)
 
-    val listedIdentifiers = patternTree.getAllIdentifiers()
+    val listedIdentifiers = query.getAllIdentifiers()
 
     val keys = DumbService.getInstance(project).runReadActionInSmartMode(Computable {
         StubIndex.getInstance().getAllKeys(ArendDefinitionIndex.KEY, project)
@@ -54,6 +50,8 @@ fun generateProofSearchResults(
     } else {
         GlobalSearchScope.allScope(project)
     }
+
+    val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
 
     for (definitionName in keys) {
         val list = SmartList<Pair<ReferableAdapter<*>, Concrete.Expression>>()
@@ -67,9 +65,9 @@ fun generateProofSearchResults(
             ) { def ->
                 if (!settings.checkAllowed(def)) return@processElements true
                 if (def !is ReferableAdapter<*>) return@processElements true
-                val type = getConcreteType(def) ?: return@processElements true
-                if (matcher.match(type, def.scope)) {
-                    list.add(def to type)
+                val (parameters, codomain) = getSignature(concreteProvider, def) ?: return@processElements true
+                if (matcher.match(parameters, codomain, def.scope)) {
+                    list.add(def to codomain)
                 }
                 true
             }
@@ -81,28 +79,42 @@ fun generateProofSearchResults(
     }
 }
 
-fun getConcreteType(referable: PsiReferable): Concrete.Expression? {
-    val adapter = referable.castSafelyTo<ReferableAdapter<*>>() ?: return null
-    val coreDefinition =
-        adapter.tcReferable?.takeIf { it.isTypechecked }?.castSafelyTo<DataLocatedReferable>()?.typechecked
-    val coreType = coreDefinition?.let { getType(it) }
-    return if (coreType != null) {
-        ToAbstractVisitor.convert(coreType, PrettyPrinterConfig.DEFAULT)
-    } else {
-        when (referable) {
-            is CoClauseDefAdapter -> referable.resultType?.let(::appExprToConcrete)
-            is FunctionDefinitionAdapter -> referable.resultType?.let(::appExprToConcrete)
-            is ConstructorAdapter -> referable.typeOf?.let(::appExprToConcrete)
-            else -> null
-        }
+private fun getSignature(
+    provider: PsiConcreteProvider,
+    referable: PsiReferable
+): Pair<List<Concrete.Expression>, Concrete.Expression>? {
+    if (referable is ClassFieldAdapter) {
+        val concrete = referable
+            .parentOfType<ArendDefClass>()
+            ?.let(provider::getConcrete)
+            ?.castSafelyTo<Concrete.ClassDefinition>()
+            ?.elements
+            ?.find { it is Concrete.ClassField && it.data.castSafelyTo<DataLocatedReferable>()?.underlyingReferable == referable }
+            ?.castSafelyTo<Concrete.ClassField>()
+            ?: return null
+        return concrete.parameters.mapNotNull { it.type } to concrete.resultType
     }
-}
-
-private fun getType(def: Definition): Expression? = when (def) {
-    is FunctionDefinition -> def.resultType
-    is Constructor -> def.getDataTypeExpression(def.dataType.makeIdLevels())
-    is ClassField -> def.resultType
-    else -> null
+    if (referable is ConstructorAdapter) {
+        val relatedDefinition = referable
+            .parentOfType<ArendDefData>()
+        val concrete = relatedDefinition
+            ?.let(provider::getConcrete)
+            ?.castSafelyTo<Concrete.DataDefinition>()
+            ?.constructorClauses?.flatMap { it.constructors }
+            ?.find { it.data.castSafelyTo<DataLocatedReferable>()?.underlyingReferable == referable }
+            ?: return null
+        return concrete.parameters.mapNotNull { it.type } to Concrete.ReferenceExpression(
+            concrete.relatedDefinition.data,
+            relatedDefinition
+        )
+    }
+    if (referable !is PsiConcreteReferable) return null
+    if (referable !is CoClauseDefAdapter && referable !is FunctionDefinitionAdapter) return null
+    return when (val concrete = provider.getConcrete(referable)) {
+        is Concrete.FunctionDefinition ->
+            concrete.parameters.mapNotNull { it.type } to (concrete.resultType ?: return null)
+        else -> null
+    }
 }
 
 sealed interface ProofSearchUIEntry

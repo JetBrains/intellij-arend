@@ -9,17 +9,30 @@ import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.FreeVariableCollectorConcrete
 
-internal class ArendExpressionMatcher(val tree: PatternTree) {
+internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
 
-    fun match(matchedType: Concrete.Expression, scope: Scope): Boolean {
+    fun match(parameters: List<Concrete.Expression>, codomain: Concrete.Expression, scope: Scope): Boolean {
         val cachingScope = CachingScope.make(scope)
-        val qualifiedReferables by lazy(LazyThreadSafetyMode.NONE) {
+        val qualifiedReferables = lazy(LazyThreadSafetyMode.NONE) {
             val set = mutableSetOf<Referable>()
-            matchedType.accept(FreeVariableCollectorConcrete(set), null)
+            codomain.accept(FreeVariableCollectorConcrete(set), null)
             set.groupBy { it.refName }
         }
-        val patternConcrete = reassembleConcrete(tree, cachingScope, qualifiedReferables) ?: return false
-        return performMatch(patternConcrete, matchedType)
+        if (!matchDisjunct(query.codomain, codomain, cachingScope, qualifiedReferables)) return false
+        if (parameters.isEmpty()) {
+            return query.parameters.isEmpty()
+        }
+        for (patternParameter in query.parameters) {
+            if (parameters.all { !matchDisjunct(patternParameter, it, cachingScope, qualifiedReferables) }) return false
+        }
+        return true
+    }
+
+    private fun matchDisjunct(pattern: ProofSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>) : Boolean {
+        return pattern.patterns.all {
+            val patternConcrete = reassembleConcrete(it, scope, referables) ?: return@all false
+            performMatch(patternConcrete, concrete)
+        }
     }
 
     private fun performMatch(
@@ -98,7 +111,7 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
     private fun reassembleConcrete(
         tree: PatternTree,
         scope: Scope,
-        references: Map<String, List<Referable>>
+        references: Lazy<Map<String, List<Referable>>>
     ): Concrete.Expression? =
         when (tree) {
             is PatternTree.BranchingNode -> {
@@ -121,7 +134,7 @@ internal class ArendExpressionMatcher(val tree: PatternTree) {
             }
             is PatternTree.LeafNode -> {
                 val referable = Scope.resolveName(scope, tree.referenceName, false)
-                    ?: references[tree.referenceName.last()]?.let { disambiguate(it, tree.referenceName) }
+                    ?: references.value[tree.referenceName.last()]?.let { disambiguate(it, tree.referenceName) }
                 if (referable != null) {
                     val refExpr = Concrete.FixityReferenceExpression.make(null, referable, Fixity.UNKNOWN, null, null)
                     refExpr ?: Concrete.HoleExpression(tree.referenceName)
