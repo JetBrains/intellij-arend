@@ -103,11 +103,13 @@ private fun buildDefinitionHTML(
     return """
            <html>
            <body>
-           ${escapeHtml(name)} : <b>${escapeHtml(type)}</b> $locationRepresentation
+           ${escapeHtml(name)} : ${optionalNewline(type)} <b>${escapeHtml(type).replace("\n", "<br>")}</b> $locationRepresentation
            </body>
            </html>
         """.trimIndent()
 }
+
+fun optionalNewline(type: String): String = if (type.contains('\n')) "\n" else ""
 
 private fun buildMoreHTML(nameColor: Color): String = """
        <html>
