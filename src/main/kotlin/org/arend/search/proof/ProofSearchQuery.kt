@@ -64,11 +64,11 @@ sealed interface PatternTree {
     fun getAllIdentifiers() : List<String>
 }
 
-private typealias Token = String
+private data class Token(val repr: String, val range: IntRange)
 
 private fun patternToQuery(pattern: String): ParsingResult<ProofSearchQuery> {
     val tokens: List<Token> =
-        Pattern.compile("""[^(){}\p{Space}]+|\(|\)|\{|}""").toRegex().findAll(pattern).map { it.value }.toList()
+        Pattern.compile("""[^(){}\p{Space}]+|\(|\)|\{|}""").toRegex().findAll(pattern).map { Token(it.value, IntRange(it.range.first, it.range.last + 1)) }.toList()
     return parseTokens(tokens)
 }
 
@@ -76,7 +76,7 @@ sealed interface ParsingResult<out T> {
 
     data class OK<T>(val value: T) : ParsingResult<T>
 
-    data class Error<T>(val message: String, val offset: Int) : ParsingResult<T> {
+    data class Error<T>(val message: String, val range: IntRange) : ParsingResult<T> {
         @Suppress("UNCHECKED_CAST")
         fun <R> cast(): Error<R> = this as Error<R>
     }
@@ -96,12 +96,15 @@ private fun parseTokens(tokens: List<Token>): ParsingResult<ProofSearchQuery> {
     val braceMatcher = (braceMatchingResult as ParsingResult.OK).value
 
     fun doParseTokens(position: Int, limit: Int): ParsingResult<PatternTree> {
-        if (position == limit) return ParsingResult.Error("Unexpected end of input", position)
+        if (position == limit) {
+            val range = if (tokens.isEmpty()) IntRange(0, 0) else if (limit == tokens.size) tokens[position - 1].range else tokens[position].range
+            return ParsingResult.Error("Unexpected end of input", range)
+        }
         val nodes: MutableList<Pair<PatternTree, PatternTree.Implicitness>> = mutableListOf()
         var currentPosition = position
 
         while (currentPosition != limit) {
-            when (val token = tokens[currentPosition]) {
+            when (val tokenRepr = tokens[currentPosition].repr) {
                 "_" -> nodes.add(PatternTree.Wildcard to PatternTree.Implicitness.EXPLICIT)
                 "(" -> {
                     val closingBrace = braceMatcher[currentPosition]
@@ -113,7 +116,7 @@ private fun parseTokens(tokens: List<Token>): ParsingResult<ProofSearchQuery> {
                         is ParsingResult.Error -> return result
                     }
                 }
-                ")" -> return ParsingResult.Error("Unexpected ')'", currentPosition)
+                ")" -> return ParsingResult.Error("Unexpected ')'", tokens[currentPosition].range)
                 "{" -> {
                     val closingBrace = braceMatcher[currentPosition]
                     when (val result = doParseTokens(currentPosition + 1, closingBrace)) {
@@ -124,8 +127,8 @@ private fun parseTokens(tokens: List<Token>): ParsingResult<ProofSearchQuery> {
                         is ParsingResult.Error -> return result
                     }
                 }
-                "}" -> return ParsingResult.Error("Unexpected '}'", currentPosition)
-                else -> nodes.add(PatternTree.LeafNode(token.split(".")) to PatternTree.Implicitness.EXPLICIT)
+                "}" -> return ParsingResult.Error("Unexpected '}'", tokens[currentPosition].range)
+                else -> nodes.add(PatternTree.LeafNode(tokenRepr.split(".")) to PatternTree.Implicitness.EXPLICIT)
             }
             currentPosition += 1
         }
@@ -152,11 +155,11 @@ private fun parseTokens(tokens: List<Token>): ParsingResult<ProofSearchQuery> {
     }
 }
 
-private fun <T> List<T>.split(t: T): List<Pair<Int, Int>> {
+private fun List<Token>.split(pattern: String): List<Pair<Int, Int>> {
     val newList = SmartList<Pair<Int, Int>>(SmartList())
     var firstIndex = 0
     for (idx in this.indices) {
-        if (this[idx] == t) {
+        if (this[idx].repr == pattern) {
             newList.add(firstIndex to idx)
             firstIndex = idx + 1
         }
@@ -173,25 +176,25 @@ private fun computeBraceMatching(tokens: List<Token>): ParsingResult<Array<Int>>
     val array = Array(tokens.size) { 0 }
     val stack = mutableListOf<Pair<Char, Int>>()
     for (idx in tokens.indices) {
-        when (tokens[idx]) {
-            "->" -> if (stack.isNotEmpty()) return ParsingResult.Error("'->' is allowed only on top level", idx)
-            "\\and" -> if (stack.size > 1) return ParsingResult.Error("'\\and' is allowed only in clauses", idx)
+        when (tokens[idx].repr) {
+            "->" -> if (stack.isNotEmpty()) return ParsingResult.Error("'->' is allowed only on top level", tokens[idx].range)
+            "\\and" -> if (stack.size > 1) return ParsingResult.Error("'\\and' is allowed only in clauses", tokens[idx].range)
             "(" -> stack.add(')' to idx)
             "{" -> stack.add('}' to idx)
             ")" -> {
-                val (topBrace, topIndex) = stack.removeLastOrNull() ?: return ParsingResult.Error("Unexpected ')'", idx)
-                if (topBrace != ')') return ParsingResult.Error("Unexpected ')'", idx)
+                val (topBrace, topIndex) = stack.removeLastOrNull() ?: return ParsingResult.Error("Unexpected ')'", tokens[idx].range)
+                if (topBrace != ')') return ParsingResult.Error("Unexpected ')'", tokens[idx].range)
                 array[topIndex] = idx
             }
             "}" -> {
-                val (topBrace, topIndex) = stack.removeLastOrNull() ?: return ParsingResult.Error("Unexpected '}'", idx)
-                if (topBrace != '}') return ParsingResult.Error("Unexpected '}'", idx)
+                val (topBrace, topIndex) = stack.removeLastOrNull() ?: return ParsingResult.Error("Unexpected '}'", tokens[idx].range)
+                if (topBrace != '}') return ParsingResult.Error("Unexpected '}'", tokens[idx].range)
                 array[topIndex] = idx
             }
         }
     }
     return if (stack.isNotEmpty()) {
-        ParsingResult.Error("Could not find a matching brace", stack.first().second)
+        ParsingResult.Error("Could not find a matching brace", tokens[stack.first().second].range)
     } else {
         ParsingResult.OK(array)
     }
