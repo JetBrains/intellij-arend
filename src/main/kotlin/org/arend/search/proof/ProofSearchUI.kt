@@ -1,15 +1,20 @@
 package org.arend.search.proof
 
 import com.intellij.codeInsight.completion.CompletionParameters
+import com.intellij.codeInsight.completion.PrefixMatcher
+import com.intellij.codeInsight.completion.impl.CamelHumpMatcher
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
 import com.intellij.codeInsight.hint.actions.QuickPreviewAction
+import com.intellij.codeInsight.lookup.LookupManager
+import com.intellij.codeInsight.lookup.impl.actions.ChooseItemAction
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.BigPopupUI
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -25,6 +30,7 @@ import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.psi.stubs.StubIndex
 import com.intellij.ui.*
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
@@ -39,13 +45,13 @@ import com.intellij.util.ui.UIUtil
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
 import org.arend.psi.navigate
+import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.Font
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
+import java.awt.event.*
 import javax.swing.*
 import javax.swing.border.Border
 
@@ -182,27 +188,30 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     private class ProofSearchTextCompletionProvider(private val project: Project) :
         TextFieldWithAutoCompletionListProvider<String>(listOf()) {
 
+        override fun createPrefixMatcher(prefix: String): PrefixMatcher {
+            return CamelHumpMatcher(prefix, true, true)
+        }
+
         override fun getItems(
             prefix: String?,
             cached: Boolean,
             parameters: CompletionParameters?
         ): Collection<String> {
-            return emptyList()
-//            if (prefix == null) {
-//                return emptyList()
-//            }
-//            val matcher = CamelHumpMatcher(prefix, true, true)
-//
-//            return runReadAction {
-//                val container = ArrayList<String>()
-//                StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
-//                    if (matcher.prefixMatches(name)) {
-//                        container.add(name)
-//                    }
-//                    true
-//                }
-//                container
-//            }
+            if (prefix == null || prefix.length < 3) {
+                return emptyList()
+            }
+            val matcher = CamelHumpMatcher(prefix, true, true)
+
+            return runReadAction {
+                val container = ArrayList<String>()
+                StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
+                    if (matcher.prefixMatches(name)) {
+                        container.add(name)
+                    }
+                    true
+                }
+                container
+            }
         }
 
         override fun getLookupString(item: String): String = item
@@ -301,9 +310,14 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private fun registerEnterAction() {
         DumbAwareAction.create {
-            val indices = myResultsList.selectedIndices
-            if (indices.isNotEmpty()) {
-                onEntrySelected(model.getElementAt(indices[0]))
+            val lookup = LookupManager.getActiveLookup(editorSearchField.editor)
+            if (lookup?.component?.isVisible == true) {
+                ChooseItemAction.FocusedOnly().actionPerformed(it)
+            } else {
+                val indices = myResultsList.selectedIndices
+                if (indices.isNotEmpty()) {
+                    onEntrySelected(model.getElementAt(indices[0]))
+                }
             }
         }.registerCustomShortcutSet(CommonShortcuts.ENTER, this, this)
     }
@@ -321,7 +335,14 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     private fun registerEscapeAction() {
         val escapeAction = ActionManager.getInstance().getAction("EditorEscape")
         DumbAwareAction
-            .create { close() }
+            .create {
+                val lookup = LookupManager.getActiveLookup(editorSearchField.editor)
+                if (lookup?.component?.isVisible == true) {
+                    lookup.hideLookup(true)
+                } else {
+                    close()
+                }
+            }
             .registerCustomShortcutSet(escapeAction?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
     }
 
