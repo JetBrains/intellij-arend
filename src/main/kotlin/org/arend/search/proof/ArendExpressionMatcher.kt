@@ -60,7 +60,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
             }
         }
         if (matched is Concrete.PiExpression) {
-            return performMatch(pattern, matched.codomain)
+            return performMatch(pattern, matched.codomain) || matched.parameters.all { performMatch(pattern,  it.type) }
         }
         if (matched is Concrete.LetExpression) {
             for (clause in matched.clauses) {
@@ -187,4 +187,4 @@ private fun disambiguate(candidates: List<Referable>, path: List<String>): Refer
 }
 
 
-val binOpParser = BinOpParser(DummyErrorReporter.INSTANCE)
+private val binOpParser = BinOpParser(DummyErrorReporter.INSTANCE)

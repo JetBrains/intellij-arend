@@ -9,6 +9,8 @@ data class ProofSearchQuery(val parameters: List<ProofSearchJointPattern>, val c
     }
     fun getAllIdentifiers() = (parameters + codomain).flatMap(ProofSearchJointPattern::getAllIdentifiers)
 
+    fun shouldConsiderParameters() = parameters.isNotEmpty()
+
     override fun toString(): String {
         return parameters.joinToString(" -> ") { it.toString() } + (if (parameters.isEmpty()) "" else " --> ") + codomain.toString()
     }

@@ -99,10 +99,6 @@ class ArendProofSearchTest : ArendTestBase() {
         \func f : Nat -> Nat => {?}
     """, "Nat")
 
-    fun testNoMatchInPiArgument() = assertHasNoMatch("""
-        \func f : Nat -> 1 = 1 => {?}
-    """, "Nat")
-
     fun testLet() = assertHasMatch("""
         \func f : \let x => 1 \in x = x => {?}
     """, "_ = _")
@@ -124,6 +120,24 @@ class ArendProofSearchTest : ArendTestBase() {
     fun testCurried() = assertHasMatch("""
         \func f (a b : Nat) : a + b = a => {?}
     """, "+ _")
+
+    fun testParameter() = assertHasMatch("""
+        \data Bool
+
+        \func foo : Nat -> Bool => {?}
+    """, "Nat -> Bool")
+
+    fun testParameter2() = assertHasMatch("""
+        \data Bool
+
+        \func foo : Nat -> Bool => {?}
+    """, "Nat")
+
+    fun testParameter3() = assertHasMatch("""
+        \data Bool
+
+        \func foo (b : Nat) : Bool => {?}
+    """, "Nat -> Bool")
 }
 
 

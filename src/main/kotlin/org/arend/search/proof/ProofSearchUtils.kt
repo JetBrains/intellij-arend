@@ -65,7 +65,7 @@ fun generateProofSearchResults(
             ) { def ->
                 if (!settings.checkAllowed(def)) return@processElements true
                 if (def !is ReferableAdapter<*>) return@processElements true
-                val (parameters, codomain) = getSignature(concreteProvider, def) ?: return@processElements true
+                val (parameters, codomain) = getSignature(concreteProvider, def, query.shouldConsiderParameters()) ?: return@processElements true
                 if (matcher.match(parameters, codomain, def.scope)) {
                     list.add(def to codomain)
                 }
@@ -81,7 +81,8 @@ fun generateProofSearchResults(
 
 private fun getSignature(
     provider: PsiConcreteProvider,
-    referable: PsiReferable
+    referable: PsiReferable,
+    shouldConsiderParameters: Boolean
 ): Pair<List<Concrete.Expression>, Concrete.Expression>? {
     if (referable is ClassFieldAdapter) {
         val concrete = referable
@@ -111,9 +112,25 @@ private fun getSignature(
     if (referable !is PsiConcreteReferable) return null
     if (referable !is CoClauseDefAdapter && referable !is FunctionDefinitionAdapter) return null
     return when (val concrete = provider.getConcrete(referable)) {
-        is Concrete.FunctionDefinition ->
-            concrete.parameters.mapNotNull { it.type } to (concrete.resultType ?: return null)
+        is Concrete.FunctionDefinition -> {
+            val resultType = concrete.resultType ?: return null
+            return if (shouldConsiderParameters) {
+                val parameters = concrete.parameters.mapNotNull { it.type }
+                deconstructPi(Concrete.PiExpression(null, parameters.map { Concrete.TypeParameter(true, it) }, resultType))
+            } else {
+                emptyList<Concrete.Expression>() to resultType
+            }
+        }
         else -> null
+    }
+}
+
+private fun deconstructPi(expr : Concrete.Expression) : Pair<List<Concrete.Expression>, Concrete.Expression> {
+    return if (expr is Concrete.PiExpression) {
+        val (piDomain, piCodomain) = deconstructPi(expr.codomain)
+        (expr.parameters.mapNotNull { it.type } + piDomain) to piCodomain
+    } else {
+        emptyList<Concrete.Expression>() to expr
     }
 }
 
