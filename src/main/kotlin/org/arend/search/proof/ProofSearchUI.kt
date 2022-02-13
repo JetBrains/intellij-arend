@@ -325,7 +325,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             .registerCustomShortcutSet(escapeAction?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
     }
 
-    private fun scheduleSearch() {
+    internal fun scheduleSearch() {
         if (!searchAlarm.isDisposed && searchAlarm.activeRequestCount == 0) {
             searchAlarm.addRequest({ runProofSearch(null) }, 100)
         }

@@ -68,6 +68,10 @@ class ProofSearchService {
             balloon.size = proofSearchUI.preferredSize
         }
         calcPositionAndShow(project, balloon, proofSearchUI)
+        if (proofSearchUI.editorSearchField.text.isNotEmpty()) {
+            proofSearchUI.refreshHighlighting()
+            proofSearchUI.scheduleSearch()
+        }
     }
 
     private fun calcPositionAndShow(project: Project, balloon: JBPopup, proofSearchUI: ProofSearchUI) {
@@ -122,7 +126,6 @@ class ProofSearchService {
         if (lastText != null) {
             view.editorSearchField.text = lastText
             view.editorSearchField.editor?.selectionModel?.setSelection(0, lastText.length)
-            view.refreshHighlighting()
         }
         return view
     }
