@@ -9,7 +9,7 @@ import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.FreeVariableCollectorConcrete
 
-internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
+internal class ArendExpressionMatcher(private val query: SignatureSearchQuery) {
 
     fun match(parameters: List<Concrete.Expression>, codomain: Concrete.Expression, scope: Scope): Boolean {
         val cachingScope = CachingScope.make(scope)
@@ -28,7 +28,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
         return true
     }
 
-    private fun matchDisjunct(pattern: ProofSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>) : Boolean {
+    private fun matchDisjunct(pattern: SignatureSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>) : Boolean {
         return pattern.patterns.all {
             val patternConcrete = reassembleConcrete(it, scope, referables) ?: return@all false
             performMatch(patternConcrete, concrete)

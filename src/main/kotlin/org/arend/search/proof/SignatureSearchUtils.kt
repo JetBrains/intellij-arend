@@ -27,14 +27,14 @@ import org.arend.search.collectSearchScopes
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
 
-data class ProofSearchEntry(val def: ReferableAdapter<*>, val finalCodomain: Concrete.Expression)
+data class SignatureSearchEntry(val def: ReferableAdapter<*>, val finalCodomain: Concrete.Expression)
 
-fun generateProofSearchResults(
+fun generateSignatureSearchResults(
     project: Project,
     pattern: String,
-): Sequence<ProofSearchEntry> = sequence {
-    val settings = ProofSearchUISettings(project)
-    val query = ProofSearchQuery.fromString(pattern).castSafelyTo<ParsingResult.OK<ProofSearchQuery>>()?.value
+): Sequence<SignatureSearchEntry> = sequence {
+    val settings = SignatureSearchUISettings(project)
+    val query = SignatureSearchQuery.fromString(pattern).castSafelyTo<ParsingResult.OK<SignatureSearchQuery>>()?.value
         ?: return@sequence
     val matcher = ArendExpressionMatcher(query)
 
@@ -74,7 +74,7 @@ fun generateProofSearchResults(
         }
 
         for (def in list) {
-            yield(ProofSearchEntry(def.first, def.second))
+            yield(SignatureSearchEntry(def.first, def.second))
         }
     }
 }
@@ -134,15 +134,15 @@ private fun deconstructPi(expr : Concrete.Expression) : Pair<List<Concrete.Expre
     }
 }
 
-sealed interface ProofSearchUIEntry
+sealed interface SignatureSearchUIEntry
 
 @JvmInline
-value class MoreElement(val sequence: Sequence<ProofSearchEntry>) : ProofSearchUIEntry
+value class MoreElement(val sequence: Sequence<SignatureSearchEntry>) : SignatureSearchUIEntry
 
 @JvmInline
-value class DefElement(val entry: ProofSearchEntry) : ProofSearchUIEntry
+value class DefElement(val entry: SignatureSearchEntry) : SignatureSearchUIEntry
 
-class ProofSearchUISettings(private val project: Project) {
+class SignatureSearchUISettings(private val project: Project) {
 
     private val includeTestLocations: Boolean = project.service<ArendProjectSettings>().data.includeTestLocations
 

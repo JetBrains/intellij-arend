@@ -18,7 +18,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usages.*
 import org.arend.util.ArendBundle
 
-class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project: Project) : DumbAwareAction(
+class ShowInFindWindowAction(private val ui: SignatureSearchUI, private val project: Project) : DumbAwareAction(
     IdeBundle.messagePointer("show.in.find.window.button.name"),
     IdeBundle.messagePointer("show.in.find.window.button.description"), AllIcons.General.Pin_tab
 ) {
@@ -26,19 +26,19 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
         ui.close()
         val searchText: String = ui.searchField.text
         val presentation = UsageViewPresentation()
-        presentation.codeUsagesString = ArendBundle.message("arend.proof.search.matches.of", searchText)
-        presentation.targetsNodeText = ArendBundle.message("arend.proof.search.find.usages.results")
-        presentation.tabName = ArendBundle.message("arend.proof.search.matches")
-        presentation.tabText = ArendBundle.message("arend.proof.search.matches")
+        presentation.codeUsagesString = ArendBundle.message("arend.signature.search.matches.of", searchText)
+        presentation.targetsNodeText = ArendBundle.message("arend.signature.search.find.usages.results")
+        presentation.tabName = ArendBundle.message("arend.signature.search.matches")
+        presentation.tabText = ArendBundle.message("arend.signature.search.matches")
         val usages: MutableCollection<Usage> = LinkedHashSet()
         val targets: MutableCollection<PsiElement> = LinkedHashSet()
-        ProgressManager.getInstance().run(object : Task.Modal(project, ArendBundle.message("arend.proof.search.searching.for.definitions"), true) {
+        ProgressManager.getInstance().run(object : Task.Modal(project, ArendBundle.message("arend.signature.search.searching.for.definitions"), true) {
 
             private val progressIndicator: ProgressIndicator = ProgressIndicatorBase()
 
             override fun run(indicator: ProgressIndicator) {
                 progressIndicator.start()
-                val elements = generateProofSearchResults(project, searchText).toList()
+                val elements = generateSignatureSearchResults(project, searchText).toList()
                 fillUsages(elements, usages, targets)
             }
 
@@ -54,12 +54,12 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
     }
 
     private fun fillUsages(
-        foundElements: Collection<ProofSearchEntry>,
+        foundElements: Collection<SignatureSearchEntry>,
         usages: MutableCollection<in Usage>,
         targets: MutableCollection<in PsiElement>
     ) = runReadAction {
         foundElements
-            .map(ProofSearchEntry::def)
+            .map(SignatureSearchEntry::def)
             .forEach { element: PsiElement ->
                 if (element.textRange != null) {
                     val usageInfo = UsageInfo(element)

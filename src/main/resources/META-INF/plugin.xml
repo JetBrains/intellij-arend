@@ -481,9 +481,9 @@
             <add-to-group group-id="GoToTargetEx" anchor="last" />
         </action>
 
-        <action class="org.arend.search.proof.ArendProofSearchAction"
+        <action class="org.arend.search.proof.ArendSignatureSearchAction"
                 text="Proof Search"
-                description="Run search for pattern expression in functions' codomains">
+                description="Run search for pattern expression in functions' signature">
             <add-to-group group-id="SearchEverywhereActions" anchor="last" />
             <keyboard-shortcut keymap="$default" first-keystroke="control alt P" />
         </action>

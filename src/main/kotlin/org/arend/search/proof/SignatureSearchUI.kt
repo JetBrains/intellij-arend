@@ -55,11 +55,11 @@ import java.awt.event.*
 import javax.swing.*
 import javax.swing.border.Border
 
-class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
+class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private val searchAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
-    private val model: CollectionListModel<ProofSearchUIEntry> = CollectionListModel()
+    private val model: CollectionListModel<SignatureSearchUIEntry> = CollectionListModel()
 
     private val loadingIcon: JBLabel = JBLabel(EmptyIcon.ICON_16)
 
@@ -97,12 +97,12 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     override fun createCellRenderer(): ListCellRenderer<Any> {
         @Suppress("UNCHECKED_CAST")
-        return ArendProofSearchRenderer() as ListCellRenderer<Any>
+        return ArendSignatureSearchRenderer() as ListCellRenderer<Any>
     }
 
     override fun createTopLeftPanel(): JPanel {
         @Suppress("DialogTitleCapitalization")
-        val title = JBLabel(ArendBundle.message("arend.proof.search.title"))
+        val title = JBLabel(ArendBundle.message("arend.signature.search.title"))
         val topPanel = JPanel(MigLayout("flowx, ins 0, gap 0, fillx, filly"))
         val foregroundColor = when {
             StartupUiUtil.isUnderDarcula() -> when {
@@ -140,7 +140,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         return res
     }
 
-    override fun getAccessibleName(): String = ArendBundle.message("arend.proof.search.title")
+    override fun getAccessibleName(): String = ArendBundle.message("arend.signature.search.title")
 
     // a hack, sorry IJ platform
     override fun init() {
@@ -164,7 +164,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         get() = myEditorTextField
 
     private inner class MyEditorTextField :
-        TextFieldWithAutoCompletion<String>(project, ProofSearchTextCompletionProvider(project), false, "") {
+        TextFieldWithAutoCompletion<String>(project, SignatureSearchTextCompletionProvider(project), false, "") {
 
         init {
             val empty: Border = JBUI.Borders.empty(-1, -1, -1, -1)
@@ -185,7 +185,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         }
     }
 
-    private class ProofSearchTextCompletionProvider(private val project: Project) :
+    private class SignatureSearchTextCompletionProvider(private val project: Project) :
         TextFieldWithAutoCompletionListProvider<String>(listOf()) {
 
         override fun createPrefixMatcher(prefix: String): PrefixMatcher {
@@ -257,7 +257,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             tryHighlightKeyword(i, text, markupModel, "\\and")
             tryHighlightKeyword(i, text, markupModel, "->")
         }
-        val (msg, range) = ProofSearchQuery.fromString(text).castSafelyTo<ParsingResult.Error<ProofSearchQuery>>()
+        val (msg, range) = SignatureSearchQuery.fromString(text).castSafelyTo<ParsingResult.Error<SignatureSearchQuery>>()
             ?: return true
         val info = HighlightInfo.newHighlightInfo(HighlightInfoType.ERROR)
             .descriptionAndTooltip(msg)
@@ -348,7 +348,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     internal fun scheduleSearch() {
         if (!searchAlarm.isDisposed && searchAlarm.activeRequestCount == 0) {
-            searchAlarm.addRequest({ runProofSearch(null) }, 100)
+            searchAlarm.addRequest({ runSignatureSearch(null) }, 100)
         }
     }
 
@@ -363,7 +363,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         }
     }
 
-    private fun onEntrySelected(element: ProofSearchUIEntry) = when (element) {
+    private fun onEntrySelected(element: SignatureSearchUIEntry) = when (element) {
         is DefElement -> {
             previewAction.performForContext({
                 when (it) {
@@ -375,11 +375,11 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         }
         is MoreElement -> {
             model.remove(element)
-            runProofSearch(element.sequence)
+            runSignatureSearch(element.sequence)
         }
     }
 
-    private fun goToDeclaration(element: ProofSearchUIEntry) = when (element) {
+    private fun goToDeclaration(element: SignatureSearchUIEntry) = when (element) {
         is DefElement -> {
             close()
             element.entry.def.navigationElement.navigate()
@@ -387,15 +387,15 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         else -> Unit
     }
 
-    fun runProofSearch(results: Sequence<ProofSearchEntry>?) {
+    fun runSignatureSearch(results: Sequence<SignatureSearchEntry>?) {
         cleanupCurrentResults(results)
 
-        val settings = ProofSearchUISettings(project)
+        val settings = SignatureSearchUISettings(project)
 
-        runBackgroundableTask(ArendBundle.message("arend.proof.search.title"), myProject) { progressIndicator ->
+        runBackgroundableTask(ArendBundle.message("arend.signature.search.title"), myProject) { progressIndicator ->
             runWithLoadingIcon {
                 this.progressIndicator = progressIndicator
-                val elements = results ?: generateProofSearchResults(project, searchPattern)
+                val elements = results ?: generateSignatureSearchResults(project, searchPattern)
                 var counter = PROOF_SEARCH_RESULT_LIMIT
                 for (element in elements) {
                     if (progressIndicator.isCanceled) {
@@ -422,19 +422,19 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     private inline fun runWithLoadingIcon(action: () -> Unit) {
         runInEdt {
             loadingIcon.icon = AnimatedIcon.Default.INSTANCE
-            loadingIcon.toolTipText = ArendBundle.message("arend.proof.search.loading.tooltip")
+            loadingIcon.toolTipText = ArendBundle.message("arend.signature.search.loading.tooltip")
         }
         try {
             action()
         } finally {
             runInEdt {
                 loadingIcon.setIconWithAlignment(ArendIcons.CHECKMARK, SwingConstants.LEFT, SwingConstants.TOP)
-                loadingIcon.toolTipText = ArendBundle.message("arend.proof.search.completed.tooltip")
+                loadingIcon.toolTipText = ArendBundle.message("arend.signature.search.completed.tooltip")
             }
         }
     }
 
-    private fun cleanupCurrentResults(results: Sequence<ProofSearchEntry>?) {
+    private fun cleanupCurrentResults(results: Sequence<SignatureSearchEntry>?) {
         progressIndicator?.cancel()
         if (results == null) {
             invokeLater {
@@ -444,8 +444,8 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     }
 
     override fun getInitialHints(): Array<String> = arrayOf(
-        ArendBundle.message("arend.proof.search.quick.preview.tip"),
-        ArendBundle.message("arend.proof.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE))
+        ArendBundle.message("arend.signature.search.quick.preview.tip"),
+        ArendBundle.message("arend.signature.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE))
     )
 
     fun close() {

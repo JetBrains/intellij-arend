@@ -2,7 +2,7 @@ package org.arend.search
 
 import junit.framework.TestCase
 import org.arend.ArendTestBase
-import org.arend.search.proof.generateProofSearchResults
+import org.arend.search.proof.generateSignatureSearchResults
 import org.intellij.lang.annotations.Language
 
 
@@ -14,7 +14,7 @@ class ArendProofSearchTest : ArendTestBase() {
     ): Set<String> {
         myFixture.addFileToProject("Main.ard", PRE_TEXT + content)
         typecheck()
-        val results = generateProofSearchResults(project, pattern)
+        val results = generateSignatureSearchResults(project, pattern)
         return results.toList().mapTo(HashSet()) { it.def.name!! }
     }
 

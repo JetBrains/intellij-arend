@@ -3,11 +3,11 @@ package org.arend.search.proof
 import com.intellij.util.SmartList
 import java.util.regex.Pattern
 
-data class ProofSearchQuery(val parameters: List<ProofSearchJointPattern>, val codomain: ProofSearchJointPattern) {
+data class SignatureSearchQuery(val parameters: List<SignatureSearchJointPattern>, val codomain: SignatureSearchJointPattern) {
     companion object {
-        fun fromString(pattern: String) : ParsingResult<ProofSearchQuery> = patternToQuery(pattern)
+        fun fromString(pattern: String) : ParsingResult<SignatureSearchQuery> = patternToQuery(pattern)
     }
-    fun getAllIdentifiers() = (parameters + codomain).flatMap(ProofSearchJointPattern::getAllIdentifiers)
+    fun getAllIdentifiers() = (parameters + codomain).flatMap(SignatureSearchJointPattern::getAllIdentifiers)
 
     fun shouldConsiderParameters() = parameters.isNotEmpty()
 
@@ -17,7 +17,7 @@ data class ProofSearchQuery(val parameters: List<ProofSearchJointPattern>, val c
 }
 
 @JvmInline
-value class ProofSearchJointPattern(val patterns: List<PatternTree>) {
+value class SignatureSearchJointPattern(val patterns: List<PatternTree>) {
     fun getAllIdentifiers() = patterns.flatMap(PatternTree::getAllIdentifiers)
 
     override fun toString(): String {
@@ -68,7 +68,7 @@ sealed interface PatternTree {
 
 private data class Token(val repr: String, val range: IntRange)
 
-private fun patternToQuery(pattern: String): ParsingResult<ProofSearchQuery> {
+private fun patternToQuery(pattern: String): ParsingResult<SignatureSearchQuery> {
     val tokens: List<Token> =
         Pattern.compile("""[^(){}\p{Space}]+|\(|\)|\{|}""").toRegex().findAll(pattern).map { Token(it.value, IntRange(it.range.first, it.range.last + 1)) }.toList()
     return parseTokens(tokens)
@@ -91,7 +91,7 @@ sealed interface ParsingResult<out T> {
     fun <U> map(f: (T) -> U): ParsingResult<U> = bind { OK(f(it)) }
 }
 
-private fun parseTokens(tokens: List<Token>): ParsingResult<ProofSearchQuery> {
+private fun parseTokens(tokens: List<Token>): ParsingResult<SignatureSearchQuery> {
 
     val braceMatchingResult = computeBraceMatching(tokens)
     if (braceMatchingResult is ParsingResult.Error) return braceMatchingResult.cast()
@@ -149,11 +149,11 @@ private fun parseTokens(tokens: List<Token>): ParsingResult<ProofSearchQuery> {
             .split("\\and")
             .map { doParseTokens(start + it.first, start + it.second) }
             .swap()
-            .map(::ProofSearchJointPattern)
+            .map(::SignatureSearchJointPattern)
     }
         .swap()
     return rawPatterns.map {
-        ProofSearchQuery(it.subList(0, it.lastIndex), it.last())
+        SignatureSearchQuery(it.subList(0, it.lastIndex), it.last())
     }
 }
 

@@ -20,7 +20,7 @@ import java.awt.Component
 import javax.swing.*
 import javax.swing.border.Border
 
-class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
+class ArendSignatureSearchRenderer : ListCellRenderer<SignatureSearchUIEntry> {
     private val panel: JPanel = OpaquePanel(SearchEverywherePsiRenderer.SELayout())
     private val iconPanel: JPanel = JPanel(BorderLayout())
     private val label: JBLabel = JBLabel()
@@ -33,8 +33,8 @@ class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
     }
 
     override fun getListCellRendererComponent(
-        list: JList<out ProofSearchUIEntry>,
-        value: ProofSearchUIEntry,
+        list: JList<out SignatureSearchUIEntry>,
+        value: SignatureSearchUIEntry,
         index: Int,
         isSelected: Boolean,
         cellHasFocus: Boolean
@@ -57,7 +57,7 @@ class ArendProofSearchRenderer : ListCellRenderer<ProofSearchUIEntry> {
         return panel
     }
 
-    fun addContent(value: ProofSearchUIEntry, textColor: Color, isSelected: Boolean) = when (value) {
+    fun addContent(value: SignatureSearchUIEntry, textColor: Color, isSelected: Boolean) = when (value) {
         is MoreElement -> {
             panel.font = UIUtil.getLabelFont().deriveFont(UIUtil.getFontSize(UIUtil.FontSize.SMALL))
             textArea.text = buildMoreHTML(textColor)
@@ -119,7 +119,7 @@ private fun buildMoreHTML(nameColor: Color): String = """
        </html>
     """.trimIndent()
 
-private fun getBackgroundColor(isSelected: Boolean, element: ProofSearchUIEntry): Color =
+private fun getBackgroundColor(isSelected: Boolean, element: SignatureSearchUIEntry): Color =
     when (isSelected) {
         true -> UIUtil.getListSelectionBackground(true)
         false -> when (element) {
