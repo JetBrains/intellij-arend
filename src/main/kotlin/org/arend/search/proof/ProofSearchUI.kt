@@ -1,12 +1,24 @@
 package org.arend.search.proof
 
-import com.intellij.accessibility.TextFieldWithListAccessibleContext
+import com.intellij.codeInsight.completion.CompletionParameters
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.codeInsight.daemon.impl.HighlightInfoType
+import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
 import com.intellij.codeInsight.hint.actions.QuickPreviewAction
+import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.BigPopupUI
-import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
+import com.intellij.openapi.editor.colors.CodeInsightColors
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.impl.DocumentMarkupModel
+import com.intellij.openapi.editor.markup.HighlighterLayer
+import com.intellij.openapi.editor.markup.HighlighterTargetArea
+import com.intellij.openapi.editor.markup.MarkupModel
+import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBackgroundableTask
@@ -16,12 +28,12 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.*
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
-import com.intellij.ui.components.JBTextField
-import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
+import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.EmptyIcon
+import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import net.miginfocom.swing.MigLayout
@@ -29,13 +41,13 @@ import org.arend.ArendIcons
 import org.arend.psi.navigate
 import org.arend.util.ArendBundle
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.Font
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import javax.accessibility.AccessibleContext
 import javax.swing.*
-import javax.swing.event.DocumentEvent
+import javax.swing.border.Border
 
 class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
@@ -46,6 +58,10 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     private val loadingIcon: JBLabel = JBLabel(EmptyIcon.ICON_16)
 
     private val previewAction: QuickPreviewAction = QuickPreviewAction()
+
+    private val myEditorTextField: MyEditorTextField = MyEditorTextField().also {
+        it.setFontInheritedFromLAF(false)
+    }
 
     @Volatile
     private var progressIndicator: ProgressIndicator? = null
@@ -120,6 +136,79 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     override fun getAccessibleName(): String = ArendBundle.message("arend.proof.search.title")
 
+    // a hack, sorry IJ platform
+    override fun init() {
+        super.init()
+        synchronized(this.treeLock) {
+            for (it in components) {
+                val field = it.castSafelyTo<JPanel>()?.components?.find { it is ExtendableTextField }
+                if (field != null && it is JPanel) {
+                    it.castSafelyTo<JPanel>()?.remove(field)
+                    it.add(myEditorTextField, BorderLayout.SOUTH)
+                }
+            }
+        }
+    }
+
+    override fun installScrollingActions() {
+        ScrollingUtil.installActions(myResultsList, myEditorTextField)
+    }
+
+    val editorSearchField: EditorTextField
+        get() = myEditorTextField
+
+    private inner class MyEditorTextField :
+        TextFieldWithAutoCompletion<String>(project, ProofSearchTextCompletionProvider(project), false, "") {
+
+        init {
+            val empty: Border = JBUI.Borders.empty(-1, -1, -1, -1)
+            val topLine = JBUI.Borders.customLine(JBUI.CurrentTheme.BigPopup.searchFieldBorderColor(), 0, 0, 0, 0)
+            border = JBUI.Borders.merge(empty, topLine, true)
+            background = JBUI.CurrentTheme.BigPopup.searchFieldBackground()
+            focusTraversalKeysEnabled = false
+        }
+
+        override fun getPreferredSize(): Dimension? {
+            val size = super.getPreferredSize()
+            size.height = Integer.max(JBUIScale.scale(29), size.height)
+            return size
+        }
+
+        override fun shouldHaveBorder(): Boolean {
+            return false
+        }
+    }
+
+    private class ProofSearchTextCompletionProvider(private val project: Project) :
+        TextFieldWithAutoCompletionListProvider<String>(listOf()) {
+
+        override fun getItems(
+            prefix: String?,
+            cached: Boolean,
+            parameters: CompletionParameters?
+        ): Collection<String> {
+            return emptyList()
+//            if (prefix == null) {
+//                return emptyList()
+//            }
+//            val matcher = CamelHumpMatcher(prefix, true, true)
+//
+//            return runReadAction {
+//                val container = ArrayList<String>()
+//                StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
+//                    if (matcher.prefixMatches(name)) {
+//                        container.add(name)
+//                    }
+//                    true
+//                }
+//                container
+//            }
+        }
+
+        override fun getLookupString(item: String): String = item
+
+    }
+
     private fun initActions() {
         myResultsList.expandableItemsHandler.isEnabled = false
 
@@ -128,14 +217,76 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         registerEnterAction()
         registerGoToDefinitionAction()
         registerMouseActions()
+    }
 
-        adjustEmptyText(mySearchField)
+    private val keywordAttributes = TextAttributes().apply {
+        copyFrom(DefaultLanguageHighlighterColors.KEYWORD.defaultAttributes)
+        fontType = Font.BOLD
     }
 
     private fun registerSearchAction() {
-        searchField.document.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(e: DocumentEvent) = scheduleSearch()
+        myEditorTextField.document.addDocumentListener(object : DocumentListener {
+            override fun documentChanged(event: DocumentEvent) {
+                val shouldSearch = refreshHighlighting()
+                if (shouldSearch) {
+                    scheduleSearch()
+                }
+            }
         })
+    }
+
+    /**
+     * @return if search query is OK
+     */
+    fun refreshHighlighting(): Boolean {
+        val editor = myEditorTextField.editor ?: return false
+        val text = myEditorTextField.text
+        val markupModel = editor.markupModel
+        DocumentMarkupModel.forDocument(editor.document, project, false)?.removeAllHighlighters()
+
+        for (i in text.indices) {
+            tryHighlightKeyword(i, text, markupModel, "\\and")
+            tryHighlightKeyword(i, text, markupModel, "->")
+        }
+        val (msg, range) = ProofSearchQuery.fromString(text).castSafelyTo<ParsingResult.Error<ProofSearchQuery>>()
+            ?: return true
+        val info = HighlightInfo.newHighlightInfo(HighlightInfoType.ERROR)
+            .descriptionAndTooltip(msg)
+            .textAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)
+            .range(range.first, range.last)
+            .create()
+
+        UpdateHighlightersUtil.setHighlightersToEditor(project, editor.document, range.first, range.last, listOf(info), null, -1)
+        if (text.isNotEmpty()) {
+            loadingIcon.setIconWithAlignment(AllIcons.General.Error, SwingConstants.LEFT, SwingConstants.TOP)
+            loadingIcon.toolTipText = msg
+        } else {
+            loadingIcon.icon = null
+            loadingIcon.toolTipText = ""
+        }
+        return false
+    }
+
+    private fun tryHighlightKeyword(
+        index: Int,
+        text: String,
+        markupModel: MarkupModel,
+        keyword: String,
+    ) {
+        val size = keyword.length
+        if (index + size <= text.length && text.subSequence(index, index + size) == keyword &&
+            (index + size == text.length || text[index + size].isWhitespace()) &&
+            (index == 0 || text[index - 1].isWhitespace())
+        ) {
+            markupModel.addRangeHighlighter(
+                index, index + size, HighlighterLayer.SYNTAX,
+                keywordAttributes, HighlighterTargetArea.EXACT_RANGE
+            )
+        }
+    }
+
+    override fun getSearchPattern(): String {
+        return myEditorTextField.text
     }
 
     private fun registerMouseActions() {
@@ -276,28 +427,6 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         ArendBundle.message("arend.proof.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE))
     )
 
-    override fun createSearchField(): ExtendableTextField {
-        val res: SearchField = object : SearchField() {
-            override fun getAccessibleContext(): AccessibleContext {
-                if (accessibleContext == null) {
-                    accessibleContext = TextFieldWithListAccessibleContext(this, myResultsList.accessibleContext)
-                }
-                return accessibleContext
-            }
-        }
-        val leftExt: ExtendableTextComponent.Extension = object : ExtendableTextComponent.Extension {
-            override fun getIcon(hovered: Boolean): Icon = ArendIcons.TURNSTILE
-
-            override fun isIconBeforeText(): Boolean = true
-
-            override fun getIconGap(): Int = JBUIScale.scale(10)
-        }
-        res.addExtension(leftExt)
-        res.putClientProperty(SearchEverywhereUI.SEARCH_EVERYWHERE_SEARCH_FILED_KEY, true)
-        res.layout = BorderLayout()
-        return res
-    }
-
     fun close() {
         stopSearch()
         searchFinishedHandler.run()
@@ -305,16 +434,6 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private fun stopSearch() {
         progressIndicator?.cancel()
-    }
-
-    private fun adjustEmptyText(
-        textEditor: JBTextField
-    ) {
-        textEditor.putClientProperty("StatusVisibleFunction", { field: JBTextField -> field.text.isEmpty() })
-        val statusText = textEditor.emptyText
-        statusText.isShowAboveCenter = false
-        statusText.setText(ArendBundle.message("arend.proof.search.pattern"), SimpleTextAttributes.GRAY_ATTRIBUTES)
-        statusText.setFont(UIUtil.getLabelFont(UIUtil.FontSize.SMALL))
     }
 }
 

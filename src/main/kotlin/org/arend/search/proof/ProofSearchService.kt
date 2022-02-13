@@ -30,7 +30,7 @@ class ProofSearchService {
         val proofSearchUI = createView(e)
         myProofSearchUI = proofSearchUI
         val balloon =
-            with(JBPopupFactory.getInstance().createComponentPopupBuilder(proofSearchUI, proofSearchUI.searchField)) {
+            with(JBPopupFactory.getInstance().createComponentPopupBuilder(proofSearchUI, proofSearchUI.editorSearchField)) {
                 setProject(project)
                 setModalContext(false)
                 setCancelOnClickOutside(true)
@@ -38,7 +38,7 @@ class ProofSearchService {
                 setCancelKeyEnabled(false)
                 setCancelCallback {
                     if (isShown()) {
-                        lastSearchText = myProofSearchUI?.searchField?.text
+                        lastSearchText = myProofSearchUI?.editorSearchField?.text
                     }
                     true
                 }
@@ -120,9 +120,9 @@ class ProofSearchService {
 
         val lastText = lastSearchText
         if (lastText != null) {
-            view.searchField.text = lastText
-            view.searchField.selectionStart = 0
-            view.searchField.selectionEnd = lastText.length
+            view.editorSearchField.text = lastText
+            view.editorSearchField.editor?.selectionModel?.setSelection(0, lastText.length)
+            view.refreshHighlighting()
         }
         return view
     }

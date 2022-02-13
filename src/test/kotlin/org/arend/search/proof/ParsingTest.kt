@@ -39,4 +39,5 @@ class ParsingTest : ArendTestBase() {
     fun test18() = doTestFail("-> ->", "!! ->")
     fun test19() = doTest("_ = _ \\and _ -> _ = (_ = _)", "<[_ = _]  \\and  _> --> <[_ = [_ = _]]>")
     fun test20() = doTestFail("\\and", "!!!!")
+    fun test21() = doTest("_ = _ \\and _", "<[_ = _]  \\and  _>")
 }
