@@ -136,8 +136,7 @@ private fun deconstructPi(expr : Concrete.Expression) : Pair<List<Concrete.Expre
 
 sealed interface SignatureSearchUIEntry
 
-@JvmInline
-value class MoreElement(val sequence: Sequence<SignatureSearchEntry>) : SignatureSearchUIEntry
+data class MoreElement(val alreadyProcessed: Int, val sequence: Sequence<SignatureSearchEntry>) : SignatureSearchUIEntry
 
 @JvmInline
 value class DefElement(val entry: SignatureSearchEntry) : SignatureSearchUIEntry

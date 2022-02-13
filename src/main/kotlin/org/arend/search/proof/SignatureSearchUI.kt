@@ -70,6 +70,9 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
     }
 
     @Volatile
+    private var hasErrors: Boolean = false
+
+    @Volatile
     private var progressIndicator: ProgressIndicator? = null
         get() = synchronized(this) {
             field
@@ -119,8 +122,9 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         } else {
             title.font = loadingIcon.font.deriveFont(Font.BOLD)
         }
+        loadingIcon.font = loadingIcon.font.deriveFont(loadingIcon.font.size - 1f)
         topPanel.add(title, "gapright 4")
-        topPanel.add(loadingIcon, "w 24, wmin 24")
+        topPanel.add(loadingIcon)
         return topPanel
     }
 
@@ -236,18 +240,26 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
     private fun registerSearchAction() {
         myEditorTextField.document.addDocumentListener(object : DocumentListener {
             override fun documentChanged(event: DocumentEvent) {
-                val shouldSearch = refreshHighlighting()
-                if (shouldSearch) {
-                    scheduleSearch()
-                }
+                trySearch()
             }
         })
+    }
+
+
+    fun trySearch() {
+        if (myEditorTextField.text.isEmpty()) {
+            return
+        }
+        val shouldSearch = refreshHighlighting()
+        if (shouldSearch) {
+            scheduleSearch()
+        }
     }
 
     /**
      * @return if search query is OK
      */
-    fun refreshHighlighting(): Boolean {
+    private fun refreshHighlighting(): Boolean {
         val editor = myEditorTextField.editor ?: return false
         val text = myEditorTextField.text
         val markupModel = editor.markupModel
@@ -257,8 +269,12 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
             tryHighlightKeyword(i, text, markupModel, "\\and")
             tryHighlightKeyword(i, text, markupModel, "->")
         }
-        val (msg, range) = SignatureSearchQuery.fromString(text).castSafelyTo<ParsingResult.Error<SignatureSearchQuery>>()
-            ?: return true
+        val parsingResult =
+            SignatureSearchQuery.fromString(text).castSafelyTo<ParsingResult.Error<SignatureSearchQuery>>()
+        hasErrors = parsingResult != null
+        if (parsingResult == null) return true
+        val (msg, range) = parsingResult
+        this.progressIndicator?.cancel()
         val info = HighlightInfo.newHighlightInfo(HighlightInfoType.ERROR)
             .descriptionAndTooltip(msg)
             .textAttributes(CodeInsightColors.ERRORS_ATTRIBUTES)
@@ -267,11 +283,9 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
         UpdateHighlightersUtil.setHighlightersToEditor(project, editor.document, range.first, range.last, listOf(info), null, -1)
         if (text.isNotEmpty()) {
-            loadingIcon.setIconWithAlignment(AllIcons.General.Error, SwingConstants.LEFT, SwingConstants.TOP)
-            loadingIcon.toolTipText = msg
+            adjustLoadingIcon(LoadingIconState.SYNTAX_ERROR, msg)
         } else {
-            loadingIcon.icon = null
-            loadingIcon.toolTipText = ""
+            adjustLoadingIcon(LoadingIconState.CLEAR, null)
         }
         return false
     }
@@ -346,9 +360,9 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
             .registerCustomShortcutSet(escapeAction?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
     }
 
-    internal fun scheduleSearch() {
+    private fun scheduleSearch() {
         if (!searchAlarm.isDisposed && searchAlarm.activeRequestCount == 0) {
-            searchAlarm.addRequest({ runSignatureSearch(null) }, 100)
+            searchAlarm.addRequest({ runSignatureSearch(0, null) }, 100)
         }
     }
 
@@ -375,7 +389,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         }
         is MoreElement -> {
             model.remove(element)
-            runSignatureSearch(element.sequence)
+            runSignatureSearch(element.alreadyProcessed, element.sequence)
         }
     }
 
@@ -387,8 +401,8 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         else -> Unit
     }
 
-    fun runSignatureSearch(results: Sequence<SignatureSearchEntry>?) {
-        cleanupCurrentResults(results)
+    fun runSignatureSearch(alreadyProcessed: Int, results: Sequence<SignatureSearchEntry>?) {
+        cleanupCurrentResults(results == null)
 
         val settings = SignatureSearchUISettings(project)
 
@@ -399,7 +413,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
                 var counter = PROOF_SEARCH_RESULT_LIMIT
                 for (element in elements) {
                     if (progressIndicator.isCanceled) {
-                        break
+                        return@runWithLoadingIcon "Search cancelled"
                     }
                     invokeLater {
                         model.add(DefElement(element))
@@ -410,33 +424,64 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
                     --counter
                     if (settings.shouldLimitSearch() && counter == 0) {
                         invokeLater {
-                            model.add(MoreElement(elements.drop(PROOF_SEARCH_RESULT_LIMIT)))
+                            model.add(MoreElement(alreadyProcessed + PROOF_SEARCH_RESULT_LIMIT, elements.drop(PROOF_SEARCH_RESULT_LIMIT)))
                         }
-                        break
+                        return@runWithLoadingIcon "Showing first ${alreadyProcessed + PROOF_SEARCH_RESULT_LIMIT} results"
                     }
                 }
+                "Search completed with ${model.items.size} results"
             }
         }
     }
 
-    private inline fun runWithLoadingIcon(action: () -> Unit) {
-        runInEdt {
-            loadingIcon.icon = AnimatedIcon.Default.INSTANCE
-            loadingIcon.toolTipText = ArendBundle.message("arend.signature.search.loading.tooltip")
-        }
+    private inline fun runWithLoadingIcon(action: () -> String) {
+        var resultText: String? = null
+        adjustLoadingIcon(LoadingIconState.LOADING, null)
         try {
-            action()
+            resultText = action()
         } finally {
-            runInEdt {
+            if (!hasErrors) {
+                adjustLoadingIcon(LoadingIconState.DONE, resultText)
+            }
+        }
+    }
+
+    private enum class LoadingIconState {
+        DONE, SYNTAX_ERROR, LOADING, CLEAR
+    }
+
+    private fun adjustLoadingIcon(state: LoadingIconState, message: String?) = runInEdt {
+        if (hasErrors && state != LoadingIconState.SYNTAX_ERROR && state != LoadingIconState.CLEAR) {
+            return@runInEdt
+        }
+        when (state) {
+            LoadingIconState.DONE -> {
                 loadingIcon.setIconWithAlignment(ArendIcons.CHECKMARK, SwingConstants.LEFT, SwingConstants.TOP)
                 loadingIcon.toolTipText = ArendBundle.message("arend.signature.search.completed.tooltip")
+                loadingIcon.text = message
+            }
+            LoadingIconState.SYNTAX_ERROR -> {
+                loadingIcon.setIconWithAlignment(AllIcons.General.Error, SwingConstants.LEFT, SwingConstants.TOP)
+                loadingIcon.toolTipText = "Sytax error in query"
+                loadingIcon.text = message
+            }
+            LoadingIconState.LOADING -> {
+                loadingIcon.icon = AnimatedIcon.Default.INSTANCE
+                loadingIcon.toolTipText = ArendBundle.message("arend.signature.search.loading.tooltip")
+                loadingIcon.text = null
+            }
+            LoadingIconState.CLEAR -> {
+                loadingIcon.icon = null
+                loadingIcon.toolTipText = ""
+                loadingIcon.text = null
             }
         }
     }
 
-    private fun cleanupCurrentResults(results: Sequence<SignatureSearchEntry>?) {
+
+    private fun cleanupCurrentResults(cleanModel: Boolean) {
         progressIndicator?.cancel()
-        if (results == null) {
+        if (cleanModel) {
             invokeLater {
                 model.removeAll()
             }

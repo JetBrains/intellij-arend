@@ -53,7 +53,7 @@ private abstract class SignatureSearchToggleSettingsAction(
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
         settingsProperty.set(project.service<ArendProjectSettings>().data, state)
-        searchUI.runSignatureSearch(null)
+        searchUI.runSignatureSearch(0,null)
     }
 }
 

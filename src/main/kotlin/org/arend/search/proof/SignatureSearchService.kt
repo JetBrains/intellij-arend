@@ -69,8 +69,7 @@ class SignatureSearchService {
         }
         calcPositionAndShow(project, balloon, signatureSearchUI)
         if (signatureSearchUI.editorSearchField.text.isNotEmpty()) {
-            signatureSearchUI.refreshHighlighting()
-            signatureSearchUI.scheduleSearch()
+            signatureSearchUI.trySearch()
         }
     }
 
