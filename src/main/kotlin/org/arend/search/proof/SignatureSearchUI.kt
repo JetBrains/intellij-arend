@@ -67,6 +67,8 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private val myEditorTextField: MyEditorTextField = MyEditorTextField().also {
         it.setFontInheritedFromLAF(false)
+        it.setPlaceholder(ArendBundle.getMessage("arend.signature.search.placeholder"))
+        it.setShowPlaceholderWhenFocused(true)
     }
 
     @Volatile

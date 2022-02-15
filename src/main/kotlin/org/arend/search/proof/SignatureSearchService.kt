@@ -68,7 +68,9 @@ class SignatureSearchService {
             balloon.size = signatureSearchUI.preferredSize
         }
         calcPositionAndShow(project, balloon, signatureSearchUI)
-        if (signatureSearchUI.editorSearchField.text.isNotEmpty()) {
+        val text = signatureSearchUI.editorSearchField.text
+        if (text.isNotEmpty()) {
+            signatureSearchUI.editorSearchField.editor?.selectionModel?.setSelection(0, text.length)
             signatureSearchUI.trySearch()
         }
     }
@@ -124,7 +126,6 @@ class SignatureSearchService {
         val lastText = lastSearchText
         if (lastText != null) {
             view.editorSearchField.text = lastText
-            view.editorSearchField.editor?.selectionModel?.setSelection(0, lastText.length)
         }
         return view
     }
