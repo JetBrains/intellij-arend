@@ -24,7 +24,7 @@ class ShowInFindWindowAction(private val ui: SignatureSearchUI, private val proj
 ) {
     override fun actionPerformed(e: AnActionEvent) {
         ui.close()
-        val searchText: String = ui.searchField.text
+        val searchText: String = ui.editorSearchField.text
         val presentation = UsageViewPresentation()
         presentation.codeUsagesString = ArendBundle.message("arend.signature.search.matches.of", searchText)
         presentation.targetsNodeText = ArendBundle.message("arend.signature.search.find.usages.results")
