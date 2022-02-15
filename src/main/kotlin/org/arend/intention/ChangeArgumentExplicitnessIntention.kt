@@ -20,6 +20,7 @@ import org.arend.codeInsight.ArendParameterInfoHandler.Companion.getAllParameter
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.GeneralError
+import org.arend.ext.reference.Precedence
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
@@ -42,9 +43,9 @@ import org.arend.util.getBounds
 import java.util.Collections.singletonList
 import kotlin.math.max
 
-data class ProcessAppExprResult(val text: String, val strippedText: String?, val parenthesizedPrefixTest: String?, val isAtomic: Boolean)
-data class ArgumentDescriptor(val text: String, val strippedText: String?, val parenthesizedPrefixText: String?, val isExplicit: Boolean, val isAtomic: Boolean, val spacingText: String?) {
-   constructor (processResult: ProcessAppExprResult, isExplicit: Boolean, spaceText: String?) : this(processResult.text, processResult.strippedText, processResult.parenthesizedPrefixTest, isExplicit, processResult.isAtomic, spaceText)
+data class ProcessAppExprResult(val text: String, val strippedText: String?, val parenthesizedPrefixTest: String?, val isAtomic: Boolean, val referable: GlobalReferable?)
+data class ArgumentDescriptor(val text: String, val strippedText: String?, val parenthesizedPrefixText: String?, val isExplicit: Boolean, val isAtomic: Boolean, val spacingText: String?, val referable: GlobalReferable?) {
+   constructor (processResult: ProcessAppExprResult, isExplicit: Boolean, spaceText: String?) : this(processResult.text, processResult.strippedText, processResult.parenthesizedPrefixTest, isExplicit, processResult.isAtomic, spaceText, processResult.referable)
 }
 
 abstract class UsageEntry(val refactoringContext: RefactoringContext, val contextPsi: ArendCompositeElement) {
@@ -64,6 +65,7 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
     private val procArguments = ArrayList<ArgumentDescriptor>()
     val procFunction: String
     val isDotExpression: Boolean
+    val isInfixNotation: Boolean
     val blocks: ArrayList<Any>
 
     init {
@@ -109,13 +111,15 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
 
         for ((index, argument) in argumentsWhichActuallyOccurInText.withIndex())
             procArguments.add(ArgumentDescriptor(processAppExpr(argument.expression, argumentAppExpr, functionName, refactoringContext), argument.isExplicit, spacingMap[index]))
+
+        isInfixNotation = blocks.indexOf(FUNCTION_INDEX) != 0
     }
 
     override fun getArguments(): List<ArgumentDescriptor> = procArguments
 
     override fun getParameters(): Pair<List<Parameter>, List<NewParameter>> = Pair(refactoringContext.oldParameters, refactoringContext.newParameters.let { if (isDotExpression) it.drop(1) else it })
 
-    override fun getDefName(): String = if (isDotExpression) procFunction else functionName
+    override fun getDefName(): String = if (isDotExpression) procFunction else functionName //TODO: Fixme (we should remove backticks in certain situations)
 }
 
 class NoArgumentsEntry(refExpr: Concrete.ReferenceExpression, refactoringContext: RefactoringContext, val definitionName: String): UsageEntry(refactoringContext, refExpr.data as ArendCompositeElement) {
@@ -152,7 +156,7 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
             val text = textGetter(data, refactoringContext.textReplacements)
             val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
             val isAtomic = data1 is ArendDefIdentifier || data1 is ArendAtomPattern && (data1.patternList.size == 0 && data1.lparen != null || data1.underscore != null)
-            procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, spacingMap[arg]))
+            procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, spacingMap[arg], null))
         }
     }
 
@@ -197,7 +201,7 @@ class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactor
                 is ArendAtomPattern -> data.isExplicit
                 else -> data.text.trim().startsWith("{")
             }
-            procArguments.add(ArgumentDescriptor(text, strippedText, null, isExplicit, data1 is ArendIdentifierOrUnknown, spacingMap[arg]))
+            procArguments.add(ArgumentDescriptor(text, strippedText, null, isExplicit, data1 is ArendIdentifierOrUnknown, spacingMap[arg], null))
         }
     }
     override fun getLambdaParams(startFromIndex: Int): List<Parameter> = emptyList()
@@ -234,7 +238,9 @@ data class RefactoringContext(
     val diffIndex = oldParameters.reversed().zip(newParameters.reversed()).indexOfFirst { (o, n) -> n.oldParameter != o || n.isExplicit != o.isExplicit }
 }
 
-fun doProcessEntry(entry: UsageEntry, isInfix: Boolean = false): Pair<String /* default version */, String? /* version with parenthesized operator */ > {
+private enum class RenderedParameterKind {INFIX_LEFT, INFIX_RIGHT}
+
+fun doProcessEntry(entry: UsageEntry, globalReferable: GlobalReferable? = null): Pair<String /* default version */, String? /* version with parenthesized operator */ > {
     val defaultBuilder = StringBuilder()
     val parenthesizedPrefixBuilder = StringBuilder()
     fun append(text: String) { defaultBuilder.append(text); parenthesizedPrefixBuilder.append(text) }
@@ -271,41 +277,81 @@ fun doProcessEntry(entry: UsageEntry, isInfix: Boolean = false): Pair<String /* 
         oldArgToLambdaArgMap[it] = freshName
     }
 
-    if (lambdaArgs != "") append("\\lam$lambdaArgs => ")
-    for (e in oldArgToLambdaArgMap) parameterMap[e.key] = ArgumentDescriptor(e.value, null, null, isExplicit = true, isAtomic = true, spacingText = null)
+    val infixNotationSupported = newParameters.withIndex().filter { it.value.isExplicit }.let { explicitParams -> explicitParams.size == 2 && explicitParams.all { it.index >= newParameters.size - 2 } }
 
-    val defName = entry.getDefName()
-    defaultBuilder.append(defName); parenthesizedPrefixBuilder.append(if (isInfix) "($defName)" else defName)
-
-    var implicitArgPrefix = ""
-    var spacingContents = ""
-    for ((newParamIndex, newParam) in newParameters.withIndex()) {
-        val oldParam = newParam.oldParameter
-        if (oldParameters.indexOf(oldParam) >= i && newParamIndex >= newParameters.size - entry.refactoringContext.diffIndex) break
-
-        val text = (oldParam?.let{ parameterMap[it]?.let{ d -> Pair(d.strippedText ?: d.text, !d.isAtomic) } ?: Pair("_", false) } ?: Pair("{?}", false)).let {
-            if (newParam.isExplicit) (if (it.second) "(${it.first})" else it.first ) else (if (it.first.startsWith("-")) "{ ${it.first}}" else "{${it.first}}")
-        }
-        val spacing = oldParam?.let{ parameterMap[it]?.spacingText } ?: " "
-
-        if (text == "{_}") {
-            implicitArgPrefix += spacing + text
-            spacingContents += (if (spacing.endsWith(" ")) spacing.trimEnd() else spacing)
-        } else {
-            if (!newParam.isExplicit) {
-                append(implicitArgPrefix)
+    fun renderParameter(oldParam: Parameter?, isExplicit: Boolean, parameterInfo: RenderedParameterKind? = null): Pair<String /* text */, String /* spacing */> {
+        val parameter = oldParam?.let{ parameterMap[oldParam] }
+        val referable = parameter?.referable
+        val inhibitParens = if (referable != null && parameterInfo != null && globalReferable != null) {
+            if (referable == globalReferable) {
+                parameterInfo == RenderedParameterKind.INFIX_LEFT && referable.precedence.associativity == Precedence.Associativity.LEFT_ASSOC ||
+                        parameterInfo == RenderedParameterKind.INFIX_RIGHT && referable.precedence.associativity == Precedence.Associativity.RIGHT_ASSOC
             } else {
-                append(spacingContents)
+                referable.precedence.priority > globalReferable.precedence.priority
             }
-            append(spacing + text)
-            implicitArgPrefix = ""
-            spacingContents = ""
+        } else false
+
+        val (text, requiresParentheses) = when {
+            (oldParam == null) -> Pair("{?}", false)
+            (parameter == null) -> Pair("_", false)
+            else -> Pair(parameter.strippedText ?: parameter.text, !parameter.isAtomic && !inhibitParens)
+        }
+
+        val result = if (isExplicit) (if (requiresParentheses) "(${text})" else text) else (if (text.startsWith("-")) "{ ${text}}" else "{${text}}")
+        val spacingText = parameter?.spacingText ?: " "
+        return Pair(result, spacingText)
+    }
+
+    fun printParams(params: List<NewParameter>) {
+        var implicitArgPrefix = ""
+        var spacingContents = ""
+        for ((newParamIndex, newParam) in params.withIndex()) {
+            val oldParam = newParam.oldParameter
+            if (oldParameters.indexOf(oldParam) >= i && newParamIndex >= params.size - entry.refactoringContext.diffIndex) break
+
+            val (text, spacing) = renderParameter(oldParam, newParam.isExplicit)
+
+            if (text == "{_}") {
+                implicitArgPrefix += spacing + text
+                spacingContents += (if (spacing.endsWith(" ")) spacing.trimEnd() else spacing)
+            } else {
+                if (!newParam.isExplicit) {
+                    append(implicitArgPrefix)
+                } else {
+                    append(spacingContents)
+                }
+                append(spacing + text)
+                implicitArgPrefix = ""
+                spacingContents = ""
+            }
         }
     }
 
-    while (j < entry.getArguments().size) {
-        append(" ${entry.getArguments()[j].text}")
-        j++
+
+    if (infixNotationSupported && entry is AppExpressionEntry && entry.isInfixNotation && lambdaArgs == "") {
+        //if it is not isInfix then use backtick!
+        val (leftParam, rightParam) = newParameters.filter { it.isExplicit }.toList().let { Pair(it[0], it[1]) }
+        val (leftText, leftSpacing) = renderParameter(leftParam.oldParameter, isExplicit = true, RenderedParameterKind.INFIX_LEFT)
+        val (rightText, rightSpacing) = renderParameter(rightParam.oldParameter, isExplicit = true, RenderedParameterKind.INFIX_RIGHT)
+
+        val defName = entry.getDefName()  //TODO: Fixme; we should take backticks into account
+        append("$leftText$leftSpacing$defName")
+
+        printParams(newParameters.filter { !it.isExplicit })
+        append("$rightSpacing$rightText")
+    } else {
+        if (lambdaArgs != "") append("\\lam$lambdaArgs => ")
+        for (e in oldArgToLambdaArgMap) parameterMap[e.key] = ArgumentDescriptor(e.value, null, null, isExplicit = true, isAtomic = true, spacingText = null, referable = null)
+
+        val defName = entry.getDefName()
+        defaultBuilder.append(defName); parenthesizedPrefixBuilder.append(if (globalReferable?.precedence?.isInfix == true) "($defName)" else defName)
+
+        printParams(newParameters)
+
+        while (j < entry.getArguments().size) {
+            append(" ${entry.getArguments()[j].text}")
+            j++
+        }
     }
 
     entry.getUnmodifiableSuffix()?.let {
@@ -362,9 +408,9 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
         val appExprEntry = AppExpressionEntry(expr, psiElement, defName, refactoringContext)
 
         return if (refactoringContext.def == resolve) {
-            val processResult = doProcessEntry(appExprEntry, resolveIsInfix)
+            val processResult = doProcessEntry(appExprEntry, resolve as? GlobalReferable)
             val isLambda = processResult.second == null
-            ProcessAppExprResult(if (isLambda) "(${processResult.first})" else processResult.first, if (isLambda) processResult.first else null, processResult.second,false)
+            ProcessAppExprResult(if (isLambda) "(${processResult.first})" else processResult.first, if (isLambda) processResult.first else null, processResult.second,false, resolve as? GlobalReferable)
         } else {
             val builder = StringBuilder()
             val parenthesizedBuilder = StringBuilder()
@@ -383,7 +429,7 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
                 is PsiElement -> append(textGetter(block, refactoringContext.textReplacements))
             }
             val isAtomic = if (appExprEntry.blocks.size == 1 && appExprEntry.blocks[0] == FUNCTION_INDEX) getStrippedPsi(expr.function.data as PsiElement).second else false
-            ProcessAppExprResult(builder.toString(), null, parenthesizedBuilder.toString(), isAtomic)
+            ProcessAppExprResult(builder.toString(), null, parenthesizedBuilder.toString(), isAtomic, resolve as? GlobalReferable)
         }
     } else if (expr is Concrete.LamExpression && expr.data == null) {
         val builder = StringBuilder()
@@ -396,27 +442,27 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
                 builder.append(doProcessEntry(object: AppExpressionEntry(exprBody, psiElement, defName, refactoringContext) {
                     override fun getLambdaParams(startFromIndex: Int): List<Parameter> = (this.getParameters().first.firstOrNull { it.isExplicit }?.let { listOf(it) } ?: emptyList()) + super.getLambdaParams(startFromIndex)
 
-                    override fun getArguments(): List<ArgumentDescriptor> = listOf(ArgumentDescriptor("", null,  null, isExplicit = true, isAtomic = true, spacingText = null)) + super.getArguments()
+                    override fun getArguments(): List<ArgumentDescriptor> = listOf(ArgumentDescriptor("", null,  null, isExplicit = true, isAtomic = true, spacingText = null, referable = null)) + super.getArguments()
                 }).first)
-                return ProcessAppExprResult(builder.toString(), null, null, false)
+                return ProcessAppExprResult(builder.toString(), null, null, false, null)
             }
         }
         builder.append(processAppExpr(exprBody, psiElement, defName, refactoringContext).text)
-        return ProcessAppExprResult(builder.toString(), null, null,false)
+        return ProcessAppExprResult(builder.toString(), null, null,false, null)
     } else if (expr is Concrete.ReferenceExpression) {
         if (expr.referent == refactoringContext.def) {
             val text = doProcessEntry(NoArgumentsEntry(expr, refactoringContext, defName)).first
-            return ProcessAppExprResult("(${text})", text, null, true)
+            return ProcessAppExprResult("(${text})", text, null, true, null)
         } else if ((expr.referent as? GlobalReferable)?.precedence?.isInfix == true) {
             val text = textGetter(expr.data as PsiElement, refactoringContext.textReplacements)
-            return ProcessAppExprResult("(${text})", null, null, true)
+            return ProcessAppExprResult("(${text})", null, null, true, null)
         }
     }
 
     val (exprData, isAtomic) = getStrippedPsi(expr.data as PsiElement)
 
     return ProcessAppExprResult(textGetter(expr.data as PsiElement, refactoringContext.textReplacements),
-        textGetter(exprData, refactoringContext.textReplacements), null, isAtomic)
+        textGetter(exprData, refactoringContext.textReplacements), null, isAtomic, null)
 }
 
 fun textGetter(psi: PsiElement, textReplacements: HashMap<PsiElement, String>): String = textReplacements[psi] ?: buildString {
