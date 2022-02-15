@@ -482,7 +482,7 @@
         </action>
 
         <action class="org.arend.search.proof.ArendSignatureSearchAction"
-                text="Proof Search"
+                text="Signature Search"
                 description="Run search for pattern expression in functions' signature">
             <add-to-group group-id="SearchEverywhereActions" anchor="last" />
             <keyboard-shortcut keymap="$default" first-keystroke="control alt P" />

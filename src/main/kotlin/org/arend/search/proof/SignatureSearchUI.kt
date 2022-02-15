@@ -135,6 +135,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         val actionGroup = DefaultActionGroup()
         actionGroup.addAction(GearActionGroup(this, project))
         actionGroup.addAction(ShowInFindWindowAction(this, project))
+        actionGroup.addAction(ShowHelpAction(this))
         val toolbar = ActionManager.getInstance().createActionToolbar("proof.search.top.toolbar", actionGroup, true)
         toolbar.layoutPolicy = ActionToolbar.NOWRAP_LAYOUT_POLICY
         toolbar.setTargetComponent(this)
