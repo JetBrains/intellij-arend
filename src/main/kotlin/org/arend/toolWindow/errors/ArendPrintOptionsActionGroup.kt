@@ -6,15 +6,20 @@ import com.intellij.openapi.project.Project
 import org.arend.ArendIcons
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 
-class ArendPrintOptionsActionGroup(val project: Project, val kind: PrintOptionKind, isEnabled: Boolean = true):
-        DefaultActionGroup("${kind.kindName}s pretty printer options", true), DumbAware {
+class ArendPrintOptionsActionGroup(
+    project: Project,
+    kind: PrintOptionKind,
+    callback: Runnable? = null,
+    isEnabled: Boolean = true
+) :
+    DefaultActionGroup("${kind.kindName}s pretty printer options", true), DumbAware {
     private var actionMap = HashMap<PrettyPrinterFlag, ArendPrintOptionsFilterAction>()
 
     init {
         templatePresentation.icon = ArendIcons.SHOW
         if (isEnabled) {
             for (type in PrettyPrinterFlag.values()) {
-                val action = ArendPrintOptionsFilterAction(project, kind, type)
+                val action = ArendPrintOptionsFilterAction(project, kind, type, callback)
                 add(action)
                 actionMap[type] = action
             }

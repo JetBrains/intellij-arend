@@ -1,5 +1,6 @@
 package org.arend.ui.console
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.injection.InjectedArendEditor
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
@@ -11,7 +12,9 @@ class ArendConsoleViewEditor(project: Project) : InjectedArendEditor(project, Ar
     init {
         if (editor != null) {
             actionGroup.add(ArendClearConsoleAction(project, editor.contentComponent))
-            actionGroup.add(ArendPrintOptionsActionGroup(project, PrintOptionKind.CONSOLE_PRINT_OPTIONS))
+            actionGroup.add(ArendPrintOptionsActionGroup(project, PrintOptionKind.CONSOLE_PRINT_OPTIONS, {
+                project.service<ArendConsoleService>().updateText()
+            }))
         }
     }
 }
