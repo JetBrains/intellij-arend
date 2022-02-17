@@ -2,11 +2,19 @@ package org.arend.toolWindow.errors
 
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.project.Project
+import org.arend.ext.error.GeneralError
 import org.arend.injection.InjectedArendEditor
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
 
 class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeElement, private val isGoalEditor: Boolean)
     : InjectedArendEditor(project, "Arend Messages", treeElement) {
+
+    override val printOptionKind: PrintOptionKind
+        get() = when (treeElement?.highestError?.error?.level) {
+            GeneralError.Level.GOAL -> PrintOptionKind.GOAL_PRINT_OPTIONS
+            else -> PrintOptionKind.ERROR_PRINT_OPTIONS
+        }
+
     init {
         setupActions()
     }
