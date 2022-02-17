@@ -1,6 +1,7 @@
 package org.arend.toolWindow.errors
 
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import org.arend.ext.error.GeneralError
 import org.arend.injection.InjectedArendEditor
@@ -49,6 +50,11 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
 
     private fun createPrintOptionsActionGroup(): ArendPrintOptionsActionGroup {
         val enablePrintOptions = treeElement?.errors?.any { it.error.hasExpressions() } ?: false
-        return ArendPrintOptionsActionGroup(project, printOptionKind, enablePrintOptions)
+        return ArendPrintOptionsActionGroup(project, printOptionKind, {
+            when (printOptionKind) {
+                PrintOptionKind.GOAL_PRINT_OPTIONS -> project.service<ArendMessagesService>().updateGoalText()
+                else -> project.service<ArendMessagesService>().updateErrorText()
+            }
+        }, enablePrintOptions)
     }
 }

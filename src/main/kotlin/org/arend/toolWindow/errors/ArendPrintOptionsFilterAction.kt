@@ -7,12 +7,13 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.settings.ArendProjectSettings
-import org.arend.ui.console.ArendConsoleService
 
-class ArendPrintOptionsFilterAction(private val project: Project,
-                                    private val printOptionKind: PrintOptionKind,
-                                    private val flag: PrettyPrinterFlag)
-    : ToggleAction(flagToString(flag), null, null), DumbAware {
+class ArendPrintOptionsFilterAction(
+    private val project: Project,
+    private val printOptionKind: PrintOptionKind,
+    private val flag: PrettyPrinterFlag,
+    private val callback: Runnable?
+) : ToggleAction(flagToString(flag), null, null), DumbAware {
 
     override fun isSelected(e: AnActionEvent): Boolean = isSelected
 
@@ -24,32 +25,25 @@ class ArendPrintOptionsFilterAction(private val project: Project,
         if (printOptionSet.contains(flag) == state) {
             return
         }
-
-        if (state)
+        if (state) {
             printOptionSet.add(flag)
-        else
+        } else {
             printOptionSet.remove(flag)
-
-        when (printOptionKind) {
-            PrintOptionKind.CONSOLE_PRINT_OPTIONS -> project.service<ArendConsoleService>().updateText()
-            PrintOptionKind.GOAL_PRINT_OPTIONS -> project.service<ArendMessagesService>().updateGoalText()
-            PrintOptionKind.ERROR_PRINT_OPTIONS -> project.service<ArendMessagesService>().updateErrorText()
-            else -> {}
         }
+        callback?.run()
     }
 
-
-
     companion object {
-        fun getFilterSet(project: Project, printOptionsKind: PrintOptionKind) = project.service<ArendProjectSettings>().let {
-            when (printOptionsKind) {
-                PrintOptionKind.CONSOLE_PRINT_OPTIONS -> it.consolePrintingOptionsFilterSet
-                PrintOptionKind.ERROR_PRINT_OPTIONS -> it.errorPrintingOptionsFilterSet
-                PrintOptionKind.POPUP_PRINT_OPTIONS -> it.popupPrintingOptionsFilterSet
-                PrintOptionKind.REPL_PRINT_OPTIONS -> it.replPrintingOptionsFilterSet
-                PrintOptionKind.GOAL_PRINT_OPTIONS -> it.goalPrintingOptionsFilterSet
+        fun getFilterSet(project: Project, printOptionsKind: PrintOptionKind) =
+            project.service<ArendProjectSettings>().let {
+                when (printOptionsKind) {
+                    PrintOptionKind.CONSOLE_PRINT_OPTIONS -> it.consolePrintingOptionsFilterSet
+                    PrintOptionKind.ERROR_PRINT_OPTIONS -> it.errorPrintingOptionsFilterSet
+                    PrintOptionKind.POPUP_PRINT_OPTIONS -> it.popupPrintingOptionsFilterSet
+                    PrintOptionKind.REPL_PRINT_OPTIONS -> it.replPrintingOptionsFilterSet
+                    PrintOptionKind.GOAL_PRINT_OPTIONS -> it.goalPrintingOptionsFilterSet
+                }
             }
-        }
 
         fun flagToString(flag: PrettyPrinterFlag): String = when (flag) {
             PrettyPrinterFlag.SHOW_COERCE_DEFINITIONS -> "Show coerce definitions"
