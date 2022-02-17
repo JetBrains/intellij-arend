@@ -4,11 +4,14 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.SmartPointerManager
 import org.arend.injection.InjectedArendEditor
+import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
 import org.arend.typechecking.error.ArendError
 import org.arend.util.ArendBundle
 
 class ArendTraceContextView(project: Project) : InjectedArendEditor(project, "Arend Trace Context", null) {
+    override val printOptionKind: PrintOptionKind = PrintOptionKind.TRACER_PRINT_OPTIONS
+
     fun update(traceEntry: ArendTraceEntry) {
         val psiElement = traceEntry.psiElement
         if (psiElement == null) {

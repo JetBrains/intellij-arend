@@ -11,7 +11,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.DataContainer
@@ -44,11 +43,7 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         val AREND_GOAL_EDITOR: Key<Unit> = Key.create("Arend goal editor")
     }
 
-    protected val printOptionKind: PrintOptionKind
-        get() = when (treeElement?.highestError?.error?.level) {
-            GeneralError.Level.GOAL -> PrintOptionKind.GOAL_PRINT_OPTIONS
-            else -> PrintOptionKind.ERROR_PRINT_OPTIONS
-        }
+    protected abstract val printOptionKind: PrintOptionKind
 
     init {
         val psi = ArendPsiFactory(project, name).injected("")
