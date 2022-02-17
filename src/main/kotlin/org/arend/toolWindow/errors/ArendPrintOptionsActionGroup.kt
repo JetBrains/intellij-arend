@@ -12,7 +12,7 @@ class ArendPrintOptionsActionGroup(
     callback: Runnable? = null,
     isEnabled: Boolean = true
 ) :
-    DefaultActionGroup("${kind.kindName}s pretty printer options", true), DumbAware {
+    DefaultActionGroup("${kind.kindName}'s pretty printer options", true), DumbAware {
     private var actionMap = HashMap<PrettyPrinterFlag, ArendPrintOptionsFilterAction>()
 
     init {
