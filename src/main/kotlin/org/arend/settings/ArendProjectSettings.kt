@@ -18,6 +18,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
     var consolePrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
     var errorPrintingOptionsFilterSet = PrettyPrinterConfig.DEFAULT.expressionFlags
     var goalPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)!!
+    var tracerPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)!!
 
     // for show-type and show-normalized
     var popupPrintingOptionsFilterSet = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)!!
@@ -74,11 +75,13 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         data.consolePrintingOptions = ArendPrintingOptions()
         data.errorPrintingOptions = ArendPrintingOptions()
         data.goalPrintingOptions = ArendPrintingOptions()
+        data.tracerPrintingOptions = ArendPrintingOptions()
         data.replPrintingOptions = ArendPrintingOptions()
 
         getPrintingOptions(consolePrintingOptionsFilterSet, data.consolePrintingOptions)
         getPrintingOptions(errorPrintingOptionsFilterSet, data.errorPrintingOptions)
         getPrintingOptions(goalPrintingOptionsFilterSet, data.goalPrintingOptions)
+        getPrintingOptions(tracerPrintingOptionsFilterSet, data.tracerPrintingOptions)
         getPrintingOptions(popupPrintingOptionsFilterSet, data.popupPrintingOptions)
         getPrintingOptions(replPrintingOptionsFilterSet, data.replPrintingOptions)
 
@@ -122,6 +125,7 @@ class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState>
         setPrintingOptions(consolePrintingOptionsFilterSet, state.consolePrintingOptions)
         setPrintingOptions(errorPrintingOptionsFilterSet, state.errorPrintingOptions)
         setPrintingOptions(goalPrintingOptionsFilterSet, state.goalPrintingOptions)
+        setPrintingOptions(tracerPrintingOptionsFilterSet, state.tracerPrintingOptions)
         setPrintingOptions(popupPrintingOptionsFilterSet, state.popupPrintingOptions)
         setPrintingOptions(replPrintingOptionsFilterSet, state.replPrintingOptions)
     }

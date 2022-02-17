@@ -37,6 +37,7 @@ class ArendProjectSettingsState {
     var consolePrintingOptions = ArendPrintingOptions()
     var errorPrintingOptions = ArendPrintingOptions()
     var goalPrintingOptions = ArendPrintingOptions()
+    var tracerPrintingOptions = ArendPrintingOptions()
     var popupPrintingOptions = ArendPrintingOptions()
     var replPrintingOptions = ArendPrintingOptions()
 

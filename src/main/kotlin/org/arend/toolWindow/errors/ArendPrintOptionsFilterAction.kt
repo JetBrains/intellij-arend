@@ -42,6 +42,7 @@ class ArendPrintOptionsFilterAction(
                     PrintOptionKind.POPUP_PRINT_OPTIONS -> it.popupPrintingOptionsFilterSet
                     PrintOptionKind.REPL_PRINT_OPTIONS -> it.replPrintingOptionsFilterSet
                     PrintOptionKind.GOAL_PRINT_OPTIONS -> it.goalPrintingOptionsFilterSet
+                    PrintOptionKind.TRACER_PRINT_OPTIONS -> it.tracerPrintingOptionsFilterSet
                 }
             }
 
@@ -65,6 +66,7 @@ class ArendPrintOptionsFilterAction(
 enum class PrintOptionKind(val kindName: String) {
     CONSOLE_PRINT_OPTIONS("Console"),
     GOAL_PRINT_OPTIONS("Goal"),
+    TRACER_PRINT_OPTIONS("Tracer"),
     POPUP_PRINT_OPTIONS("Pop-up"),
     REPL_PRINT_OPTIONS("REPL"),
     ERROR_PRINT_OPTIONS("Error")
