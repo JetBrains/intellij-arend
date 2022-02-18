@@ -4,7 +4,8 @@ import com.intellij.execution.ui.RunnerLayoutUi
 import com.intellij.execution.ui.layout.LayoutAttractionPolicy
 import com.intellij.execution.ui.layout.LayoutViewOptions
 import com.intellij.execution.ui.layout.PlaceInGrid
-import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
@@ -18,13 +19,16 @@ import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.evaluation.XDebuggerEditorsProvider
 import com.intellij.xdebugger.evaluation.XDebuggerEditorsProviderBase
 import com.intellij.xdebugger.frame.XSuspendContext
+import com.intellij.xdebugger.impl.DebuggerSupport
 import com.intellij.xdebugger.impl.actions.*
+import com.intellij.xdebugger.impl.actions.handlers.XDebuggerActionHandler
 import com.intellij.xdebugger.ui.XDebugTabLayouter
 import org.arend.ArendFileType
 import org.arend.psi.ArendPsiFactory
 import org.arend.util.ArendBundle
 import org.jetbrains.uast.util.classSetOf
 import org.jetbrains.uast.util.isInstanceOf
+import javax.swing.Icon
 
 class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTracingData) :
     XDebugProcess(session) {
@@ -48,6 +52,21 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
         topToolbar.childActionsOrStubs
             .filter { it.isInstanceOf(removedTopToolbarActions) }
             .forEach(topToolbar::remove)
+        val nextEntryAction = TracerAction(
+            ArendBundle.message("arend.trace.next.entry.action.name"),
+            ArendBundle.message("arend.trace.next.entry.action.description"),
+            AllIcons.Vcs.Arrow_right,
+            NextEntryActionHandler()
+        )
+        val prevEntryAction = TracerAction(
+            ArendBundle.message("arend.trace.prev.entry.action.name"),
+            ArendBundle.message("arend.trace.prev.entry.action.description"),
+            AllIcons.Vcs.Arrow_left,
+            PrevEntryActionHandler()
+        )
+        topToolbar.add(Separator.create(), Constraints.FIRST)
+        topToolbar.add(nextEntryAction, Constraints.FIRST)
+        topToolbar.add(prevEntryAction, Constraints.FIRST)
     }
 
     override fun createTabLayouter(): XDebugTabLayouter = object : XDebugTabLayouter() {
@@ -87,12 +106,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     override fun startStepOver(context: XSuspendContext?) {
-        val entry = trace.entries.getOrNull(++traceEntryIndex)
-        if (entry == null) {
-            session.stop()
-            return
-        }
-        session.positionReached(ArendSuspendContext(entry, contextView))
+        doNothing(context)
     }
 
     override fun startStepInto(context: XSuspendContext?) {
@@ -132,6 +146,48 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
         }
     }
 
+    private inner class NextEntryActionHandler : XDebuggerSuspendedActionHandler() {
+        override fun perform(session: XDebugSession, dataContext: DataContext?) {
+            session.sessionResumed()
+            val entry = trace.entries.getOrNull(++traceEntryIndex)
+            if (entry == null) {
+                session.stop()
+                return
+            }
+            session.positionReached(ArendSuspendContext(entry, contextView))
+        }
+    }
+
+    private inner class PrevEntryActionHandler : XDebuggerSuspendedActionHandler() {
+        override fun perform(session: XDebugSession, dataContext: DataContext?) {
+            session.sessionResumed()
+            val entry = trace.entries.getOrNull(--traceEntryIndex)
+            if (entry == null) {
+                doNothing(session.suspendContext)
+                return
+            }
+            session.positionReached(ArendSuspendContext(entry, contextView))
+        }
+
+        override fun isEnabled(project: Project, event: AnActionEvent?): Boolean =
+            super.isEnabled(project, event) && traceEntryIndex > 0
+    }
+
+    private class TracerAction(
+        text: String,
+        description: String,
+        icon: Icon,
+        private val handler: XDebuggerActionHandler
+    ) : XDebuggerActionBase() {
+        init {
+            templatePresentation.text = text
+            templatePresentation.description = description
+            templatePresentation.icon = icon
+        }
+
+        override fun getHandler(debuggerSupport: DebuggerSupport): DebuggerActionHandler = handler
+    }
+
     private object EditorsProvider : XDebuggerEditorsProviderBase() {
         override fun getFileType(): FileType = ArendFileType
         override fun createExpressionCodeFragment(
@@ -153,6 +209,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
         )
 
         private val removedTopToolbarActions = classSetOf(
+            StepOverAction::class.java,
             StepIntoAction::class.java,
             ForceStepIntoAction::class.java,
             StepOutAction::class.java,
