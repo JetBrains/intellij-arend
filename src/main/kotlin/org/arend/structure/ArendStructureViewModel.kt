@@ -36,6 +36,7 @@ class ArendStructureViewModel(editor: Editor?, file: ArendFile)
         is ArendDefMeta -> false
         is FieldReferable,
         is ArendClassImplement,
+        is ArendCoClauseDef,
         is ArendConstructor -> true
         else -> error("Unexpected tree anchor")
     }
