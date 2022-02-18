@@ -9,12 +9,15 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.util.ui.JBUI
 import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.evaluation.XDebuggerEditorsProvider
 import com.intellij.xdebugger.evaluation.XDebuggerEditorsProviderBase
 import com.intellij.xdebugger.frame.XSuspendContext
+import com.intellij.xdebugger.impl.actions.*
 import com.intellij.xdebugger.ui.XDebugTabLayouter
 import org.arend.ArendFileType
 import org.arend.psi.ArendPsiFactory
@@ -25,11 +28,16 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     private val trace = tracingData.trace
     private var traceEntryIndex: Int = tracingData.firstEntryIndex
 
-    private val contextView = ArendTraceContextView(session.project)
+    private val contextViewPanel = JBUI.Panels.simplePanel()
+    private val emptyContextView =
+        JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.tracer.nothing.to.show"))
+    private lateinit var contextView: ArendTraceContextView
 
     override fun createTabLayouter(): XDebugTabLayouter = object : XDebugTabLayouter() {
         override fun registerAdditionalContent(ui: RunnerLayoutUi) {
-            val contextContent = ui.createContent(CONTEXT_CONTENT, contextView.component!!, "Context", null, null)
+            contextView = ArendTraceContextView(session.project)
+            contextViewPanel.add(contextView.component!!)
+            val contextContent = ui.createContent(CONTEXT_CONTENT, contextViewPanel, "Context", null, null)
             ui.addContent(contextContent, 0, PlaceInGrid.center, false)
         }
     }
@@ -83,7 +91,9 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     override fun stop() {
-        contextView.clearText()
+        contextViewPanel.removeAll()
+        contextViewPanel.add(emptyContextView)
+        contextView.release()
     }
 
     override fun getEditorsProvider(): XDebuggerEditorsProvider = EditorsProvider
