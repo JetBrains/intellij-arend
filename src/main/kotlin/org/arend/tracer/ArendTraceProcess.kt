@@ -4,6 +4,7 @@ import com.intellij.execution.ui.RunnerLayoutUi
 import com.intellij.execution.ui.layout.LayoutAttractionPolicy
 import com.intellij.execution.ui.layout.LayoutViewOptions
 import com.intellij.execution.ui.layout.PlaceInGrid
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
@@ -22,6 +23,8 @@ import com.intellij.xdebugger.ui.XDebugTabLayouter
 import org.arend.ArendFileType
 import org.arend.psi.ArendPsiFactory
 import org.arend.util.ArendBundle
+import org.jetbrains.uast.util.classSetOf
+import org.jetbrains.uast.util.isInstanceOf
 
 class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTracingData) :
     XDebugProcess(session) {
@@ -32,6 +35,20 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     private val emptyContextView =
         JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.tracer.nothing.to.show"))
     private lateinit var contextView: ArendTraceContextView
+
+    override fun registerAdditionalActions(
+        leftToolbar: DefaultActionGroup,
+        topToolbar: DefaultActionGroup,
+        settings: DefaultActionGroup
+    ) {
+        super.registerAdditionalActions(leftToolbar, topToolbar, settings)
+        leftToolbar.childActionsOrStubs
+            .filter { it.isInstanceOf(removedLeftToolbarActions) }
+            .forEach(leftToolbar::remove)
+        topToolbar.childActionsOrStubs
+            .filter { it.isInstanceOf(removedTopToolbarActions) }
+            .forEach(topToolbar::remove)
+    }
 
     override fun createTabLayouter(): XDebugTabLayouter = object : XDebugTabLayouter() {
         override fun registerAdditionalContent(ui: RunnerLayoutUi) {
@@ -66,7 +83,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     override fun resume(context: XSuspendContext?) {
-        reportNotSupported(context)
+        doNothing(context)
     }
 
     override fun startStepOver(context: XSuspendContext?) {
@@ -79,15 +96,15 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     override fun startStepInto(context: XSuspendContext?) {
-        reportNotSupported(context)
+        doNothing(context)
     }
 
     override fun startStepOut(context: XSuspendContext?) {
-        reportNotSupported(context)
+        doNothing(context)
     }
 
     override fun runToPosition(position: XSourcePosition, context: XSuspendContext?) {
-        reportNotSupported(context)
+        doNothing(context)
     }
 
     override fun stop() {
@@ -106,9 +123,8 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
         )
     }
 
-    private fun reportNotSupported(context: XSuspendContext?) {
+    private fun doNothing(context: XSuspendContext?) {
         if (context != null) {
-            session.reportMessage(ArendBundle.message("arend.tracer.not.supported"), MessageType.WARNING)
             session.positionReached(context)
         } else {
             session.reportError(ArendBundle.message("arend.tracer.command.failed"))
@@ -128,5 +144,19 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
 
     companion object {
         private const val CONTEXT_CONTENT = "ArendTraceContextContent"
+
+        private val removedLeftToolbarActions = classSetOf(
+            ResumeAction::class.java,
+            PauseAction::class.java,
+            ViewBreakpointsAction::class.java,
+            MuteBreakpointAction::class.java
+        )
+
+        private val removedTopToolbarActions = classSetOf(
+            StepIntoAction::class.java,
+            ForceStepIntoAction::class.java,
+            StepOutAction::class.java,
+            RunToCursorAction::class.java
+        )
     }
 }
