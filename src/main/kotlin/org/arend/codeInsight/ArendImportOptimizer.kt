@@ -148,7 +148,7 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit, statements:
         val statCmd = import.statCmd ?: continue
         val qualifiedReference = statCmd.openedReference?.castSafelyTo<ArendReferenceContainer>()?.resolve?.takeIf { it !is ArendFile }?.castSafelyTo<ArendGroup>()?.qualifiedName() ?: statCmd.longName?.longName
         val imported = pattern[qualifiedReference?.let(::ModulePath)]
-        if (imported == null) {
+        if (imported == null || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in imported } } == true)  {
             action(import)
             continue
         }
