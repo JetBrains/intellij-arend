@@ -11,71 +11,89 @@ import org.arend.term.prettyprint.FreeVariableCollectorConcrete
 
 internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
 
-    fun match(parameters: List<Concrete.Expression>, codomain: Concrete.Expression, scope: Scope): Boolean {
+    /**
+     * @return null if the signature cannot be matched against [query],
+     * list of concrete nodes where the matching occurred otherwise
+     */
+    fun match(parameters: List<Concrete.Expression>, codomain: Concrete.Expression, scope: Scope): List<Concrete.Expression>? {
         val cachingScope = CachingScope.make(scope)
         val qualifiedReferables = lazy(LazyThreadSafetyMode.NONE) {
             val set = mutableSetOf<Referable>()
             codomain.accept(FreeVariableCollectorConcrete(set), null)
             set.groupBy { it.refName }
         }
-        if (!matchDisjunct(query.codomain, codomain, cachingScope, qualifiedReferables)) return false
+        val codomainResult = matchDisjunct(query.codomain, codomain, cachingScope, qualifiedReferables) ?: return null
         if (parameters.isEmpty()) {
-            return query.parameters.isEmpty()
+            return codomainResult.takeIf { query.parameters.isEmpty() }
         }
+        val results = mutableListOf(*codomainResult.toTypedArray())
         for (patternParameter in query.parameters) {
-            if (parameters.all { !matchDisjunct(patternParameter, it, cachingScope, qualifiedReferables) }) return false
+            val firstMatchedParameter =
+                parameters.firstNotNullOfOrNull { matchDisjunct(patternParameter, it, cachingScope, qualifiedReferables) }
+                    ?: return null
+            results.addAll(firstMatchedParameter)
         }
-        return true
+        return results
     }
 
-    private fun matchDisjunct(pattern: ProofSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>) : Boolean {
-        return pattern.patterns.all {
-            val patternConcrete = reassembleConcrete(it, scope, referables) ?: return@all false
-            performMatch(patternConcrete, concrete)
+    @Suppress("RedundantNullableReturnType")
+    private fun matchDisjunct(jointPattern: ProofSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>) : List<Concrete.Expression>? {
+        return jointPattern.patterns.flatMap {
+            val patternConcrete = reassembleConcrete(it, scope, referables) ?: return@matchDisjunct null
+            performMatch(patternConcrete, concrete) ?: return@matchDisjunct null
         }
     }
 
     private fun performMatch(
         pattern: Concrete.Expression,
         matched: Concrete.Expression
-    ): Boolean {
+    ): List<Concrete.Expression>? {
         if (performTopMatch(pattern, matched)) {
-            return true
+            return listOf(matched)
         }
         if (matched is Concrete.AppExpression) {
-            if (performMatch(pattern, matched.function)) {
-                return true
+            val prefixMatch = performMatch(pattern, matched.function)
+            if (prefixMatch != null) {
+                return prefixMatch
             }
             for (arg in matched.arguments) {
-                if (performMatch(pattern, arg.expression)) {
-                    return true
+                val argMatch = performMatch(pattern, arg.expression)
+                if (argMatch != null) {
+                    return argMatch
                 }
             }
         }
         if (matched is Concrete.SigmaExpression) {
             for (projection in matched.parameters) {
-                if (performMatch(pattern, projection.type)) {
-                    return true
+                val projMatch = performMatch(pattern, projection.type)
+                if (projMatch != null) {
+                    return projMatch
                 }
             }
         }
         if (matched is Concrete.PiExpression) {
-            return performMatch(pattern, matched.codomain) || matched.parameters.all { performMatch(pattern,  it.type) }
+            val codomainMatch = performMatch(pattern, matched.codomain)
+            if (codomainMatch != null) {
+                return codomainMatch
+            }
+            return matched.parameters.firstNotNullOfOrNull { performMatch(pattern, it.type) }
         }
         if (matched is Concrete.LetExpression) {
             for (clause in matched.clauses) {
-                if (performMatch(pattern, clause.term)) {
-                    return true
+                val clauseMatch = performMatch(pattern, clause.term)
+                if (clauseMatch != null) {
+                    return clauseMatch
                 }
             }
-            if (performMatch(pattern, matched.expression)) {
-                return true
+            val patternMatch = performMatch(pattern, matched.expression)
+            if (patternMatch != null) {
+                return patternMatch
             }
         }
         if (matched is Concrete.LamExpression) {
             return performMatch(pattern, matched.body)
         }
-        return false
+        return null
     }
 
     private fun performTopMatch(pattern: Concrete.Expression,

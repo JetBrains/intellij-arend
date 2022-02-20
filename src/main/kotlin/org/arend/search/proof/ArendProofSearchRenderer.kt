@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.DocumentImpl
+import com.intellij.openapi.editor.markup.EffectType
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.TextAttributes
@@ -123,11 +124,11 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
     ) {
         editor.markupModel.removeAllHighlighters()
         if (isSelected) {
-            val attributes = TextAttributesKey.createTempTextAttributesKey(
-                "arend_ps_selection",
-                TextAttributes(fgColor, null, null, null, Font.PLAIN)
-            )
-            editor.addHighlighting(TextRange(0, text.length), attributes)
+            editor.markupModel.addRangeHighlighter(0, text.length, HighlighterLayer.SELECTION, TextAttributes(fgColor, null, null, null, Font.PLAIN), HighlighterTargetArea.EXACT_RANGE)
+            for (matched in codomain.match) {
+                val range = matched.shiftRight(typeRange.startOffset)
+                editor.markupModel.addRangeHighlighter(range.startOffset, range.endOffset, HighlighterLayer.SELECTION, TextAttributes(fgColor, null, fgColor, EffectType.BOXED, Font.PLAIN), HighlighterTargetArea.EXACT_RANGE)
+            }
         } else {
             editor.addHighlighting(typeRange, EditorColors.INJECTED_LANGUAGE_FRAGMENT)
             for (kw in codomain.keywords) {

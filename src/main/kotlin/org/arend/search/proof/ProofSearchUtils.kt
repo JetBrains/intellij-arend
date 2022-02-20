@@ -15,6 +15,7 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
@@ -74,8 +75,14 @@ fun generateProofSearchResults(
                 if (def !is ReferableAdapter<*>) return@processElements true
                 val (parameters, codomain, info) = getSignature(concreteProvider, def, query.shouldConsiderParameters())
                     ?: return@processElements true
-                if (matcher.match(parameters, codomain, def.scope)) {
-                    list.add(def to info.value)
+                val matchResults = matcher.match(parameters, codomain, def.scope)
+                if (matchResults != null) {
+                    val startOffset =
+                        codomain.data?.castSafelyTo<PsiElement>()?.startOffset ?: return@processElements true
+                    val textRange = matchResults.mapNotNull { concrete ->
+                        concrete.data?.castSafelyTo<PsiElement>()?.textRange?.takeIf { it.startOffset >= startOffset }?.shiftLeft(startOffset)
+                    }
+                    list.add(def to info.value.copy(match = textRange))
                 }
                 true
             }
