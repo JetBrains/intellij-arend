@@ -12,6 +12,7 @@ import com.intellij.codeInsight.lookup.impl.actions.ChooseItemAction
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.BigPopupUI
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
@@ -361,7 +362,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             if (indices.isNotEmpty()) {
                 goToDeclaration(model.getElementAt(indices[0]))
             }
-        }.registerCustomShortcutSet(CommonShortcuts.getViewSource(), this, this)
+        }.registerCustomShortcutSet(CommonShortcuts.getEditSource(), this, this)
     }
 
     private fun registerEscapeAction() {
@@ -500,7 +501,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     private fun cleanupCurrentResults(cleanModel: Boolean) {
         progressIndicator?.cancel()
         if (cleanModel) {
-            invokeLater {
+            invokeAndWaitIfNeeded {
                 model.removeAll()
             }
         }
@@ -508,8 +509,10 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     override fun getInitialHints(): Array<String> = arrayOf(
         ArendBundle.message("arend.proof.search.quick.preview.tip"),
-        ArendBundle.message("arend.proof.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE)),
-        "Use \\and to search for match only signatures with all mentioned patterns"
+        ArendBundle.message("arend.proof.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_EDIT_SOURCE)),
+        ArendBundle.message("arend.proof.search.insert.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE)),
+        ArendBundle.message("arend.proof.search.use.and.tip"),
+        ArendBundle.message("arend.proof.search.use.arrow.tip"),
     )
 
     fun close() {
