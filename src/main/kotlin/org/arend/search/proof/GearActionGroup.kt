@@ -15,7 +15,7 @@ import java.awt.event.MouseEvent
 import kotlin.reflect.KMutableProperty1
 
 
-class GearActionGroup(private val searchUI: SignatureSearchUI, val project: Project) :
+class GearActionGroup(private val searchUI: ProofSearchUI, val project: Project) :
     AnAction(AllIcons.General.GearPlain), DumbAware {
 
     private val myPopupState = PopupState.forPopupMenu()
@@ -31,7 +31,7 @@ class GearActionGroup(private val searchUI: SignatureSearchUI, val project: Proj
         popup.component.show(inputEvent.component, x, y)
     }
 
-    private class ActualGearActionGroup(searchUI: SignatureSearchUI, project: Project) : DefaultActionGroup(), DumbAware {
+    private class ActualGearActionGroup(searchUI: ProofSearchUI, project: Project) : DefaultActionGroup(), DumbAware {
         init {
             templatePresentation.icon = AllIcons.General.GearPlain
             templatePresentation.text = IdeBundle.message("show.options.menu")
@@ -42,8 +42,8 @@ class GearActionGroup(private val searchUI: SignatureSearchUI, val project: Proj
     }
 }
 
-private abstract class SignatureSearchToggleSettingsAction(
-    val searchUI: SignatureSearchUI,
+private abstract class ProofSearchToggleSettingsAction(
+    val searchUI: ProofSearchUI,
     val project: Project,
     val settingsProperty: KMutableProperty1<ArendProjectSettingsState, Boolean>,
     actionText: @Nls String
@@ -53,30 +53,30 @@ private abstract class SignatureSearchToggleSettingsAction(
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
         settingsProperty.set(project.service<ArendProjectSettings>().data, state)
-        searchUI.runSignatureSearch(0,null)
+        searchUI.runProofSearch(0,null)
     }
 }
 
-private class IncludeNonProjectFiles(searchUI: SignatureSearchUI, project: Project) :
-    SignatureSearchToggleSettingsAction(
+private class IncludeNonProjectFiles(searchUI: ProofSearchUI, project: Project) :
+    ProofSearchToggleSettingsAction(
         searchUI,
         project,
         ArendProjectSettingsState::includeNonProjectLocations,
-        ArendBundle.message("arend.signature.search.include.non.project.locations")
+        ArendBundle.message("arend.proof.search.include.non.project.locations")
     )
 
-private class IncludeTests(searchUI: SignatureSearchUI, project: Project) :
-    SignatureSearchToggleSettingsAction(
+private class IncludeTests(searchUI: ProofSearchUI, project: Project) :
+    ProofSearchToggleSettingsAction(
         searchUI,
         project,
         ArendProjectSettingsState::includeTestLocations,
-        ArendBundle.message("arend.signature.search.include.test.locations")
+        ArendBundle.message("arend.proof.search.include.test.locations")
     )
 
-private class LimitSearch(searchUI: SignatureSearchUI, project: Project) :
-    SignatureSearchToggleSettingsAction(
+private class LimitSearch(searchUI: ProofSearchUI, project: Project) :
+    ProofSearchToggleSettingsAction(
         searchUI,
         project,
         ArendProjectSettingsState::truncateSearchResults,
-        ArendBundle.message("arend.signature.search.limit.search.results", PROOF_SEARCH_RESULT_LIMIT)
+        ArendBundle.message("arend.proof.search.limit.search.results", PROOF_SEARCH_RESULT_LIMIT)
     )

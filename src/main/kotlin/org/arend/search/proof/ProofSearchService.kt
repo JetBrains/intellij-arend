@@ -14,9 +14,9 @@ import com.intellij.util.ui.JBInsets
 import java.awt.Dimension
 
 @Service(Service.Level.PROJECT)
-class SignatureSearchService {
+class ProofSearchService {
 
-    private var mySignatureSearchUI: SignatureSearchUI? = null
+    private var myProofSearchUI: ProofSearchUI? = null
 
     private var myBalloon: JBPopup? = null
     private var myBalloonFullSize: Dimension? = null
@@ -28,7 +28,7 @@ class SignatureSearchService {
         val project: Project = e.project ?: return
 
         val signatureSearchUI = createView(e)
-        mySignatureSearchUI = signatureSearchUI
+        myProofSearchUI = signatureSearchUI
         val balloon =
             with(JBPopupFactory.getInstance().createComponentPopupBuilder(signatureSearchUI, signatureSearchUI.editorSearchField)) {
                 setProject(project)
@@ -38,7 +38,7 @@ class SignatureSearchService {
                 setCancelKeyEnabled(false)
                 setCancelCallback {
                     if (isShown()) {
-                        lastSearchText = mySignatureSearchUI?.editorSearchField?.text
+                        lastSearchText = myProofSearchUI?.editorSearchField?.text
                     }
                     true
                 }
@@ -58,7 +58,7 @@ class SignatureSearchService {
             if (signatureSearchUI.viewType == BigPopupUI.ViewType.SHORT) {
                 WindowStateService.getInstance(project).putSize(PROOF_SEARCH_LOCATION_KEY, myBalloonFullSize)
             }
-            mySignatureSearchUI = null
+            myProofSearchUI = null
             myBalloon = null
             myBalloonFullSize = null
         }
@@ -75,11 +75,11 @@ class SignatureSearchService {
         }
     }
 
-    private fun calcPositionAndShow(project: Project, balloon: JBPopup, signatureSearchUI: SignatureSearchUI) {
+    private fun calcPositionAndShow(project: Project, balloon: JBPopup, proofSearchUI: ProofSearchUI) {
         val savedLocation = WindowStateService.getInstance(project).getLocation(PROOF_SEARCH_LOCATION_KEY)
         balloon.showCenteredInCurrentWindow(project)
 
-        if (savedLocation == null && signatureSearchUI.viewType == BigPopupUI.ViewType.SHORT) {
+        if (savedLocation == null && proofSearchUI.viewType == BigPopupUI.ViewType.SHORT) {
             val location = balloon.locationOnScreen
             location.y /= 2
             balloon.setLocation(location)
@@ -87,11 +87,11 @@ class SignatureSearchService {
     }
 
     private fun isShown(): Boolean {
-        return mySignatureSearchUI != null && myBalloon.let { it != null && !it.isDisposed }
+        return myProofSearchUI != null && myBalloon.let { it != null && !it.isDisposed }
     }
 
-    private fun createView(event: AnActionEvent): SignatureSearchUI {
-        val view = SignatureSearchUI(event.project!!)
+    private fun createView(event: AnActionEvent): ProofSearchUI {
+        val view = ProofSearchUI(event.project!!)
         view.setSearchFinishedHandler {
             if (isShown()) {
                 myBalloon?.cancel()

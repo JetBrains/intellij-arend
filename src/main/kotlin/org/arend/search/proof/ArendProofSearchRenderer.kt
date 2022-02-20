@@ -29,7 +29,7 @@ import java.awt.Component
 import java.awt.Font
 import javax.swing.*
 
-class ArendSignatureSearchRenderer(val project: Project) : ListCellRenderer<SignatureSearchUIEntry>, Disposable {
+class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSearchUIEntry>, Disposable {
     private val panel: JPanel = OpaquePanel(SearchEverywherePsiRenderer.SELayout())
     private val iconPanel: JPanel = JPanel(BorderLayout())
     private val label: JBLabel = JBLabel()
@@ -66,8 +66,8 @@ class ArendSignatureSearchRenderer(val project: Project) : ListCellRenderer<Sign
     }
 
     override fun getListCellRendererComponent(
-        list: JList<out SignatureSearchUIEntry>,
-        value: SignatureSearchUIEntry,
+        list: JList<out ProofSearchUIEntry>,
+        value: ProofSearchUIEntry,
         index: Int,
         isSelected: Boolean,
         cellHasFocus: Boolean

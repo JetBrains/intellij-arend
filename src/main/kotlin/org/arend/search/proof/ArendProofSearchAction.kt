@@ -4,8 +4,8 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
 
-class ArendSignatureSearchAction : AnAction(){
+class ArendProofSearchAction : AnAction(){
     override fun actionPerformed(e: AnActionEvent) {
-        e.project?.service<SignatureSearchService>()?.show(e)
+        e.project?.service<ProofSearchService>()?.show(e)
     }
 }

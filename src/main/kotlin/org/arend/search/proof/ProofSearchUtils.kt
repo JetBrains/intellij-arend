@@ -34,14 +34,14 @@ import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 
 data class HighlightedCodomain(val typeRep: String, val keywords: List<TextRange>, val match: List<TextRange>)
-data class SignatureSearchEntry(val def: ReferableAdapter<*>, val codomain: HighlightedCodomain)
+data class ProofSearchEntry(val def: ReferableAdapter<*>, val codomain: HighlightedCodomain)
 
-fun generateSignatureSearchResults(
+fun generateProofSearchResults(
     project: Project,
     pattern: String,
-): Sequence<SignatureSearchEntry> = sequence {
-    val settings = SignatureSearchUISettings(project)
-    val query = SignatureSearchQuery.fromString(pattern).castSafelyTo<ParsingResult.OK<SignatureSearchQuery>>()?.value
+): Sequence<ProofSearchEntry> = sequence {
+    val settings = ProofSearchUISettings(project)
+    val query = ProofSearchQuery.fromString(pattern).castSafelyTo<ParsingResult.OK<ProofSearchQuery>>()?.value
         ?: return@sequence
     val matcher = ArendExpressionMatcher(query)
 
@@ -82,7 +82,7 @@ fun generateSignatureSearchResults(
         }
 
         for (def in list) {
-            yield(SignatureSearchEntry(def.first, def.second))
+            yield(ProofSearchEntry(def.first, def.second))
         }
     }
 }
@@ -189,14 +189,14 @@ private fun deconstructPi(expr: Concrete.Expression): Pair<List<Concrete.Express
     }
 }
 
-sealed interface SignatureSearchUIEntry
+sealed interface ProofSearchUIEntry
 
-data class MoreElement(val alreadyProcessed: Int, val sequence: Sequence<SignatureSearchEntry>) : SignatureSearchUIEntry
+data class MoreElement(val alreadyProcessed: Int, val sequence: Sequence<ProofSearchEntry>) : ProofSearchUIEntry
 
 @JvmInline
-value class DefElement(val entry: SignatureSearchEntry) : SignatureSearchUIEntry
+value class DefElement(val entry: ProofSearchEntry) : ProofSearchUIEntry
 
-class SignatureSearchUISettings(private val project: Project) {
+class ProofSearchUISettings(private val project: Project) {
 
     private val includeTestLocations: Boolean = project.service<ArendProjectSettings>().data.includeTestLocations
 

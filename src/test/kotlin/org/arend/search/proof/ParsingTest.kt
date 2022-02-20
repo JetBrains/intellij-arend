@@ -5,14 +5,14 @@ import org.arend.ArendTestBase
 
 class ParsingTest : ArendTestBase() {
     private fun doTest(pattern: String, serialized: String) {
-        val query = SignatureSearchQuery.fromString(pattern)
+        val query = ProofSearchQuery.fromString(pattern)
         TestCase.assertTrue("Expected correct parsing", query is ParsingResult.OK)
         val result = (query as ParsingResult.OK).value
         TestCase.assertTrue("Expected: $serialized, got: $result", result.toString() == serialized)
     }
 
     private fun doTestFail(pattern: String, serialized: String) {
-        val query = SignatureSearchQuery.fromString(pattern)
+        val query = ProofSearchQuery.fromString(pattern)
         TestCase.assertTrue("Expected failure", query is ParsingResult.Error)
         val result = (query as ParsingResult.Error).range
         val replaced = pattern.replaceRange(IntRange(result.first, result.last - 1), "!".repeat(result.last - result.first))

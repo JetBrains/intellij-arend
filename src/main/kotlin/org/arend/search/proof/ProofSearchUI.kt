@@ -55,11 +55,11 @@ import java.awt.event.*
 import javax.swing.*
 import javax.swing.border.Border
 
-class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
+class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private val searchAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
-    private val model: CollectionListModel<SignatureSearchUIEntry> = CollectionListModel()
+    private val model: CollectionListModel<ProofSearchUIEntry> = CollectionListModel()
 
     private val loadingIcon: JBLabel = JBLabel(EmptyIcon.ICON_16)
 
@@ -67,11 +67,11 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private val myEditorTextField: MyEditorTextField = MyEditorTextField().also {
         it.setFontInheritedFromLAF(false)
-        it.setPlaceholder(ArendBundle.getMessage("arend.signature.search.placeholder"))
+        it.setPlaceholder(ArendBundle.getMessage("arend.proof.search.placeholder"))
         it.setShowPlaceholderWhenFocused(true)
     }
 
-    private val cellRenderer: ArendSignatureSearchRenderer = ArendSignatureSearchRenderer(project)
+    private val cellRenderer: ArendProofSearchRenderer = ArendProofSearchRenderer(project)
 
     @Volatile
     private var hasErrors: Boolean = false
@@ -110,7 +110,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
     override fun createTopLeftPanel(): JPanel {
         @Suppress("DialogTitleCapitalization")
-        val title = JBLabel(ArendBundle.message("arend.signature.search.title"))
+        val title = JBLabel(ArendBundle.message("arend.proof.search.title"))
         val topPanel = JPanel(MigLayout("flowx, ins 0, gap 0, fillx, filly"))
         val foregroundColor = when {
             StartupUiUtil.isUnderDarcula() -> when {
@@ -150,7 +150,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         return res
     }
 
-    override fun getAccessibleName(): String = ArendBundle.message("arend.signature.search.title")
+    override fun getAccessibleName(): String = ArendBundle.message("arend.proof.search.title")
 
     // a hack, sorry IJ platform
     override fun init() {
@@ -174,7 +174,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         get() = myEditorTextField
 
     private inner class MyEditorTextField :
-        TextFieldWithAutoCompletion<String>(project, SignatureSearchTextCompletionProvider(project), false, "") {
+        TextFieldWithAutoCompletion<String>(project, ProofSearchTextCompletionProvider(project), false, "") {
 
         init {
             val empty: Border = JBUI.Borders.empty(-1, -1, -1, -1)
@@ -195,7 +195,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         }
     }
 
-    private class SignatureSearchTextCompletionProvider(private val project: Project) :
+    private class ProofSearchTextCompletionProvider(private val project: Project) :
         TextFieldWithAutoCompletionListProvider<String>(listOf()) {
 
         override fun createPrefixMatcher(prefix: String): PrefixMatcher {
@@ -276,7 +276,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
             tryHighlightKeyword(i, text, markupModel, "->")
         }
         val parsingResult =
-            SignatureSearchQuery.fromString(text).castSafelyTo<ParsingResult.Error<SignatureSearchQuery>>()
+            ProofSearchQuery.fromString(text).castSafelyTo<ParsingResult.Error<ProofSearchQuery>>()
         hasErrors = parsingResult != null
         if (parsingResult == null) return true
         val (msg, range) = parsingResult
@@ -368,7 +368,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private fun scheduleSearch() {
         if (!searchAlarm.isDisposed && searchAlarm.activeRequestCount == 0) {
-            searchAlarm.addRequest({ runSignatureSearch(0, null) }, 100)
+            searchAlarm.addRequest({ runProofSearch(0, null) }, 100)
         }
     }
 
@@ -383,7 +383,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         }
     }
 
-    private fun onEntrySelected(element: SignatureSearchUIEntry) = when (element) {
+    private fun onEntrySelected(element: ProofSearchUIEntry) = when (element) {
         is DefElement -> {
             previewAction.performForContext({
                 when (it) {
@@ -395,11 +395,11 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         }
         is MoreElement -> {
             model.remove(element)
-            runSignatureSearch(element.alreadyProcessed, element.sequence)
+            runProofSearch(element.alreadyProcessed, element.sequence)
         }
     }
 
-    private fun goToDeclaration(element: SignatureSearchUIEntry) = when (element) {
+    private fun goToDeclaration(element: ProofSearchUIEntry) = when (element) {
         is DefElement -> {
             close()
             element.entry.def.navigationElement.navigate()
@@ -407,15 +407,15 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         else -> Unit
     }
 
-    fun runSignatureSearch(alreadyProcessed: Int, results: Sequence<SignatureSearchEntry>?) {
+    fun runProofSearch(alreadyProcessed: Int, results: Sequence<ProofSearchEntry>?) {
         cleanupCurrentResults(results == null)
 
-        val settings = SignatureSearchUISettings(project)
+        val settings = ProofSearchUISettings(project)
 
-        runBackgroundableTask(ArendBundle.message("arend.signature.search.title"), myProject) { progressIndicator ->
+        runBackgroundableTask(ArendBundle.message("arend.proof.search.title"), myProject) { progressIndicator ->
             runWithLoadingIcon {
                 this.progressIndicator = progressIndicator
-                val elements = results ?: generateSignatureSearchResults(project, searchPattern)
+                val elements = results ?: generateProofSearchResults(project, searchPattern)
                 var counter = PROOF_SEARCH_RESULT_LIMIT
                 for (element in elements) {
                     if (progressIndicator.isCanceled) {
@@ -463,7 +463,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         when (state) {
             LoadingIconState.DONE -> {
                 loadingIcon.setIconWithAlignment(ArendIcons.CHECKMARK, SwingConstants.LEFT, SwingConstants.TOP)
-                loadingIcon.toolTipText = ArendBundle.message("arend.signature.search.completed.tooltip")
+                loadingIcon.toolTipText = ArendBundle.message("arend.proof.search.completed.tooltip")
                 loadingIcon.text = message
             }
             LoadingIconState.SYNTAX_ERROR -> {
@@ -473,7 +473,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
             }
             LoadingIconState.LOADING -> {
                 loadingIcon.icon = AnimatedIcon.Default.INSTANCE
-                loadingIcon.toolTipText = ArendBundle.message("arend.signature.search.loading.tooltip")
+                loadingIcon.toolTipText = ArendBundle.message("arend.proof.search.loading.tooltip")
                 loadingIcon.text = null
             }
             LoadingIconState.CLEAR -> {
@@ -495,8 +495,8 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
     }
 
     override fun getInitialHints(): Array<String> = arrayOf(
-        ArendBundle.message("arend.signature.search.quick.preview.tip"),
-        ArendBundle.message("arend.signature.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE)),
+        ArendBundle.message("arend.proof.search.quick.preview.tip"),
+        ArendBundle.message("arend.proof.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE)),
         "Use \\and to search for match only signatures with all mentioned patterns"
     )
 
