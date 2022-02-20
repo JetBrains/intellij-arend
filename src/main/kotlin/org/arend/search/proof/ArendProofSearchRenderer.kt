@@ -15,6 +15,7 @@ import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.util.parentsOfType
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.panels.OpaquePanel
@@ -22,6 +23,7 @@ import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
 import org.arend.highlight.ArendHighlightingColors
 import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.CoClauseDefAdapter
 import org.arend.psi.ext.impl.ReferableAdapter
 import java.awt.BorderLayout
@@ -152,7 +154,9 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
     }
 
     private fun getQualifier(def: ReferableAdapter<*>): String? {
-        return def.location?.toString()
+        val file = def.location?.toString() ?: return null
+        val module = def.parentsOfType<ArendGroup>(false).toList().reversed().drop(1).map { it.name }.joinToString(".")
+        return "$file.$module"
     }
 
     override fun dispose() {
