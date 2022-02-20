@@ -1,26 +1,40 @@
 package org.arend.search.proof
 
+import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.ide.IdeEventQueue
 import com.intellij.ide.actions.BigPopupUI
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.editor.Caret
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.actionSystem.EditorActionHandler
+import com.intellij.openapi.editor.actionSystem.EditorActionManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.WindowStateService
 import com.intellij.util.ui.JBInsets
+import java.awt.Container
 import java.awt.Dimension
 
 @Service(Service.Level.PROJECT)
-class ProofSearchService {
+class ProofSearchService: Disposable {
 
     private var myProofSearchUI: ProofSearchUI? = null
 
     private var myBalloon: JBPopup? = null
     private var myBalloonFullSize: Dimension? = null
     private var lastSearchText: String? = null
+
+    init {
+        installScrollingActions()
+    }
 
     fun show(e: AnActionEvent) {
         IdeEventQueue.getInstance().popupManager.closeAllPopups(false)
@@ -129,6 +143,65 @@ class ProofSearchService {
         }
         return view
     }
+
+    private fun installScrollingActions() {
+        val actionManager = EditorActionManager.getInstance()
+        if (actionManager.getActionHandler(IdeActions.ACTION_EDITOR_MOVE_CARET_DOWN) !is MoveDownEditorAction) {
+            actionManager.setActionHandler(IdeActions.ACTION_EDITOR_MOVE_CARET_DOWN, MoveDownEditorAction())
+        }
+        if (actionManager.getActionHandler(IdeActions.ACTION_EDITOR_MOVE_CARET_UP) !is MoveUpEditorAction) {
+            actionManager.setActionHandler(IdeActions.ACTION_EDITOR_MOVE_CARET_UP, MoveUpEditorAction())
+        }
+    }
+
+    override fun dispose() {
+        val actionManager = EditorActionManager.getInstance()
+        val downAction = actionManager.getActionHandler(IdeActions.ACTION_EDITOR_MOVE_CARET_DOWN)
+        if (downAction is DelegatingProofSearchScrollingAction) {
+            actionManager.setActionHandler(IdeActions.ACTION_EDITOR_MOVE_CARET_DOWN, downAction.originalAction)
+        }
+        val upAction = actionManager.getActionHandler(IdeActions.ACTION_EDITOR_MOVE_CARET_UP)
+        if (upAction is DelegatingProofSearchScrollingAction) {
+            actionManager.setActionHandler(IdeActions.ACTION_EDITOR_MOVE_CARET_UP, upAction.originalAction)
+        }
+    }
 }
 
 private const val PROOF_SEARCH_LOCATION_KEY = "proof.search.location.key"
+
+
+private abstract class DelegatingProofSearchScrollingAction(editorEvent: String): EditorActionHandler() {
+    val originalAction: EditorActionHandler = EditorActionManager.getInstance().getActionHandler(editorEvent)
+
+    override fun isEnabledForCaret(editor: Editor, caret: Caret, dataContext: DataContext?): Boolean {
+        return editor.getUserData(PROOF_SEARCH_EDITOR) != null || originalAction.isEnabled(editor, caret, dataContext)
+    }
+
+    protected abstract fun doOwnAction(ui: ProofSearchUI)
+
+    override fun doExecute(editor: Editor, caret: Caret?, dataContext: DataContext?) {
+        if (editor.getUserData(PROOF_SEARCH_EDITOR) != null && LookupManager.getActiveLookup(editor) == null) {
+            var ui : Container = editor.component
+            while (ui.parent != null && ui !is ProofSearchUI) {
+                ui = ui.parent
+            }
+            if (ui !is ProofSearchUI) {
+                originalAction.execute(editor, caret, dataContext)
+                return
+            }
+            doOwnAction(ui)
+        } else {
+            originalAction.execute(editor, caret, dataContext)
+        }
+    }
+}
+
+private class MoveDownEditorAction: DelegatingProofSearchScrollingAction(IdeActions.ACTION_EDITOR_MOVE_CARET_DOWN) {
+    override fun doOwnAction(ui: ProofSearchUI) = ui.moveListDown()
+}
+
+private class MoveUpEditorAction: DelegatingProofSearchScrollingAction(IdeActions.ACTION_EDITOR_MOVE_CARET_UP) {
+    override fun doOwnAction(ui: ProofSearchUI) = ui.moveListUp()
+}
+
+val PROOF_SEARCH_EDITOR : Key<Unit> = Key.create("PROOF_SEARCH_PATTERN_EDITOR")

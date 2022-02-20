@@ -16,9 +16,11 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
+import com.intellij.openapi.editor.actions.IncrementalFindAction
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
@@ -47,8 +49,12 @@ import org.arend.ArendIcons
 import org.arend.psi.navigate
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.util.ArendBundle
-import java.awt.*
-import java.awt.event.*
+import java.awt.BorderLayout
+import java.awt.Dimension
+import java.awt.FlowLayout
+import java.awt.Font
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import javax.swing.*
 import javax.swing.border.Border
 
@@ -62,10 +68,10 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private val previewAction: QuickPreviewAction = QuickPreviewAction()
 
-    private val myEditorTextField: MyEditorTextField = MyEditorTextField().also {
-        it.setFontInheritedFromLAF(false)
-        it.setPlaceholder(ArendBundle.getMessage("arend.proof.search.placeholder"))
-        it.setShowPlaceholderWhenFocused(true)
+    private val myEditorTextField: MyEditorTextField = MyEditorTextField().apply {
+        setFontInheritedFromLAF(false)
+        setPlaceholder(ArendBundle.getMessage("arend.proof.search.placeholder"))
+        setShowPlaceholderWhenFocused(true)
     }
 
     private val cellRenderer: ArendProofSearchRenderer = ArendProofSearchRenderer(project)
@@ -165,7 +171,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     }
 
     override fun installScrollingActions() {
-        ScrollingUtil.installActions(myResultsList, myEditorTextField)
+        // handled in service
     }
 
     val editorSearchField: EditorTextField
@@ -180,6 +186,14 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             border = JBUI.Borders.merge(empty, topLine, true)
             background = JBUI.CurrentTheme.BigPopup.searchFieldBackground()
             focusTraversalKeysEnabled = false
+
+        }
+
+        override fun createEditor(): EditorEx {
+            val editor = super.createEditor()
+            editor.putUserData(PROOF_SEARCH_EDITOR, Unit)
+            editor.putUserData(IncrementalFindAction.SEARCH_DISABLED, true)
+            return editor
         }
 
         override fun getPreferredSize(): Dimension? {
@@ -205,7 +219,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             cached: Boolean,
             parameters: CompletionParameters?
         ): Collection<String> {
-            if (prefix == null || prefix.length < 3) {
+            if (prefix == null || prefix.isEmpty() || prefix == "_" || prefix == "->") {
                 return emptyList()
             }
             val matcher = CamelHumpMatcher(prefix, true, true)
@@ -505,6 +519,14 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
 
     private fun stopSearch() {
         progressIndicator?.cancel()
+    }
+
+    fun moveListDown() {
+        ScrollingUtil.moveDown(myResultsList, 0)
+    }
+
+    fun moveListUp() {
+        ScrollingUtil.moveUp(myResultsList, 0)
     }
 }
 
