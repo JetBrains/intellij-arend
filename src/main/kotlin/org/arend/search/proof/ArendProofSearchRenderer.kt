@@ -38,6 +38,9 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
     private val label: JBLabel = JBLabel()
     private val textArea = JEditorPane()
 
+    private val selectionFgColor: Color
+    private val selectionBgColor: Color
+
     val editor: EditorEx
 
     init {
@@ -66,6 +69,12 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
         editor.setHorizontalScrollbarVisible(false)
         editor.setVerticalScrollbarVisible(false)
         editor.isRendererMode = true
+        selectionFgColor =
+            editor.colorsScheme.getColor(EditorColors.SELECTION_FOREGROUND_COLOR) ?: editor.component.foreground
+        selectionBgColor =
+            editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR) ?: UIUtil.getListSelectionBackground(
+                true
+            )
     }
 
     override fun getListCellRendererComponent(
@@ -75,8 +84,8 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
         isSelected: Boolean,
         cellHasFocus: Boolean
     ): Component {
-        val bgColor = if (isSelected) UIUtil.getListSelectionBackground(true) else UIUtil.getListBackground()
-        val fgColor = if (isSelected) list.selectionForeground else list.foreground
+        val bgColor = if (isSelected) selectionBgColor else UIUtil.getListBackground()
+        val fgColor = if (isSelected) selectionFgColor else list.foreground
         return when (value) {
             is DefElement -> {
                 val (def, codomain) = value.entry
@@ -85,9 +94,9 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
                 val locationRange: TextRange
                 val text = buildString {
                     append("${def.name} : ")
-                    identifierRange = TextRange(0, length)
+                    identifierRange = TextRange(0, length - 3)
                     append(codomain.typeRep)
-                    typeRange = TextRange(identifierRange.endOffset, length)
+                    typeRange = TextRange(identifierRange.endOffset + 3, length)
                     val location = getQualifier(def)
                     locationRange = if (location != null) {
                         append(" of $location")
@@ -101,7 +110,7 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
                 }
                 editor.backgroundColor = bgColor
 
-                setupHighlighting(isSelected, fgColor, text, typeRange, codomain, locationRange)
+                setupHighlighting(isSelected, fgColor, text, identifierRange, typeRange, codomain, locationRange)
                 editor.component
             }
             is MoreElement -> {
@@ -120,27 +129,42 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
         isSelected: Boolean,
         fgColor: Color?,
         text: String,
+        identifierRange: TextRange,
         typeRange: TextRange,
         codomain: HighlightedCodomain,
         locationRange: TextRange
     ) {
         editor.markupModel.removeAllHighlighters()
         if (isSelected) {
-            editor.markupModel.addRangeHighlighter(0, text.length, HighlighterLayer.SELECTION, TextAttributes(fgColor, null, null, null, Font.PLAIN), HighlighterTargetArea.EXACT_RANGE)
+            editor.markupModel.addRangeHighlighter(
+                0,
+                text.length,
+                HighlighterLayer.SYNTAX - 1,
+                TextAttributes(fgColor, null, null, null, Font.PLAIN),
+                HighlighterTargetArea.EXACT_RANGE
+            )
             for (matched in codomain.match) {
                 val range = matched.shiftRight(typeRange.startOffset)
-                editor.markupModel.addRangeHighlighter(range.startOffset, range.endOffset, HighlighterLayer.SELECTION, TextAttributes(fgColor, null, fgColor, EffectType.BOXED, Font.PLAIN), HighlighterTargetArea.EXACT_RANGE)
+                editor.markupModel.addRangeHighlighter(
+                    range.startOffset,
+                    range.endOffset,
+                    HighlighterLayer.SYNTAX - 2,
+                    TextAttributes(fgColor, null, fgColor, EffectType.BOXED, Font.PLAIN),
+                    HighlighterTargetArea.EXACT_RANGE
+                )
             }
         } else {
             editor.addHighlighting(typeRange, EditorColors.INJECTED_LANGUAGE_FRAGMENT)
-            for (kw in codomain.keywords) {
-                editor.addHighlighting(
-                    kw.shiftRight(typeRange.startOffset),
-                    ArendHighlightingColors.KEYWORD.textAttributesKey
-                )
-            }
-            editor.addHighlighting(locationRange, ArendHighlightingColors.LINE_COMMENT.textAttributesKey)
         }
+
+        for (kw in codomain.keywords) {
+            editor.addHighlighting(
+                kw.shiftRight(typeRange.startOffset),
+                ArendHighlightingColors.KEYWORD.textAttributesKey
+            )
+        }
+        editor.addHighlighting(identifierRange, ArendHighlightingColors.DECLARATION.textAttributesKey)
+        editor.addHighlighting(locationRange, ArendHighlightingColors.LINE_COMMENT.textAttributesKey)
     }
 
     private fun Editor.addHighlighting(range: TextRange, attributes: TextAttributesKey) {
@@ -155,8 +179,8 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
 
     private fun getQualifier(def: ReferableAdapter<*>): String? {
         val file = def.location?.toString() ?: return null
-        val module = def.parentsOfType<ArendGroup>(false).toList().reversed().drop(1).map { it.name }.joinToString(".")
-        return "$file.$module"
+        val module = def.parentsOfType<ArendGroup>(false).toList().reversed().drop(1).map { it.name }
+        return (listOf(file) + module).joinToString(".")
     }
 
     override fun dispose() {
