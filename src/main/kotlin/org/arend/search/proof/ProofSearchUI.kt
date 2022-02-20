@@ -33,7 +33,9 @@ import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.util.parentsOfType
 import com.intellij.ui.*
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
@@ -47,6 +49,9 @@ import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.navigate
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.util.ArendBundle
@@ -187,7 +192,6 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             border = JBUI.Borders.merge(empty, topLine, true)
             background = JBUI.CurrentTheme.BigPopup.searchFieldBackground()
             focusTraversalKeysEnabled = false
-
         }
 
         override fun createEditor(): EditorEx {
@@ -212,7 +216,8 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         TextFieldWithAutoCompletionListProvider<String>(listOf()) {
 
         override fun createPrefixMatcher(prefix: String): PrefixMatcher {
-            return CamelHumpMatcher(prefix, true, true)
+            val qualifiers = prefix.split('.')
+            return CamelHumpMatcher(qualifiers.lastOrNull() ?: "", true, true)
         }
 
         override fun getItems(
@@ -223,15 +228,23 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             if (prefix == null || prefix.isEmpty() || prefix == "_" || prefix == "->") {
                 return emptyList()
             }
-            val matcher = CamelHumpMatcher(prefix, true, true)
+            val qualifiers = prefix.split('.')
+            val modules = if (qualifiers.size > 1) qualifiers.subList(0, qualifiers.size - 1) else emptyList()
+            val matcher = CamelHumpMatcher(qualifiers.last(), true, true)
 
             return runReadAction {
                 val container = ArrayList<String>()
-                StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
-                    if (matcher.prefixMatches(name)) {
-                        container.add(name)
+                if (modules.isNotEmpty()) {
+                    val groups = StubIndex.getElements(ArendDefinitionIndex.KEY, modules.last(), project, GlobalSearchScope.allScope(project), PsiReferable::class.java).filterIsInstance<ArendGroup>()
+                        .filter { it.hasSuffixGroupStructure(modules.subList(0, modules.size - 1)) }
+                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { it.definition?.name?.takeIf(matcher::prefixMatches) } })
+                } else {
+                    StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
+                        if (matcher.prefixMatches(name)) {
+                            container.add(name)
+                        }
+                        true
                     }
-                    true
                 }
                 container
             }
@@ -531,6 +544,31 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     fun moveListUp() {
         ScrollingUtil.moveUp(myResultsList, 0)
     }
+}
+
+private fun ArendGroup.hasSuffixGroupStructure(subList: List<String>): Boolean {
+    val parents = parentsOfType<ArendGroup>(false).take(subList.size).toList()
+    val reversedSublist = subList.reversed()
+    for (index in parents.indices) {
+        val currentGroup = parents[index]
+        if (subList.size >= index) {
+            return false
+        }
+        if (currentGroup !is ArendFile) {
+            if (parents[index].name != reversedSublist[index]) {
+                return false
+            }
+        } else {
+            val location = currentGroup.location?.modulePath?.toList()?.toList()?.reversed() ?: return false
+            for (endIndex in index until subList.size) {
+                val locationIndex = endIndex - index
+                if (locationIndex >= location.size || location[locationIndex] != reversedSublist[endIndex]) {
+                    return false
+                }
+            }
+        }
+    }
+    return true
 }
 
 const val PROOF_SEARCH_RESULT_LIMIT = 20
