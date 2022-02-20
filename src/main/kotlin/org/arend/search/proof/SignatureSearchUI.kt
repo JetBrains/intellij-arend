@@ -71,6 +71,8 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
         it.setShowPlaceholderWhenFocused(true)
     }
 
+    private val cellRenderer: ArendSignatureSearchRenderer = ArendSignatureSearchRenderer(project)
+
     @Volatile
     private var hasErrors: Boolean = false
 
@@ -90,6 +92,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
     override fun dispose() {
         close()
+        cellRenderer.dispose()
         model.removeAll()
     }
 
@@ -102,7 +105,7 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
     override fun createCellRenderer(): ListCellRenderer<Any> {
         @Suppress("UNCHECKED_CAST")
-        return ArendSignatureSearchRenderer() as ListCellRenderer<Any>
+        return cellRenderer as ListCellRenderer<Any>
     }
 
     override fun createTopLeftPanel(): JPanel {
@@ -493,7 +496,8 @@ class SignatureSearchUI(private val project: Project) : BigPopupUI(project) {
 
     override fun getInitialHints(): Array<String> = arrayOf(
         ArendBundle.message("arend.signature.search.quick.preview.tip"),
-        ArendBundle.message("arend.signature.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE))
+        ArendBundle.message("arend.signature.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE)),
+        "Use \\and to search for match only signatures with all mentioned patterns"
     )
 
     fun close() {

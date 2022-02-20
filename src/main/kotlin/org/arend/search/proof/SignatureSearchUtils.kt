@@ -6,17 +6,22 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.TestSourcesFilter
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiUtilCore
+import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
+import org.arend.psi.AREND_KEYWORDS
 import org.arend.psi.ArendDefClass
 import org.arend.psi.ArendDefData
+import org.arend.psi.ArendExpr
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.*
@@ -25,9 +30,11 @@ import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.search.collectSearchScopes
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 
-data class SignatureSearchEntry(val def: ReferableAdapter<*>, val finalCodomain: Concrete.Expression)
+data class HighlightedCodomain(val typeRep: String, val keywords: List<TextRange>, val match: List<TextRange>)
+data class SignatureSearchEntry(val def: ReferableAdapter<*>, val codomain: HighlightedCodomain)
 
 fun generateSignatureSearchResults(
     project: Project,
@@ -54,7 +61,7 @@ fun generateSignatureSearchResults(
     val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
 
     for (definitionName in keys) {
-        val list = SmartList<Pair<ReferableAdapter<*>, Concrete.Expression>>()
+        val list = SmartList<Pair<ReferableAdapter<*>, HighlightedCodomain>>()
         runReadAction {
             StubIndex.getInstance().processElements(
                 ArendDefinitionIndex.KEY,
@@ -65,9 +72,10 @@ fun generateSignatureSearchResults(
             ) { def ->
                 if (!settings.checkAllowed(def)) return@processElements true
                 if (def !is ReferableAdapter<*>) return@processElements true
-                val (parameters, codomain) = getSignature(concreteProvider, def, query.shouldConsiderParameters()) ?: return@processElements true
+                val (parameters, codomain, info) = getSignature(concreteProvider, def, query.shouldConsiderParameters())
+                    ?: return@processElements true
                 if (matcher.match(parameters, codomain, def.scope)) {
-                    list.add(def to codomain)
+                    list.add(def to info.value)
                 }
                 true
             }
@@ -79,11 +87,17 @@ fun generateSignatureSearchResults(
     }
 }
 
+private data class SignatureWithHighlighting(
+    val parameters: List<Concrete.Expression>,
+    val resultType: Concrete.Expression,
+    val info: Lazy<HighlightedCodomain>
+)
+
 private fun getSignature(
     provider: PsiConcreteProvider,
     referable: PsiReferable,
     shouldConsiderParameters: Boolean
-): Pair<List<Concrete.Expression>, Concrete.Expression>? {
+): SignatureWithHighlighting? {
     if (referable is ClassFieldAdapter) {
         val concrete = referable
             .parentOfType<ArendDefClass>()
@@ -93,7 +107,12 @@ private fun getSignature(
             ?.find { it is Concrete.ClassField && it.data.castSafelyTo<DataLocatedReferable>()?.underlyingReferable == referable }
             ?.castSafelyTo<Concrete.ClassField>()
             ?: return null
-        return concrete.parameters.mapNotNull { it.type } to concrete.resultType
+        return SignatureWithHighlighting(
+            concrete.parameters.mapNotNull { it.type },
+            concrete.resultType,
+            lazy(LazyThreadSafetyMode.NONE) {
+                referable.resultType?.let(::getHighlightedCodomain) ?: basicHighlightedCodomain(concrete.resultType)
+            })
     }
     if (referable is ConstructorAdapter) {
         val relatedDefinition = referable
@@ -104,28 +123,64 @@ private fun getSignature(
             ?.constructorClauses?.flatMap { it.constructors }
             ?.find { it.data.castSafelyTo<DataLocatedReferable>()?.underlyingReferable == referable }
             ?: return null
-        return concrete.parameters.mapNotNull { it.type } to Concrete.ReferenceExpression(
+        val codomain = Concrete.ReferenceExpression(
             concrete.relatedDefinition.data,
             relatedDefinition
         )
+        return SignatureWithHighlighting(
+            concrete.parameters.mapNotNull { it.type },
+            codomain,
+            lazy(LazyThreadSafetyMode.NONE) { basicHighlightedCodomain(codomain) })
     }
     if (referable !is PsiConcreteReferable) return null
     if (referable !is CoClauseDefAdapter && referable !is FunctionDefinitionAdapter) return null
     return when (val concrete = provider.getConcrete(referable)) {
         is Concrete.FunctionDefinition -> {
             val resultType = concrete.resultType ?: return null
-            return if (shouldConsiderParameters) {
+            val (parameters, codomain) = if (shouldConsiderParameters) {
                 val parameters = concrete.parameters.mapNotNull { it.type }
-                deconstructPi(Concrete.PiExpression(null, parameters.map { Concrete.TypeParameter(true, it) }, resultType))
+                deconstructPi(
+                    Concrete.PiExpression(
+                        null,
+                        parameters.map { Concrete.TypeParameter(true, it) },
+                        resultType
+                    )
+                )
             } else {
                 emptyList<Concrete.Expression>() to resultType
             }
+            val psiType = (referable as Abstract.FunctionDefinition).resultType as ArendExpr
+            return SignatureWithHighlighting(
+                parameters,
+                codomain,
+                lazy(LazyThreadSafetyMode.NONE) { getHighlightedCodomain(psiType) })
         }
         else -> null
     }
 }
 
-private fun deconstructPi(expr : Concrete.Expression) : Pair<List<Concrete.Expression>, Concrete.Expression> {
+private fun basicHighlightedCodomain(concrete: Concrete.Expression): HighlightedCodomain =
+    HighlightedCodomain(concrete.toString(), emptyList(), emptyList())
+
+private fun getHighlightedCodomain(psiType: ArendExpr): HighlightedCodomain {
+    val keywords = mutableListOf<TextRange>()
+    psiType.accept(object : PsiRecursiveElementVisitor() {
+        override fun visitElement(element: PsiElement) {
+            if (AREND_KEYWORDS.contains(element.elementType)) {
+                keywords.add(element.textRange)
+            }
+            super.visitElement(element)
+        }
+    })
+    val baseTextOffset = psiType.textOffset
+    return HighlightedCodomain(
+        psiType.text,
+        keywords.map { TextRange(it.startOffset - baseTextOffset, it.endOffset - baseTextOffset) },
+        emptyList()
+    )
+}
+
+private fun deconstructPi(expr: Concrete.Expression): Pair<List<Concrete.Expression>, Concrete.Expression> {
     return if (expr is Concrete.PiExpression) {
         val (piDomain, piCodomain) = deconstructPi(expr.codomain)
         (expr.parameters.mapNotNull { it.type } + piDomain) to piCodomain
