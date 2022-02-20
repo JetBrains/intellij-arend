@@ -47,10 +47,7 @@ import org.arend.ArendIcons
 import org.arend.psi.navigate
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.util.ArendBundle
-import java.awt.BorderLayout
-import java.awt.Dimension
-import java.awt.FlowLayout
-import java.awt.Font
+import java.awt.*
 import java.awt.event.*
 import javax.swing.*
 import javax.swing.border.Border
@@ -119,7 +116,6 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             }
             else -> UIUtil.getLabelForeground()
         }
-
         title.foreground = foregroundColor
         title.border = BorderFactory.createEmptyBorder(3, 5, 5, 0)
         if (SystemInfo.isMac) {
@@ -130,6 +126,8 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         loadingIcon.font = loadingIcon.font.deriveFont(loadingIcon.font.size - 1f)
         topPanel.add(title, "gapright 4")
         topPanel.add(loadingIcon)
+        topPanel.background = JBUI.CurrentTheme.BigPopup.headerBackground()
+        title.background = JBUI.CurrentTheme.BigPopup.headerBackground()
         return topPanel
     }
 
