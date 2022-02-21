@@ -15,6 +15,7 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.PsiUtilCore
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
+import com.intellij.psi.util.parentsOfType
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
@@ -221,4 +222,10 @@ class ProofSearchUISettings(private val project: Project) {
     }
 
     fun shouldLimitSearch() : Boolean = truncateResults
+}
+
+fun getCompleteModuleLocation(def: ReferableAdapter<*>): String? {
+    val file = def.location?.toString() ?: return null
+    val module = def.parentsOfType<ArendGroup>(false).toList().reversed().drop(1).map { it.name }
+    return (listOf(file) + module).joinToString(".")
 }

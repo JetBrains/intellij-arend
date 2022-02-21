@@ -52,6 +52,7 @@ import org.arend.ArendIcons
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.navigate
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.util.ArendBundle
@@ -184,7 +185,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         get() = myEditorTextField
 
     private inner class MyEditorTextField :
-        TextFieldWithAutoCompletion<String>(project, ProofSearchTextCompletionProvider(project), false, "") {
+        TextFieldWithAutoCompletion<ReferableAdapter<*>>(project, ProofSearchTextCompletionProvider(project), false, "") {
 
         init {
             val empty: Border = JBUI.Borders.empty(-1, -1, -1, -1)
@@ -213,18 +214,26 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     }
 
     private class ProofSearchTextCompletionProvider(private val project: Project) :
-        TextFieldWithAutoCompletionListProvider<String>(listOf()) {
+        TextFieldWithAutoCompletionListProvider<ReferableAdapter<*>>(listOf()) {
 
         override fun createPrefixMatcher(prefix: String): PrefixMatcher {
             val qualifiers = prefix.split('.')
             return CamelHumpMatcher(qualifiers.lastOrNull() ?: "", true, true)
         }
 
+        override fun getIcon(item: ReferableAdapter<*>): Icon? {
+            return item.getIcon(0)
+        }
+
+        override fun getTailText(item: ReferableAdapter<*>): String {
+            return getCompleteModuleLocation(item)?.let {" of $it" } ?: ""
+        }
+
         override fun getItems(
             prefix: String?,
             cached: Boolean,
             parameters: CompletionParameters?
-        ): Collection<String> {
+        ): Collection<ReferableAdapter<*>> {
             if (prefix == null || prefix.isEmpty() || prefix == "_" || prefix == "->") {
                 return emptyList()
             }
@@ -233,15 +242,18 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             val matcher = CamelHumpMatcher(qualifiers.last(), true, true)
 
             return runReadAction {
-                val container = ArrayList<String>()
+                val container = ArrayList<ReferableAdapter<*>>()
                 if (modules.isNotEmpty()) {
                     val groups = StubIndex.getElements(ArendDefinitionIndex.KEY, modules.last(), project, GlobalSearchScope.allScope(project), PsiReferable::class.java).filterIsInstance<ArendGroup>()
                         .filter { it.hasSuffixGroupStructure(modules.subList(0, modules.size - 1)) }
-                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { it.definition?.name?.takeIf(matcher::prefixMatches) } })
+                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { it.definition?.castSafelyTo<ReferableAdapter<*>>()?.takeIf { ref -> matcher.prefixMatches(ref.refName) } } })
                 } else {
                     StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
-                        if (matcher.prefixMatches(name)) {
-                            container.add(name)
+                        StubIndex.getInstance().processElements(ArendDefinitionIndex.KEY, name, project, null, PsiReferable::class.java) {
+                            if (it is ReferableAdapter<*> && matcher.prefixMatches(name)) {
+                                container.add(it)
+                            }
+                            true
                         }
                         true
                     }
@@ -250,7 +262,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
             }
         }
 
-        override fun getLookupString(item: String): String = item
+        override fun getLookupString(item: ReferableAdapter<*>): String = item.refName
 
     }
 

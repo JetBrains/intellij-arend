@@ -15,7 +15,6 @@ import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.util.parentsOfType
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.panels.OpaquePanel
@@ -23,9 +22,7 @@ import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
 import org.arend.highlight.ArendHighlightingColors
 import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.CoClauseDefAdapter
-import org.arend.psi.ext.impl.ReferableAdapter
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -97,7 +94,7 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
                     identifierRange = TextRange(0, length - 3)
                     append(codomain.typeRep)
                     typeRange = TextRange(identifierRange.endOffset + 3, length)
-                    val location = getQualifier(def)
+                    val location = getCompleteModuleLocation(def)
                     locationRange = if (location != null) {
                         append(" of $location")
                         TextRange(typeRange.endOffset, length)
@@ -175,12 +172,6 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
             HighlighterLayer.SYNTAX,
             HighlighterTargetArea.EXACT_RANGE
         )
-    }
-
-    private fun getQualifier(def: ReferableAdapter<*>): String? {
-        val file = def.location?.toString() ?: return null
-        val module = def.parentsOfType<ArendGroup>(false).toList().reversed().drop(1).map { it.name }
-        return (listOf(file) + module).joinToString(".")
     }
 
     override fun dispose() {
