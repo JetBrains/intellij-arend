@@ -12,7 +12,7 @@ class ShowHelpAction(private val ui: ProofSearchUI) : DumbAwareAction(
 ) {
     override fun actionPerformed(e: AnActionEvent) {
         ui.close()
-        BrowserUtil.browse("https://arend-lang.github.io/documentation/signature-search")
+        BrowserUtil.browse("https://arend-lang.github.io/documentation/proof-search")
     }
 
     override fun update(e: AnActionEvent) {
