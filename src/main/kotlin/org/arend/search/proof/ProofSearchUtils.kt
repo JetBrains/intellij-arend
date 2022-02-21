@@ -81,7 +81,9 @@ fun generateProofSearchResults(
                     val startOffset =
                         codomain.data?.getPsi()?.startOffset ?: return@processElements true
                     val textRange = matchResults.mapNotNull { concrete ->
-                        concrete.data?.getPsi()?.textRange?.takeIf { it.startOffset >= startOffset }?.shiftLeft(startOffset)
+                        val psi = concrete.data?.getPsi()
+                        val range = if (psi is ArendDefData) psi.nameIdentifier?.textRange?.let { it.shiftLeft(it.startOffset - startOffset) } else psi?.textRange
+                        range?.takeIf { it.startOffset >= startOffset }?.shiftLeft(startOffset)
                     }
                     list.add(def to info.value.copy(match = textRange))
                 }
