@@ -79,9 +79,9 @@ fun generateProofSearchResults(
                 val matchResults = matcher.match(parameters, codomain, def.scope)
                 if (matchResults != null) {
                     val startOffset =
-                        codomain.data?.castSafelyTo<PsiElement>()?.startOffset ?: return@processElements true
+                        codomain.data?.getPsi()?.startOffset ?: return@processElements true
                     val textRange = matchResults.mapNotNull { concrete ->
-                        concrete.data?.castSafelyTo<PsiElement>()?.textRange?.takeIf { it.startOffset >= startOffset }?.shiftLeft(startOffset)
+                        concrete.data?.getPsi()?.textRange?.takeIf { it.startOffset >= startOffset }?.shiftLeft(startOffset)
                     }
                     list.add(def to info.value.copy(match = textRange))
                 }
@@ -93,6 +93,12 @@ fun generateProofSearchResults(
             yield(ProofSearchEntry(def.first, def.second))
         }
     }
+}
+
+private fun Any?.getPsi() : PsiElement? {
+    if (this is PsiElement) return this
+    if (this is DataLocatedReferable) return this.data?.element
+    return null
 }
 
 private data class SignatureWithHighlighting(
