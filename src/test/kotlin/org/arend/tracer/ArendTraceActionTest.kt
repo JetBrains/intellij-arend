@@ -3,6 +3,8 @@ package org.arend.tracer
 import com.intellij.util.castSafelyTo
 import org.arend.ArendTestBase
 import org.arend.error.DummyErrorReporter
+import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendFile
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 
@@ -43,6 +45,20 @@ class ArendTraceActionTest : ArendTestBase() {
         ).withCaret()
         val tracingData = doTrace()
         assertEquals("pmap suc p", getFirstEntry(tracingData)?.psiElement?.text)
+    }
+
+    fun `test no trace entry outside function signature`() {
+        InlineFile(
+            """
+            $pmap
+            \func test (a b : Nat) (p : a = b) => {-caret-}pmap suc (pmap suc p)
+        """
+        ).withCaret()
+        val tracingData = doTrace()
+        assertEquals("pmap suc (pmap suc p)", getFirstEntry(tracingData)?.psiElement?.text)
+        val funcKw = myFixture.file.castSafelyTo<ArendFile>()!!.statements[1]
+            .definition!!.castSafelyTo<ArendDefFunction>()!!.functionKw
+        assertEquals(-1, tracingData.trace.indexOfEntry(funcKw))
     }
 
     private fun doTrace(): ArendTracingData {

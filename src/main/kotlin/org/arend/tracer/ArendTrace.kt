@@ -9,17 +9,25 @@ import org.arend.psi.linearDescendants
 import org.arend.typechecking.error.local.GoalDataHolder
 import org.arend.typechecking.result.TypecheckingResult
 
-class ArendTrace(val entries: List<ArendTraceEntry>){
+class ArendTrace(val entries: List<ArendTraceEntry>) {
     fun indexOfEntry(element: PsiElement): Int {
         val normalizedElement = element.linearDescendants.lastOrNull() ?: element
         return entries.withIndex()
             .map {
                 ProgressManager.checkCanceled()
-                it.index to PsiTreeUtil.getDepth(normalizedElement, it.value.psiElement)
+                it.index to getDepth(normalizedElement, it.value.psiElement)
             }
+            .filter { it.second >= 0 }
             .minByOrNull { it.second }
             ?.first
             ?: -1
+    }
+
+    companion object {
+        private fun getDepth(normalizedElement: PsiElement, ancestor: PsiElement?) =
+            if (PsiTreeUtil.isAncestor(ancestor, normalizedElement, false))
+                PsiTreeUtil.getDepth(normalizedElement, ancestor)
+            else -1
     }
 }
 
