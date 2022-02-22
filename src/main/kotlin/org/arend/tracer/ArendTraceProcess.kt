@@ -6,11 +6,16 @@ import com.intellij.execution.ui.layout.LayoutViewOptions
 import com.intellij.execution.ui.layout.PlaceInGrid
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileTypes.FileType
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.ui.JBUI
 import com.intellij.xdebugger.XDebugProcess
@@ -24,6 +29,8 @@ import com.intellij.xdebugger.impl.actions.*
 import com.intellij.xdebugger.impl.actions.handlers.XDebuggerActionHandler
 import com.intellij.xdebugger.ui.XDebugTabLayouter
 import org.arend.ArendFileType
+import org.arend.psi.ArendExpr
+import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.util.ArendBundle
 import org.jetbrains.uast.util.classSetOf
@@ -52,6 +59,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
         topToolbar.childActionsOrStubs
             .filter { it.isInstanceOf(removedTopToolbarActions) }
             .forEach(topToolbar::remove)
+        val runToCursorAction = ActionManager.getInstance().getAction(RUN_TO_CURSOR_ACTION_ID)
         val nextEntryAction = TracerAction(
             ArendBundle.message("arend.trace.next.entry.action.name"),
             ArendBundle.message("arend.trace.next.entry.action.description"),
@@ -65,6 +73,9 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
             PrevEntryActionHandler()
         )
         topToolbar.add(Separator.create(), Constraints.FIRST)
+        runToCursorAction
+            ?.run { topToolbar.add(this, Constraints.FIRST) }
+            ?: LOGGER.error("Cannot add 'Run To Cursor' action to the toolbar")
         topToolbar.add(nextEntryAction, Constraints.FIRST)
         topToolbar.add(prevEntryAction, Constraints.FIRST)
     }
@@ -118,7 +129,21 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     override fun runToPosition(position: XSourcePosition, context: XSuspendContext?) {
-        doNothing(context)
+        ActionUtil.underModalProgress(session.project, ArendBundle.message("arend.tracer.collecting.tracing.data")) {
+            try {
+                val entryIndex = findEntryIndex(position)
+                val entry = trace.entries.getOrNull(entryIndex)
+                if (entry == null) {
+                    session.reportMessage(ArendBundle.message("arend.tracer.cannot.trace.here"), MessageType.WARNING)
+                    doNothing(context)
+                    return@underModalProgress
+                }
+                traceEntryIndex = entryIndex
+                session.positionReached(ArendSuspendContext(entry, contextView))
+            } catch (e: ProcessCanceledException) {
+                doNothing(context)
+            }
+        }
     }
 
     override fun stop() {
@@ -144,6 +169,13 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
             session.reportError(ArendBundle.message("arend.tracer.command.failed"))
             session.stop()
         }
+    }
+
+    private fun findEntryIndex(position: XSourcePosition): Int {
+        val file = PsiManager.getInstance(session.project).findFile(position.file) as? ArendFile ?: return -1
+        val expression =
+            PsiTreeUtil.findElementOfClassAtOffset(file, position.offset, ArendExpr::class.java, false) ?: return -1
+        return trace.indexOfEntry(expression)
     }
 
     private inner class NextEntryActionHandler : XDebuggerSuspendedActionHandler() {
@@ -199,6 +231,9 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     companion object {
+        private val LOGGER = Logger.getInstance(ArendTraceProcess::class.java)
+
+        private const val RUN_TO_CURSOR_ACTION_ID = "RunToCursor"
         private const val CONTEXT_CONTENT = "ArendTraceContextContent"
 
         private val removedLeftToolbarActions = classSetOf(
