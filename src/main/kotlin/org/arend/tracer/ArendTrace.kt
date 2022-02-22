@@ -1,5 +1,6 @@
 package org.arend.tracer
 
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.castSafelyTo
@@ -12,7 +13,10 @@ class ArendTrace(val entries: List<ArendTraceEntry>){
     fun indexOfEntry(element: PsiElement): Int {
         val normalizedElement = element.linearDescendants.lastOrNull() ?: element
         return entries.withIndex()
-            .map { it.index to PsiTreeUtil.getDepth(normalizedElement, it.value.psiElement) }
+            .map {
+                ProgressManager.checkCanceled()
+                it.index to PsiTreeUtil.getDepth(normalizedElement, it.value.psiElement)
+            }
             .minByOrNull { it.second }
             ?.first
             ?: -1
