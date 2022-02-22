@@ -16,7 +16,6 @@ import com.intellij.psi.util.PsiUtilCore
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
-import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
@@ -28,15 +27,16 @@ import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
+import org.arend.refactoring.rangeOfConcrete
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.search.collectSearchScopes
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
+import org.arend.util.caching
 
-data class HighlightedCodomain(val typeRep: String, val keywords: List<TextRange>, val match: List<TextRange>)
-data class ProofSearchEntry(val def: ReferableAdapter<*>, val codomain: HighlightedCodomain)
+data class ProofSearchEntry(val def: ReferableAdapter<*>, val signature: RenderingInfo)
 
 fun generateProofSearchResults(
     project: Project,
@@ -63,7 +63,7 @@ fun generateProofSearchResults(
     val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
 
     for (definitionName in keys) {
-        val list = SmartList<Pair<ReferableAdapter<*>, HighlightedCodomain>>()
+        val list = SmartList<ProofSearchEntry>()
         runReadAction {
             StubIndex.getInstance().processElements(
                 ArendDefinitionIndex.KEY,
@@ -76,23 +76,25 @@ fun generateProofSearchResults(
                 if (def !is ReferableAdapter<*>) return@processElements true
                 val (parameters, codomain, info) = getSignature(concreteProvider, def, query.shouldConsiderParameters())
                     ?: return@processElements true
-                val matchResults = matcher.match(parameters, codomain, def.scope)
-                if (matchResults != null) {
-                    val startOffset =
-                        codomain.data?.getPsi()?.startOffset ?: return@processElements true
-                    val textRange = matchResults.mapNotNull { concrete ->
-                        val psi = concrete.data?.getPsi()
-                        val range = if (psi is ArendDefData) psi.nameIdentifier?.textRange?.let { it.shiftLeft(it.startOffset - startOffset) } else psi?.textRange
-                        range?.takeIf { it.startOffset >= startOffset }?.shiftLeft(startOffset)
-                    }
-                    list.add(def to info.value.copy(match = textRange))
+                val (parameterResults, codomainResults) = matcher.match(parameters, codomain, def.scope) ?: return@processElements true
+                val parameterRangesRegistry = mutableMapOf<Int, List<TextRange>>()
+                val rangeComputer = caching { e : Concrete.Expression -> if (e is Concrete.ReferenceExpression && e.referent is ArendDefData) (e.referent as ArendDefData).nameIdentifier!!.textRange else rangeOfConcrete(e) }
+                for ((parameterConcrete, ranges) in parameterResults) {
+                    val index = parameters.indexOf(parameterConcrete)
+                    val existing = parameterRangesRegistry.getOrDefault(index, emptyList())
+                    parameterRangesRegistry[index] = existing + ranges.map { rangeComputer(it).shiftLeft(rangeComputer(parameterConcrete).startOffset) }
                 }
+                val codomainRange = codomainResults.map { rangeComputer(it).shiftLeft(rangeComputer(codomain).startOffset) }
+                list.add(ProofSearchEntry(def,
+                    info.value.copy(
+                        parameters = info.value.parameters.mapIndexedNotNull { index, data -> data.takeIf { index in parameterRangesRegistry }?.copy(match = parameterRangesRegistry[index]!!) },
+                        codomain = info.value.codomain.copy(match = codomainRange))))
                 true
             }
         }
 
         for (def in list) {
-            yield(ProofSearchEntry(def.first, def.second))
+            yield(def)
         }
     }
 }
@@ -106,8 +108,11 @@ private fun Any?.getPsi() : PsiElement? {
 private data class SignatureWithHighlighting(
     val parameters: List<Concrete.Expression>,
     val resultType: Concrete.Expression,
-    val info: Lazy<HighlightedCodomain>
+    val info: Lazy<RenderingInfo>
 )
+
+data class RenderingInfo(val parameters: List<ProofSearchHighlightingData>, val codomain: ProofSearchHighlightingData)
+data class ProofSearchHighlightingData(val typeRep: String, val keywords: List<TextRange>, val match: List<TextRange>)
 
 private fun getSignature(
     provider: PsiConcreteProvider,
@@ -123,11 +128,12 @@ private fun getSignature(
             ?.find { it is Concrete.ClassField && it.data.castSafelyTo<DataLocatedReferable>()?.underlyingReferable == referable }
             ?.castSafelyTo<Concrete.ClassField>()
             ?: return null
+        val parameters = concrete.parameters.mapNotNull { it.type }
         return SignatureWithHighlighting(
             concrete.parameters.mapNotNull { it.type },
             concrete.resultType,
             lazy(LazyThreadSafetyMode.NONE) {
-                referable.resultType?.let(::getHighlightedCodomain) ?: basicHighlightedCodomain(concrete.resultType)
+                RenderingInfo(parameters.map(::gatherHighlightingData), gatherHighlightingData(concrete.resultType))
             })
     }
     if (referable is ConstructorAdapter) {
@@ -143,10 +149,13 @@ private fun getSignature(
             concrete.relatedDefinition.data,
             relatedDefinition
         )
+        val parameters = concrete.parameters.mapNotNull { it.type }
         return SignatureWithHighlighting(
-            concrete.parameters.mapNotNull { it.type },
+            parameters,
             codomain,
-            lazy(LazyThreadSafetyMode.NONE) { basicHighlightedCodomain(codomain) })
+            lazy(LazyThreadSafetyMode.NONE) {
+                RenderingInfo(parameters.map(::gatherHighlightingData), gatherHighlightingData(codomain))
+            })
     }
     if (referable !is PsiConcreteReferable) return null
     if (referable !is CoClauseDefAdapter && referable !is FunctionDefinitionAdapter) return null
@@ -169,16 +178,22 @@ private fun getSignature(
             return SignatureWithHighlighting(
                 parameters,
                 codomain,
-                lazy(LazyThreadSafetyMode.NONE) { getHighlightedCodomain(psiType) })
+                lazy(LazyThreadSafetyMode.NONE) {
+                    RenderingInfo(parameters.map(::gatherHighlightingData), getHighlightingData(psiType))
+                })
         }
         else -> null
     }
 }
 
-private fun basicHighlightedCodomain(concrete: Concrete.Expression): HighlightedCodomain =
-    HighlightedCodomain(concrete.toString(), emptyList(), emptyList())
+private fun gatherHighlightingData(expr: Concrete.Expression) : ProofSearchHighlightingData {
+    return expr.getPsi()?.castSafelyTo<ArendExpr>()?.let(::getHighlightingData) ?: basicHighlightingData(expr)
+}
 
-private fun getHighlightedCodomain(psiType: ArendExpr): HighlightedCodomain {
+private fun basicHighlightingData(concrete: Concrete.Expression): ProofSearchHighlightingData =
+    ProofSearchHighlightingData(concrete.toString(), emptyList(), emptyList())
+
+private fun getHighlightingData(psiType: ArendExpr): ProofSearchHighlightingData {
     val keywords = mutableListOf<TextRange>()
     psiType.accept(object : PsiRecursiveElementVisitor() {
         override fun visitElement(element: PsiElement) {
@@ -189,7 +204,7 @@ private fun getHighlightedCodomain(psiType: ArendExpr): HighlightedCodomain {
         }
     })
     val baseTextOffset = psiType.textOffset
-    return HighlightedCodomain(
+    return ProofSearchHighlightingData(
         psiType.text,
         keywords.map { TextRange(it.startOffset - baseTextOffset, it.endOffset - baseTextOffset) },
         emptyList()
@@ -210,7 +225,7 @@ sealed interface ProofSearchUIEntry
 data class MoreElement(val alreadyProcessed: Int, val sequence: Sequence<ProofSearchEntry>) : ProofSearchUIEntry
 
 @JvmInline
-value class DefElement(val entry: ProofSearchEntry) : ProofSearchUIEntry
+value class DefElement(val entry: ProofSearchEntry): ProofSearchUIEntry
 
 class ProofSearchUISettings(private val project: Project) {
 
