@@ -10,6 +10,8 @@ import com.intellij.xdebugger.frame.*
 import com.intellij.xdebugger.impl.ui.ExecutionPointHighlighter
 import org.arend.ArendIcons
 import org.arend.core.expr.*
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.injection.InjectedArendEditor
 import org.arend.util.ArendBundle
 
 class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceContextView) : XSuspendContext() {
@@ -49,20 +51,36 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
         override fun getSourcePosition(): XSourcePosition? = position
 
         override fun customizePresentation(component: ColoredTextContainer) {
-            val psiText = traceEntry.psiElement?.text?.let {
-                StringUtil.shortenTextWithEllipsis(it, 40, 0)
-            } ?: ArendBundle.message("arend.tracer.unknown.expression")
-            component.append(psiText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-            if (position != null) {
-                val positionText = " (${position.file.name}:${position.line + 1})"
-                component.append(positionText, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)
-            }
             component.setIcon(icon)
+
+            val (resolve, _) = InjectedArendEditor.resolveCauseReference(traceEntry.goalDataHolder)
+            val psiElement = traceEntry.psiElement
+            if (InjectedArendEditor.causeIsMetaExpression(traceEntry.goalDataHolder.cause, resolve)) {
+                val metaExpressionText = traceEntry.goalDataHolder.getCauseDoc(PrettyPrinterConfig.DEFAULT).toString()
+                component.append(shorten(metaExpressionText), SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                setPositionText(component, positionComponents() + listOfNotNull(psiElement?.text))
+                return
+            }
+            val psiText = psiElement?.text?.let(::shorten) ?: ArendBundle.message("arend.tracer.unknown.expression")
+            component.append(psiText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
+            setPositionText(component, positionComponents())
         }
 
         override fun computeChildren(node: XCompositeNode) {
             node.addChildren(XValueChildrenList.EMPTY, true)
             contextView.update(traceEntry)
+        }
+
+        private fun shorten(text: String) = StringUtil.shortenTextWithEllipsis(text, 40, 0)
+
+        private fun positionComponents() =
+            if (position != null) listOf(position.file.name, "${position.line + 1}") else emptyList()
+
+        private fun setPositionText(component: ColoredTextContainer, positionComponents: List<String>) {
+            if (positionComponents.isNotEmpty()) {
+                val positionText = positionComponents.joinToString(":", "(", ")")
+                component.append(" $positionText", SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)
+            }
         }
     }
 
