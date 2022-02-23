@@ -11,9 +11,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import org.arend.ext.concrete.ConcreteSourceNode
+import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.DataContainer
+import org.arend.naming.reference.Referable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
@@ -38,10 +41,6 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
     protected val editor: Editor?
     private val panel: JPanel?
     protected val actionGroup: DefaultActionGroup = DefaultActionGroup()
-
-    companion object {
-        val AREND_GOAL_EDITOR: Key<Unit> = Key.create("Arend goal editor")
-    }
 
     protected abstract val printOptionKind: PrintOptionKind
 
@@ -100,16 +99,12 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
                     }
 
                     val error = arendError.error
-                    val causeSourceNode = error.causeSourceNode
-                    val data = (causeSourceNode?.data as? DataContainer)?.data ?: causeSourceNode?.data
-                    val unresolvedRef = (data as? Reference)?.referent
-                    val scope = if (unresolvedRef != null || error.hasExpressions()) (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) } else null
+                    val (resolve, scope) = resolveCauseReference(error)
                     if (scope != null) {
                         fileScope = scope
                     }
-                    val ref = if (unresolvedRef != null && scope != null) ExpressionResolveNameVisitor.resolve(unresolvedRef, scope) else null
                     val ppConfig = ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
-                    val doc = if ((ref as? MetaAdapter)?.metaRef?.definition != null && (causeSourceNode as? Concrete.ReferenceExpression)?.referent != ref)
+                    val doc = if (causeIsMetaExpression(error.causeSourceNode, resolve))
                         error.getDoc(ppConfig)
                     else
                         DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))
@@ -185,5 +180,28 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
         private val flags = ArendPrintOptionsFilterAction.getFilterSet(project, printOptionsKind)
 
         override fun getExpressionFlags() = flags
+    }
+
+    companion object {
+        val AREND_GOAL_EDITOR: Key<Unit> = Key.create("Arend goal editor")
+
+        fun resolveCauseReference(error: GeneralError): Pair<Referable?, Scope?> {
+            val causeSourceNode = error.causeSourceNode
+            val data = (causeSourceNode?.data as? DataContainer)?.data ?: causeSourceNode?.data
+            val unresolvedRef = (data as? Reference)?.referent
+            val scope =
+                if (unresolvedRef != null || error.hasExpressions())
+                    (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) }
+                else null
+            val ref =
+                if (unresolvedRef != null && scope != null)
+                    ExpressionResolveNameVisitor.resolve(unresolvedRef, scope)
+                else null
+            return Pair(ref, scope)
+        }
+
+        fun causeIsMetaExpression(cause: ConcreteSourceNode?, resolve: Referable?) =
+            (resolve as? MetaAdapter)?.metaRef?.definition != null &&
+                    (cause as? Concrete.ReferenceExpression)?.referent != resolve
     }
 }
