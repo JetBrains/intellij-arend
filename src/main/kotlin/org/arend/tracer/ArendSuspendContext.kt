@@ -74,7 +74,13 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
             contextView.update(traceEntry)
         }
 
-        private fun shorten(text: String) = StringUtil.shortenTextWithEllipsis(text, 40, 0)
+        private fun shorten(text: String): String {
+            val firstLine = text.takeWhile { it != '\n' }
+            if (firstLine != text && firstLine.length <= 40) {
+                return firstLine + StringUtil.ELLIPSIS
+            }
+            return StringUtil.shortenTextWithEllipsis(firstLine, 40, 0, true)
+        }
 
         private fun positionComponents() =
             if (position != null) listOf(position.file.name, "${position.line + 1}") else emptyList()
