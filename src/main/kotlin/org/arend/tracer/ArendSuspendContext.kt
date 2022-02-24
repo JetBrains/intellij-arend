@@ -2,6 +2,7 @@ package org.arend.tracer
 
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.psi.PsiElement
 import com.intellij.ui.ColoredTextContainer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.xdebugger.XDebuggerUtil
@@ -12,6 +13,7 @@ import org.arend.ArendIcons
 import org.arend.core.expr.*
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.injection.InjectedArendEditor
+import org.arend.psi.ArendDefFunction
 import org.arend.util.ArendBundle
 
 class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceContextView) : XSuspendContext() {
@@ -54,13 +56,14 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
             component.setIcon(icon)
 
             val (resolve, _) = InjectedArendEditor.resolveCauseReference(traceEntry.goalDataHolder)
-            val psiElement = traceEntry.psiElement
             if (InjectedArendEditor.causeIsMetaExpression(traceEntry.goalDataHolder.cause, resolve)) {
                 val metaExpressionText = traceEntry.goalDataHolder.getCauseDoc(PrettyPrinterConfig.DEFAULT).toString()
                 component.append(shorten(metaExpressionText), SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                val psiElement = traceEntry.psiElement
                 setPositionText(component, positionComponents() + listOfNotNull(psiElement?.text))
                 return
             }
+            val psiElement = getSourcePositionElement(traceEntry)
             val psiText = psiElement?.text?.let(::shorten) ?: ArendBundle.message("arend.tracer.unknown.expression")
             component.append(psiText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
             setPositionText(component, positionComponents())
@@ -92,10 +95,17 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
 
         companion object {
             fun create(traceEntry: ArendTraceEntry): SourcePosition? {
-                val psiElement = traceEntry.psiElement ?: return null
+                val psiElement = getSourcePositionElement(traceEntry) ?: return null
                 val basePosition = XDebuggerUtil.getInstance().createPositionByElement(psiElement) ?: return null
                 return SourcePosition(basePosition, psiElement.textRange)
             }
+        }
+    }
+
+    companion object {
+        private fun getSourcePositionElement(traceEntry: ArendTraceEntry): PsiElement? {
+            val psiElement = traceEntry.psiElement
+            return if (psiElement is ArendDefFunction && psiElement.isCowith) psiElement.functionBody else psiElement
         }
     }
 }

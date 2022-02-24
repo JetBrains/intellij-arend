@@ -3,8 +3,8 @@ package org.arend.tracer
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.util.castSafelyTo
 import org.arend.core.expr.Expression
+import org.arend.highlight.BasePass
 import org.arend.psi.linearDescendants
 import org.arend.typechecking.error.local.GoalDataHolder
 import org.arend.typechecking.result.TypecheckingResult
@@ -38,7 +38,7 @@ class ArendTraceEntry(val parent: ArendTraceEntry? = null) {
     val coreExpression: Expression?
         get() = typecheckingResult?.expression
     val psiElement: PsiElement?
-        get() = goalDataHolder.cause?.data?.castSafelyTo<PsiElement>()
+        get() = BasePass.getCauseElement(goalDataHolder.cause?.data)
 
     val stack: List<ArendTraceEntry> by lazy {
         generateSequence(this) { it.parent }.toList()
