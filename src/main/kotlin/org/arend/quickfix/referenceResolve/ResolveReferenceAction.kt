@@ -12,7 +12,7 @@ import org.arend.refactoring.*
 class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,
                              private val statCmdFixAction: NsCmdRefactoringAction?,
-                             private val nameFixAction: RenameReferenceAction) {
+                             private val nameFixAction: RenameReferenceAction?) {
 
     override fun toString(): String {
         val prefix = LongName(targetFullName).toString()
@@ -22,7 +22,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
 
     fun execute(editor: Editor?) {
         statCmdFixAction?.execute()
-        nameFixAction.execute(editor)
+        nameFixAction?.execute(editor)
     }
 
     companion object {

@@ -5,6 +5,7 @@ import com.intellij.ide.IdeEventQueue
 import com.intellij.ide.actions.BigPopupUI
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.application.ApplicationManager
@@ -105,7 +106,7 @@ class ProofSearchService: Disposable {
     }
 
     private fun createView(event: AnActionEvent): ProofSearchUI {
-        val view = ProofSearchUI(event.project!!)
+        val view = ProofSearchUI(event.project!!, event.getData(CommonDataKeys.CARET))
         view.setSearchFinishedHandler {
             if (isShown()) {
                 myBalloon?.cancel()
