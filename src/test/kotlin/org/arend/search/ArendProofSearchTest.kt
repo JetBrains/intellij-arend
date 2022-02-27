@@ -15,7 +15,7 @@ class ArendProofSearchTest : ArendTestBase() {
         myFixture.addFileToProject("Main.ard", PRE_TEXT + content)
         typecheck()
         val results = generateProofSearchResults(project, pattern)
-        return results.toList().mapTo(HashSet()) { it.def.name!! }
+        return results.mapNotNull { it }.toList().mapTo(HashSet()) { it.def.name!! }
     }
 
     private fun assertHasMatch(content: String, pattern: String) = TestCase.assertTrue(
