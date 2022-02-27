@@ -13,7 +13,10 @@ import com.intellij.codeInsight.lookup.impl.actions.ChooseItemAction
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.BigPopupUI
 import com.intellij.openapi.actionSystem.*
-import com.intellij.openapi.application.*
+import com.intellij.openapi.application.invokeAndWaitIfNeeded
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Caret
@@ -41,26 +44,27 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
 import com.intellij.ui.*
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
 import com.intellij.util.castSafelyTo
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.concurrency.annotations.RequiresReadLock
-import com.intellij.util.ui.EmptyIcon
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.StartupUiUtil
-import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.*
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
 import org.arend.injection.InjectedArendEditor
-import org.arend.psi.*
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendPsiChangeService
+import org.arend.psi.navigate
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.LocationData
@@ -296,13 +300,13 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
     private fun registerSearchAction() {
         myEditorTextField.document.addDocumentListener(object : DocumentListener {
             override fun documentChanged(event: DocumentEvent) {
-                trySearch()
+                registerSearchAttempt()
             }
         })
     }
 
 
-    fun trySearch() {
+    fun registerSearchAttempt() {
         if (myEditorTextField.text.isEmpty()) {
             return
         }
@@ -506,9 +510,10 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         else -> Unit
     }
 
-    fun runProofSearch(alreadyProcessed: Int, results: Sequence<ProofSearchEntry>?) {
+    @RequiresEdt
+    fun runProofSearch(alreadyProcessed: Int, results: Sequence<ProofSearchEntry?>?) {
+        EDT.assertIsEdt()
         cleanupCurrentResults(results == null)
-
         val settings = ProofSearchUISettings(project)
 
         runBackgroundableTask(ArendBundle.message("arend.proof.search.title"), myProject) { progressIndicator ->
@@ -517,11 +522,16 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
                 val elements = results ?: generateProofSearchResults(project, searchPattern)
                 var counter = PROOF_SEARCH_RESULT_LIMIT
                 for (element in elements) {
-                    println("Iteration!")
                     if (progressIndicator.isCanceled) {
                         return@runWithLoadingIcon "Search cancelled"
                     }
+                    if (element == null) {
+                        continue
+                    }
                     invokeLater {
+                        if (progressIndicator.isCanceled) {
+                            return@invokeLater
+                        }
                         model.add(DefElement(element))
                         if (results != null && counter == PROOF_SEARCH_RESULT_LIMIT && myResultsList.selectedIndex == -1) {
                             myResultsList.selectedIndex = myResultsList.itemsCount - 1
@@ -530,7 +540,15 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
                     --counter
                     if (settings.shouldLimitSearch() && counter == 0) {
                         invokeLater {
-                            model.add(MoreElement(alreadyProcessed + PROOF_SEARCH_RESULT_LIMIT, elements.drop(PROOF_SEARCH_RESULT_LIMIT)))
+                            if (progressIndicator.isCanceled) {
+                                return@invokeLater
+                            }
+                            model.add(
+                                MoreElement(
+                                    alreadyProcessed + PROOF_SEARCH_RESULT_LIMIT,
+                                    elements.drop(PROOF_SEARCH_RESULT_LIMIT)
+                                )
+                            )
                         }
                         return@runWithLoadingIcon "Showing first ${alreadyProcessed + PROOF_SEARCH_RESULT_LIMIT} results"
                     }

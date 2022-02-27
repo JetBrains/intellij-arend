@@ -38,10 +38,14 @@ import org.arend.util.caching
 
 data class ProofSearchEntry(val def: ReferableAdapter<*>, val signature: RenderingInfo)
 
+/**
+ * @return null, if the search couldn't find any matching result for a long time.
+ * It can be used for an interruption check, so nulls can be safely skipped while retrieving the results.
+ */
 fun generateProofSearchResults(
     project: Project,
     pattern: String,
-): Sequence<ProofSearchEntry> = sequence {
+): Sequence<ProofSearchEntry?> = sequence {
     val settings = ProofSearchUISettings(project)
     val query = ProofSearchQuery.fromString(pattern).castSafelyTo<ParsingResult.OK<ProofSearchQuery>>()?.value
         ?: return@sequence
@@ -61,6 +65,8 @@ fun generateProofSearchResults(
     }
 
     val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
+
+    var idleCounter = 0
 
     for (definitionName in keys) {
         val list = SmartList<ProofSearchEntry>()
@@ -92,9 +98,16 @@ fun generateProofSearchResults(
                 true
             }
         }
-
-        for (def in list) {
-            yield(def)
+        if (list.isNotEmpty()) {
+            for (def in list) {
+                yield(def)
+            }
+        } else {
+            idleCounter += 1
+            if (idleCounter >= 50) {
+                idleCounter = 0
+                yield(null)
+            }
         }
     }
 }
@@ -222,7 +235,7 @@ private fun deconstructPi(expr: Concrete.Expression): Pair<List<Concrete.Express
 
 sealed interface ProofSearchUIEntry
 
-data class MoreElement(val alreadyProcessed: Int, val sequence: Sequence<ProofSearchEntry>) : ProofSearchUIEntry
+data class MoreElement(val alreadyProcessed: Int, val sequence: Sequence<ProofSearchEntry?>) : ProofSearchUIEntry
 
 @JvmInline
 value class DefElement(val entry: ProofSearchEntry): ProofSearchUIEntry

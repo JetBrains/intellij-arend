@@ -86,7 +86,7 @@ class ProofSearchService: Disposable {
         val text = signatureSearchUI.editorSearchField.text
         if (text.isNotEmpty()) {
             signatureSearchUI.editorSearchField.editor?.selectionModel?.setSelection(0, text.length)
-            signatureSearchUI.trySearch()
+            signatureSearchUI.registerSearchAttempt()
         }
     }
 
