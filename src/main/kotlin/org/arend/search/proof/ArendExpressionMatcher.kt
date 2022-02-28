@@ -200,13 +200,25 @@ private fun disambiguate(candidates: List<Referable>, path: List<String>): Refer
         val location = candidate.castSafelyTo<LocatedReferable>()?.location?.modulePath?.toList() ?: emptyList()
         val longName = candidate.refLongName?.toList() ?: continue
         val actualLongName = location + longName
-        if (actualLongName.subList(actualLongName.size - path.size, actualLongName.size) == path) {
-            if (result == null) {
-                result = candidate
-            } else {
-                // there are two referables with the same suffix, it is ambiguous
-                return null
+        if (actualLongName.last() != path.last()) {
+            return null
+        }
+        var pathIndex = 0
+        for (fullPathPart in actualLongName) {
+            if (pathIndex >= path.lastIndex) {
+                break
             }
+            if (fullPathPart == path[pathIndex]) {
+                pathIndex += 1
+            }
+        }
+        if (pathIndex < path.lastIndex) {
+            return null
+        } else if (result == null) {
+            result = candidate
+        } else {
+            // there are two referables with the same suffix, it is ambiguous
+            return null
         }
     }
     return result

@@ -138,6 +138,14 @@ class ArendProofSearchTest : ArendTestBase() {
 
         \func foo (b : Nat) : Bool => {?}
     """, "Nat -> Bool")
+
+    fun testSparseQualifier() = assertHasMatch("""
+        \module A \where \module B \where \module C \where \data D
+        
+        \open A.B.C
+         
+        \func f : D => {?}
+    """, "A.C.D")
 }
 
 
