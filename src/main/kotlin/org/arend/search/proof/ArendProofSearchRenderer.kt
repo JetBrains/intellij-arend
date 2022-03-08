@@ -85,15 +85,28 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
         val fgColor = if (isSelected) selectionFgColor else list.foreground
         return when (value) {
             is DefElement -> {
-                val (def, codomain) = value.entry
+                val (def, renderingInfo) = value.entry
+                val (parameterRenders, codomainRender) = renderingInfo
                 val identifierRange: TextRange
+                val parameterRanges: List<TextRange>
                 val typeRange: TextRange
                 val locationRange: TextRange
                 val text = buildString {
                     append("${def.name} : ")
                     identifierRange = TextRange(0, length - 3)
-                    append(codomain.typeRep)
-                    typeRange = TextRange(identifierRange.endOffset + 3, length)
+                    val ranges = mutableListOf<TextRange>()
+                    for (parameterIndex in parameterRenders.indices) {
+                        append("(")
+                        val start = length
+                        append(parameterRenders[parameterIndex].typeRep)
+                        ranges.add(TextRange(start, length))
+                        append(")")
+                        append(" -> ")
+                    }
+                    parameterRanges = ranges
+                    val start = length
+                    append(codomainRender.typeRep)
+                    typeRange = TextRange(start, length)
                     val location = getCompleteModuleLocation(def)
                     locationRange = if (location != null) {
                         append(" of $location")
@@ -107,7 +120,7 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
                 }
                 editor.backgroundColor = bgColor
 
-                setupHighlighting(isSelected, fgColor, text, identifierRange, typeRange, codomain, locationRange)
+                setupHighlighting(isSelected, fgColor, text, identifierRange, parameterRanges, parameterRenders, typeRange, codomainRender, locationRange)
                 editor.component
             }
             is MoreElement -> {
@@ -127,10 +140,14 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
         fgColor: Color?,
         text: String,
         identifierRange: TextRange,
+        parameterRanges: List<TextRange>,
+        parameterRenders: List<ProofSearchHighlightingData>,
         typeRange: TextRange,
-        codomain: HighlightedCodomain,
+        codomain: ProofSearchHighlightingData,
         locationRange: TextRange
     ) {
+        val allBigRanges = parameterRanges + typeRange
+        val allHighlightings = parameterRenders + codomain
         editor.markupModel.removeAllHighlighters()
         if (isSelected) {
             editor.markupModel.addRangeHighlighter(
@@ -140,25 +157,31 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
                 TextAttributes(fgColor, null, null, null, Font.PLAIN),
                 HighlighterTargetArea.EXACT_RANGE
             )
-            for (matched in codomain.match) {
-                val range = matched.shiftRight(typeRange.startOffset)
-                editor.markupModel.addRangeHighlighter(
-                    range.startOffset,
-                    range.endOffset,
-                    HighlighterLayer.SYNTAX - 2,
-                    TextAttributes(fgColor, null, fgColor, EffectType.BOXED, Font.PLAIN),
-                    HighlighterTargetArea.EXACT_RANGE
-                )
+            for ((bigRange, data) in allBigRanges.zip(allHighlightings)) {
+                for (matchRange in data.match) {
+                    val range = matchRange.shiftRight(bigRange.startOffset)
+                    editor.markupModel.addRangeHighlighter(
+                        range.startOffset,
+                        range.endOffset,
+                        HighlighterLayer.SYNTAX - 2,
+                        TextAttributes(fgColor, null, fgColor, EffectType.BOXED, Font.PLAIN),
+                        HighlighterTargetArea.EXACT_RANGE
+                    )
+                }
             }
         } else {
-            editor.addHighlighting(typeRange, EditorColors.INJECTED_LANGUAGE_FRAGMENT)
+            for (it in allBigRanges) {
+                editor.addHighlighting(it, EditorColors.INJECTED_LANGUAGE_FRAGMENT)
+            }
         }
 
-        for (kw in codomain.keywords) {
-            editor.addHighlighting(
-                kw.shiftRight(typeRange.startOffset),
-                ArendHighlightingColors.KEYWORD.textAttributesKey
-            )
+        for ((bigRange, data) in allBigRanges.zip(allHighlightings)) {
+            for (kw in data.keywords) {
+                editor.addHighlighting(
+                    kw.shiftRight(bigRange.startOffset),
+                    ArendHighlightingColors.KEYWORD.textAttributesKey
+                )
+            }
         }
         editor.addHighlighting(identifierRange, ArendHighlightingColors.DECLARATION.textAttributesKey)
         editor.addHighlighting(locationRange, ArendHighlightingColors.LINE_COMMENT.textAttributesKey)

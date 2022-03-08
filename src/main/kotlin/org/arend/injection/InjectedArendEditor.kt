@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
@@ -40,6 +41,10 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
     private val panel: JPanel?
     protected val actionGroup: DefaultActionGroup = DefaultActionGroup()
 
+    companion object {
+        val AREND_GOAL_EDITOR: Key<Unit> = Key.create("Arend goal editor")
+    }
+
     protected val printOptionKind: PrintOptionKind
         get() = when (treeElement?.highestError?.error?.level) {
             GeneralError.Level.GOAL -> PrintOptionKind.GOAL_PRINT_OPTIONS
@@ -54,6 +59,7 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
                 EditorFactory.getInstance().createEditor(document, project, virtualFile, true).apply {
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
+                    putUserData(AREND_GOAL_EDITOR, Unit)
                 }
             }
         } else null

@@ -181,6 +181,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
         when (element) {
             is ArendGroup -> invalidateChildren(element, file)
             is ArendStatement -> {
+                element.statCmd?.let { invalidateChildren(file, file) }
                 element.definition?.let { invalidateChildren(it, file) }
                 element.defModule?.let { invalidateChildren(it, file) }
             }

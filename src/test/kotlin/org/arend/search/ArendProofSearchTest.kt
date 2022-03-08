@@ -15,7 +15,7 @@ class ArendProofSearchTest : ArendTestBase() {
         myFixture.addFileToProject("Main.ard", PRE_TEXT + content)
         typecheck()
         val results = generateProofSearchResults(project, pattern)
-        return results.toList().mapTo(HashSet()) { it.def.name!! }
+        return results.mapNotNull { it }.toList().mapTo(HashSet()) { it.def.name!! }
     }
 
     private fun assertHasMatch(content: String, pattern: String) = TestCase.assertTrue(
@@ -138,6 +138,14 @@ class ArendProofSearchTest : ArendTestBase() {
 
         \func foo (b : Nat) : Bool => {?}
     """, "Nat -> Bool")
+
+    fun testSparseQualifier() = assertHasMatch("""
+        \module A \where \module B \where \module C \where \data D
+        
+        \open A.B.C
+         
+        \func f : D => {?}
+    """, "A.C.D")
 }
 
 

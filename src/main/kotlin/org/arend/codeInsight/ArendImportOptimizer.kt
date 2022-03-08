@@ -528,6 +528,7 @@ private data class MutableFrame(
             }
         }
         // the order is important. Implicitly used instances are not inherited, so they should be adder after erasing unnecessary usages
+        instancesFromCore.addAll(subgroups.flatMap { it.instancesFromCore })
         val instanceSource =
             if (useTypecheckedInstances) instancesFromCore intersect instancesFromScope.toSet() else instancesFromScope
         for (instance in instanceSource) {

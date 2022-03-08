@@ -6,6 +6,7 @@ import com.intellij.codeInsight.completion.impl.CamelHumpMatcher
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
+import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.hint.actions.QuickPreviewAction
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.codeInsight.lookup.impl.actions.ChooseItemAction
@@ -16,6 +17,9 @@ import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.actions.IncrementalFindAction
 import com.intellij.openapi.editor.colors.CodeInsightColors
@@ -33,28 +37,39 @@ import com.intellij.openapi.progress.runBackgroundableTask
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
 import com.intellij.ui.*
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
 import com.intellij.util.castSafelyTo
-import com.intellij.util.ui.EmptyIcon
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.StartupUiUtil
-import com.intellij.util.ui.UIUtil
+import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.concurrency.annotations.RequiresReadLock
+import com.intellij.util.ui.*
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
+import org.arend.injection.InjectedArendEditor
 import org.arend.psi.ArendFile
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.navigate
 import org.arend.psi.stubs.index.ArendDefinitionIndex
+import org.arend.quickfix.referenceResolve.ResolveReferenceAction
+import org.arend.refactoring.LocationData
+import org.arend.refactoring.calculateReferenceName
+import org.arend.term.abs.Abstract
 import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -65,7 +80,7 @@ import java.awt.event.MouseEvent
 import javax.swing.*
 import javax.swing.border.Border
 
-class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
+class ProofSearchUI(private val project: Project, private val caret: Caret?) : BigPopupUI(project) {
 
     private val searchAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
@@ -273,6 +288,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         registerEscapeAction()
         registerEnterAction()
         registerGoToDefinitionAction()
+        registerInsertAction()
         registerMouseActions()
     }
 
@@ -284,13 +300,13 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     private fun registerSearchAction() {
         myEditorTextField.document.addDocumentListener(object : DocumentListener {
             override fun documentChanged(event: DocumentEvent) {
-                trySearch()
+                registerSearchAttempt()
             }
         })
     }
 
 
-    fun trySearch() {
+    fun registerSearchAttempt() {
         if (myEditorTextField.text.isEmpty()) {
             return
         }
@@ -390,6 +406,20 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         }.registerCustomShortcutSet(CommonShortcuts.getEditSource(), this, this)
     }
 
+
+    private fun registerInsertAction() {
+        DumbAwareAction.create {
+            val indices = myResultsList.selectedIndices
+            if (indices.isNotEmpty() && caret != null) {
+                val element = model.getElementAt(indices[0])
+                if (element is DefElement) {
+                    close()
+                    insertDefinition(element, caret)
+                }
+            }
+        }.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, this, this)
+    }
+
     private fun registerEscapeAction() {
         val escapeAction = ActionManager.getInstance().getAction("EditorEscape")
         DumbAwareAction
@@ -421,6 +451,41 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         }
     }
 
+    private fun insertDefinition(element: DefElement, caret: Caret) {
+        val definition = element.entry.def
+        val mainEditor = caret.editor
+        val mainDocument = caret.editor.document
+        if (!mainDocument.isWritable || mainEditor.getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null) {
+            HintManager.getInstance().showErrorHint(mainEditor, "File is read-only")
+            return
+        }
+        val file = PsiDocumentManager.getInstance(definition.project).getPsiFile(mainDocument).castSafelyTo<ArendFile>() ?: return
+        val elementUnderCaret = file.findElementAt(caret.offset)?.parentOfType<ArendCompositeElement>() ?: return
+        val (action, representation) = runReadAction {
+            val locationData = LocationData(definition)
+            val (importAction, resultName) = calculateReferenceName(locationData, file, elementUnderCaret) ?: return@runReadAction null
+            val representation = getInsertableRepresentation(definition, resultName)
+            val resolveReferenceAction = ResolveReferenceAction(definition, locationData.getLongName(), importAction, null)
+            representation?.run(resolveReferenceAction::to)
+        } ?: return
+        WriteCommandAction.runWriteCommandAction(project, "Inserting Selected Definition...", "__Arend__Proof_search_insert_selected_definition", {
+            mainDocument.insertString(caret.offset, representation.text)
+            PsiDocumentManager.getInstance(definition.project).commitDocument(mainDocument)
+            action.execute(mainEditor)
+            project.service<ArendPsiChangeService>().incModificationCount(true)
+        })
+    }
+
+    @RequiresReadLock
+    private fun getInsertableRepresentation(definition: ReferableAdapter<*>, resultName: List<String>) : PsiElement? {
+        val factory = ArendPsiFactory(definition.project)
+        val explicitArguments = when(definition) {
+            is Abstract.ParametersHolder -> definition.parameters.count { it.isExplicit }
+            else -> return null
+        }
+        return factory.createExpression("(${resultName.joinToString(".")}${" {?}".repeat(explicitArguments)})")
+    }
+
     private fun onEntrySelected(element: ProofSearchUIEntry) = when (element) {
         is DefElement -> {
             previewAction.performForContext({
@@ -445,9 +510,10 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
         else -> Unit
     }
 
-    fun runProofSearch(alreadyProcessed: Int, results: Sequence<ProofSearchEntry>?) {
+    @RequiresEdt
+    fun runProofSearch(alreadyProcessed: Int, results: Sequence<ProofSearchEntry?>?) {
+        EDT.assertIsEdt()
         cleanupCurrentResults(results == null)
-
         val settings = ProofSearchUISettings(project)
 
         runBackgroundableTask(ArendBundle.message("arend.proof.search.title"), myProject) { progressIndicator ->
@@ -459,7 +525,13 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
                     if (progressIndicator.isCanceled) {
                         return@runWithLoadingIcon "Search cancelled"
                     }
+                    if (element == null) {
+                        continue
+                    }
                     invokeLater {
+                        if (progressIndicator.isCanceled) {
+                            return@invokeLater
+                        }
                         model.add(DefElement(element))
                         if (results != null && counter == PROOF_SEARCH_RESULT_LIMIT && myResultsList.selectedIndex == -1) {
                             myResultsList.selectedIndex = myResultsList.itemsCount - 1
@@ -468,7 +540,15 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
                     --counter
                     if (settings.shouldLimitSearch() && counter == 0) {
                         invokeLater {
-                            model.add(MoreElement(alreadyProcessed + PROOF_SEARCH_RESULT_LIMIT, elements.drop(PROOF_SEARCH_RESULT_LIMIT)))
+                            if (progressIndicator.isCanceled) {
+                                return@invokeLater
+                            }
+                            model.add(
+                                MoreElement(
+                                    alreadyProcessed + PROOF_SEARCH_RESULT_LIMIT,
+                                    elements.drop(PROOF_SEARCH_RESULT_LIMIT)
+                                )
+                            )
                         }
                         return@runWithLoadingIcon "Showing first ${alreadyProcessed + PROOF_SEARCH_RESULT_LIMIT} results"
                     }
@@ -535,7 +615,7 @@ class ProofSearchUI(private val project: Project) : BigPopupUI(project) {
     override fun getInitialHints(): Array<String> = arrayOf(
         ArendBundle.message("arend.proof.search.quick.preview.tip"),
         ArendBundle.message("arend.proof.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_EDIT_SOURCE)),
-        ArendBundle.message("arend.proof.search.insert.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_VIEW_SOURCE)),
+        ArendBundle.message("arend.proof.search.insert.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(CommonShortcuts.CTRL_ENTER)),
         ArendBundle.message("arend.proof.search.use.and.tip"),
         ArendBundle.message("arend.proof.search.use.arrow.tip"),
     )

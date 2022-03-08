@@ -35,6 +35,11 @@ inline fun <T, R> Iterable<T>.mapToSet(transform: (T) -> R) : Set<R> = mapTo(Has
 
 inline fun <K, T : K, R> Iterable<T>.associateWithWellTyped(selector : (T) -> R) : Map<K, R> = associate { it to selector(it) }
 
+fun <T, U> caching(f : (T) -> U) : (T) -> U {
+    val cache = mutableMapOf<T, U>()
+    return { cache.computeIfAbsent(it, f) }
+}
+
 // UI DSL
 
 inline fun LayoutBuilder.cellRow(crossinline init: Cell.() -> Unit) {

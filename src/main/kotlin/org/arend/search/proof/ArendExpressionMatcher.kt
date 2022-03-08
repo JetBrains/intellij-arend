@@ -1,7 +1,9 @@
 package org.arend.search.proof
 
+import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.BinOpParser
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
@@ -15,7 +17,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
      * @return null if the signature cannot be matched against [query],
      * list of concrete nodes where the matching occurred otherwise
      */
-    fun match(parameters: List<Concrete.Expression>, codomain: Concrete.Expression, scope: Scope): List<Concrete.Expression>? {
+    fun match(parameters: List<Concrete.Expression>, codomain: Concrete.Expression, scope: Scope): ProofSearchMatchingResult? {
         val cachingScope = CachingScope.make(scope)
         val qualifiedReferables = lazy(LazyThreadSafetyMode.NONE) {
             val set = mutableSetOf<Referable>()
@@ -24,16 +26,20 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
         }
         val codomainResult = matchDisjunct(query.codomain, codomain, cachingScope, qualifiedReferables) ?: return null
         if (parameters.isEmpty()) {
-            return codomainResult.takeIf { query.parameters.isEmpty() }
+            return codomainResult.takeIf { query.parameters.isEmpty() }?.let { ProofSearchMatchingResult(emptyList(), it) }
         }
-        val results = mutableListOf(*codomainResult.toTypedArray())
-        for (patternParameter in query.parameters) {
-            val firstMatchedParameter =
-                parameters.firstNotNullOfOrNull { matchDisjunct(patternParameter, it, cachingScope, qualifiedReferables) }
-                    ?: return null
-            results.addAll(firstMatchedParameter)
+        val parameterResults = mutableListOf<Pair<Concrete.Expression, List<Concrete.Expression>>>()
+        loop@ for (patternParameter in query.parameters) {
+            for (matchParameter in parameters) {
+                val match = matchDisjunct(patternParameter, matchParameter, cachingScope, qualifiedReferables)
+                if (match != null) {
+                    parameterResults.add(matchParameter to match)
+                    continue@loop
+                }
+            }
+            return null
         }
-        return results
+        return ProofSearchMatchingResult(parameterResults, codomainResult)
     }
 
     @Suppress("RedundantNullableReturnType")
@@ -191,14 +197,28 @@ private fun doubleArgumentIterable(patternArguments : List<Concrete.Argument>, m
 private fun disambiguate(candidates: List<Referable>, path: List<String>): Referable? {
     var result: Referable? = null
     for (candidate in candidates) {
-        val longName = candidate.refLongName ?: continue
-        if (longName.toList().subList(longName.size() - path.size, longName.size()) == path) {
-            if (result == null) {
-                result = candidate
-            } else {
-                // there are two referables with the same suffix, it is ambiguous
-                return null
+        val location = candidate.castSafelyTo<LocatedReferable>()?.location?.modulePath?.toList() ?: emptyList()
+        val longName = candidate.refLongName?.toList() ?: continue
+        val actualLongName = location + longName
+        if (actualLongName.last() != path.last()) {
+            return null
+        }
+        var pathIndex = 0
+        for (fullPathPart in actualLongName) {
+            if (pathIndex >= path.lastIndex) {
+                break
             }
+            if (fullPathPart == path[pathIndex]) {
+                pathIndex += 1
+            }
+        }
+        if (pathIndex < path.lastIndex) {
+            return null
+        } else if (result == null) {
+            result = candidate
+        } else {
+            // there are two referables with the same suffix, it is ambiguous
+            return null
         }
     }
     return result
@@ -206,3 +226,4 @@ private fun disambiguate(candidates: List<Referable>, path: List<String>): Refer
 
 
 private val binOpParser = BinOpParser(DummyErrorReporter.INSTANCE)
+internal data class ProofSearchMatchingResult(val inPattern: List<Pair<Concrete.Expression, List<Concrete.Expression>>>, val inCodomain: List<Concrete.Expression>)

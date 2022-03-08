@@ -1181,4 +1181,34 @@ class OptimizeImportsTest : ArendTestBase() {
         """)
     }
 
+    fun `test soft imports 7`() {
+        doSoftTest("""
+            -- ! Foo.ard
+            \class D { k : Nat }
+            -- ! Bar.ard
+            \import Foo
+           
+            \instance x : D \cowith
+              | k => 2
+            -- ! Main.ard
+            \import Foo
+            \import Bar
+            
+            \func e {d : D} => d.k
+
+            \func hh => 1 \where {
+              \func h : Nat => e
+            }
+        """, """
+            \import Bar
+            \import Foo
+            
+            \func e {d : D} => d.k
+
+            \func hh => 1 \where {
+              \func h : Nat => e
+            }
+        """)
+    }
+
 }
