@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - knisht/ci
   pull_request:
     branches:
       - master
