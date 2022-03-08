@@ -14,8 +14,8 @@ import org.arend.psi.parentOfType
 import org.arend.util.FullName
 import javax.swing.Icon
 
-class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescriptor?,
-                                   element: PsiElement, isBase: Boolean) : HierarchyNodeDescriptor(project, parent, element, isBase) {
+open class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescriptor?,
+                                        element: PsiElement, isBase: Boolean) : HierarchyNodeDescriptor(project, parent, element, isBase) {
 
     override fun update(): Boolean {
         val oldText = myHighlightedText
@@ -31,7 +31,7 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
                     myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', getPackageNameAttributes())
                 }
             }
-            is ArendClassImplement -> {
+            /*is ArendClassImplement -> {
                 val name = element.longName
                 val clazz = element.parentOfType<ArendDefClass>()
                 val ref = name.refIdentifierList.lastOrNull()?.reference?.resolve()
@@ -42,7 +42,7 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
                 } else {
                     myHighlightedText.ending.addText(name.text)
                 }
-            }
+            }*/
             is PsiLocatedReferable -> {
                 val fullName = FullName(element)
                 myHighlightedText.ending.addText(fullName.longName.toString())
@@ -53,14 +53,14 @@ class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescri
         return !Comparing.equal(myHighlightedText, oldText) || super.update()
     }
 
-    override fun getIcon(element: PsiElement): Icon? {
+    /*override fun getIcon(element: PsiElement): Icon? {
         val baseIcon = super.getIcon(element)
         return when (element) {
-            is ArendClassImplement -> RowIcon(AllIcons.Hierarchy.MethodDefined, baseIcon)
-            is FieldReferable -> RowIcon(AllIcons.Hierarchy.MethodNotDefined, baseIcon)
+            //is ArendClassImplement -> RowIcon(AllIcons.Hierarchy.MethodDefined, baseIcon)
+            is FieldReferable -> RowIcon(if (isImplemented) AllIcons.Hierarchy.MethodDefined else AllIcons.Hierarchy.MethodNotDefined, baseIcon)
             else -> baseIcon
         }
-    }
+    }*/
 
     companion object {
         fun nodePath(node: ArendHierarchyNodeDescriptor): String {

@@ -22,17 +22,17 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             classElement.superClassReferences.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as ArendDefClass, false) }
             val settings = project.service<ArendProjectSettings>().data
             if (settings.showImplFields) {
-                classElement.classImplementList.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it, false) }
+                classElement.implementedFields.mapTo(result) { ArendFieldHNodeDescriptor(project, descriptor, it as PsiElement, false, true) }
             }
             if (settings.showNonImplFields) {
                 if (descriptor.parentDescriptor == null) {
-                    ClassReferable.Helper.getNotImplementedFields(classElement).mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as PsiElement, false) }
+                    ClassReferable.Helper.getNotImplementedFields(classElement).mapTo(result) { ArendFieldHNodeDescriptor(project, descriptor, it as PsiElement, false, false) }
                 } else {
                     val implFields = HashSet<Referable>()
                     implInAncestors(descriptor, implFields)
                     classElement.fieldReferables.mapNotNullTo(result) {
                         if (it is PsiElement && !implFields.contains(it))
-                            ArendHierarchyNodeDescriptor(project, descriptor, it, false)
+                            ArendFieldHNodeDescriptor(project, descriptor, it, false, false)
                         else null
                     }
                 }
