@@ -63,7 +63,7 @@ intellij {
 }
 
 tasks.named<JavaExec>("runIde") {
-    jvmArgs = listOf("-Xmx1g")
+    jvmArgs = listOf("-Xmx2g")
 }
 
 tasks.withType<PatchPluginXmlTask>().configureEach {
@@ -112,7 +112,7 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 tasks.withType<Test>().configureEach {
-    maxHeapSize = "1024m"
+    maxHeapSize = "2048m"
     testLogging {
         if (prop("showTestStatus") == "true") {
             events = setOf(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)
