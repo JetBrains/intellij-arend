@@ -27,6 +27,12 @@ class InteractiveGoalSolverQuickFixTest : QuickFixTestBase() {
         \func test : Nat => {-caret-}zero
     """)
 
+    fun `test caret is moved when result expression is wrapped in parens`() = doTestWithGoalSolver(TestGoalSolver("suc {?}", project), """
+        \func test : Nat => suc {-caret-}{?}
+    """, """
+        \func test : Nat => suc (suc {-caret-}{?})
+    """)
+
     private fun doTestWithGoalSolver(solver: InteractiveGoalSolver,
                                      @Language("Arend") before: String,
                                      @Language("Arend") after: String) {

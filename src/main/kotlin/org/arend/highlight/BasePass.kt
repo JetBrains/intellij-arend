@@ -14,7 +14,6 @@ import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.refactoring.suggested.startOffset
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
@@ -200,10 +199,14 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                                     CodeStyleManager.getInstance(file.project).reformatText(file, offset, offset + prefix.length + text.length)
                                 }
                             } else {
-                                replaceExprSmart(editor.document, expr, null, expr.textRange, null, concrete, text)
+                                val exprRange = expr.textRange
+                                val replacement =
+                                    replaceExprSmart(editor.document, expr, null, exprRange, null, concrete, text)
                                 if (text.contains("{?}")) {
                                     val goalOffset = editor.document.charsSequence.let { charSeq ->
-                                        Strings.indexOf(charSeq, "{?}", expr.startOffset, expr.startOffset + text.length)
+                                        val start = exprRange.startOffset
+                                        val end = exprRange.startOffset + replacement.length
+                                        Strings.indexOf(charSeq, "{?}", start, end)
                                     }
                                     if (goalOffset != -1) {
                                         editor.caretModel.moveToOffset(goalOffset)
