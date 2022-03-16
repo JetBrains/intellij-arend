@@ -13,6 +13,7 @@ import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
+import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.refactoring.psiOfConcrete
 import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
@@ -142,11 +143,14 @@ private fun isApplicationUsedAsBinOpArgument(tupleParent: ConcreteSourceNode?, t
         val childAppExpr =
             if (tupleExpression is ArendNewExpr && isAtomic(tupleExpression)) tupleExpression.argumentAppExpr
             else null
-        return childAppExpr != null &&
-                hasNoLevelArguments(childAppExpr) &&
-                BinOpIntentionUtil.toConcreteBinOpInfixApp(childAppExpr) == null
+        return childAppExpr != null && hasNoLevelArguments(childAppExpr) && !isBinOpApp(childAppExpr)
     }
     return false
+}
+
+internal fun isBinOpApp(app: ArendArgumentAppExpr): Boolean {
+    val binOpSeq = appExprToConcrete(app, true)
+    return binOpSeq is Concrete.AppExpression && isBinOp(binOpSeq.function.data as? ArendReferenceContainer)
 }
 
 private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tuple) {

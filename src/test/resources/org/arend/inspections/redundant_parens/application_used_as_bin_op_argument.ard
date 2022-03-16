@@ -30,3 +30,8 @@
 \func test18 => +(suc 0) (suc 1)
 
 \func test19 => (`+ 2) 1 = 3
+
+\func \infixl 5 +++ (a b : Nat -> Nat) => a 1 + b 1
+
+-- The first parens is actually redundant, this is false negative.
+\func test20 => (+ 1) +++ (+ 3)
