@@ -21,7 +21,6 @@ class TypecheckingTaskQueue(project: Project) : ArendDefinitionChangeListener {
     }
 
     fun addTask(modificationCount: Long = tracker.modificationCount, action: () -> Unit) {
-        println("Task added!")
         if (modificationCount < tracker.modificationCount) {
             return
         }
