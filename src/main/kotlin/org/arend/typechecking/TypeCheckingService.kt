@@ -24,7 +24,6 @@ import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.core.ops.CMP
 import org.arend.ext.instance.InstanceSearchParameters
 import org.arend.ext.instance.SubclassSearchParameters
-import org.arend.ext.module.LongName
 import org.arend.ext.typechecking.DefinitionListener
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
@@ -124,7 +123,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private val instances = MultiMap.createConcurrent<TCDefReferable, TCDefReferable>()
 
-    val tcRefMaps = ConcurrentHashMap<ModuleLocation, HashMap<LongName, TCReferable>>()
+    val tcRefMaps = ConcurrentHashMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>()
 
     val updatedModules = HashSet<ModuleLocation>()
 

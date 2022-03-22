@@ -3,15 +3,19 @@ package org.arend.psi
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileTypes.FileType
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.resolve.FileContextUtil
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
+import com.intellij.util.castSafelyTo
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
@@ -38,9 +42,12 @@ import org.arend.psi.ext.impl.ArendInternalReferable
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
+import org.arend.resolving.DataLocatedReferable
+import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.libraryName
 import org.arend.util.mapFirstNotNull
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
@@ -81,10 +88,31 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             return field
         }
 
-    val tcRefMap: HashMap<LongName, TCReferable>
+    class LifetimeAwareDefinitionRegistry : ConcurrentHashMap<LongName, TCReferable>() {
+        override fun get(key: LongName): TCReferable? {
+            val tc = super.get(key)
+            if (tc is DataLocatedReferable && tc.data != null && tc.data!!.element == null) {
+                logger<BackgroundTypechecker>().error("Invalid definition in caches. Please report it to maintainers")
+            }
+            return tc
+        }
+
+        fun cleanup(project: Project?) {
+            val keysToRemove = this.filterValues {
+                val pointer = it.data.castSafelyTo<SmartPsiElementPointer<*>>(); pointer != null && pointer.element == null
+            }
+            val typecheckingService = project?.service<TypeCheckingService>()
+            for ((key, value) in keysToRemove) {
+                remove(key)
+                typecheckingService?.dependencyListener?.update(value)
+            }
+        }
+    }
+
+    val tcRefMap: LifetimeAwareDefinitionRegistry
         get() {
-            val location = moduleLocation ?: return HashMap()
-            return project.service<TypeCheckingService>().tcRefMaps.computeIfAbsent(location) { HashMap() }
+            val location = moduleLocation ?: return LifetimeAwareDefinitionRegistry()
+            return project.service<TypeCheckingService>().tcRefMaps.computeIfAbsent(location) { LifetimeAwareDefinitionRegistry() }
         }
 
     override fun setName(name: String): PsiElement =
