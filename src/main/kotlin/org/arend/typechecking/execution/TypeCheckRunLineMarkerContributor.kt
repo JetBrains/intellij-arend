@@ -6,7 +6,6 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.ui.AnimatedIcon
 import org.arend.core.definition.Definition.TypeCheckingStatus.*
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCoClauseImplMixin
@@ -29,8 +28,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
         val icon = when (def?.status()) {
             NO_ERRORS, DEP_PROBLEMS -> AllIcons.RunConfigurations.TestState.Green2
             HAS_WARNINGS -> AllIcons.RunConfigurations.TestState.Yellow2
-            NEEDS_TYPE_CHECKING, TYPE_CHECKING -> AllIcons.RunConfigurations.TestState.Run
-            null -> AnimatedIcon.Default.INSTANCE
+            null, TYPE_CHECKING, NEEDS_TYPE_CHECKING -> AllIcons.RunConfigurations.TestState.Run
             else -> AllIcons.RunConfigurations.TestState.Red2
         }
 
