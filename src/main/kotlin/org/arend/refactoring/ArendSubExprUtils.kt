@@ -32,6 +32,7 @@ import org.arend.naming.scope.CachingScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.resolving.ArendReferableConverter
+import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.Fixity
@@ -192,7 +193,9 @@ fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, ed
     }
 
 private fun everyExprOf(concrete: Concrete.Expression): Sequence<Any?> = sequence {
-    yield(concrete.data)
+    val data = concrete.data
+    val psiData = if (data is DataLocatedReferable) data.data?.element else data
+    yield(psiData)
     if (concrete is Concrete.AppExpression)
         for (arg in concrete.arguments) yieldAll(everyExprOf(arg.expression))
     if (concrete is Concrete.BinOpSequenceExpression) {
