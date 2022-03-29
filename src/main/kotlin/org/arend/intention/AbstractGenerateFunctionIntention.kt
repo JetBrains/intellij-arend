@@ -1,6 +1,7 @@
 package org.arend.intention
 
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -173,7 +174,9 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
             val concrete = try {
                 MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, definitionRenamer, referableRenamer)
             } catch (e: Exception) {
-                log.error(e)
+                if (ApplicationManager.getApplication().isInternal) {
+                    log.error(e)
+                }
                 ToAbstractVisitor.convert(expr, config)
             }
             contractFields(concrete)

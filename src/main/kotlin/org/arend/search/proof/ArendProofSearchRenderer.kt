@@ -1,6 +1,5 @@
 package org.arend.search.proof
 
-import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
@@ -21,8 +20,6 @@ import com.intellij.ui.components.panels.OpaquePanel
 import com.intellij.util.ui.UIUtil
 import okhttp3.internal.toHexString
 import org.arend.highlight.ArendHighlightingColors
-import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.impl.CoClauseDefAdapter
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -48,7 +45,7 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
         iconPanel.add(label, BorderLayout.NORTH)
         panel.add(iconPanel, BorderLayout.WEST)
         panel.add(textArea, BorderLayout.CENTER)
-        editor = EditorFactory.getInstance().createViewer(DocumentImpl("", true), project) as EditorEx
+        editor = EditorFactory.getInstance().createViewer(DocumentImpl(" ", true), project) as EditorEx
         with(editor.settings) {
             isRightMarginShown = false
             isLineNumbersShown = false
@@ -63,6 +60,7 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
             isVirtualSpace = false
         }
         editor.headerComponent = null
+        editor.setCaretEnabled(false)
         editor.setHorizontalScrollbarVisible(false)
         editor.setVerticalScrollbarVisible(false)
         editor.isRendererMode = true
@@ -116,7 +114,8 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
                     }
                 }
                 if (editor.document.text != text) {
-                    editor.document.setText(text)
+                    editor.document.deleteString(0, editor.document.textLength - 1)
+                    editor.document.insertString(0, text)
                 }
                 editor.backgroundColor = bgColor
 
@@ -215,8 +214,3 @@ private fun buildMoreHTML(nameColor: Color): String = """
        </body>
        </html>
     """.trimIndent()
-
-private fun getIcon(def: PsiReferable): Icon = when (def) {
-    is CoClauseDefAdapter -> AllIcons.General.Show_to_implement
-    else -> def.getIcon(0)
-}

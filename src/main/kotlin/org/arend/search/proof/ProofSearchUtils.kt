@@ -39,8 +39,9 @@ import org.arend.util.caching
 data class ProofSearchEntry(val def: ReferableAdapter<*>, val signature: RenderingInfo)
 
 /**
- * @return null, if the search couldn't find any matching result for a long time.
- * It can be used for an interruption check, so nulls can be safely skipped while retrieving the results.
+ * @return null as an element of the sequence, if the search couldn't find any matching result for a long time.
+ * It can be used for an interruption check, so nulls can be safely skipped while retrieving the results if you don't care
+ * about performance.
  */
 fun generateProofSearchResults(
     project: Project,
