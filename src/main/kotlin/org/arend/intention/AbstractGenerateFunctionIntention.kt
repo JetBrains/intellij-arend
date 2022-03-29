@@ -162,7 +162,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
 
         val config = object : PrettyPrinterConfig {
             override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> =
-                EnumSet.of(PrettyPrinterFlag.SHOW_PROOFS, *super.getExpressionFlags().toTypedArray())
+                EnumSet.of(PrettyPrinterFlag.SHOW_PROOFS, PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS, *super.getExpressionFlags().toTypedArray())
 
             override fun getNormalizationMode(): NormalizationMode? = null
 
