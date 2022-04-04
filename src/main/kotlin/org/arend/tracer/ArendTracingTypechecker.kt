@@ -3,9 +3,7 @@ package org.arend.tracer
 import org.arend.core.expr.*
 import org.arend.ext.ArendExtension
 import org.arend.ext.error.ErrorReporter
-import org.arend.ext.error.GeneralError
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.error.local.GoalDataHolder
 import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.visitor.CheckTypeVisitor
 
@@ -24,14 +22,11 @@ class ArendTracingTypechecker(errorReporter: ErrorReporter, extension: ArendExte
         val result = super.checkExpr(expr, expectedType)
         entriesStack.removeLast()
         traceEntry.typecheckingResult = result
-        traceEntry.goalDataHolder = GoalDataHolder(
-            GeneralError.Level.INFO,
-            "",
-            expr,
+        traceEntry.goalDataHolder = ArendTraceSyntheticError(expr,
             saveTypecheckingContext(),
             bindingTypes,
-            expectedType
-        )
+            result.expression,
+            expectedType)
         return result
     }
 }
