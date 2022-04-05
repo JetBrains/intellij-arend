@@ -17,7 +17,7 @@ class ArendEditor(
 ) : AutoCloseable {
     private val factory = EditorFactory.getInstance()
     private val document = factory.createDocument(text)
-    private val editor = factory.createEditor(document, project, EditorKind.PREVIEW) as EditorEx
+    val editor = factory.createEditor(document, project, EditorKind.PREVIEW) as EditorEx
 
     init {
         editor.isViewer = readOnly

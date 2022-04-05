@@ -34,6 +34,14 @@ abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsigh
     ) = ApplicationManager.getApplication().invokeLater {
         popup?.cancel()
         val arendEditor = ArendEditor(text, project, readOnly = true)
+        arendEditor.editor.settings.setGutterIconsShown(false)
+        arendEditor.editor.settings.isLineNumbersShown = false
+        arendEditor.editor.settings.isLineMarkerAreaShown = false
+        arendEditor.editor.settings.isCaretRowShown = false
+        arendEditor.editor.isRendererMode = true
+        arendEditor.editor.settings.additionalColumnsCount = 1
+        arendEditor.editor.settings.isFoldingOutlineShown = false
+        arendEditor.editor.settings.additionalLinesCount = 1
         val factory = JBPopupFactory.getInstance()
         val listener = object : JBPopupListener {
             override fun onClosed(event: LightweightWindowEvent) = arendEditor.close()
