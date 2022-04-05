@@ -10,7 +10,7 @@ import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
 import org.arend.typechecking.error.ArendError
 import org.arend.util.ArendBundle
 
-class ArendTraceContextView(project: Project) : InjectedArendEditor(project, "Arend Trace Context", null) {
+class ArendTraceContextView(project: Project) : InjectedArendEditor(project, "Arend Trace Context", null, false) {
     override val printOptionKind: PrintOptionKind = PrintOptionKind.TRACER_PRINT_OPTIONS
 
     init {

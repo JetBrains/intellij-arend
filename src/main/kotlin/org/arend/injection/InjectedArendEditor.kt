@@ -7,6 +7,8 @@ import com.intellij.openapi.application.*
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.editor.event.CaretEvent
+import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
@@ -33,11 +35,17 @@ import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
+import org.arend.ui.showExposeArgumentsHint
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-abstract class InjectedArendEditor(val project: Project, name: String, var treeElement: ArendErrorTreeElement?) {
+abstract class InjectedArendEditor(
+    val project: Project,
+    name: String,
+    var treeElement: ArendErrorTreeElement?,
+    addActions: Boolean
+) {
     protected val editor: Editor?
     private val panel: JPanel?
     protected val actionGroup: DefaultActionGroup = DefaultActionGroup()
@@ -53,6 +61,13 @@ abstract class InjectedArendEditor(val project: Project, name: String, var treeE
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
                     putUserData(AREND_GOAL_EDITOR, Unit)
+                    if (addActions) {
+                        caretModel.addCaretListener(object : CaretListener {
+                            override fun caretPositionChanged(event: CaretEvent) {
+                                if (event.caret?.hasSelection() != true) showExposeArgumentsHint(this@apply)
+                            }
+                        })
+                    }
                 }
             }
         } else null

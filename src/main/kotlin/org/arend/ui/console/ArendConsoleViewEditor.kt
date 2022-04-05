@@ -6,7 +6,7 @@ import org.arend.injection.InjectedArendEditor
 import org.arend.toolWindow.errors.ArendPrintOptionsActionGroup
 import org.arend.toolWindow.errors.PrintOptionKind
 
-class ArendConsoleViewEditor(project: Project) : InjectedArendEditor(project, ArendConsoleView.CONSOLE_ID, null) {
+class ArendConsoleViewEditor(project: Project) : InjectedArendEditor(project, ArendConsoleView.CONSOLE_ID, null, false) {
     override val printOptionKind: PrintOptionKind = PrintOptionKind.CONSOLE_PRINT_OPTIONS
 
     init {
