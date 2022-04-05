@@ -1014,6 +1014,7 @@ typeTele ::= literal
         implements = [ "org.arend.psi.ext.ArendCompositeElement"
                        "org.arend.term.abs.Abstract.Parameter" ]
         mixin = "org.arend.psi.ext.ArendTypeTeleImplMixin"
+        name = "parameters"
         recoverWhile = typeTele_recover
     }
 
