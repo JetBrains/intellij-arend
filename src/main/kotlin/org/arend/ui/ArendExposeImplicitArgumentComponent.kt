@@ -2,8 +2,6 @@ package org.arend.ui
 
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.hint.HintManagerImpl
-import com.intellij.codeInsight.hint.PriorityQuestionAction
-import com.intellij.codeInsight.hint.QuestionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
@@ -26,34 +24,20 @@ fun showExposeArgumentsHint(editor: Editor, callback: (Int) -> Unit) {
     val visualPosition = editor.offsetToVisualPosition(offset)
     val point = editor.visualPositionToXY(visualPosition)
         .apply { move(x + 2, y - (editor.lineHeight.toDouble() * 2.5).toInt()) }
-    val component = ArendExposeImplicitArgumentComponent()
+    val component = ArendExposeImplicitArgumentComponent { callback(offset) }
+    val flags =
+        HintManager.HIDE_BY_ANY_KEY or HintManager.UPDATE_BY_SCROLLING or HintManager.HIDE_IF_OUT_OF_EDITOR or HintManager.DONT_CONSUME_ESCAPE
 
-    val action: QuestionAction = object : PriorityQuestionAction {
-        override fun execute(): Boolean {
-            callback(offset)
-            return true
-        }
-
-        override fun getPriority(): Int {
-            return -10
-        }
-    }
-
-    HintManagerImpl.getInstanceImpl().showQuestionHint(
-        editor,
+    HintManagerImpl.getInstanceImpl().showEditorHint(
+        LocalComponentHint(component), editor,
         Point(
             editor.contentComponent.locationOnScreen.x + point.x,
             editor.contentComponent.locationOnScreen.y + point.y
-        ),
-        offset,
-        offset,
-        LocalComponentHint(component),
-        action,
-        HintManager.ABOVE
+        ), flags, -1, true
     )
 }
 
-private class ArendExposeImplicitArgumentComponent : JPanel() {
+private class ArendExposeImplicitArgumentComponent(callback: () -> Unit) : JPanel() {
 
     override fun addMouseListener(l: MouseListener?) {}
 
@@ -86,6 +70,10 @@ private class ArendExposeImplicitArgumentComponent : JPanel() {
 
             override fun mouseExited(e: MouseEvent?) {
                 myIconLabel.border = defaultBorder
+            }
+
+            override fun mouseClicked(e: MouseEvent?) {
+                callback()
             }
         })
     }
