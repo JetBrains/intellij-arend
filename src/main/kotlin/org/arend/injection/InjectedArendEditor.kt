@@ -52,6 +52,8 @@ abstract class InjectedArendEditor(
 
     protected abstract val printOptionKind: PrintOptionKind
 
+    private var currentDoc: Doc? = null
+
     init {
         val psi = ArendPsiFactory(project, name).injected("")
         val virtualFile = psi.virtualFile
@@ -61,13 +63,18 @@ abstract class InjectedArendEditor(
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
                     putUserData(AREND_GOAL_EDITOR, Unit)
-                    if (addActions) {
-                        caretModel.addCaretListener(object : CaretListener {
-                            override fun caretPositionChanged(event: CaretEvent) {
-                                if (event.caret?.hasSelection() != true) showExposeArgumentsHint(this@apply)
-                            }
-                        })
+                    if (!addActions) {
+                        return@apply
                     }
+                    caretModel.addCaretListener(object : CaretListener {
+                        override fun caretPositionChanged(event: CaretEvent) {
+                            if (event.caret?.hasSelection() != true) showExposeArgumentsHint(this@apply) {
+                                val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference) ?: return@showExposeArgumentsHint
+                                val ppConfig = getCurrentConfig(scope)
+                                addImplicitArguments(getInjectionFile(), it, currentDoc, treeElement, ppConfig)
+                            }
+                        }
+                    })
                 }
             }
         } else null
@@ -118,11 +125,12 @@ abstract class InjectedArendEditor(
                     if (scope != null) {
                         fileScope = scope
                     }
-                    val ppConfig = ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
+                    val ppConfig = getCurrentConfig(scope)
                     val doc = if (causeIsMetaExpression(error.causeSourceNode, resolve))
                         error.getDoc(ppConfig)
                     else
                         DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))
+                    currentDoc = doc
                     doc.accept(visitor, false)
                 }
             }
@@ -143,6 +151,10 @@ abstract class InjectedArendEditor(
                 support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
             }
         }
+    }
+
+    private fun getCurrentConfig(scope: Scope?): ProjectPrintConfig {
+        return ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
     }
 
     fun addDoc(doc: Doc, docScope: Scope) {
@@ -183,6 +195,7 @@ abstract class InjectedArendEditor(
                     injectedExpressions.clear()
                 }
                 editor.document.setText("")
+                currentDoc = null
             }
         }
     }
