@@ -54,7 +54,7 @@ private class InterceptingPrettyPrintVisitor(private val relativeOffset: Int, pr
         val offsetBefore = sb.length
         super.visitReference(expr, prec)
         val offsetAfter = sb.length
-        if (relativeOffset in offsetBefore until offsetAfter) {
+        if (relativeOffset in offsetBefore..offsetAfter) {
             result = expr
         }
         return null
