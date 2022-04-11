@@ -23,22 +23,24 @@ fun findCoreAtOffset(
     val (coreExpression, relativeOffset) = doc.findGlobalCoreByOffset(offset, error) ?: return null
     val concreteExpression = ToAbstractVisitor.convert(coreExpression, ppConfig)
     val stringInterceptor = InterceptingPrettyPrintVisitor(relativeOffset)
-    concreteExpression.accept(stringInterceptor, Precedence.DEFAULT)
+    concreteExpression.accept(stringInterceptor, Precedence(Precedence.Associativity.NON_ASSOC, Concrete.Expression.PREC, true))
     return stringInterceptor.result?.data?.castSafelyTo<Expression>()
 }
 
 private fun Doc.findGlobalCoreByOffset(offset: Int, error: GeneralError) : Pair<Expression, Int>? {
     val collectingBuilder = CollectingDocStringBuilder(StringBuilder(), error)
     accept(collectingBuilder, false)
+    val docString = toString()
     for ((ranges, expression) in collectingBuilder.textRanges.zip(collectingBuilder.expressions)) {
         expression ?: continue
         var relativeOffset = 0
         for (range in ranges) {
+            val substring = docString.subSequence(range.startOffset, range.endOffset).takeWhile { it == ' ' }
             if (range.contains(offset)) {
-                relativeOffset += offset - range.startOffset
+                relativeOffset += offset - range.startOffset - substring.length
                 return expression to relativeOffset
             }
-            relativeOffset += range.length + 1 // 1 for a space
+            relativeOffset += range.length + 1 - substring.length // 1 for a space
         }
     }
     return null
