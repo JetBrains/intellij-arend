@@ -4,6 +4,9 @@ import com.intellij.execution.impl.EditorHyperlinkSupport
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.*
+import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
@@ -13,11 +16,16 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import org.arend.core.expr.Expression
 import org.arend.ext.concrete.ConcreteSourceNode
+import org.arend.ext.core.expr.CoreExpression
+import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.DataContainer
+import org.arend.injection.actions.UnblockingDocumentAction
+import org.arend.injection.actions.RollbackConfigAction
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -39,6 +47,7 @@ import org.arend.ui.showExposeArgumentsHint
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
+import kotlin.random.Random
 
 abstract class InjectedArendEditor(
     val project: Project,
@@ -54,12 +63,16 @@ abstract class InjectedArendEditor(
 
     private var currentDoc: Doc? = null
 
+    private val verboseLevelMap: MutableMap<Expression, Int> = mutableMapOf()
+
     init {
         val psi = ArendPsiFactory(project, name).injected("")
         val virtualFile = psi.virtualFile
         editor = if (virtualFile != null) {
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let { document ->
-                EditorFactory.getInstance().createEditor(document, project, virtualFile, true).apply {
+                document.setReadOnly(true)
+                EditorFactory.getInstance().createEditor(document, project, virtualFile, false).apply {
+                    val thisEditor = this
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
                     putUserData(AREND_GOAL_EDITOR, Unit)
@@ -68,10 +81,21 @@ abstract class InjectedArendEditor(
                     }
                     caretModel.addCaretListener(object : CaretListener {
                         override fun caretPositionChanged(event: CaretEvent) {
-                            if (event.caret?.hasSelection() != true) showExposeArgumentsHint(this@apply) {
-                                val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference) ?: return@showExposeArgumentsHint
-                                val ppConfig = getCurrentConfig(scope)
-                                addImplicitArguments(getInjectionFile(), it, currentDoc, treeElement, ppConfig)
+                            if (event.caret?.hasSelection() == true) return
+                            val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference)
+                                ?: return
+                            val ppConfig = getCurrentConfig(scope)
+                            showExposeArgumentsHint(thisEditor) {
+                                val coreToReveal = findCoreAtOffset(it, currentDoc, treeElement?.sampleError?.error, ppConfig)
+                                        ?: return@showExposeArgumentsHint
+                                val id = "Arend Verbose level increase " + Random.nextInt()
+                                val action = RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelMap, coreToReveal, id)
+                                CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
+                                    verboseLevelMap[coreToReveal] = verboseLevelMap.getOrDefault(coreToReveal, 0) + 1
+                                    updateErrorText(id)
+                                    UndoManager.getInstance(this@InjectedArendEditor.project)
+                                        .undoableActionPerformed(action)
+                                }, "Adding information...", id)
                             }
                         }
                     })
@@ -102,7 +126,7 @@ abstract class InjectedArendEditor(
     val component: JComponent?
         get() = panel
 
-    fun updateErrorText() {
+    fun updateErrorText(id: String? = null) {
         if (editor == null) return
         val treeElement = treeElement ?: return
 
@@ -134,17 +158,21 @@ abstract class InjectedArendEditor(
                     doc.accept(visitor, false)
                 }
             }
-
             val text = builder.toString()
             if (editor.isDisposed) return@invokeLater
-            runWriteAction {
+            val action: () -> Unit = {
+                editor.document.setReadOnly(false)
                 editor.document.setText(text)
+                editor.document.setReadOnly(true)
                 getInjectionFile()?.apply {
                     injectionRanges = visitor.textRanges
                     scope = fileScope
                     injectedExpressions = visitor.expressions
                 }
+                val unblockDocument = UnblockingDocumentAction(this@InjectedArendEditor.editor.document, id)
+                UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(unblockDocument)
             }
+            WriteCommandAction.runWriteCommandAction(project, null, id, action)
             val support = EditorHyperlinkSupport.get(editor)
             support.clearHyperlinks()
             for (hyperlink in visitor.hyperlinks) {
@@ -154,7 +182,12 @@ abstract class InjectedArendEditor(
     }
 
     private fun getCurrentConfig(scope: Scope?): ProjectPrintConfig {
-        return ProjectPrintConfig(project, printOptionKind, scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) })
+        return ProjectPrintConfig(
+            project,
+            printOptionKind,
+            scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) },
+            verboseLevelMap
+        )
     }
 
     fun addDoc(doc: Doc, docScope: Scope) {
@@ -204,10 +237,24 @@ abstract class InjectedArendEditor(
         PsiDocumentManager.getInstance(project).getPsiFile(it) as? PsiInjectionTextFile
     }
 
-    private class ProjectPrintConfig(project: Project, printOptionsKind: PrintOptionKind, scope: Scope?) : PrettyPrinterConfigWithRenamer(scope) {
+    private class ProjectPrintConfig(
+        project: Project,
+        printOptionsKind: PrintOptionKind,
+        scope: Scope?,
+        private val verboseLevelMap: Map<Expression, Int>
+    ) :
+        PrettyPrinterConfigWithRenamer(scope) {
         private val flags = ArendPrintOptionsFilterAction.getFilterSet(project, printOptionsKind)
 
         override fun getExpressionFlags() = flags
+
+        override fun getVerboseLevel(expression: CoreExpression): Int {
+            return verboseLevelMap[expression] ?: 0
+        }
+
+        override fun getNormalizationMode(): NormalizationMode? {
+            return null
+        }
     }
 
     companion object {
