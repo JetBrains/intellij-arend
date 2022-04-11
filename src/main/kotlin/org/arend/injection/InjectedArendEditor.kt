@@ -79,26 +79,7 @@ abstract class InjectedArendEditor(
                     if (!addActions) {
                         return@apply
                     }
-                    caretModel.addCaretListener(object : CaretListener {
-                        override fun caretPositionChanged(event: CaretEvent) {
-                            if (event.caret?.hasSelection() == true) return
-                            val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference)
-                                ?: return
-                            val ppConfig = getCurrentConfig(scope)
-                            showExposeArgumentsHint(thisEditor) {
-                                val coreToReveal = findCoreAtOffset(it, currentDoc, treeElement?.sampleError?.error, ppConfig)
-                                        ?: return@showExposeArgumentsHint
-                                val id = "Arend Verbose level increase " + Random.nextInt()
-                                val action = RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelMap, coreToReveal, id)
-                                CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
-                                    verboseLevelMap[coreToReveal] = verboseLevelMap.getOrDefault(coreToReveal, 0) + 1
-                                    updateErrorText(id)
-                                    UndoManager.getInstance(this@InjectedArendEditor.project)
-                                        .undoableActionPerformed(action)
-                                }, "Adding information...", id)
-                            }
-                        }
-                    })
+                    caretModel.addCaretListener(MyCaretListener(thisEditor))
                 }
             }
         } else null
@@ -115,6 +96,27 @@ abstract class InjectedArendEditor(
         }
 
         updateErrorText()
+    }
+
+    private inner class MyCaretListener(private val thisEditor: Editor) : CaretListener {
+        override fun caretPositionChanged(event: CaretEvent) {
+            if (event.caret?.hasSelection() == true) return
+            val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference)
+                ?: return
+            val ppConfig = getCurrentConfig(scope)
+            val offset = thisEditor.caretModel.offset
+            val coreAtOffset = findCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig)
+                    ?: return
+            showExposeArgumentsHint(thisEditor) {
+                val id = "Arend Verbose level increase " + Random.nextInt()
+                val action = RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelMap, coreAtOffset, id)
+                CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
+                    verboseLevelMap[coreAtOffset] = verboseLevelMap.getOrDefault(coreAtOffset, 0) + 1
+                    updateErrorText(id)
+                    UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(action)
+                }, "Adding information...", id)
+            }
+        }
     }
 
     fun release() {
