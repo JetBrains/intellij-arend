@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.ui.HintHint
-import com.intellij.ui.IconManager
 import com.intellij.ui.LightweightHint
 import org.arend.ArendIcons
 import java.awt.BorderLayout
@@ -22,7 +21,7 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.border.Border
 
-fun showExposeArgumentsHint(editor: Editor) {
+fun showExposeArgumentsHint(editor: Editor, callback: (Int) -> Unit) {
     val offset = editor.caretModel.offset
     val visualPosition = editor.offsetToVisualPosition(offset)
     val point = editor.visualPositionToXY(visualPosition)
@@ -31,6 +30,7 @@ fun showExposeArgumentsHint(editor: Editor) {
 
     val action: QuestionAction = object : PriorityQuestionAction {
         override fun execute(): Boolean {
+            callback(offset)
             return true
         }
 
@@ -58,7 +58,7 @@ private class ArendExposeImplicitArgumentComponent : JPanel() {
     override fun addMouseListener(l: MouseListener?) {}
 
     private val myIconLabel =
-        JLabel(IconManager.getInstance().createRowIcon(ArendIcons.SHOW_IMPLICITS)).apply { isOpaque = false }
+        JLabel(ArendIcons.SHOW_IMPLICITS).apply { isOpaque = false }
 
     private fun createBorder(thickness: Int): Border {
         return BorderFactory.createCompoundBorder(
@@ -74,19 +74,18 @@ private class ArendExposeImplicitArgumentComponent : JPanel() {
     private val defaultBorder = createBorder(1)
 
     init {
-        setSize(5, 5)
         layout = BorderLayout()
         isOpaque = true
-        border = defaultBorder
+        myIconLabel.border = defaultBorder
         add(myIconLabel, BorderLayout.CENTER)
         myIconLabel.addMouseListener(object : MouseAdapter() {
             override fun mouseEntered(e: MouseEvent?) {
-                border = selectedBorder
-                myIconLabel.toolTipText = "Expose an implicit argument"
+                myIconLabel.border = selectedBorder
+                myIconLabel.toolTipText = "Reveal an implicit argument"
             }
 
             override fun mouseExited(e: MouseEvent?) {
-                border = defaultBorder
+                myIconLabel.border = defaultBorder
             }
         })
     }
