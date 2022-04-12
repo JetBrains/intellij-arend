@@ -1,33 +1,42 @@
 package org.arend.injection
 
-import com.intellij.util.castSafelyTo
 import org.arend.core.expr.Expression
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
-import org.arend.ext.prettyprinting.doc.*
+import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.reference.Precedence
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
-import kotlin.text.StringBuilder
+
+sealed interface ConcreteResult
+
+@JvmInline
+value class ConcreteRefExpr(val expr: Concrete.ReferenceExpression) : ConcreteResult
+
+@JvmInline
+value class ConcreteLambdaParameter(val expr: Concrete.NameParameter) : ConcreteResult
 
 fun findCoreAtOffset(
     offset: Int,
     doc: Doc?,
     error: GeneralError?,
     ppConfig: PrettyPrinterConfig,
-): Expression? {
+): ConcreteResult? {
     if (doc == null || error == null) {
         return null
     }
     val (coreExpression, relativeOffset) = doc.findGlobalCoreByOffset(offset, error) ?: return null
     val concreteExpression = ToAbstractVisitor.convert(coreExpression, ppConfig)
     val stringInterceptor = InterceptingPrettyPrintVisitor(relativeOffset)
-    concreteExpression.accept(stringInterceptor, Precedence(Precedence.Associativity.NON_ASSOC, Concrete.Expression.PREC, true))
-    return stringInterceptor.result?.data?.castSafelyTo<Expression>()
+    concreteExpression.accept(
+        stringInterceptor,
+        Precedence(Precedence.Associativity.NON_ASSOC, Concrete.Expression.PREC, true)
+    )
+    return stringInterceptor.result
 }
 
-private fun Doc.findGlobalCoreByOffset(offset: Int, error: GeneralError) : Pair<Expression, Int>? {
+private fun Doc.findGlobalCoreByOffset(offset: Int, error: GeneralError): Pair<Expression, Int>? {
     val collectingBuilder = CollectingDocStringBuilder(StringBuilder(), error)
     accept(collectingBuilder, false)
     val docString = toString()
@@ -46,17 +55,28 @@ private fun Doc.findGlobalCoreByOffset(offset: Int, error: GeneralError) : Pair<
     return null
 }
 
-private class InterceptingPrettyPrintVisitor(private val relativeOffset: Int, private val sb : StringBuilder = StringBuilder())
-    : PrettyPrintVisitor(sb, 0, false) {
-    var result : Concrete.Expression? = null
+private class InterceptingPrettyPrintVisitor(
+    private val relativeOffset: Int,
+    private val sb: StringBuilder = StringBuilder()
+) : PrettyPrintVisitor(sb, 0, false) {
+    var result: ConcreteResult? = null
 
     override fun visitReference(expr: Concrete.ReferenceExpression, prec: Precedence?): Void? {
         val offsetBefore = sb.length
         super.visitReference(expr, prec)
         val offsetAfter = sb.length
         if (relativeOffset in offsetBefore..offsetAfter) {
-            result = expr
+            result = ConcreteRefExpr(expr)
         }
         return null
+    }
+
+    override fun prettyPrintParameter(parameter: Concrete.Parameter) {
+        val offsetBefore = sb.length
+        super.prettyPrintParameter(parameter)
+        val offsetAfter = sb.length
+        if (relativeOffset in offsetBefore..offsetAfter && parameter is Concrete.NameParameter) {
+            result = ConcreteLambdaParameter(parameter)
+        }
     }
 }

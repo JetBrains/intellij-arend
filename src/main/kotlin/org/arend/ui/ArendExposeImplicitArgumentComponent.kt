@@ -8,6 +8,10 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.ui.HintHint
 import com.intellij.ui.LightweightHint
 import org.arend.ArendIcons
+import org.arend.injection.ConcreteLambdaParameter
+import org.arend.injection.ConcreteRefExpr
+import org.arend.injection.ConcreteResult
+import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import java.awt.Point
 import java.awt.event.MouseAdapter
@@ -19,12 +23,12 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.border.Border
 
-fun showExposeArgumentsHint(editor: Editor, callback: (Int) -> Unit) {
+fun showExposeArgumentsHint(editor: Editor, result: ConcreteResult, callback: (Int) -> Unit) {
     val offset = editor.caretModel.offset
     val visualPosition = editor.offsetToVisualPosition(offset)
     val point = editor.visualPositionToXY(visualPosition)
         .apply { move(x + 2, y - (editor.lineHeight.toDouble() * 2.5).toInt()) }
-    val component = ArendExposeImplicitArgumentComponent { callback(offset) }
+    val component = ArendExposeImplicitArgumentComponent(result) { callback(offset) }
     val flags =
         HintManager.HIDE_BY_ANY_KEY or HintManager.UPDATE_BY_SCROLLING or HintManager.HIDE_IF_OUT_OF_EDITOR or HintManager.DONT_CONSUME_ESCAPE
 
@@ -37,12 +41,12 @@ fun showExposeArgumentsHint(editor: Editor, callback: (Int) -> Unit) {
     )
 }
 
-private class ArendExposeImplicitArgumentComponent(callback: () -> Unit) : JPanel() {
+private class ArendExposeImplicitArgumentComponent(private val result: ConcreteResult, callback: () -> Unit) : JPanel() {
 
     override fun addMouseListener(l: MouseListener?) {}
 
     private val myIconLabel =
-        JLabel(ArendIcons.SHOW_IMPLICITS).apply { isOpaque = false }
+        JLabel(ArendIcons.SHOW).apply { isOpaque = false }
 
     private fun createBorder(thickness: Int): Border {
         return BorderFactory.createCompoundBorder(
@@ -65,7 +69,10 @@ private class ArendExposeImplicitArgumentComponent(callback: () -> Unit) : JPane
         myIconLabel.addMouseListener(object : MouseAdapter() {
             override fun mouseEntered(e: MouseEvent?) {
                 myIconLabel.border = selectedBorder
-                myIconLabel.toolTipText = "Reveal an implicit argument"
+                myIconLabel.toolTipText = when (result) {
+                    is ConcreteLambdaParameter -> ArendBundle.message("arend.reveal.lambda.parameter.type")
+                    is ConcreteRefExpr -> ArendBundle.message("arend.reveal.implicit.argument")
+                }
             }
 
             override fun mouseExited(e: MouseEvent?) {

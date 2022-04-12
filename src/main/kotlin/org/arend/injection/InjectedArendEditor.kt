@@ -16,8 +16,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.util.castSafelyTo
+import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.Expression
 import org.arend.ext.concrete.ConcreteSourceNode
+import org.arend.ext.core.context.CoreParameter
 import org.arend.ext.core.expr.CoreExpression
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.error.GeneralError
@@ -44,6 +47,7 @@ import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
 import org.arend.ui.showExposeArgumentsHint
+import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -64,6 +68,7 @@ abstract class InjectedArendEditor(
     private var currentDoc: Doc? = null
 
     private val verboseLevelMap: MutableMap<Expression, Int> = mutableMapOf()
+    private val verboseLevelParameterMap: MutableMap<DependentLink, Int> = mutableMapOf()
 
     init {
         val psi = ArendPsiFactory(project, name).injected("")
@@ -105,16 +110,19 @@ abstract class InjectedArendEditor(
                 ?: return
             val ppConfig = getCurrentConfig(scope)
             val offset = thisEditor.caretModel.offset
-            val coreAtOffset = findCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig)
+            val concreteResult = findCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig)
                     ?: return
-            showExposeArgumentsHint(thisEditor) {
-                val id = "Arend Verbose level increase " + Random.nextInt()
-                val action = RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelMap, coreAtOffset, id)
+            val id = "Arend Verbose level increase " + Random.nextInt()
+            val action = when(concreteResult) {
+                is ConcreteLambdaParameter -> RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelParameterMap, concreteResult.expr.data.castSafelyTo<DependentLink>() ?: return, id)
+                is ConcreteRefExpr -> RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelMap, concreteResult.expr.data.castSafelyTo<Expression>() ?: return, id)
+            }
+            showExposeArgumentsHint(thisEditor, concreteResult) {
                 CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
-                    verboseLevelMap[coreAtOffset] = verboseLevelMap.getOrDefault(coreAtOffset, 0) + 1
+                    action.redo()
                     updateErrorText(id)
                     UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(action)
-                }, "Adding information...", id)
+                }, ArendBundle.message("arend.add.information.in.arend.messages"), id)
             }
         }
     }
@@ -188,7 +196,8 @@ abstract class InjectedArendEditor(
             project,
             printOptionKind,
             scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) },
-            verboseLevelMap
+            verboseLevelMap,
+            verboseLevelParameterMap
         )
     }
 
@@ -243,7 +252,8 @@ abstract class InjectedArendEditor(
         project: Project,
         printOptionsKind: PrintOptionKind,
         scope: Scope?,
-        private val verboseLevelMap: Map<Expression, Int>
+        private val verboseLevelMap: Map<Expression, Int>,
+        private val verboseLevelParameterMap: Map<DependentLink, Int>
     ) :
         PrettyPrinterConfigWithRenamer(scope) {
         private val flags = ArendPrintOptionsFilterAction.getFilterSet(project, printOptionsKind)
@@ -252,6 +262,10 @@ abstract class InjectedArendEditor(
 
         override fun getVerboseLevel(expression: CoreExpression): Int {
             return verboseLevelMap[expression] ?: 0
+        }
+
+        override fun getVerboseLevel(parameter: CoreParameter): Int {
+            return verboseLevelParameterMap[parameter] ?: 0
         }
 
         override fun getNormalizationMode(): NormalizationMode? {

@@ -4,21 +4,20 @@ import com.intellij.openapi.command.undo.DocumentReference
 import com.intellij.openapi.command.undo.DocumentReferenceManager
 import com.intellij.openapi.command.undo.UndoableAction
 import com.intellij.openapi.editor.Document
-import org.arend.core.expr.Expression
 import org.arend.injection.InjectedArendEditor
 
-class RollbackConfigAction(
+class RollbackConfigAction<T>(
     private val editor: InjectedArendEditor,
     private val document: Document,
-    private val map: MutableMap<Expression, Int>,
-    private val core: Expression,
+    private val map: MutableMap<T, Int>,
+    private val key: T,
     private val id: String?
 ) : UndoableAction {
 
     override fun undo() {
-        map.computeIfPresent(core) { _, num -> num - 1 }
-        if (map[core] == 0) {
-            map.remove(core)
+        map.computeIfPresent(key) { _, num -> num - 1 }
+        if (map[key] == 0) {
+            map.remove(key)
         }
         document.setReadOnly(true)
         editor.updateErrorText(id)
@@ -26,7 +25,7 @@ class RollbackConfigAction(
 
     override fun redo() {
         document.setReadOnly(false)
-        map[core] = map.getOrDefault(core, 0) + 1
+        map[key] = map.getOrDefault(key, 0) + 1
     }
 
     override fun getAffectedDocuments(): Array<DocumentReference> {
