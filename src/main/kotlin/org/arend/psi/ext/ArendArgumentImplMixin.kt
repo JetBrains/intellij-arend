@@ -21,6 +21,22 @@ abstract class ArendImplicitArgumentImplMixin(node: ASTNode) : ArendSourceNodeIm
         acceptTupleExpression(this, tupleExprList, visitor, params)
 }
 
+abstract class ArendLamArgumentImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendLamArgument {
+    override fun isVariable() = false
+
+    override fun isExplicit() = true
+
+    override fun getExpression() = lamExpr
+}
+
+abstract class ArendCaseArgumentImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendCaseArgument {
+    override fun isVariable() = false
+
+    override fun isExplicit() = true
+
+    override fun getExpression() = caseExpr
+}
+
 internal fun <P : Any?, R : Any?> acceptTupleExpression(data: Any?, exprList: List<ArendTupleExpr>, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
     val element = exprList.lastOrNull()?.findNextSibling()
     val isComma = element?.elementType == ArendElementTypes.COMMA
