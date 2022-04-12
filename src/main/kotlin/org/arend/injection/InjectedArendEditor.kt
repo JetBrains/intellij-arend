@@ -110,14 +110,14 @@ abstract class InjectedArendEditor(
                 ?: return
             val ppConfig = getCurrentConfig(scope)
             val offset = thisEditor.caretModel.offset
-            val concreteResult = findCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig)
+            val fragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig)
                     ?: return
             val id = "Arend Verbose level increase " + Random.nextInt()
-            val action = when(concreteResult) {
+            val action = when(val concreteResult = fragment.result) {
                 is ConcreteLambdaParameter -> RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelParameterMap, concreteResult.expr.data.castSafelyTo<DependentLink>() ?: return, id)
                 is ConcreteRefExpr -> RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelMap, concreteResult.expr.data.castSafelyTo<Expression>() ?: return, id)
             }
-            showExposeArgumentsHint(thisEditor, concreteResult) {
+            showExposeArgumentsHint(thisEditor, fragment) {
                 CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
                     action.redo()
                     updateErrorText(id)
