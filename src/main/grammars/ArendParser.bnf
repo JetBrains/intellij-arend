@@ -80,6 +80,7 @@
         SCASE_KW            = '\scase'
         EVAL_KW             = '\eval'
         PEVAL_KW            = '\peval'
+        BOX_KW              = '\box'
         RETURN_KW           = '\return'
         DATA_KW             = '\data'
         CONS_KW             = '\cons'
@@ -574,7 +575,7 @@ withBody ::= WITH_KW clausesWithBraces {
     mixin = "org.arend.psi.ext.ArendWithBodyImplMixin"
 }
 
-appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW {
+appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW | BOX_KW {
     pin(".*") = 1
 }
 
@@ -611,7 +612,7 @@ caseExpr ::= casePrefix caseOpt <<comma_separated_sequence caseArg>> returnCaseE
     mixin = "org.arend.psi.ext.ArendCaseExprImplMixin"
 }
 
-casePrefix ::= [EVAL_KW | PEVAL_KW]
+casePrefix ::= [EVAL_KW | PEVAL_KW | BOX_KW]
 
 caseOpt ::= CASE_KW | SCASE_KW
 
@@ -903,7 +904,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | BOX_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.arend.psi.ext.ArendCompositeElement"
