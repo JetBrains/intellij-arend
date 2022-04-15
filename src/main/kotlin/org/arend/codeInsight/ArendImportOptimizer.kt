@@ -146,8 +146,8 @@ internal fun processRedundantImportedDefinitions(file : ArendFile, fileImports: 
 private fun checkStatements(action: (ArendCompositeElement) -> Unit, statements: List<ArendStatement>, pattern: Map<ModulePath, Set<ImportedName>>) {
     for (import in statements) {
         val statCmd = import.statCmd ?: continue
-        val qualifiedReference = statCmd.openedReference?.castSafelyTo<ArendReferenceContainer>()?.resolve?.takeIf { it !is ArendFile }?.castSafelyTo<ArendGroup>()?.qualifiedName() ?: statCmd.longName?.longName
-        val imported = pattern[qualifiedReference?.let(::ModulePath)]
+        val qualifiedReferences = statCmd.getQualifiedReferenceFromOpen()
+        val imported = qualifiedReferences.firstNotNullOfOrNull { pattern[it] }
         if (imported == null || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in imported } } == true)  {
             action(import)
             continue
@@ -160,6 +160,18 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit, statements:
             }
         }
     }
+}
+
+/**
+ * Record fields may be referenced without actual qualifier for an enclosing record
+ */
+private fun ArendStatCmd.getQualifiedReferenceFromOpen() : List<ModulePath> {
+    val group = openedReference?.castSafelyTo<ArendReferenceContainer>()?.resolve?.takeIf { it !is ArendFile }?.castSafelyTo<ArendGroup>()
+    val groupQualifiedName = group?.qualifiedName()
+    val groupReducedQualifiedName = if (group is ArendDefClass) groupQualifiedName?.dropLast(1) else null
+    return (listOfNotNull(groupQualifiedName, groupReducedQualifiedName).takeIf { it.isNotEmpty() }
+        ?: listOfNotNull(longName?.longName))
+        .map { ModulePath(it) }
 }
 
 private fun ArendGroup.qualifiedName() : MutableList<String> {

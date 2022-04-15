@@ -6,6 +6,9 @@ import com.intellij.configurationStore.Property
 import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.codeStyle.CustomCodeStyleSettings
 
+/**
+ * Each of the policies makes the imports sorted alphabetically
+ */
 class ArendCustomCodeStyleSettings(container : CodeStyleSettings) : CustomCodeStyleSettings("ArendCustomCodeStyleSettings", container) {
 
     enum class OptimizeImportsPolicy {

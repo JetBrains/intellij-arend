@@ -1211,4 +1211,27 @@ class OptimizeImportsTest : ArendTestBase() {
         """)
     }
 
+    fun `test class in module`() {
+        doSoftTest("""
+            -- ! Main.ard
+            \module M \where {
+              \record R
+                | field : Nat
+            }
+            
+            \func asdzxc => field
+              \where
+                \open M.R(field)
+        """, """
+            \module M \where {
+              \record R
+                | field : Nat
+            }
+            
+            \func asdzxc => field
+              \where
+                \open M.R(field)
+        """)
+    }
+
 }
