@@ -2,6 +2,7 @@ package org.arend.util
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -9,6 +10,7 @@ import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
+import org.arend.injection.InjectedArendEditor
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
@@ -57,3 +59,5 @@ fun Module.register() {
     }
     service<ArendExtensionChangeListener>().initializeModule(config)
 }
+
+fun Editor.isDetailedViewEditor() : Boolean = getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null

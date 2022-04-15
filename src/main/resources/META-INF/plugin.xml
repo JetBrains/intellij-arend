@@ -441,6 +441,13 @@
             <keyboard-shortcut keymap="$default" first-keystroke="alt shift F2"/>
         </action>
 
+        <action id="Arend.PrettyPrint.RevealImplicitInformation"
+                class="org.arend.injection.actions.RevealImplicitInformationAction"
+                text="Reveal Implicit Information"
+                description="When invoked in Goal editor, reveals additional information under caret">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt shift EQUALS"/>
+        </action>
+
         <action id="Arend.ShowExpr.Type"
                 class="org.arend.actions.ArendShowTypeAction"
                 text="Show Expression Type"

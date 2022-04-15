@@ -80,7 +80,7 @@ abstract class InjectedArendEditor(
                     val thisEditor = this
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
-                    putUserData(AREND_GOAL_EDITOR, Unit)
+                    putUserData(AREND_GOAL_EDITOR, this@InjectedArendEditor)
                     caretModel.addCaretListener(MyCaretListener(thisEditor))
                 }
             }
@@ -103,29 +103,52 @@ abstract class InjectedArendEditor(
     private inner class MyCaretListener(private val thisEditor: Editor) : CaretListener {
         override fun caretPositionChanged(event: CaretEvent) {
             if (event.caret?.hasSelection() == true) return
-            val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference)
-                ?: return
-            val ppConfig = getCurrentConfig(scope)
-            val offset = thisEditor.caretModel.offset
-            val fragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig)
-                    ?: return
-            val id = "Arend Verbose level increase " + Random.nextInt()
-            val action = when(val concreteResult = fragment.result) {
-                is ConcreteLambdaParameter -> RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelParameterMap, concreteResult.expr.data.castSafelyTo<DependentLink>() ?: return, id)
-                is ConcreteRefExpr -> RollbackConfigAction(this@InjectedArendEditor, thisEditor.document, verboseLevelMap, concreteResult.expr.data.castSafelyTo<Expression>() ?: return, id)
-            }
-            showExposeArgumentsHint(thisEditor, fragment) {
-                CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
-                    action.redo()
-                    updateErrorText(id)
-                    UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(action)
-                }, ArendBundle.message("arend.add.information.in.arend.messages"), id)
-            }
+            performRevealingAction(thisEditor, true)
+        }
+    }
+
+    fun performRevealingAction(editor: Editor, withUI: Boolean) {
+        val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference)
+            ?: return
+        val ppConfig = getCurrentConfig(scope)
+        val offset = editor.caretModel.offset
+        val fragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig)
+            ?: return
+        val id = "Arend Verbose level increase " + Random.nextInt()
+        val action = when (val concreteResult = fragment.result) {
+            is ConcreteLambdaParameter -> RollbackConfigAction(
+                this@InjectedArendEditor,
+                editor.document,
+                verboseLevelParameterMap,
+                concreteResult.expr.data.castSafelyTo<DependentLink>() ?: return,
+                id
+            )
+
+            is ConcreteRefExpr -> RollbackConfigAction(
+                this@InjectedArendEditor,
+                editor.document,
+                verboseLevelMap,
+                concreteResult.expr.data.castSafelyTo<Expression>() ?: return,
+                id
+            )
+        }
+        val modifyingAction = {
+            CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
+                action.redo()
+                updateErrorText(id)
+                UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(action)
+            }, ArendBundle.message("arend.add.information.in.arend.messages"), id)
+        }
+        if (withUI) {
+            showExposeArgumentsHint(editor, fragment, modifyingAction)
+        } else {
+            modifyingAction()
         }
     }
 
     fun release() {
         if (editor != null) {
+            editor.putUserData(AREND_GOAL_EDITOR, null)
             EditorFactory.getInstance().releaseEditor(editor)
         }
     }
@@ -279,7 +302,7 @@ abstract class InjectedArendEditor(
     }
 
     companion object {
-        val AREND_GOAL_EDITOR: Key<Unit> = Key.create("Arend goal editor")
+        val AREND_GOAL_EDITOR: Key<InjectedArendEditor> = Key.create("Arend goal editor")
 
         fun resolveCauseReference(error: GeneralError): Pair<Referable?, Scope?> {
             val causeSourceNode = error.causeSourceNode

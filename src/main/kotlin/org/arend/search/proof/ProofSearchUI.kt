@@ -56,7 +56,6 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.ui.*
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
-import org.arend.injection.InjectedArendEditor
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
@@ -71,6 +70,7 @@ import org.arend.refactoring.LocationData
 import org.arend.refactoring.calculateReferenceName
 import org.arend.term.abs.Abstract
 import org.arend.util.ArendBundle
+import org.arend.util.isDetailedViewEditor
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
@@ -455,7 +455,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         val definition = element.entry.def
         val mainEditor = caret.editor
         val mainDocument = caret.editor.document
-        if (!mainDocument.isWritable || mainEditor.getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null) {
+        if (!mainDocument.isWritable || mainEditor.isDetailedViewEditor()) {
             HintManager.getInstance().showErrorHint(mainEditor, "File is read-only")
             return
         }
@@ -586,7 +586,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
             }
             LoadingIconState.SYNTAX_ERROR -> {
                 loadingIcon.setIconWithAlignment(AllIcons.General.Error, SwingConstants.LEFT, SwingConstants.TOP)
-                loadingIcon.toolTipText = "Sytax error in query"
+                loadingIcon.toolTipText = ArendBundle.message("arend.proof.search.syntax.error.in.query")
                 loadingIcon.text = message
             }
             LoadingIconState.LOADING -> {
