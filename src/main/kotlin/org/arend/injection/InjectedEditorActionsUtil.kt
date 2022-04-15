@@ -10,14 +10,26 @@ import org.arend.ext.reference.Precedence
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
+import org.jetbrains.annotations.TestOnly
 
-sealed interface ConcreteResult
+sealed interface ConcreteResult {
+    @TestOnly
+    fun getTextId() : String
+}
 
 @JvmInline
-value class ConcreteRefExpr(val expr: Concrete.ReferenceExpression) : ConcreteResult
+value class ConcreteRefExpr(val expr: Concrete.ReferenceExpression) : ConcreteResult {
+    override fun getTextId(): String {
+        return expr.referent.refName
+    }
+}
 
 @JvmInline
-value class ConcreteLambdaParameter(val expr: Concrete.NameParameter) : ConcreteResult
+value class ConcreteLambdaParameter(val expr: Concrete.NameParameter) : ConcreteResult {
+    override fun getTextId(): String {
+        return expr.names.first()
+    }
+}
 
 data class RevealableFragment(val lifetime: Int, val result: ConcreteResult)
 
