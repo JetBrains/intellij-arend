@@ -7,6 +7,7 @@ import com.intellij.openapi.application.*
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
@@ -171,9 +172,7 @@ abstract class InjectedArendEditor(
             val text = builder.toString()
             if (editor.isDisposed) return@invokeLater
             val action: () -> Unit = {
-                editor.document.setReadOnly(false)
-                editor.document.setText(text)
-                editor.document.setReadOnly(true)
+                modifyDocument { setText(text) }
                 getInjectionFile()?.apply {
                     injectionRanges = visitor.textRanges
                     scope = fileScope
@@ -213,7 +212,7 @@ abstract class InjectedArendEditor(
             if (editor.isDisposed) return@runUndoTransparentWriteAction
             val document = editor.document
             val length = document.textLength
-            document.insertString(length, text)
+            modifyDocument { insertString(textLength, text) }
             editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
 
             getInjectionFile()?.apply {
@@ -238,7 +237,7 @@ abstract class InjectedArendEditor(
                     injectionRanges.clear()
                     injectedExpressions.clear()
                 }
-                editor.document.setText("")
+                modifyDocument { setText("") }
                 currentDoc = null
             }
         }
@@ -270,6 +269,16 @@ abstract class InjectedArendEditor(
 
         override fun getNormalizationMode(): NormalizationMode? {
             return null
+        }
+    }
+
+    protected fun modifyDocument(modifier: Document.() -> Unit) {
+        val thisEditor = editor ?: return
+        thisEditor.document.setReadOnly(false)
+        try {
+            thisEditor.document.modifier()
+        } finally {
+            thisEditor.document.setReadOnly(true)
         }
     }
 

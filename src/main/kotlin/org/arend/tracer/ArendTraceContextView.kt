@@ -21,7 +21,7 @@ class ArendTraceContextView(project: Project) : InjectedArendEditor(project, "Ar
         val psiElement = traceEntry.psiElement
         if (psiElement == null) {
             runWriteAction {
-                editor?.document?.setText(ArendBundle.message("arend.tracer.no.information"))
+                modifyDocument { setText(ArendBundle.message("arend.tracer.no.information")) }
             }
             return
         }
