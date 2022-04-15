@@ -58,7 +58,6 @@ abstract class InjectedArendEditor(
     val project: Project,
     name: String,
     var treeElement: ArendErrorTreeElement?,
-    addActions: Boolean
 ) {
     protected val editor: Editor?
     private val panel: JPanel?
@@ -82,9 +81,6 @@ abstract class InjectedArendEditor(
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
                     putUserData(AREND_GOAL_EDITOR, Unit)
-                    if (!addActions) {
-                        return@apply
-                    }
                     caretModel.addCaretListener(MyCaretListener(thisEditor))
                 }
             }

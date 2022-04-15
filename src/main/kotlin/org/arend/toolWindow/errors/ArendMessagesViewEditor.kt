@@ -8,7 +8,7 @@ import org.arend.injection.InjectedArendEditor
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
 
 class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeElement, private val isGoalEditor: Boolean)
-    : InjectedArendEditor(project, "Arend Messages", treeElement, true) {
+    : InjectedArendEditor(project, "Arend Messages", treeElement) {
 
     override val printOptionKind: PrintOptionKind
         get() = when (treeElement?.highestError?.error?.level) {
