@@ -29,7 +29,7 @@ import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.DataContainer
 import org.arend.injection.actions.UnblockingDocumentAction
-import org.arend.injection.actions.RollbackConfigAction
+import org.arend.injection.actions.UndoableConfigModificationAction
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -47,7 +47,7 @@ import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
-import org.arend.ui.showExposeArgumentsHint
+import org.arend.ui.showManipulatePrettyPrinterHint
 import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import javax.swing.JComponent
@@ -103,46 +103,70 @@ abstract class InjectedArendEditor(
     private inner class MyCaretListener(private val thisEditor: Editor) : CaretListener {
         override fun caretPositionChanged(event: CaretEvent) {
             if (event.caret?.hasSelection() == true) return
-            performRevealingAction(thisEditor, true)
+            performPrettyPrinterManipulation(thisEditor, Choice.SHOW_UI)
         }
     }
 
-    fun performRevealingAction(editor: Editor, withUI: Boolean) {
+    enum class Choice {
+        REVEAL,
+        HIDE,
+        SHOW_UI
+    }
+
+    fun performPrettyPrinterManipulation(editor: Editor, choice: Choice) {
         val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference)
             ?: return
         val ppConfig = getCurrentConfig(scope)
         val offset = editor.caretModel.offset
-        val fragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig)
-            ?: return
+        val revealingFragment= findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig) ?: return
         val id = "Arend Verbose level increase " + Random.nextInt()
-        val action = when (val concreteResult = fragment.result) {
-            is ConcreteLambdaParameter -> RollbackConfigAction(
+        val revealingAction = getUndoAction(revealingFragment, editor, id, false) ?: return
+        val hidingAction = getUndoAction(revealingFragment, editor, id, true) ?: return
+        val revealingModifyingAction = {
+            CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
+                revealingAction.redo()
+                updateErrorText(id)
+                UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(revealingAction)
+            }, ArendBundle.message("arend.add.information.in.arend.messages"), id)
+        }
+        val hidingModifyingAction = {
+            CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
+                hidingAction.redo()
+                updateErrorText(id)
+                UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(hidingAction)
+            }, ArendBundle.message("arend.remove.information.in.arend.messages"), id)
+        }
+        when (choice) {
+            Choice.SHOW_UI -> showManipulatePrettyPrinterHint(editor, revealingFragment, revealingModifyingAction, hidingModifyingAction)
+            Choice.REVEAL -> revealingModifyingAction.invoke()
+            Choice.HIDE -> hidingModifyingAction.invoke()
+        }
+    }
+
+    private fun getUndoAction(
+        revealingFragment: RevealableFragment,
+        editor: Editor,
+        id: String,
+        inverted: Boolean
+    ): UndoableConfigModificationAction<out Any>? {
+        return when (val concreteResult = revealingFragment.result) {
+            is ConcreteLambdaParameter -> UndoableConfigModificationAction(
                 this@InjectedArendEditor,
                 editor.document,
                 verboseLevelParameterMap,
-                concreteResult.expr.data.castSafelyTo<DependentLink>() ?: return,
+                concreteResult.expr.data.castSafelyTo<DependentLink>() ?: return null,
+                inverted,
                 id
             )
 
-            is ConcreteRefExpr -> RollbackConfigAction(
+            is ConcreteRefExpr -> UndoableConfigModificationAction(
                 this@InjectedArendEditor,
                 editor.document,
                 verboseLevelMap,
-                concreteResult.expr.data.castSafelyTo<Expression>() ?: return,
+                concreteResult.expr.data.castSafelyTo<Expression>() ?: return null,
+                inverted,
                 id
             )
-        }
-        val modifyingAction = {
-            CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
-                action.redo()
-                updateErrorText(id)
-                UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(action)
-            }, ArendBundle.message("arend.add.information.in.arend.messages"), id)
-        }
-        if (withUI) {
-            showExposeArgumentsHint(editor, fragment, modifyingAction)
-        } else {
-            modifyingAction()
         }
     }
 

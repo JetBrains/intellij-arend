@@ -6,7 +6,7 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import org.arend.injection.InjectedArendEditor
 import org.arend.util.isDetailedViewEditor
 
-class RevealImplicitInformationAction : AnAction() {
+class HideImplicitInformationAction : AnAction() {
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible = e.getData(PlatformDataKeys.EDITOR)?.isDetailedViewEditor() ?: false
@@ -15,6 +15,6 @@ class RevealImplicitInformationAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
         val injectedEditor = editor.getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) ?: return
-        injectedEditor.performPrettyPrinterManipulation(editor, InjectedArendEditor.Choice.REVEAL)
+        injectedEditor.performPrettyPrinterManipulation(editor, InjectedArendEditor.Choice.HIDE)
     }
 }

@@ -448,6 +448,13 @@
             <keyboard-shortcut keymap="$default" first-keystroke="alt shift EQUALS"/>
         </action>
 
+        <action id="Arend.PrettyPrint.HideImplicitInformation"
+                class="org.arend.injection.actions.HideImplicitInformationAction"
+                text="Hide Implicit Information"
+                description="When invoked in Goal editor, hides additional information under caret">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt MINUS"/>
+        </action>
+
         <action id="Arend.ShowExpr.Type"
                 class="org.arend.actions.ArendShowTypeAction"
                 text="Show Expression Type"

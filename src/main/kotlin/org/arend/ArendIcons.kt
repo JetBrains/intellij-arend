@@ -74,6 +74,7 @@ object ArendIcons {
     }
 
     val SHOW = AllIcons.Actions.Show
+    val NOT_SHOW = getIcon("/icons/not_show.svg")
     val PIN = AllIcons.General.Pin_tab
 
     fun definitionToIcon(definition: Definition): Icon? = when (definition) {

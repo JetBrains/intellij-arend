@@ -25,13 +25,13 @@ value class ConcreteRefExpr(val expr: Concrete.ReferenceExpression) : ConcreteRe
 }
 
 @JvmInline
-value class ConcreteLambdaParameter(val expr: Concrete.NameParameter) : ConcreteResult {
+value class ConcreteLambdaParameter(val expr: Concrete.Parameter) : ConcreteResult {
     override fun getTextId(): String {
         return expr.names.first()
     }
 }
 
-data class RevealableFragment(val lifetime: Int, val result: ConcreteResult)
+data class RevealableFragment(val revealLifetime: Int, val hideLifetime: Int, val result: ConcreteResult)
 
 fun findRevealableCoreAtOffset(
     offset: Int,
@@ -49,7 +49,7 @@ fun findRevealableCoreAtOffset(
         stringInterceptor,
         Precedence(Precedence.Associativity.NON_ASSOC, Concrete.Expression.PREC, true)
     )
-    return stringInterceptor.result?.run { RevealableFragment(stringInterceptor.lifetime, this) }
+    return stringInterceptor.revealableResult?.run { RevealableFragment(stringInterceptor.lifetime, stringInterceptor.hideLifetime, this) }
 }
 
 private fun Doc.findGlobalCoreByOffset(offset: Int, error: GeneralError): Pair<Expression, Int>? {
@@ -75,33 +75,31 @@ private class InterceptingPrettyPrintVisitor(
     private val relativeOffset: Int,
     private val sb: StringBuilder = StringBuilder()
 ) : PrettyPrintVisitor(sb, 0, false) {
-    var result: ConcreteResult? = null
-    var visitParent: Boolean = true
+    var revealableResult: ConcreteResult? = null
+    private var visitParent: Boolean = true
     var lifetime: Int = 0
+    var hideLifetime: Int = 0
 
     override fun visitReference(expr: Concrete.ReferenceExpression, prec: Precedence?): Void? {
         val offsetBefore = sb.length
         super.visitReference(expr, prec)
         val offsetAfter = sb.length
         if (relativeOffset in offsetBefore..offsetAfter) {
-            result = ConcreteRefExpr(expr)
+            revealableResult = ConcreteRefExpr(expr)
         }
         return null
     }
 
-    override fun visitApp(expr: Concrete.AppExpression, prec: Precedence?): Void? {
-        val resultBefore = result
+      override fun visitApp(expr: Concrete.AppExpression, prec: Precedence?): Void? {
+        val resultBefore = revealableResult
         super.visitApp(expr, prec)
-        val resultAfter = result
+        val resultAfter = revealableResult
         if (visitParent && resultAfter != resultBefore && resultAfter is ConcreteRefExpr) {
             visitParent = false
             val argumentsShown = expr.arguments.count()
             val agumentsOverall = resultAfter.expr.data.castSafelyTo<DefCallExpression>()?.defCallArguments?.count() ?: return null
             lifetime = agumentsOverall - argumentsShown
-            if (agumentsOverall == argumentsShown) {
-                // nothing to insert
-                result = null
-            }
+            hideLifetime = expr.arguments.count { !it.isExplicit }
         }
         return null
     }
@@ -110,9 +108,17 @@ private class InterceptingPrettyPrintVisitor(
         val offsetBefore = sb.length
         super.prettyPrintParameter(parameter)
         val offsetAfter = sb.length
-        if (relativeOffset in offsetBefore..offsetAfter && parameter is Concrete.NameParameter) {
-            result = ConcreteLambdaParameter(parameter)
-            lifetime = 1
+        if (revealableResult == null && relativeOffset in offsetBefore..offsetAfter) {
+            if (parameter is Concrete.NameParameter) {
+                revealableResult = ConcreteLambdaParameter(parameter)
+                lifetime = 1
+                hideLifetime = 0
+            }
+            if (parameter is Concrete.TypeParameter) {
+                revealableResult = ConcreteLambdaParameter(parameter)
+                lifetime = 0
+                hideLifetime = 1
+            }
         }
     }
 }

@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.ui.HintHint
 import com.intellij.ui.LightweightHint
+import com.intellij.ui.components.JBLabel
 import org.arend.ArendIcons
 import org.arend.injection.ConcreteLambdaParameter
 import org.arend.injection.ConcreteRefExpr
@@ -24,14 +25,15 @@ import javax.swing.BorderFactory
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.JSeparator
 import javax.swing.border.Border
 
-fun showExposeArgumentsHint(editor: Editor, fragment: RevealableFragment, callback: () -> Unit) {
+fun showManipulatePrettyPrinterHint(editor: Editor, fragment: RevealableFragment, revealingCallback: (() -> Unit), hidingCallback: (() -> Unit)) {
     val offset = editor.caretModel.offset
     val visualPosition = editor.offsetToVisualPosition(offset)
     val point = editor.visualPositionToXY(visualPosition)
         .apply { move(x + 2, y - (editor.lineHeight.toDouble() * 2.5).toInt()) }
-    val component = ArendExposeImplicitArgumentComponent(fragment, callback)
+    val component = ArendManipulateImplicitArgumentComponent(fragment, revealingCallback, hidingCallback)
     val flags =
         HintManager.HIDE_BY_ANY_KEY or HintManager.UPDATE_BY_SCROLLING or HintManager.HIDE_IF_OUT_OF_EDITOR or HintManager.DONT_CONSUME_ESCAPE
 
@@ -44,14 +46,16 @@ fun showExposeArgumentsHint(editor: Editor, fragment: RevealableFragment, callba
     )
 }
 
-private class ArendExposeImplicitArgumentComponent(private val fragment: RevealableFragment, callback: () -> Unit) :
+private class ArendManipulateImplicitArgumentComponent(private val fragment: RevealableFragment, revealingCallback: () -> Unit, hidingCallback: () -> Unit) :
     JPanel() {
 
     override fun addMouseListener(l: MouseListener?) {}
 
-    private val myIconLabel =
+    private val myShowIconLabel =
         JLabel(ArendIcons.SHOW).apply { isOpaque = false }
 
+    private val myNotShowIconLabel = JBLabel(ArendIcons.NOT_SHOW)
+    
     private fun createBorder(thickness: Int): Border {
         return BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(
@@ -64,17 +68,27 @@ private class ArendExposeImplicitArgumentComponent(private val fragment: Reveala
 
     private val selectedBorder = createBorder(2)
     private val defaultBorder = createBorder(1)
-    private var lifetime = fragment.lifetime
+    private var revealLifetime = fragment.revealLifetime
+    private var endLifetime = fragment.hideLifetime
 
     init {
         layout = BorderLayout()
         isOpaque = true
-        myIconLabel.border = defaultBorder
-        add(myIconLabel, BorderLayout.CENTER)
-        myIconLabel.addMouseListener(object : MouseAdapter() {
+        myShowIconLabel.border = defaultBorder
+        myNotShowIconLabel.border = defaultBorder
+        if (endLifetime > 0) {
+            add(myNotShowIconLabel, if (revealLifetime > 0) BorderLayout.WEST else BorderLayout.CENTER)
+        }
+        if (endLifetime > 0 && revealLifetime > 0) {
+            add(JSeparator(JSeparator.VERTICAL), BorderLayout.CENTER)
+        }
+        if (revealLifetime > 0) {
+            add(myShowIconLabel, if (endLifetime > 0) BorderLayout.EAST else BorderLayout.CENTER)
+        }
+        myShowIconLabel.addMouseListener(object : MouseAdapter() {
             override fun mouseEntered(e: MouseEvent?) {
-                myIconLabel.border = selectedBorder
-                myIconLabel.toolTipText = when (fragment.result) {
+                myShowIconLabel.border = selectedBorder
+                myShowIconLabel.toolTipText = when (fragment.result) {
                     is ConcreteLambdaParameter -> ArendBundle.message("arend.reveal.lambda.parameter.type")
                     is ConcreteRefExpr -> ArendBundle.message("arend.reveal.implicit.argument")
                 } + " (${
@@ -85,14 +99,39 @@ private class ArendExposeImplicitArgumentComponent(private val fragment: Reveala
             }
 
             override fun mouseExited(e: MouseEvent?) {
-                myIconLabel.border = defaultBorder
+                myShowIconLabel.border = defaultBorder
             }
 
             override fun mouseClicked(e: MouseEvent?) {
-                lifetime -= 1
-                callback()
-                if (lifetime <= 0) {
-                    this@ArendExposeImplicitArgumentComponent.isVisible = false
+                revealLifetime -= 1
+                revealingCallback()
+                if (revealLifetime <= 0) {
+                    this@ArendManipulateImplicitArgumentComponent.isVisible = false
+                }
+            }
+        })
+        myNotShowIconLabel.addMouseListener(object : MouseAdapter() {
+            override fun mouseEntered(e: MouseEvent?) {
+                myNotShowIconLabel.border = selectedBorder
+                myNotShowIconLabel.toolTipText = when (fragment.result) {
+                    is ConcreteLambdaParameter -> ArendBundle.message("arend.hide.lambda.parameter.type")
+                    is ConcreteRefExpr -> ArendBundle.message("arend.hide.implicit.argument")
+                } + " (${
+                    KeymapUtil.getFirstKeyboardShortcutText(
+                        ActionManager.getInstance().getAction("Arend.PrettyPrint.HideImplicitInformation") as AnAction
+                    )
+                })"
+            }
+
+            override fun mouseExited(e: MouseEvent?) {
+                myNotShowIconLabel.border = defaultBorder
+            }
+
+            override fun mouseClicked(e: MouseEvent?) {
+                endLifetime -= 1
+                hidingCallback()
+                if (endLifetime <= 0) {
+                    this@ArendManipulateImplicitArgumentComponent.isVisible = false
                 }
             }
         })
