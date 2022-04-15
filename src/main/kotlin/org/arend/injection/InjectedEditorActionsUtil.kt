@@ -31,7 +31,7 @@ value class ConcreteLambdaParameter(val expr: Concrete.Parameter) : ConcreteResu
     }
 }
 
-data class RevealableFragment(val revealLifetime: Int, val hideLifetime: Int, val result: ConcreteResult)
+data class RevealableFragment(val revealLifetime: Int, val hideLifetime: Int, val result: ConcreteResult, val relativeOffset: Int)
 
 fun findRevealableCoreAtOffset(
     offset: Int,
@@ -49,7 +49,7 @@ fun findRevealableCoreAtOffset(
         stringInterceptor,
         Precedence(Precedence.Associativity.NON_ASSOC, Concrete.Expression.PREC, true)
     )
-    return stringInterceptor.revealableResult?.run { RevealableFragment(stringInterceptor.lifetime, stringInterceptor.hideLifetime, this) }
+    return stringInterceptor.revealableResult?.run { RevealableFragment(stringInterceptor.lifetime, stringInterceptor.hideLifetime, this, relativeOffset) }
 }
 
 private fun Doc.findGlobalCoreByOffset(offset: Int, error: GeneralError): Pair<Expression, Int>? {

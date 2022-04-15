@@ -122,24 +122,35 @@ abstract class InjectedArendEditor(
         val id = "Arend Verbose level increase " + Random.nextInt()
         val revealingAction = getUndoAction(revealingFragment, editor, id, false) ?: return
         val hidingAction = getUndoAction(revealingFragment, editor, id, true) ?: return
+        val indexOfRange = computeGlobalIndexOfRange(editor.caretModel.offset)
         val revealingModifyingAction = {
             CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
                 revealingAction.redo()
-                updateErrorText(id)
+                updateErrorText(id)  {
+                    val newOffset = recomputeOffset(revealingFragment.relativeOffset, indexOfRange, editor.caretModel.offset)
+                    editor.caretModel.moveToOffset(newOffset)
+                }
                 UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(revealingAction)
             }, ArendBundle.message("arend.add.information.in.arend.messages"), id)
         }
         val hidingModifyingAction = {
             CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
                 hidingAction.redo()
-                updateErrorText(id)
+                updateErrorText(id) {
+                    val newOffset = recomputeOffset(revealingFragment.relativeOffset, indexOfRange, editor.caretModel.offset)
+                    editor.caretModel.moveToOffset(newOffset)
+                }
                 UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(hidingAction)
             }, ArendBundle.message("arend.remove.information.in.arend.messages"), id)
         }
         when (choice) {
             Choice.SHOW_UI -> showManipulatePrettyPrinterHint(editor, revealingFragment, revealingModifyingAction, hidingModifyingAction)
-            Choice.REVEAL -> revealingModifyingAction.invoke()
-            Choice.HIDE -> hidingModifyingAction.invoke()
+            Choice.REVEAL -> {
+                revealingModifyingAction.invoke()
+            }
+            Choice.HIDE -> {
+                hidingModifyingAction.invoke()
+            }
         }
     }
 
@@ -170,6 +181,34 @@ abstract class InjectedArendEditor(
         }
     }
 
+    private fun computeGlobalIndexOfRange(startOffset: Int) : Int {
+        for ((idx, ranges) in getInjectionFile()?.injectionRanges?.withIndex() ?: return -1) {
+            if (ranges.any { it.contains(startOffset) }) {
+                return idx
+            }
+        }
+        return -1
+    }
+
+    private fun recomputeOffset(relativeOffset: Int, globalIdx : Int, fallbackOffset: Int) : Int {
+        if (globalIdx == -1) {
+            return fallbackOffset
+        }
+        val ranges = getInjectionFile()?.injectionRanges?.getOrNull(globalIdx) ?: return fallbackOffset
+        var mutableRelativeOffset = relativeOffset
+        val text = editor?.document?.text ?: return fallbackOffset
+        for (range in ranges) {
+            val substring = text.subSequence(range.startOffset, range.endOffset)
+            val actualRangeLength = range.length - substring.takeWhile { it.isWhitespace() }.length
+            if (mutableRelativeOffset >= actualRangeLength) {
+                mutableRelativeOffset -= actualRangeLength + 1 // for space
+            } else {
+                return range.startOffset + mutableRelativeOffset
+            }
+        }
+        return fallbackOffset
+    }
+
     fun release() {
         if (editor != null) {
             editor.putUserData(AREND_GOAL_EDITOR, null)
@@ -180,7 +219,7 @@ abstract class InjectedArendEditor(
     val component: JComponent?
         get() = panel
 
-    fun updateErrorText(id: String? = null) {
+    fun updateErrorText(id: String? = null, postWriteCallback: () -> Unit = {}) {
         if (editor == null) return
         val treeElement = treeElement ?: return
 
@@ -221,6 +260,7 @@ abstract class InjectedArendEditor(
                     scope = fileScope
                     injectedExpressions = visitor.expressions
                 }
+                postWriteCallback()
                 val unblockDocument = UnblockingDocumentAction(this@InjectedArendEditor.editor.document, id)
                 UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(unblockDocument)
             }
