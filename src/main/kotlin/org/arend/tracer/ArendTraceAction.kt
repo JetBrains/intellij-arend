@@ -29,6 +29,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.typechecking.LibraryArendExtensionProvider
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.error.local.GoalDataHolder
 import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.visitor.DefinitionTypechecker
 import org.arend.typechecking.visitor.DesugarVisitor
@@ -162,7 +163,9 @@ class ArendTraceAction : ArendPopupAction() {
             var hasErrors = false
 
             override fun report(error: GeneralError) {
-                hasErrors = true
+                if (error !is GoalDataHolder) {
+                    hasErrors = true
+                }
             }
         }
     }
