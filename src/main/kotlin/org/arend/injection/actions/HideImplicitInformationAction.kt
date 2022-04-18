@@ -15,6 +15,6 @@ class HideImplicitInformationAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
         val injectedEditor = editor.getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) ?: return
-        injectedEditor.performPrettyPrinterManipulation(editor, InjectedArendEditor.Choice.HIDE)
+        injectedEditor.performPrettyPrinterManipulation(editor, Choice.HIDE)
     }
 }

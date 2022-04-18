@@ -17,12 +17,10 @@ class UndoableConfigModificationAction<T>(
 
     override fun undo() {
         if (inverted) increase() else decrease()
-        document.setReadOnly(true)
         editor.updateErrorText(id)
     }
 
     override fun redo() {
-        document.setReadOnly(false)
         if (inverted) decrease() else increase()
     }
 

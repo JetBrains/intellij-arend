@@ -9,11 +9,11 @@ import com.intellij.openapi.editor.Document
 /**
  * A hack to make [document] writeable before running 'Undo'
  */
-class UnblockingDocumentAction(private val document: Document, val id: String?) : UndoableAction {
+class UnblockingDocumentAction(private val document: Document, private val id: String?, private val unblockWhenUndo: Boolean) : UndoableAction {
 
     override fun undo() {
         if (id != null) {
-            document.setReadOnly(false)
+            document.setReadOnly(!unblockWhenUndo)
         } else {
             throw UnexpectedUndoException("Undo is not possible")
         }
@@ -21,7 +21,7 @@ class UnblockingDocumentAction(private val document: Document, val id: String?) 
 
     override fun redo() {
         if (id != null) {
-            document.setReadOnly(true)
+            document.setReadOnly(unblockWhenUndo)
         } else {
             throw UnexpectedUndoException("Undo is not possible")
         }

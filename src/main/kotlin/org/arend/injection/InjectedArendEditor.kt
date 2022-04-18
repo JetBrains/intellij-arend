@@ -138,6 +138,7 @@ abstract class InjectedArendEditor(
             val text = builder.toString()
             if (editor.isDisposed) return@invokeLater
             val action: () -> Unit = {
+                UndoManager.getInstance(project).undoableActionPerformed(UnblockingDocumentAction(editor.document, id, false))
                 modifyDocument { setText(text) }
                 getInjectionFile()?.apply {
                     injectionRanges = visitor.textRanges
@@ -145,8 +146,7 @@ abstract class InjectedArendEditor(
                     injectedExpressions = visitor.expressions
                 }
                 postWriteCallback()
-                val unblockDocument = UnblockingDocumentAction(this@InjectedArendEditor.editor.document, id)
-                UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(unblockDocument)
+                UndoManager.getInstance(project).undoableActionPerformed(UnblockingDocumentAction(editor.document, id, true))
             }
             WriteCommandAction.runWriteCommandAction(project, null, id, action)
             val support = EditorHyperlinkSupport.get(editor)

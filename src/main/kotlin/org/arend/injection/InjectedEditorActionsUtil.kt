@@ -101,7 +101,7 @@ private class InterceptingPrettyPrintVisitor(
         val resultBefore = revealableResult
         super.visitApp(expr, prec)
         val resultAfter = revealableResult
-        if (visitParent && resultAfter != resultBefore && revealableResult is ConcreteRefExpr && (revealableResult as ConcreteRefExpr).expr == expr.function && resultAfter is ConcreteRefExpr) {
+        if (visitParent && resultAfter != resultBefore && resultAfter is ConcreteRefExpr && resultAfter.expr == expr.function) {
             visitParent = false
             val argumentsShown = expr.arguments.count()
             val agumentsOverall = resultAfter.expr.data.castSafelyTo<DefCallExpression>()?.defCallArguments?.count() ?: return null
@@ -127,6 +127,27 @@ private class InterceptingPrettyPrintVisitor(
                 hideLifetime = 1
             }
         }
+    }
+
+    override fun visitPi(expr: Concrete.PiExpression?, prec: Precedence?): Void? {
+        val resultBefore = revealableResult
+        super.visitPi(expr, prec)
+        val resultAfter = revealableResult
+        if (visitParent && resultBefore != resultAfter && resultAfter is ConcreteLambdaParameter) {
+            visitParent = false
+            revealableResult = null
+        }
+        return null
+    }
+
+    override fun visitLam(expr: Concrete.LamExpression?, prec: Precedence?): Void? {
+        val resultBefore = revealableResult
+        super.visitLam(expr, prec)
+        val resultAfter = revealableResult
+        if (visitParent && resultBefore != resultAfter && resultAfter is ConcreteLambdaParameter) {
+            visitParent = false
+        }
+        return null
     }
 }
 
