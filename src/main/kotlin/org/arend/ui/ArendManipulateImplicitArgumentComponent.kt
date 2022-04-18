@@ -28,7 +28,7 @@ import javax.swing.JPanel
 import javax.swing.JSeparator
 import javax.swing.border.Border
 
-fun showManipulatePrettyPrinterHint(editor: Editor, fragment: RevealableFragment, revealingCallback: (() -> Unit), hidingCallback: (() -> Unit)) {
+fun showManipulatePrettyPrinterHint(editor: Editor, fragment: RevealableFragment, revealingCallback: () -> Unit, hidingCallback: () -> Unit) {
     val offset = editor.caretModel.offset
     val visualPosition = editor.offsetToVisualPosition(offset)
     val point = editor.visualPositionToXY(visualPosition)

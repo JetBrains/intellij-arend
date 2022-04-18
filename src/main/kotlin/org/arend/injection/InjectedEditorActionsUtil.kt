@@ -44,7 +44,7 @@ fun findRevealableCoreAtOffset(
     if (doc == null || error == null) {
         return null
     }
-    val (coreExpression, relativeOffset) = doc.findGlobalCoreByOffset(offset, error) ?: return null
+    val (coreExpression, relativeOffset) = doc.findInjectedCoreByOffset(offset, error) ?: return null
     val concreteExpression = ToAbstractVisitor.convert(coreExpression, ppConfig)
     val stringInterceptor = InterceptingPrettyPrintVisitor(relativeOffset)
     concreteExpression.accept(
@@ -54,7 +54,7 @@ fun findRevealableCoreAtOffset(
     return stringInterceptor.revealableResult?.run { RevealableFragment(stringInterceptor.lifetime, stringInterceptor.hideLifetime, this, relativeOffset) }
 }
 
-private fun Doc.findGlobalCoreByOffset(offset: Int, error: GeneralError): Pair<Expression, Int>? {
+private fun Doc.findInjectedCoreByOffset(offset: Int, error: GeneralError): Pair<Expression, Int>? {
     val collectingBuilder = CollectingDocStringBuilder(StringBuilder(), error)
     accept(collectingBuilder, false)
     val docString = toString()

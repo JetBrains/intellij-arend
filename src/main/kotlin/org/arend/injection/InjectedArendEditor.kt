@@ -4,20 +4,16 @@ import com.intellij.execution.impl.EditorHyperlinkSupport
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.*
-import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
-import com.intellij.openapi.editor.event.CaretEvent
-import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.util.castSafelyTo
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.Expression
 import org.arend.ext.concrete.ConcreteSourceNode
@@ -25,11 +21,12 @@ import org.arend.ext.core.context.CoreParameter
 import org.arend.ext.core.expr.CoreExpression
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.error.GeneralError
+import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.DataContainer
+import org.arend.injection.actions.RevealingInformationCaretListener
 import org.arend.injection.actions.UnblockingDocumentAction
-import org.arend.injection.actions.UndoableConfigModificationAction
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -47,12 +44,9 @@ import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
-import org.arend.ui.showManipulatePrettyPrinterHint
-import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
-import kotlin.random.Random
 
 abstract class InjectedArendEditor(
     val project: Project,
@@ -65,10 +59,10 @@ abstract class InjectedArendEditor(
 
     protected abstract val printOptionKind: PrintOptionKind
 
-    private var currentDoc: Doc? = null
+    var currentDoc: Doc? = null
 
-    private val verboseLevelMap: MutableMap<Expression, Int> = mutableMapOf()
-    private val verboseLevelParameterMap: MutableMap<DependentLink, Int> = mutableMapOf()
+    val verboseLevelMap: MutableMap<Expression, Int> = mutableMapOf()
+    val verboseLevelParameterMap: MutableMap<DependentLink, Int> = mutableMapOf()
 
     init {
         val psi = ArendPsiFactory(project, name).injected("")
@@ -77,11 +71,10 @@ abstract class InjectedArendEditor(
             PsiDocumentManager.getInstance(project).getDocument(psi)?.let { document ->
                 document.setReadOnly(true)
                 EditorFactory.getInstance().createEditor(document, project, virtualFile, false).apply {
-                    val thisEditor = this
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
                     putUserData(AREND_GOAL_EDITOR, this@InjectedArendEditor)
-                    caretModel.addCaretListener(MyCaretListener(thisEditor))
+                    caretModel.addCaretListener(RevealingInformationCaretListener(this@InjectedArendEditor))
                 }
             }
         } else null
@@ -98,116 +91,6 @@ abstract class InjectedArendEditor(
         }
 
         updateErrorText()
-    }
-
-    private inner class MyCaretListener(private val thisEditor: Editor) : CaretListener {
-        override fun caretPositionChanged(event: CaretEvent) {
-            if (event.caret?.hasSelection() == true) return
-            performPrettyPrinterManipulation(thisEditor, Choice.SHOW_UI)
-        }
-    }
-
-    enum class Choice {
-        REVEAL,
-        HIDE,
-        SHOW_UI
-    }
-
-    fun performPrettyPrinterManipulation(editor: Editor, choice: Choice) {
-        val (_, scope) = treeElement?.sampleError?.error?.let(::resolveCauseReference)
-            ?: return
-        val ppConfig = getCurrentConfig(scope)
-        val offset = editor.caretModel.offset
-        val revealingFragment= findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig) ?: return
-        val id = "Arend Verbose level increase " + Random.nextInt()
-        val revealingAction = getUndoAction(revealingFragment, editor, id, false) ?: return
-        val hidingAction = getUndoAction(revealingFragment, editor, id, true) ?: return
-        val indexOfRange = computeGlobalIndexOfRange(editor.caretModel.offset)
-        val revealingModifyingAction = {
-            CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
-                revealingAction.redo()
-                updateErrorText(id)  {
-                    if (choice != Choice.SHOW_UI) {
-                        val newOffset = recomputeOffset(revealingFragment.relativeOffset, indexOfRange, editor.caretModel.offset)
-                        editor.caretModel.moveToOffset(newOffset)
-                    }
-                }
-                UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(revealingAction)
-            }, ArendBundle.message("arend.add.information.in.arend.messages"), id)
-        }
-        val hidingModifyingAction = {
-            CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
-                hidingAction.redo()
-                updateErrorText(id) {
-                    if (choice != Choice.SHOW_UI) {
-                        val newOffset = recomputeOffset(revealingFragment.relativeOffset, indexOfRange, editor.caretModel.offset)
-                        editor.caretModel.moveToOffset(newOffset)
-                    }
-                }
-                UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(hidingAction)
-            }, ArendBundle.message("arend.remove.information.in.arend.messages"), id)
-        }
-        when (choice) {
-            Choice.SHOW_UI -> showManipulatePrettyPrinterHint(editor, revealingFragment, revealingModifyingAction, hidingModifyingAction)
-            Choice.REVEAL -> if (revealingFragment.revealLifetime > 0) revealingModifyingAction.invoke()
-            Choice.HIDE -> if (revealingFragment.hideLifetime > 0) hidingModifyingAction.invoke()
-        }
-    }
-
-    private fun getUndoAction(
-        revealingFragment: RevealableFragment,
-        editor: Editor,
-        id: String,
-        inverted: Boolean
-    ): UndoableConfigModificationAction<out Any>? {
-        return when (val concreteResult = revealingFragment.result) {
-            is ConcreteLambdaParameter -> UndoableConfigModificationAction(
-                this@InjectedArendEditor,
-                editor.document,
-                verboseLevelParameterMap,
-                concreteResult.expr.data.castSafelyTo<DependentLink>() ?: return null,
-                inverted,
-                id
-            )
-
-            is ConcreteRefExpr -> UndoableConfigModificationAction(
-                this@InjectedArendEditor,
-                editor.document,
-                verboseLevelMap,
-                concreteResult.expr.data.castSafelyTo<Expression>() ?: return null,
-                inverted,
-                id
-            )
-        }
-    }
-
-    private fun computeGlobalIndexOfRange(startOffset: Int) : Int {
-        for ((idx, ranges) in getInjectionFile()?.injectionRanges?.withIndex() ?: return -1) {
-            if (ranges.any { it.contains(startOffset) }) {
-                return idx
-            }
-        }
-        return -1
-    }
-
-    private fun recomputeOffset(relativeOffset: Int, globalIdx : Int, fallbackOffset: Int) : Int {
-        if (globalIdx == -1) {
-            return fallbackOffset
-        }
-        val ranges = getInjectionFile()?.injectionRanges?.getOrNull(globalIdx) ?: return fallbackOffset
-        var mutableRelativeOffset = relativeOffset
-        val text = editor?.document?.text ?: return fallbackOffset
-        for (range in ranges) {
-            val substring = text.subSequence(range.startOffset, range.endOffset)
-            val initialSpaces = substring.takeWhile { it.isWhitespace() }.length
-            val actualRangeLength = range.length - initialSpaces
-            if (mutableRelativeOffset >= actualRangeLength) {
-                mutableRelativeOffset -= actualRangeLength + 1 // for space
-            } else {
-                return range.startOffset + mutableRelativeOffset + initialSpaces
-            }
-        }
-        return fallbackOffset
     }
 
     fun release() {
@@ -274,7 +157,7 @@ abstract class InjectedArendEditor(
         }
     }
 
-    private fun getCurrentConfig(scope: Scope?): ProjectPrintConfig {
+    fun getCurrentConfig(scope: Scope?): PrettyPrinterConfig {
         return ProjectPrintConfig(
             project,
             printOptionKind,
@@ -327,7 +210,7 @@ abstract class InjectedArendEditor(
         }
     }
 
-    private fun getInjectionFile(): PsiInjectionTextFile? = editor?.document?.let {
+    fun getInjectionFile(): PsiInjectionTextFile? = editor?.document?.let {
         PsiDocumentManager.getInstance(project).getPsiFile(it) as? PsiInjectionTextFile
     }
 
@@ -354,6 +237,26 @@ abstract class InjectedArendEditor(
         override fun getNormalizationMode(): NormalizationMode? {
             return null
         }
+    }
+
+    fun getOffsetInEditor(relativeOffsetInInjection: Int, indexOfInjection : Int) : Int? {
+        if (indexOfInjection == -1) {
+            return null
+        }
+        val ranges = getInjectionFile()?.injectionRanges?.getOrNull(indexOfInjection) ?: return null
+        var mutableRelativeOffset = relativeOffsetInInjection
+        val text = editor?.document?.text ?: return null
+        for (range in ranges) {
+            val substring = text.subSequence(range.startOffset, range.endOffset)
+            val initialSpaces = substring.takeWhile { it.isWhitespace() }.length
+            val actualRangeLength = range.length - initialSpaces
+            if (mutableRelativeOffset >= actualRangeLength) {
+                mutableRelativeOffset -= actualRangeLength + 1 // for space
+            } else {
+                return range.startOffset + mutableRelativeOffset + initialSpaces
+            }
+        }
+        return null
     }
 
     protected fun modifyDocument(modifier: Document.() -> Unit) {
