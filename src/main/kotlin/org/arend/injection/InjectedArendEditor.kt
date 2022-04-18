@@ -127,8 +127,10 @@ abstract class InjectedArendEditor(
             CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
                 revealingAction.redo()
                 updateErrorText(id)  {
-                    val newOffset = recomputeOffset(revealingFragment.relativeOffset, indexOfRange, editor.caretModel.offset)
-                    editor.caretModel.moveToOffset(newOffset)
+                    if (choice != Choice.SHOW_UI) {
+                        val newOffset = recomputeOffset(revealingFragment.relativeOffset, indexOfRange, editor.caretModel.offset)
+                        editor.caretModel.moveToOffset(newOffset)
+                    }
                 }
                 UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(revealingAction)
             }, ArendBundle.message("arend.add.information.in.arend.messages"), id)
@@ -137,20 +139,18 @@ abstract class InjectedArendEditor(
             CommandProcessor.getInstance().executeCommand(this@InjectedArendEditor.project, {
                 hidingAction.redo()
                 updateErrorText(id) {
-                    val newOffset = recomputeOffset(revealingFragment.relativeOffset, indexOfRange, editor.caretModel.offset)
-                    editor.caretModel.moveToOffset(newOffset)
+                    if (choice != Choice.SHOW_UI) {
+                        val newOffset = recomputeOffset(revealingFragment.relativeOffset, indexOfRange, editor.caretModel.offset)
+                        editor.caretModel.moveToOffset(newOffset)
+                    }
                 }
                 UndoManager.getInstance(this@InjectedArendEditor.project).undoableActionPerformed(hidingAction)
             }, ArendBundle.message("arend.remove.information.in.arend.messages"), id)
         }
         when (choice) {
             Choice.SHOW_UI -> showManipulatePrettyPrinterHint(editor, revealingFragment, revealingModifyingAction, hidingModifyingAction)
-            Choice.REVEAL -> {
-                revealingModifyingAction.invoke()
-            }
-            Choice.HIDE -> {
-                hidingModifyingAction.invoke()
-            }
+            Choice.REVEAL -> if (revealingFragment.revealLifetime > 0) revealingModifyingAction.invoke()
+            Choice.HIDE -> if (revealingFragment.hideLifetime > 0) hidingModifyingAction.invoke()
         }
     }
 
@@ -199,11 +199,12 @@ abstract class InjectedArendEditor(
         val text = editor?.document?.text ?: return fallbackOffset
         for (range in ranges) {
             val substring = text.subSequence(range.startOffset, range.endOffset)
-            val actualRangeLength = range.length - substring.takeWhile { it.isWhitespace() }.length
+            val initialSpaces = substring.takeWhile { it.isWhitespace() }.length
+            val actualRangeLength = range.length - initialSpaces
             if (mutableRelativeOffset >= actualRangeLength) {
                 mutableRelativeOffset -= actualRangeLength + 1 // for space
             } else {
-                return range.startOffset + mutableRelativeOffset
+                return range.startOffset + mutableRelativeOffset + initialSpaces
             }
         }
         return fallbackOffset
