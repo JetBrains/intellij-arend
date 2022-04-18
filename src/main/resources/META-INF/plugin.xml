@@ -445,14 +445,14 @@
                 class="org.arend.injection.actions.RevealImplicitInformationAction"
                 text="Reveal Implicit Information"
                 description="When invoked in Goal editor, reveals additional information under caret">
-            <keyboard-shortcut keymap="$default" first-keystroke="alt shift EQUALS"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift EQUALS"/>
         </action>
 
         <action id="Arend.PrettyPrint.HideImplicitInformation"
                 class="org.arend.injection.actions.HideImplicitInformationAction"
                 text="Hide Implicit Information"
                 description="When invoked in Goal editor, hides additional information under caret">
-            <keyboard-shortcut keymap="$default" first-keystroke="alt MINUS"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="MINUS"/>
         </action>
 
         <action id="Arend.ShowExpr.Type"
