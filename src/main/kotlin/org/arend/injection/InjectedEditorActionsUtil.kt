@@ -1,6 +1,8 @@
 package org.arend.injection
 
 import com.intellij.util.castSafelyTo
+import org.arend.core.context.param.DependentLink
+import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.expr.DefCallExpression
 import org.arend.core.expr.Expression
 import org.arend.ext.error.GeneralError
@@ -86,6 +88,11 @@ private class InterceptingPrettyPrintVisitor(
         val offsetAfter = sb.length
         if (relativeOffset in offsetBefore..offsetAfter) {
             revealableResult = ConcreteRefExpr(expr)
+            val parameterLink = expr.data?.castSafelyTo<DefCallExpression>()?.definition?.parameters
+            if (parameterLink != null && parameterLink.accumulate(true) { prev, link -> prev && !link.isExplicit }) {
+                lifetime = parameterLink.accumulate(0) { prev, _ -> prev + 1 }
+                hideLifetime = 0
+            }
         }
         return null
     }
@@ -94,7 +101,7 @@ private class InterceptingPrettyPrintVisitor(
         val resultBefore = revealableResult
         super.visitApp(expr, prec)
         val resultAfter = revealableResult
-        if (visitParent && resultAfter != resultBefore && resultAfter is ConcreteRefExpr) {
+        if (visitParent && resultAfter != resultBefore && revealableResult is ConcreteRefExpr && (revealableResult as ConcreteRefExpr).expr == expr.function && resultAfter is ConcreteRefExpr) {
             visitParent = false
             val argumentsShown = expr.arguments.count()
             val agumentsOverall = resultAfter.expr.data.castSafelyTo<DefCallExpression>()?.defCallArguments?.count() ?: return null
@@ -119,6 +126,22 @@ private class InterceptingPrettyPrintVisitor(
                 lifetime = 0
                 hideLifetime = 1
             }
+        }
+    }
+}
+
+private fun <T> DependentLink.accumulate(initial: T, consumer: (T, DependentLink) -> T) : T {
+    var current = this
+    var value = initial
+    while (true) {
+        value = consumer(value, current)
+        if (current.hasNext()) {
+            current = current.next
+            if (current is EmptyDependentLink) {
+                return value
+            }
+        } else {
+            return value
         }
     }
 }
