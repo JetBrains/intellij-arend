@@ -31,6 +31,9 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
         var visited: MutableSet<ArendDefFunction>? = null
         var scope = originalScope
         while (true) {
+            if (ref == null) {
+                return null
+            }
             ref = ExpressionResolveNameVisitor.resolve(ref, scope)
             if (ref is ClassReferable) {
                 return ref
