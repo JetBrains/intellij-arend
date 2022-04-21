@@ -39,7 +39,7 @@ abstract class ConstructorAdapter : ReferableAdapter<ArendConstructorStub>, Aren
 
     override fun isVisible(): Boolean = true
 
-    override fun getResultType(): ArendExpr? = null // expr // TODO[hits]
+    override fun getResultType(): ArendExpr? = expr
 
     override fun isCoerce() = coerceKw != null
 

@@ -229,7 +229,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             val substitution = ExprSubstitution()
                             errorReporter.errorList.clear()
 
-                            PatternTypechecking(errorReporter, data.mode, typechecker, false, thisError.caseExpressions, elimParams)
+                            PatternTypechecking(data.mode, typechecker, false, thisError.caseExpressions, elimParams)
                                 .typecheckPatterns(clause.patterns, data.parameters, typecheckedParameters, substitution, ExprSubstitution(), clause)
 
                             val relevantErrors = errorReporter.errorList.filterIsInstance<ExpectedConstructorError>()

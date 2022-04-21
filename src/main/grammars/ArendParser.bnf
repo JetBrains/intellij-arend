@@ -498,7 +498,7 @@ atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
     mixin = "org.arend.psi.ext.ArendAtomPatternImplMixin"
 }
 
-constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* /* TODO[hits] [COLON expr] */ [elim? clausesWithBraces] {
+constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
     pin = 3
     implements = [ "org.arend.psi.ext.PsiLocatedReferable"
                    "org.arend.psi.ext.impl.ArendInternalReferable"
