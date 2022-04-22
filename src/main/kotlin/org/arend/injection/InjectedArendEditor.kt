@@ -233,10 +233,6 @@ abstract class InjectedArendEditor(
         override fun getVerboseLevel(parameter: CoreParameter): Int {
             return verboseLevelParameterMap[parameter] ?: 0
         }
-
-        override fun getNormalizationMode(): NormalizationMode? {
-            return null
-        }
     }
 
     fun getOffsetInEditor(relativeOffsetInInjection: Int, indexOfInjection : Int) : Int? {

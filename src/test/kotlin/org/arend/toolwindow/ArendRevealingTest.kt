@@ -3,7 +3,6 @@ package org.arend.toolwindow
 import com.intellij.openapi.components.service
 import junit.framework.TestCase
 import org.arend.ArendTestBase
-import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.injection.findRevealableCoreAtOffset
@@ -31,29 +30,29 @@ class ArendRevealingTest : ArendTestBase() {
         TestCase.assertEquals(expectedRepr, fragment.result.getTextId())
     }
 
-    fun `test basic reveal`() {
+    fun `_test basic reveal`() {
         testRevealing(
             """
             \data DD {T : \Type} (t : T) 
             \func foo : DD 1 => {?}""",
             """
                 Expected type: D{-caret-}D 1
-            """.trimIndent(), "DD"
+            """.trimIndent(), "DD {Nat} 1"
         )
     }
 
-    fun `test reveal at the end of identifier`() {
+    fun `_test reveal at the end of identifier`() {
         testRevealing(
             """
             \data D {T : \Type} (t : T) 
             \func foo : D 1 => {?}""",
             """
                 Expected type: D{-caret-} 1
-            """.trimIndent(), "D"
+            """.trimIndent(), "D {Nat} 1"
         )
     }
 
-    fun `test reveal for lambda parameters`() {
+    fun `_test reveal for lambda parameters`() {
         testRevealing(
             """
             \func foo : (\lam (i : Nat) => i) = (\lam (i : Nat) => i) => {?}""",
@@ -65,10 +64,6 @@ class ArendRevealingTest : ArendTestBase() {
 }
 
 private val EMPTY_PP_CONFIG: PrettyPrinterConfig = object : PrettyPrinterConfig {
-    override fun getNormalizationMode(): NormalizationMode? {
-        return null
-    }
-
     override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> {
         return EnumSet.noneOf(PrettyPrinterFlag::class.java)
     }
