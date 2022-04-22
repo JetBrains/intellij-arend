@@ -74,7 +74,7 @@ abstract class InjectedArendEditor(
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
                     putUserData(AREND_GOAL_EDITOR, this@InjectedArendEditor)
-                    caretModel.addCaretListener(RevealingInformationCaretListener(this@InjectedArendEditor))
+//                    caretModel.addCaretListener(RevealingInformationCaretListener(this@InjectedArendEditor))
                 }
             }
         } else null
