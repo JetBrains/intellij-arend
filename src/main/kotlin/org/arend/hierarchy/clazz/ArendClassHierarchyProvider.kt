@@ -17,7 +17,7 @@ class ArendClassHierarchyProvider : HierarchyProvider {
 
     override fun createHierarchyBrowser(target: PsiElement): HierarchyBrowser {
         val browser = ArendClassHierarchyBrowser(target.project, target)
-        browser.changeView(TypeHierarchyBrowserBase.SUBTYPES_HIERARCHY_TYPE)
+        browser.changeView(TypeHierarchyBrowserBase.getSubtypesHierarchyType())
         return browser
     }
 

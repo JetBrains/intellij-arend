@@ -1,7 +1,7 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.jetbrains.grammarkit.tasks.GenerateLexer
-import org.jetbrains.grammarkit.tasks.GenerateParser
+import org.jetbrains.grammarkit.tasks.GenerateLexerTask
+import org.jetbrains.grammarkit.tasks.GenerateParserTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
@@ -11,9 +11,9 @@ version = "1.7.0.2"
 
 plugins {
     idea
-    kotlin("jvm") version "1.5.31"
-    id("org.jetbrains.intellij") version "1.2.0"
-    id("org.jetbrains.grammarkit") version "2021.1.3"
+    kotlin("jvm") version "1.6.20"
+    id("org.jetbrains.intellij") version "1.5.2"
+    id("org.jetbrains.grammarkit") version "2021.2.2"
 }
 
 repositories {
@@ -22,8 +22,8 @@ repositories {
 
 dependencies {
     implementation("org.arend:base")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.31")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.31")
+    implementation(kotlin("reflect"))
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 java {
@@ -73,32 +73,32 @@ tasks.withType<PatchPluginXmlTask>().configureEach {
     pluginDescription.set(file("src/main/html/description.html").readText())
 }
 
-val generateArendLexer = tasks.register<GenerateLexer>("genArendLexer") {
+val generateArendLexer = tasks.register<GenerateLexerTask>("genArendLexer") {
     description = "Generates lexer"
     group = "build setup"
-    source = "src/main/grammars/ArendLexer.flex"
-    targetDir = "src/main/lexer/org/arend/lexer"
-    targetClass = "ArendLexer"
-    purgeOldFiles = true
+    source.set("src/main/grammars/ArendLexer.flex")
+    targetDir.set("src/main/lexer/org/arend/lexer")
+    targetClass.set("ArendLexer")
+    purgeOldFiles.set(true)
 }
 
-val generateArendParser = tasks.register<GenerateParser>("genArendParser") {
+val generateArendParser = tasks.register<GenerateParserTask>("genArendParser") {
     description = "Generates parser"
     group = "build setup"
-    source = "src/main/grammars/ArendParser.bnf"
-    targetRoot = "src/main/parser"
-    pathToParser = "/org/arend/parser/ArendParser.java"
-    pathToPsiRoot = "/org/arend/psi"
-    purgeOldFiles = true
+    source.set("src/main/grammars/ArendParser.bnf")
+    targetRoot.set("src/main/parser")
+    pathToParser.set("/org/arend/parser/ArendParser.java")
+    pathToPsiRoot.set("/org/arend/psi")
+    purgeOldFiles.set(true)
 }
 
-val generateArendDocLexer = tasks.register<GenerateLexer>("genArendDocLexer") {
+val generateArendDocLexer = tasks.register<GenerateLexerTask>("genArendDocLexer") {
     description = "Generates doc lexer"
     group = "build setup"
-    source = "src/main/grammars/ArendDocLexer.flex"
-    targetDir = "src/main/doc-lexer/org/arend/lexer"
-    targetClass = "ArendDocLexer"
-    purgeOldFiles = true
+    source.set("src/main/grammars/ArendDocLexer.flex")
+    targetDir.set("src/main/doc-lexer/org/arend/lexer")
+    targetClass.set("ArendDocLexer")
+    purgeOldFiles.set(true)
 }
 
 tasks.withType<KotlinCompile>().configureEach {

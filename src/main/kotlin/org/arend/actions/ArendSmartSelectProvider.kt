@@ -20,6 +20,8 @@ class ArendSmartSelectProvider : SmartSelectProvider<ArendSmartSelectProvider.Co
 
     data class Context(val file: ArendFile, val editor: Editor, val selectionRange: TextRange)
 
+    override fun canIncreaseSelection(source: Context) = true
+
     override fun increaseSelection(source: Context) {
         val (file, editor, selectionRange) = source
         val elementAtSelection = file.findElementAt(selectionRange.startOffset) ?: return

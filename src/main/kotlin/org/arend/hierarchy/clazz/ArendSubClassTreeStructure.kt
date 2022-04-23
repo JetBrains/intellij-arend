@@ -33,5 +33,5 @@ class ArendSubClassTreeStructure(project: Project, baseNode: PsiElement, private
     }
 
     override fun buildChildren(descriptor: HierarchyNodeDescriptor) =
-        browser.buildChildren(getChildren(descriptor), TypeHierarchyBrowserBase.SUBTYPES_HIERARCHY_TYPE)
+        browser.buildChildren(getChildren(descriptor), TypeHierarchyBrowserBase.getSubtypesHierarchyType())
 }
