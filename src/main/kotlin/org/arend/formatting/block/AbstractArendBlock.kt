@@ -39,6 +39,7 @@ abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSe
     }
 
 
+    @Suppress("UNUSED_PARAMETER")
     protected fun printChildAttributesContext(newChildIndex: Int) { // Needed for debug only
         /*
         println(this.javaClass.simpleName+"("+this.node.elementType+").getChildAttributes($newChildIndex)")

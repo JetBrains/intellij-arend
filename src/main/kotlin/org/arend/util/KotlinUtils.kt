@@ -1,17 +1,11 @@
 package org.arend.util
 
-import com.intellij.ui.layout.Cell
-import com.intellij.ui.layout.LayoutBuilder
-import com.intellij.ui.layout.Row
+import com.intellij.ui.dsl.builder.Cell
+import com.intellij.ui.dsl.builder.Panel
+import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.ui.layout.selected
-import org.arend.core.context.param.SingleDependentLink
 import javax.swing.AbstractButton
 import javax.swing.JComponent
-
-fun SingleDependentLink.asSequence() = generateSequence(this) {
-    if (it.hasNext()) it.next
-    else null
-}
 
 inline fun <T, R> Iterable<T>.mapFirstNotNull(transform: (T) -> R?): R? {
     for (item in this) {
@@ -41,54 +35,15 @@ fun <T, U> caching(f : (T) -> U) : (T) -> U {
 }
 
 // UI DSL
-
-inline fun LayoutBuilder.cellRow(crossinline init: Cell.() -> Unit) {
-    row { cell(false, init = init) }
+fun Panel.labeled(text: String, component: JComponent) = row {
+    cell(component).label(text)
 }
 
-inline fun Row.cellRow(crossinline init: Cell.() -> Unit) {
-    row { cell(false, init = init) }
+fun <T : JComponent> Panel.aligned(text: String, component: T, init: Cell<T>.() -> Unit = {}) = row(text) {
+    cell(component).horizontalAlign(HorizontalAlign.FILL).init()
 }
 
-inline fun LayoutBuilder.labeledRow(text: String, crossinline init: () -> Unit) {
-    cellRow {
-        label(text)
-        init()
-    }
-}
-
-inline fun Row.labeledRow(text: String, crossinline init: () -> Unit) {
-    cellRow {
-        label(text)
-        init()
-    }
-}
-
-fun LayoutBuilder.labeled(text: String, component: JComponent) {
-    cellRow {
-        label(text)
-        component()
-    }
-}
-
-fun Row.labeled(text: String, component: JComponent) {
-    cellRow {
-        label(text)
-        component()
-    }
-}
-
-fun LayoutBuilder.checked(checkBox: AbstractButton, component: JComponent) {
-    cellRow {
-        checkBox()
-        component().enableIf(checkBox.selected)
-    }
-}
-
-
-fun Row.checked(checkBox: AbstractButton, component: JComponent) {
-    cellRow {
-        checkBox()
-        component().enableIf(checkBox.selected)
-    }
+fun <T : JComponent> Panel.checked(checkBox: AbstractButton, component: T, init: Cell<T>.() -> Unit = {}) = row {
+    cell(checkBox)
+    cell(component).enabledIf(checkBox.selected).init()
 }

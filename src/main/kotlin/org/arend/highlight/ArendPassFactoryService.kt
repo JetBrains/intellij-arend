@@ -5,8 +5,5 @@ class ArendPassFactoryService {
     var highlightingPassId = -1
 
     @Volatile
-    var backgroundTypecheckerPassId = -1
-
-    @Volatile
     var typecheckerPassId = -1
 }

@@ -46,7 +46,7 @@ class ArendStartupActivity : StartupActivity.RequiredForSmartMode {
         })
         */
 
-        DumbService.getInstance(project).queueTask(object : DumbModeTask(ArendStartupActivity::class.java) {
+        DumbService.getInstance(project).queueTask(object : DumbModeTask() {
             override fun performInDumbMode(indicator: ProgressIndicator) {
                 val modules = project.arendModules
                 indicator.text = ArendBundle.message("arend.startup.loading.arend.modules")

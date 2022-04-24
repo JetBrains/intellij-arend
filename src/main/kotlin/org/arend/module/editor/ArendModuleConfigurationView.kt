@@ -8,7 +8,9 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.layout.panel
+import com.intellij.ui.dsl.builder.RowLayout
+import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.ui.layout.selected
 import org.arend.ArendIcons
 import org.arend.library.LibraryDependency
@@ -68,7 +70,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
 
     private val libRootTextField = TextFieldWithBrowseButton()
     private val textFieldChangeListener = libRootTextField.addBrowseAndChangeListener("Path to libraries", "Select the directory in which dependencies${if (name == null) "" else " of module $name"} are located", project, FileChooserDescriptorFactory.createSingleFolderDescriptor()) {
-        dualList.availableList.content = (librariesList - dependencies).sorted()
+        dualList.availableList.content = (librariesList - dependencies.toSet()).sorted()
         dualList.selectedList.updateUI()
     }
 
@@ -154,27 +156,22 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         }
 
     fun createComponent() = panel {
-        labeled("Language version: ", langVersionField)
-        labeled("Library version: ", versionField)
-        labeled("Sources directory: ", sourcesTextField)
-        labeled("Tests directory: ", testsTextField)
-        checked(binariesSwitch, binariesTextField)
+        aligned("Language version: ", langVersionField)
+        aligned("Library version: ", versionField)
+        aligned("Sources directory: ", sourcesTextField)
+        aligned("Tests directory: ", testsTextField)
+        checked(binariesSwitch, binariesTextField) { horizontalAlign(HorizontalAlign.FILL) }
+            .layout(RowLayout.LABEL_ALIGNED)
 
-        titledRow("Extensions") {
-            row { extensionsSwitch() }
-            cellRow {
-                label("Extensions directory: ")
-                extensionsTextField().enableIf(extensionsSwitch.selected)
-            }
-            cellRow {
-                label("Extension main class: ")
-                extensionMainClassTextField().enableIf(extensionsSwitch.selected)
-            }
+        group("Extensions") {
+            row { cell(extensionsSwitch) }
+            aligned("Extensions directory: ", extensionsTextField) { enabledIf(extensionsSwitch.selected) }
+            aligned("Extension main class: ", extensionMainClassTextField) { enabledIf(extensionsSwitch.selected) }
         }
 
-        titledRow("Libraries") {
-            labeled("Path to libraries: ", libRootTextField)
-            row { ScrollPaneFactory.createScrollPane(dualList, true)() }
+        group("Libraries") {
+            aligned("Path to libraries: ", libRootTextField)
+            row { cell(ScrollPaneFactory.createScrollPane(dualList, true)) }
         }
     }.apply {
         border = BorderFactory.createEmptyBorder(0, 10, 0, 10)

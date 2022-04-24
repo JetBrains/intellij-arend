@@ -4,9 +4,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.IdeBorderFactory
-import com.intellij.ui.components.Label
-import com.intellij.ui.layout.panel
+import com.intellij.ui.dsl.builder.panel
 import org.arend.settings.ArendSettings
+import org.arend.util.labeled
 import javax.swing.JPanel
 
 
@@ -31,10 +31,10 @@ class ArendSmartKeysConfigurable : UnnamedConfigurable {
             ArendSettings.MatchingCommentStyle.INSERT_MINUS))
         comboBox = combo
 
-        val panel = panel {
-            row(Label("On typing '-' between {}: ")) { combo() }
+        return panel {
+            labeled("On typing '-' between {}: ", combo)
+        }.apply {
+            border = IdeBorderFactory.createTitledBorder("Arend")
         }
-        panel.border = IdeBorderFactory.createTitledBorder("Arend")
-        return panel
     }
 }

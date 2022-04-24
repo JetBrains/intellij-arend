@@ -20,8 +20,10 @@ import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.ui.RowIcon
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SeparatorFactory
-import com.intellij.ui.layout.Row
-import com.intellij.ui.layout.panel
+import com.intellij.ui.dsl.builder.Row
+import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.gridLayout.HorizontalAlign
+import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import org.arend.ext.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendClassStat
@@ -30,6 +32,7 @@ import org.arend.psi.ArendDefFunction
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.util.FullName
+import org.arend.util.aligned
 import java.awt.BorderLayout
 import java.awt.Dimension
 import javax.swing.*
@@ -45,7 +48,6 @@ class ArendMoveMembersDialog(project: Project,
     private val centerPanel: JPanel
     private val containerRef: SmartPsiElementPointer<PsiElement>
     private val memberSelectionPanel: ArendMemberSelectionPanel
-    private val classPartRow: Row?
     private val dynamicGroup: JRadioButton
     private val staticGroup: JRadioButton
     private val sourceIsDynamic: Boolean?
@@ -68,44 +70,40 @@ class ArendMoveMembersDialog(project: Project,
         memberSelectionPanel = ArendMemberSelectionPanel("Members to move", memberInfos)
         staticGroup = JRadioButton("Static")
         dynamicGroup = JRadioButton("Dynamic")
-        var classPartRow1: Row? = null
+        lateinit var classPartRow: Row
         centerPanel = panel {
-            row {
-                ScrollPaneFactory.createScrollPane(memberSelectionPanel, true)()
-            }
-            row("Target file: ") {
-                targetFileTextField()
-            }
-            row("Target module: ") {
-                targetModuleTextField()
-            }
+            row { cell(ScrollPaneFactory.createScrollPane(memberSelectionPanel, true))
+                .horizontalAlign(HorizontalAlign.FILL)
+                .verticalAlign(VerticalAlign.FILL)
+            }.resizableRow()
+            aligned("Target file: ", targetFileTextField)
+            aligned("Target module: ", targetModuleTextField)
 
-            classPartRow1 = row("Target part of the class") {
-                buttonGroup {
-                    staticGroup()
-                    dynamicGroup()
+            buttonsGroup {
+                classPartRow = row("Target part of the class") {
+                    cell(staticGroup)
+                    cell(dynamicGroup)
                 }
             }
         }
-        classPartRow = classPartRow1
 
         if (container is ArendDefClass) {
             sourceIsDynamic = determineClassPart(elements)
-            classPartRow?.enabled = true
+            classPartRow.enabled(true)
             if (sourceIsDynamic != null && sourceIsDynamic) dynamicGroup.isSelected = true else
                 if (sourceIsDynamic != null && !sourceIsDynamic) staticGroup.isSelected = true
         } else {
             sourceIsDynamic = null
-            classPartRow?.enabled = false
+            classPartRow.enabled(false)
             staticGroup.isSelected = true
         }
 
-        val updater = { classPartRow?.enabled = classPartShouldBeEnabled() }
+        val updater: () -> Unit = { classPartRow.enabled(classPartShouldBeEnabled()) }
 
         val documentListener = object: DocumentListener {
-            override fun changedUpdate(e: DocumentEvent?) = updater.invoke()
-            override fun insertUpdate(e: DocumentEvent?) = updater.invoke()
-            override fun removeUpdate(e: DocumentEvent?) = updater.invoke()
+            override fun changedUpdate(e: DocumentEvent?) = updater()
+            override fun insertUpdate(e: DocumentEvent?) = updater()
+            override fun removeUpdate(e: DocumentEvent?) = updater()
         }
 
         targetFileTextField.document.addDocumentListener(documentListener)

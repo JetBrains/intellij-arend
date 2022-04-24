@@ -6,8 +6,8 @@ import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.highlighter.EditorHighlighter
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.codeStyle.CodeStyleSettings
-import com.intellij.ui.layout.GrowPolicy
-import com.intellij.ui.layout.panel
+import com.intellij.ui.components.JBRadioButton
+import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.selected
 import org.arend.ArendFileType
 import org.arend.settings.ArendCustomCodeStyleSettings
@@ -17,8 +17,8 @@ import javax.swing.JComponent
 
 class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyleAbstractPanel(settings) {
 
-    var myOptimizeImportsPolicy: OptimizeImportsPolicy = settings.arendSettings().OPTIMIZE_IMPORTS_POLICY
-    var myLimitOfExplicitImports: Int = settings.arendSettings().EXPLICIT_IMPORTS_LIMIT
+    private var myOptimizeImportsPolicy: OptimizeImportsPolicy = settings.arendSettings().OPTIMIZE_IMPORTS_POLICY
+    private var myLimitOfExplicitImports: Int = settings.arendSettings().EXPLICIT_IMPORTS_LIMIT
 
     override fun getRightMargin(): Int = 0
 
@@ -54,34 +54,40 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
     override fun getPanel(): JComponent = myPanel
 
     private val myPanel = panel {
-        row(ArendBundle.message("arend.code.style.settings.optimize.imports.policy")) {
-            buttonGroup {
+        group(ArendBundle.message("arend.code.style.settings.optimize.imports.policy")) {
+            buttonsGroup {
                 row {
                     radioButton(
-                        ArendBundle.message("arend.code.style.settings.soft.optimize.imports"),
+                        ArendBundle.message("arend.code.style.settings.soft.optimize.imports")
+                    ).bindSelected(
                         { myOptimizeImportsPolicy == OptimizeImportsPolicy.SOFT },
                         { myOptimizeImportsPolicy = OptimizeImportsPolicy.SOFT },
                     )
                 }
                 row {
                     radioButton(
-                        ArendBundle.message("arend.code.style.settings.use.implicit.imports"),
+                        ArendBundle.message("arend.code.style.settings.use.implicit.imports")
+                    ).bindSelected(
                         { myOptimizeImportsPolicy == OptimizeImportsPolicy.ONLY_IMPLICIT },
                         { myOptimizeImportsPolicy = OptimizeImportsPolicy.ONLY_IMPLICIT },
                     )
                 }
-                row {
-                    val button = radioButton(
-                        ArendBundle.message("arend.code.style.settings.use.explicit.imports"),
-                        { myOptimizeImportsPolicy == OptimizeImportsPolicy.ONLY_EXPLICIT },
-                        { myOptimizeImportsPolicy = OptimizeImportsPolicy.ONLY_EXPLICIT },
-                    )
+                panel {
+                    lateinit var button: JBRadioButton
                     row {
-                        label(ArendBundle.message("arend.code.style.settings.explicit.imports.limit"))
-                        intTextField(this@ArendCodeStyleImportsPanelWrapper::myLimitOfExplicitImports, null, 0..5000)
-                            .enableIf(button.selected)
-                            .growPolicy(GrowPolicy.SHORT_TEXT)
+                        button = radioButton(
+                            ArendBundle.message("arend.code.style.settings.use.explicit.imports")
+                        ).bindSelected(
+                            { myOptimizeImportsPolicy == OptimizeImportsPolicy.ONLY_EXPLICIT },
+                            { myOptimizeImportsPolicy = OptimizeImportsPolicy.ONLY_EXPLICIT },
+                        ).component
                     }
+                    indent { row {
+                        intTextField(0..5000)
+                            .label(ArendBundle.message("arend.code.style.settings.explicit.imports.limit"))
+                            .enabledIf(button.selected)
+                            .bindIntText(this@ArendCodeStyleImportsPanelWrapper::myLimitOfExplicitImports)
+                    } }
                 }
             }
         }

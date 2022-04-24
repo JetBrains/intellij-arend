@@ -8,13 +8,13 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.layout.and
-import com.intellij.ui.layout.panel
+import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.selected
 import com.intellij.ui.layout.selectedValueIs
 import org.arend.settings.ArendSettings
 import org.arend.ui.cellRenderer.ToolTipListCellRenderer
+import org.arend.util.aligned
 import org.arend.util.labeled
-import org.arend.util.cellRow
 import org.arend.util.checked
 
 
@@ -87,23 +87,20 @@ class ArendSettingsView {
     }
 
     fun createComponent() = panel {
-        titledRow("Background Typechecking") {
+        group("Background Typechecking") {
             labeled("Typechecking mode: ", typecheckingMode)
-            cellRow {
-                timeLimitSwitch().enableIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART))
-                timeLimit().enableIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART) and timeLimitSwitch.selected)
+            row {
+                cell(timeLimitSwitch).enabledIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART))
+                cell(timeLimit).enabledIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART) and timeLimitSwitch.selected)
                 label("second(s)")
             }
-            cellRow { typecheckOnlyLastSwitch().enableIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART)) }
+            row { cell(typecheckOnlyLastSwitch).enabledIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART)) }
         }
 
-        titledRow("Other Settings") {
+        group("Other Settings") {
             checked(clauseLimitSwitch, clauseLimit)
-            cellRow { checkForUpdatesSwitch() }
-            cellRow {
-                label("Path to Arend jar for debugger: ")
-                arendJarTextField()
-            }
+            row { cell(checkForUpdatesSwitch) }
+            aligned("Path to Arend jar for debugger: ", arendJarTextField)
         }
     }
 }

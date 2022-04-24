@@ -6,7 +6,6 @@ import com.intellij.openapi.roots.ui.configuration.ModulesProvider
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.projectImport.ProjectImportBuilder
 import org.arend.util.FileUtils
-import java.nio.file.Path
 
 object ArendOpenProjectProvider : AbstractOpenProjectProvider() {
     val builder: ArendProjectImportBuilder
@@ -14,10 +13,10 @@ object ArendOpenProjectProvider : AbstractOpenProjectProvider() {
 
     override fun isProjectFile(file: VirtualFile) = file.name == FileUtils.LIBRARY_CONFIG_FILE
 
-    override fun linkAndRefreshProject(projectDirectory: Path, project: Project) {
+    override fun linkToExistingProject(projectFile: VirtualFile, project: Project) {
         try {
             builder.isUpdate = false
-            builder.fileToImport = projectDirectory.toString()
+            builder.fileToImport = (if (projectFile.isDirectory) projectFile else projectFile.parent).toNioPath().toString()
             if (builder.validate(null, project)) {
                 builder.commit(project, null, ModulesProvider.EMPTY_MODULES_PROVIDER)
             }

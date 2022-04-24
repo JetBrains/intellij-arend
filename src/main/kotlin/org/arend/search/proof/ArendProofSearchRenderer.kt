@@ -18,7 +18,6 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.panels.OpaquePanel
 import com.intellij.util.ui.UIUtil
-import okhttp3.internal.toHexString
 import org.arend.highlight.ArendHighlightingColors
 import java.awt.BorderLayout
 import java.awt.Color
@@ -204,7 +203,7 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
 private val BORDER = BorderFactory.createEmptyBorder(3, 0, 5, 0)
 
 private fun Color.asHex(): String {
-    return "#${red.toHexString()}${blue.toHexString()}${green.toHexString()}"
+    return "#${Integer.toHexString(red)}${Integer.toHexString(blue)}${Integer.toHexString(green)}"
 }
 
 private fun buildMoreHTML(nameColor: Color): String = """

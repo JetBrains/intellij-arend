@@ -55,11 +55,11 @@ idea {
 }
 
 intellij {
-    version.set("2021.2.2")
+    version.set("2022.1")
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("yaml", "java", "IdeaVIM:1.7.2"))
+    plugins.set(listOf("yaml", "java", "IdeaVIM:1.9.3"))
 }
 
 tasks.named<JavaExec>("runIde") {
