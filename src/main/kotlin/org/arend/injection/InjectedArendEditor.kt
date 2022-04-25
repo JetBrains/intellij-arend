@@ -27,6 +27,7 @@ import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.DataContainer
 import org.arend.injection.actions.RevealingInformationCaretListener
 import org.arend.injection.actions.UnblockingDocumentAction
+import org.arend.injection.actions.withNormalizedTerms
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -74,7 +75,7 @@ abstract class InjectedArendEditor(
                     settings.setGutterIconsShown(false)
                     settings.isRightMarginShown = false
                     putUserData(AREND_GOAL_EDITOR, this@InjectedArendEditor)
-//                    caretModel.addCaretListener(RevealingInformationCaretListener(this@InjectedArendEditor))
+                    caretModel.addCaretListener(RevealingInformationCaretListener(this@InjectedArendEditor))
                 }
             }
         } else null
@@ -128,9 +129,12 @@ abstract class InjectedArendEditor(
                     }
                     val ppConfig = getCurrentConfig(scope)
                     val doc = if (causeIsMetaExpression(error.causeSourceNode, resolve))
-                        error.getDoc(ppConfig)
+                        error.getDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
                     else
-                        DocFactory.vHang(error.getHeaderDoc(ppConfig), error.getBodyDoc(ppConfig))
+                        DocFactory.vHang(
+                            error.getHeaderDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig),
+                            error.getBodyDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
+                        )
                     currentDoc = doc
                     doc.accept(visitor, false)
                 }
@@ -232,6 +236,10 @@ abstract class InjectedArendEditor(
 
         override fun getVerboseLevel(parameter: CoreParameter): Int {
             return verboseLevelParameterMap[parameter] ?: 0
+        }
+
+        override fun getNormalizationMode(): NormalizationMode? {
+            return null
         }
     }
 

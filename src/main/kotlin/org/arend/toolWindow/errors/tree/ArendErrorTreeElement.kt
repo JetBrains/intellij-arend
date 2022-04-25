@@ -1,5 +1,6 @@
 package org.arend.toolWindow.errors.tree
 
+import org.arend.injection.actions.NormalizationCache
 import org.arend.typechecking.error.ArendError
 
 class ArendErrorTreeElement(val errors: MutableList<ArendError>) {
@@ -9,6 +10,8 @@ class ArendErrorTreeElement(val errors: MutableList<ArendError>) {
 
     val sampleError: ArendError
         get() = errors.first()
+
+    val normalizationCache: NormalizationCache = NormalizationCache()
 
     val highestError: ArendError
         get() {

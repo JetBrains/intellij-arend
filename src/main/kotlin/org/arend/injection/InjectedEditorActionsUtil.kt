@@ -9,6 +9,7 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.reference.Precedence
+import org.arend.injection.actions.NormalizationCache
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
@@ -40,12 +41,14 @@ fun findRevealableCoreAtOffset(
     doc: Doc?,
     error: GeneralError?,
     ppConfig: PrettyPrinterConfig,
+    cache: NormalizationCache
 ): RevealableFragment? {
     if (doc == null || error == null) {
         return null
     }
     val (coreExpression, relativeOffset) = doc.findInjectedCoreByOffset(offset, error) ?: return null
-    val concreteExpression = ToAbstractVisitor.convert(coreExpression, ppConfig)
+    val normalizedCore = cache.getNormalizedExpression(coreExpression)
+    val concreteExpression = ToAbstractVisitor.convert(normalizedCore, ppConfig)
     val stringInterceptor = InterceptingPrettyPrintVisitor(relativeOffset)
     concreteExpression.accept(
         stringInterceptor,
