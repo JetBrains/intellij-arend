@@ -947,4 +947,14 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func bar => Nat foo 0 
     """)
+
+    fun testBug() = doTest("""
+       \func modular-function {n : Nat} ({-caret-}C : Fin n -> \Type) (f g : \Pi (i : Fin n) -> C i) (delim : Fin (suc n)) (i : Fin n) : C i => {?} \where {
+         \func pure-left-modular {n : Nat} (C : Fin n -> \Type) (f g : \Pi (i : Fin n) -> C i) : modular-function C f g 0 = f => {?}
+       } 
+    """, """
+       \func modular-function {n : Nat} {C : Fin n -> \Type} (f g : \Pi (i : Fin n) -> C i) (delim : Fin (suc n)) (i : Fin n) : C i => {?} \where {
+         \func pure-left-modular {n : Nat} (C : Fin n -> \Type) (f g : \Pi (i : Fin n) -> C i) : modular-function {_} {C} f g 0 = f => {?}
+       } 
+    """)
 }
