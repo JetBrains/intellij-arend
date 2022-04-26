@@ -114,6 +114,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
 
     private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
         val file = event.file as? ArendFile ?: return
+        file.tcRefMap.cleanup(file.project)
         processChildren(event.child, file)
         processChildren(event.oldChild, file)
         processParent(file, event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)

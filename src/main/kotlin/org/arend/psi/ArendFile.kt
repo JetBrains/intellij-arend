@@ -92,7 +92,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         override fun get(key: LongName): TCReferable? {
             val tc = super.get(key)
             if (tc is DataLocatedReferable && tc.data != null && tc.data!!.element == null) {
-                logger<BackgroundTypechecker>().error("Invalid definition in caches. Please report it to maintainers")
+                logger<BackgroundTypechecker>().error("Invalid definition ${tc.refLongName} in caches. Please report it to maintainers")
             }
             return tc
         }
