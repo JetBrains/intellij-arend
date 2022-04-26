@@ -51,7 +51,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             val location = LocationData(target ?: return null)
             val (importAction, resultName) = calculateReferenceName(location, containingFile, element) ?: return null
             importAction?.execute()
-            return LongName(resultName).toString()
+            return LongName(resultName.ifEmpty { listOf(target.name) }).toString()
         }
     }
 }

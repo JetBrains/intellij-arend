@@ -923,4 +923,38 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func bar (r : R) => r.foo 0  
     """)
+
+    /* fun testRecord2() = doTest("""
+       \record R {
+         \func foo ({-caret-}x y : Nat) => x
+       }
+
+       \func bar (r : R) => 0 r.`foo` 1
+    """, """
+       \record R {
+         \func foo {x : Nat} (y : Nat) => x
+       }
+
+       \func bar (r : R) => r.foo {0} 1
+    """) */ //Fixme
+
+    fun testInfixNotation() = doTest("""
+       \func \infixl 1 foo {{-caret-}A : \Type} (x : Nat) => x Nat.+ x
+
+       \func bar => 0 foo {Nat} 
+    """, """
+       \func \infixl 1 foo (A : \Type) (x : Nat) => x Nat.+ x
+
+       \func bar => Nat foo 0 
+    """)
+
+    fun testBug() = doTest("""
+       \func modular-function {n : Nat} ({-caret-}C : Fin n -> \Type) (f g : \Pi (i : Fin n) -> C i) (delim : Fin (suc n)) (i : Fin n) : C i => {?} \where {
+         \func pure-left-modular {n : Nat} (C : Fin n -> \Type) (f g : \Pi (i : Fin n) -> C i) : modular-function C f g 0 = f => {?}
+       } 
+    """, """
+       \func modular-function {n : Nat} {C : Fin n -> \Type} (f g : \Pi (i : Fin n) -> C i) (delim : Fin (suc n)) (i : Fin n) : C i => {?} \where {
+         \func pure-left-modular {n : Nat} (C : Fin n -> \Type) (f g : \Pi (i : Fin n) -> C i) : modular-function {_} {C} f g 0 = f => {?}
+       } 
+    """)
 }
