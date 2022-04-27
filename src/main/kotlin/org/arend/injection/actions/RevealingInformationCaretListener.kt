@@ -31,7 +31,7 @@ fun InjectedArendEditor.performPrettyPrinterManipulation(editor: Editor, choice:
         ?: return
     val ppConfig = getCurrentConfig(scope)
     val offset = editor.caretModel.offset
-    val revealableFragment= findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return
+    val revealableFragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return
     val id = "Arend Verbose level increase " + Random.nextInt()
     val revealingAction = getModificationAction(revealableFragment, editor, id, false, choice)
     val hidingAction = getModificationAction(revealableFragment, editor, id, true, choice)
@@ -76,7 +76,7 @@ private fun InjectedArendEditor.getUndoAction(
             id
         )
 
-        is ConcreteRefExpr -> UndoableConfigModificationAction(
+        is ConcreteRefExpr, is ConcreteTuple -> UndoableConfigModificationAction(
             this,
             editor.document,
             verboseLevelMap,

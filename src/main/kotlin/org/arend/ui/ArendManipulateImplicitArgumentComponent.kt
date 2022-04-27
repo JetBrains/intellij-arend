@@ -16,6 +16,7 @@ import com.intellij.ui.components.JBLabel
 import org.arend.ArendIcons
 import org.arend.injection.ConcreteLambdaParameter
 import org.arend.injection.ConcreteRefExpr
+import org.arend.injection.ConcreteTuple
 import org.arend.injection.RevealableFragment
 import org.arend.util.ArendBundle
 import java.awt.BorderLayout
@@ -31,6 +32,9 @@ import javax.swing.JSeparator
 import javax.swing.border.Border
 
 fun showManipulatePrettyPrinterHint(editor: Editor, fragment: RevealableFragment, revealingCallback: () -> Unit, hidingCallback: () -> Unit) {
+    if (fragment.revealLifetime == 0 && fragment.hideLifetime == 0) {
+        return
+    }
     val offset = editor.caretModel.offset
     val visualPosition = editor.offsetToVisualPosition(offset)
     val frameOwner = WindowManager.getInstance().getFrame(editor.project) ?: return
@@ -94,6 +98,7 @@ private class ArendManipulateImplicitArgumentComponent(private val fragment: Rev
                 myShowIconLabel.toolTipText = when (fragment.result) {
                     is ConcreteLambdaParameter -> ArendBundle.message("arend.reveal.lambda.parameter.type")
                     is ConcreteRefExpr -> ArendBundle.message("arend.reveal.implicit.argument")
+                    is ConcreteTuple -> ArendBundle.message("arend.reveal.type.of.tuple")
                 } + " (${
                     KeymapUtil.getFirstKeyboardShortcutText(
                         ActionManager.getInstance().getAction("Arend.PrettyPrint.RevealImplicitInformation") as AnAction
@@ -119,6 +124,7 @@ private class ArendManipulateImplicitArgumentComponent(private val fragment: Rev
                 myNotShowIconLabel.toolTipText = when (fragment.result) {
                     is ConcreteLambdaParameter -> ArendBundle.message("arend.hide.lambda.parameter.type")
                     is ConcreteRefExpr -> ArendBundle.message("arend.hide.implicit.argument")
+                    is ConcreteTuple -> ArendBundle.message("arend.hide.type.of.tuple")
                 } + " (${
                     KeymapUtil.getFirstKeyboardShortcutText(
                         ActionManager.getInstance().getAction("Arend.PrettyPrint.HideImplicitInformation") as AnAction

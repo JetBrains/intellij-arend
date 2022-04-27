@@ -17,24 +17,38 @@ import org.jetbrains.annotations.TestOnly
 
 sealed interface ConcreteResult {
     @TestOnly
-    fun getTextId() : String
+    fun getTextId(): String
+
+    val expr: Concrete.SourceNode
 }
 
 @JvmInline
-value class ConcreteRefExpr(val expr: Concrete.ReferenceExpression) : ConcreteResult {
+value class ConcreteRefExpr(override val expr: Concrete.ReferenceExpression) : ConcreteResult {
     override fun getTextId(): String {
         return expr.referent.refName
     }
 }
 
 @JvmInline
-value class ConcreteLambdaParameter(val expr: Concrete.Parameter) : ConcreteResult {
+value class ConcreteLambdaParameter(override val expr: Concrete.Parameter) : ConcreteResult {
     override fun getTextId(): String {
         return expr.names.first()
     }
 }
 
-data class RevealableFragment(val revealLifetime: Int, val hideLifetime: Int, val result: ConcreteResult, val relativeOffset: Int)
+@JvmInline
+value class ConcreteTuple(override val expr: Concrete.TupleExpression) : ConcreteResult {
+    override fun getTextId(): String {
+        return expr.toString()
+    }
+}
+
+data class RevealableFragment(
+    val revealLifetime: Int,
+    val hideLifetime: Int,
+    val result: ConcreteResult,
+    val relativeOffset: Int
+)
 
 fun findRevealableCoreAtOffset(
     offset: Int,
@@ -54,7 +68,14 @@ fun findRevealableCoreAtOffset(
         stringInterceptor,
         Precedence(Precedence.Associativity.NON_ASSOC, Concrete.Expression.PREC, true)
     )
-    return stringInterceptor.revealableResult?.run { RevealableFragment(stringInterceptor.lifetime, stringInterceptor.hideLifetime, this, relativeOffset) }
+    return stringInterceptor.revealableResult?.run {
+        RevealableFragment(
+            stringInterceptor.lifetime,
+            stringInterceptor.hideLifetime,
+            this,
+            relativeOffset
+        )
+    }
 }
 
 private fun Doc.findInjectedCoreByOffset(offset: Int, error: GeneralError): Pair<Expression, Int>? {
@@ -100,14 +121,39 @@ private class InterceptingPrettyPrintVisitor(
         return null
     }
 
-      override fun visitApp(expr: Concrete.AppExpression, prec: Precedence?): Void? {
+    override fun visitTuple(expr: Concrete.TupleExpression, prec: Precedence): Void? {
+        val offsetBefore = sb.length
+        super.visitTuple(expr, prec)
+        val offsetAfter = sb.length
+        if (revealableResult == null && relativeOffset in offsetBefore..offsetAfter) {
+            revealableResult = ConcreteTuple(expr)
+            lifetime = 1
+            hideLifetime = 0
+        }
+        return null
+    }
+
+    override fun visitTyped(expr: Concrete.TypedExpression, prec: Precedence): Void? {
+        val resultBefore = revealableResult
+        super.visitTyped(expr, prec)
+        val resultAfter = revealableResult
+        if (resultAfter != resultBefore && resultAfter is ConcreteTuple && expr.expression == resultAfter.expr) {
+            visitParent = false
+            lifetime = 0
+            hideLifetime = 1
+        }
+        return null
+    }
+
+    override fun visitApp(expr: Concrete.AppExpression, prec: Precedence?): Void? {
         val resultBefore = revealableResult
         super.visitApp(expr, prec)
         val resultAfter = revealableResult
         if (visitParent && resultAfter != resultBefore && resultAfter is ConcreteRefExpr && resultAfter.expr == expr.function) {
             visitParent = false
             val argumentsShown = expr.arguments.count()
-            val agumentsOverall = resultAfter.expr.data.castSafelyTo<DefCallExpression>()?.defCallArguments?.count() ?: return null
+            val agumentsOverall =
+                resultAfter.expr.data.castSafelyTo<DefCallExpression>()?.defCallArguments?.count() ?: return null
             lifetime = agumentsOverall - argumentsShown
             hideLifetime = expr.arguments.count { !it.isExplicit }
         }
@@ -154,7 +200,7 @@ private class InterceptingPrettyPrintVisitor(
     }
 }
 
-private fun <T> DependentLink.accumulate(initial: T, consumer: (T, DependentLink) -> T) : T {
+private fun <T> DependentLink.accumulate(initial: T, consumer: (T, DependentLink) -> T): T {
     var current = this
     var value = initial
     while (true) {
