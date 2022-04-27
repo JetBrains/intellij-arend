@@ -13,6 +13,10 @@ class ArendErrorTreeElement(val errors: MutableList<ArendError>) {
 
     val normalizationCache: NormalizationCache = NormalizationCache()
 
+    internal fun enrichNormalizationCache(other: ArendErrorTreeElement) {
+        normalizationCache.enrich(other.normalizationCache)
+    }
+
     val highestError: ArendError
         get() {
             var result = errors.first()

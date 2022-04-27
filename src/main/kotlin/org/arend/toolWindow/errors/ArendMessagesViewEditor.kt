@@ -21,6 +21,10 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
     }
 
     fun update(newTreeElement: ArendErrorTreeElement) {
+        val current = treeElement
+        if (current?.errors == newTreeElement.errors) {
+            newTreeElement.enrichNormalizationCache(current)
+        }
         treeElement = newTreeElement
         updateErrorText()
         actionGroup.removeAll()
