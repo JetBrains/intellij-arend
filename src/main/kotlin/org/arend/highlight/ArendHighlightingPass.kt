@@ -187,7 +187,8 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             return
         }
 
-        val typechecker = BackgroundTypechecker(myProject, instanceProviderSet, concreteProvider, maxOf(lastDefinitionModification, myProject.service<ArendPsiChangeService>().definitionModificationTracker.modificationCount))
+        val typechecker = BackgroundTypechecker(myProject, instanceProviderSet, concreteProvider,
+            maxOf(lastDefinitionModification, psiListenerService.definitionModificationTracker.modificationCount))
         if (ApplicationManager.getApplication().isUnitTestMode) {
             // DaemonCodeAnalyzer.restart does not work in tests
             typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, false)
