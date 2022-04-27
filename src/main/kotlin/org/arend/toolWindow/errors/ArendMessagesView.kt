@@ -4,6 +4,7 @@ import com.intellij.ide.CommonActionsManager
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -252,10 +253,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     private fun updatePanel(panel: JPanel, component: JComponent) {
-        panel.removeAll()
-        panel.add(component)
-        panel.revalidate()
-        panel.repaint()
+        runInEdt {
+            panel.removeAll()
+            panel.add(component)
+            panel.revalidate()
+            panel.repaint()
+        }
     }
 
     private fun updateGoalsView(component: JComponent) {
