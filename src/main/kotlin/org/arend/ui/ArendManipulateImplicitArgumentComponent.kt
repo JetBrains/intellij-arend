@@ -8,6 +8,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.keymap.KeymapUtil
+import com.intellij.openapi.wm.IdeFocusManager
+import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.HintHint
 import com.intellij.ui.LightweightHint
 import com.intellij.ui.components.JBLabel
@@ -31,11 +33,12 @@ import javax.swing.border.Border
 fun showManipulatePrettyPrinterHint(editor: Editor, fragment: RevealableFragment, revealingCallback: () -> Unit, hidingCallback: () -> Unit) {
     val offset = editor.caretModel.offset
     val visualPosition = editor.offsetToVisualPosition(offset)
+    val frameOwner = WindowManager.getInstance().getFrame(editor.project) ?: return
     val point = editor.visualPositionToXY(visualPosition)
-        .apply { move(x + 2, y - (editor.lineHeight.toDouble() * 2.5).toInt()) }
+        .apply { move(x + 2 - frameOwner.x, y - (editor.lineHeight.toDouble() * 2.5).toInt() - frameOwner.y)  }
     val component = ArendManipulateImplicitArgumentComponent(fragment, revealingCallback, hidingCallback)
     val flags =
-        HintManager.HIDE_BY_ANY_KEY or HintManager.UPDATE_BY_SCROLLING or HintManager.HIDE_IF_OUT_OF_EDITOR or HintManager.DONT_CONSUME_ESCAPE
+        HintManager.HIDE_BY_ANY_KEY or HintManager.UPDATE_BY_SCROLLING or HintManager.DONT_CONSUME_ESCAPE or HintManager.HIDE_BY_CARET_MOVE
 
     HintManagerImpl.getInstanceImpl().showEditorHint(
         LocalComponentHint(component), editor,
