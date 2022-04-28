@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.keymap.KeymapUtil
-import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.HintHint
 import com.intellij.ui.LightweightHint
@@ -24,11 +23,7 @@ import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
-import javax.swing.BorderFactory
-import javax.swing.JComponent
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.JSeparator
+import javax.swing.*
 import javax.swing.border.Border
 
 fun showManipulatePrettyPrinterHint(editor: Editor, fragment: RevealableFragment, revealingCallback: () -> Unit, hidingCallback: () -> Unit) {
@@ -111,10 +106,14 @@ private class ArendManipulateImplicitArgumentComponent(private val fragment: Rev
             }
 
             override fun mouseClicked(e: MouseEvent?) {
+                myShowIconLabel.border = defaultBorder
+                val timer = Timer(50) { myShowIconLabel.border = selectedBorder }
                 revealLifetime -= 1
                 revealingCallback()
                 if (revealLifetime <= 0) {
                     this@ArendManipulateImplicitArgumentComponent.isVisible = false
+                } else {
+                    timer.start()
                 }
             }
         })
@@ -137,10 +136,14 @@ private class ArendManipulateImplicitArgumentComponent(private val fragment: Rev
             }
 
             override fun mouseClicked(e: MouseEvent?) {
+                myNotShowIconLabel.border = defaultBorder
+                val timer = Timer(50) { myNotShowIconLabel.border = selectedBorder }
                 endLifetime -= 1
                 hidingCallback()
                 if (endLifetime <= 0) {
                     this@ArendManipulateImplicitArgumentComponent.isVisible = false
+                } else {
+                    timer.start()
                 }
             }
         })
