@@ -26,7 +26,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
 
         val def = parent.tcReferable?.typechecked
         val icon = when (def?.status()) {
-            NO_ERRORS, DEP_PROBLEMS -> AllIcons.RunConfigurations.TestState.Green2
+            NO_ERRORS, DEP_ERRORS, DEP_WARNiNGS -> AllIcons.RunConfigurations.TestState.Green2
             HAS_WARNINGS -> AllIcons.RunConfigurations.TestState.Yellow2
             null, TYPE_CHECKING, NEEDS_TYPE_CHECKING -> AllIcons.RunConfigurations.TestState.Run
             else -> AllIcons.RunConfigurations.TestState.Red2
