@@ -54,6 +54,14 @@ idea {
     }
 }
 
+tasks {
+    val test by getting(Test::class) {
+        setScanForTestClasses(false)
+        // Only run tests from classes that end with "Test"
+        include("**/*Test.class")
+    }
+}
+
 intellij {
     version.set("2022.1")
     pluginName.set("Arend")
