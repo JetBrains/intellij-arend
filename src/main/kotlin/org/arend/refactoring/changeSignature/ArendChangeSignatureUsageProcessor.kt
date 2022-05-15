@@ -54,7 +54,7 @@ class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
     ): Boolean = false
 
     override fun registerConflictResolvers(
-        snapshots: MutableList<ResolveSnapshotProvider.ResolveSnapshot>?,
+        snapshots: MutableList<in ResolveSnapshotProvider.ResolveSnapshot>?,
         resolveSnapshotProvider: ResolveSnapshotProvider,
         usages: Array<out UsageInfo>?,
         changeInfo: ChangeInfo?
