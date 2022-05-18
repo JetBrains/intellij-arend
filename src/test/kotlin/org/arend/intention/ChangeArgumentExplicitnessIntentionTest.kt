@@ -155,6 +155,43 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """
     )
 
+    fun testFieldDescendant() = doTest(
+        """
+        \class C {n : Nat}
+        \class C2 {{-caret-}X : \Type}           
+        \class D \extends C, C2
+        \func foo (c2 : C2) => \new D {1} {Nat}
+        """, """
+        \class C {n : Nat}
+        \class C2 (X : \Type)           
+        \class D \extends C, C2
+        \func foo (c2 : C2) => \new D {1} Nat 
+        """)
+
+    fun testFieldDescendant2() = doTest("""
+       \class C {X : \Type}       
+       \class C2 {-caret-}{n1 n2 : Nat}
+       
+       \class C3 {Y : \Type}
+       \class D \extends C, C2
+       \class D2 \extends D, C3
+
+       \func foo (d : D2 {Nat}) => \new D2 {Nat} {1} {2} {Nat}
+       \func foo1 (d : D {Nat}) => \new D {Nat} {1} {2}
+       \func foo2 (d : D {Nat} {1}) => D {Nat} {1} 
+    """, """
+       \class C {X : \Type}       
+       \class C2 (n1 n2 : Nat)
+       
+       \class C3 {Y : \Type}
+       \class D \extends C, C2
+       \class D2 \extends D, C3
+
+       \func foo (d : D2 {Nat}) => \new D2 {Nat} 1 2 {Nat}
+       \func foo1 (d : D {Nat}) => \new D {Nat} 1 2
+       \func foo2 (d : D {Nat} 1) => D {Nat} 1 
+    """)
+
 //    TODO: this is related with implicit arguments in the end
 //    fun testTypeImToExUnderscoreEnd() = doTest(
 //        """
@@ -493,7 +530,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \class Test {A  : \Type} ({-caret-}B : \Type) (a : A) (b : B)
-        \func f => \lam {B} => Test {Nat} B
+        \func f => Test {Nat}
         """
     )
 

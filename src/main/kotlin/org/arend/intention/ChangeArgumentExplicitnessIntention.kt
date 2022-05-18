@@ -26,6 +26,8 @@ import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
+import org.arend.naming.scope.ClassFieldImplScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
@@ -33,6 +35,7 @@ import org.arend.psi.ext.PsiReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.*
 import org.arend.resolving.ArendReferableConverter
+import org.arend.search.ClassDescendantsSearch
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -340,13 +343,15 @@ fun doProcessEntry(entry: UsageEntry, globalReferable: GlobalReferable? = null):
         printParams(newParameters.filter { !it.isExplicit })
         append("$rightSpacing$rightText")
     } else {
-        if (lambdaArgs != "") append("\\lam$lambdaArgs => ")
+        val defClassMode = entry.refactoringContext.def is ArendDefClass
+
+        if (lambdaArgs != "" && !defClassMode) append("\\lam$lambdaArgs => ")
         for (e in oldArgToLambdaArgMap) parameterMap[e.key] = ArgumentDescriptor(e.value, null, null, isExplicit = true, isAtomic = true, spacingText = null, referable = null)
 
         val defName = entry.getDefName()
         defaultBuilder.append(defName); parenthesizedPrefixBuilder.append(if (globalReferable?.precedence?.isInfix == true) "($defName)" else defName)
 
-        printParams(newParameters)
+        printParams(newParameters.filter { !defClassMode || !oldArgToLambdaArgMap.keys.contains(it.oldParameter) })
 
         while (j < entry.getArguments().size) {
             append(" ${entry.getArguments()[j].text}")
@@ -471,6 +476,8 @@ fun textGetter(psi: PsiElement, textReplacements: HashMap<PsiElement, String>): 
             append(textGetter(c, textReplacements))
 }
 
+class RefactoringDescriptor(val def: PsiReferable, val oldParameters: List<Parameter>, val newParameters: List<NewParameter>)
+
 class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(
     ArendCompositeElement::class.java,
     ArendBundle.message("arend.coClause.changeArgumentExplicitness")
@@ -491,21 +498,38 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
         val def = element.ancestor() as? PsiReferable ?: return
         val teleIndexInDef = getTeleIndexInDef(def, element)
 
-        // switch all variables in telescope
+        val refactoringDescriptors = HashSet<RefactoringDescriptor>()
+        if (def is ArendDefClass) {
+            val descendants = ClassDescendantsSearch(project).getAllDescendants(def)
+            for (clazz in descendants.filterIsInstance<ArendDefClass>().union(singletonList(def))) {
+                val fieldDefIdentifiers = ArrayList<ArendFieldDefIdentifier>()
+                ClassFieldImplScope(clazz, false).elements.forEach { t ->
+                    if (t is ArendFieldDefIdentifier) fieldDefIdentifiers.add(t)
+                }
 
-        if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
-            //Change many variables
-            val teleSize = if (element is ArendTypeTele && element.typedExpr?.identifierOrUnknownList?.isEmpty() == true) 1 else getTele(element)?.size ?: return
-
-            chooseApplier(element)?.applyTo(def, (0 until teleSize).map { it + teleIndexInDef }.toSet())
-
-            runWriteAction {
-                switchTeleExplicitness(element)
+                val oldParameters = fieldDefIdentifiers.map { Parameter(it.isExplicitField, it) }
+                val switchedFieldIdentifiers: List<Referable> = if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
+                    (element as ArendFieldTele).fieldDefIdentifierList
+                } else {
+                    singletonList((element as ArendFieldTele).fieldDefIdentifierList[switchedArgIndexInTele])
+                }
+                refactoringDescriptors.add(RefactoringDescriptor(clazz, oldParameters, oldParameters.map { NewParameter(if (switchedFieldIdentifiers.contains(it.referable)) !it.isExplicit else it.isExplicit, it) }))
             }
-        } else {
-            chooseApplier(element)?.applyTo(def, singletonList(switchedArgIndexInTele + teleIndexInDef).toSet())
 
-            runWriteAction {
+            NameFieldApplier(project).applyTo(refactoringDescriptors, null, null)
+        } else {
+            if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
+                val teleSize = if (element is ArendTypeTele && element.typedExpr?.identifierOrUnknownList?.isEmpty() == true) 1 else getTele(element)?.size ?: return
+                chooseApplier(element)?.applyTo(def, (0 until teleSize).map { it + teleIndexInDef }.toSet())
+            } else {
+                chooseApplier(element)?.applyTo(def, singletonList(switchedArgIndexInTele + teleIndexInDef).toSet())
+            }
+        }
+
+        runWriteAction {
+            if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
+                switchTeleExplicitness(element)
+            } else {
                 chooseApplier(element)?.rewriteDef(element, switchedArgIndexInTele)
             }
         }
@@ -550,6 +574,8 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
      * @param indexInDef Indices whose explicitness is to be switched
      * @return  new telescope in definition
      */
+
+
     fun applyTo(def: PsiReferable, indexInDef: Set<Int>) {
         val oldParameters = getAllParametersForReferable(def).map { p -> p.referableList.map { Parameter(p.isExplicit, it) } }.flatten() // PsiElementUtils.getTelesFromDef is similar to this
         val oldParametersConstructor = if (def is ArendConstructor) getAllParametersForReferable(def, false).map { p -> p.referableList.map { Parameter(p.isExplicit, it) } }.flatten() else null
@@ -563,44 +589,56 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
             it.value
         ) }
 
-        val fCalls = ReferencesSearch.search(def).map { it.element }.filter {
-            when (it) {
-                is ArendRefIdentifier -> (it.parent as? ArendLongName)?.let { longName -> longName.refIdentifierList.lastOrNull() == it } ?: true
-                else -> true
-            }
-        }
-        val fCallParents = fCalls.map { getParentPsiFunctionCall(it)}.sortedBy { it.textLength }.toCollection(LinkedHashSet())
-        val concreteSet = LinkedHashSet<Pair<PsiElement, Concrete.Expression?>>()
+        val rd = RefactoringDescriptor(def, oldParameters, newParameters)
+        applyTo(singletonList(rd).toSet(), oldParametersConstructor, newParametersConstructor)
+    }
+
+    fun applyTo(referableData: Set<RefactoringDescriptor>, oldParametersConstructor: List<Parameter>?, newParametersConstructor: List<NewParameter>?) {
+        val fCallParents: LinkedHashSet<Pair<PsiElement, RefactoringDescriptor>> = referableData.map { descriptor ->
+            ReferencesSearch.search(descriptor.def).map {
+                Pair(it.element, descriptor)
+            }.filter {
+                when (val psi = it.first) {
+                    is ArendRefIdentifier -> (psi.parent as? ArendLongName)?.let { longName -> longName.refIdentifierList.lastOrNull() == psi } ?: true
+                    else -> true
+                }
+        }.map { Pair(getParentPsiFunctionCall(it.first), it.second )} }.flatten().sortedBy { it.first.textLength }.toCollection(LinkedHashSet())
+
+        val concreteSet = LinkedHashSet<Pair<Pair<PsiElement, RefactoringDescriptor>, Concrete.Expression?>>()
         val textReplacements = HashMap<PsiElement, String>()
         val fileChangeMap = HashMap<PsiFile, SortedList<Pair<TextRange, String>>>()
         val rangeData = HashMap<Concrete.Expression, TextRange>()
-        val refactoringContext = RefactoringContext(def, oldParameters, newParameters, oldParametersConstructor, newParametersConstructor, textReplacements, rangeData)
+        val refactoringContexts = HashMap<RefactoringDescriptor, RefactoringContext>()
+        referableData.forEach { d -> refactoringContexts[d] = RefactoringContext(d.def, d.oldParameters, d.newParameters, oldParametersConstructor, newParametersConstructor, textReplacements, rangeData) }
         val refactoringTitle = ArendBundle.message("arend.coClause.changeArgumentExplicitness")
-        val failingAppExprs = HashSet<ArendArgumentAppExpr>()
+        val failingAppExprs = HashSet<Pair<ArendArgumentAppExpr, PsiReferable>>()
 
         if (!ProgressManager.getInstance().runProcessWithProgressSynchronously({
             runReadAction {
                 val progressIndicator = ProgressManager.getInstance().progressIndicator
-                for ((index, fCall) in fCallParents.withIndex()) {
+                for ((index, fCallEntry) in fCallParents.withIndex()) {
+                    val (fCall, d) = fCallEntry
                     progressIndicator.fraction = index.toDouble() / fCallParents.size
                     progressIndicator.checkCanceled()
                     when (fCall) {
                         is ArendArgumentAppExpr -> {
                             val errorReporter = CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
                             appExprToConcrete(fCall, false, errorReporter)?.let{
-                                concreteSet.add(Pair(fCall, it))
+                                concreteSet.add(Pair(Pair(fCall, d), it))
                             }
-                            if (errorReporter.errorsNumber > 0) failingAppExprs.add(fCall)
+                            if (errorReporter.errorsNumber > 0) failingAppExprs.add(Pair(fCall, d.def))
                         }
-                        is ArendPattern, is ArendLocalCoClause -> concreteSet.add(Pair(fCall, null))
+                        is ArendPattern, is ArendLocalCoClause -> concreteSet.add(Pair(Pair(fCall, d), null))
                     }
                 }
 
                 for ((index, callEntry) in concreteSet.withIndex()) {
                     progressIndicator.fraction = index.toDouble() / concreteSet.size
                     progressIndicator.checkCanceled()
-                    val psiElement = callEntry.first
-                    val defName = if (def is PsiLocatedReferable && psiElement is ArendCompositeElement) ResolveReferenceAction.getTargetName(def, psiElement)!! else def.refName
+                    val psiElement = callEntry.first.first
+                    val descriptor = callEntry.first.second
+                    val refactoringContext = refactoringContexts[descriptor]!! // safe to write
+                    val defName = if (descriptor.def is PsiLocatedReferable && psiElement is ArendCompositeElement) ResolveReferenceAction.getTargetName(descriptor.def, psiElement)!! else descriptor.def.refName
 
                     when (psiElement) {
                         is ArendArgumentAppExpr -> {
@@ -610,7 +648,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                                 getBounds(expr, psiElement.node.getChildren(null).toList(), rangeData)
                                 processAppExpr(expr, psiElement, defName, refactoringContext).let { it.strippedText ?: it.text }
                             } catch (e: IllegalStateException) { // TODO: We could use custom exception in processAppExpr
-                                failingAppExprs.add(psiElement)
+                                failingAppExprs.add(Pair(psiElement, descriptor.def))
                                 null
                             }
                         }
@@ -662,7 +700,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
         }, refactoringTitle, true, project)) return
 
         if (failingAppExprs.size > 0 && Messages.showYesNoDialog(
-                ArendBundle.message("arend.coClause.changeArgumentExplicitness.question1", def.name ?: "?"),
+                ArendBundle.message("arend.coClause.changeArgumentExplicitness.question1", failingAppExprs.first().second.name ?: "?"),
                 refactoringTitle, Messages.getYesButton(), Messages.getNoButton(), Messages.getQuestionIcon()) == Messages.NO) {
             return
         }
