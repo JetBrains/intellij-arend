@@ -148,6 +148,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(BASIC_EXPRESSION_KW_PATTERN, BASIC_EXPRESSION_KW)
         basic(and(or(EXPRESSION_CONTEXT, TELE_CONTEXT), expressionPattern.invoke(false, true)), NEW_KW_LIST)
+        basic(or(withParent(ArendSigmaTypeTele::class.java), and(withParent(PsiErrorElement::class.java), withGrandParents(ArendSigmaTypeTele::class.java))), SIGMA_TELE_START_KWS)
 
         val truncatedTypeInsertHandler = InsertHandler<LookupElement> { insertContext, _ ->
             val document = insertContext.document

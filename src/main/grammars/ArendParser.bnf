@@ -657,7 +657,7 @@ piExprWOB ::= PI_KW typeTele+ ARROW exprWOB {
     elementType = piExpr
 }
 
-sigmaExpr ::= SIGMA_KW typeTele* {
+sigmaExpr ::= SIGMA_KW sigmaTypeTele* {
     pin = 1
     mixin = "org.arend.psi.ext.ArendSigmaExprImplMixin"
 }
@@ -1017,6 +1017,16 @@ private fieldTeleRecovery ::= fieldTele_recover {
 
 private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN | PIPE) & statement_recover
 
+sigmaTypeTele ::= literal
+    | universeAtom
+    | typedSigmaTele {
+        implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                       "org.arend.term.abs.Abstract.SigmaParameter" ]
+        mixin = "org.arend.psi.ext.ArendSigmaTypeTeleImplMixin"
+        name = "sigma parameters"
+        recoverWhile = typeTele_recover
+    }
+
 typeTele ::= literal
     | universeAtom
     | typedTeleExplicit
@@ -1029,6 +1039,8 @@ typeTele ::= literal
     }
 
 private typedTeleExplicit ::= LPAREN STRICT_KW? typedExpr RPAREN { pin = 1 }
+
+private typedSigmaTele ::= LPAREN (PROPERTY_KW | FIELD_KW)? typedExpr RPAREN { pin = 1 }
 
 private typedTeleImplicit ::= LBRACE STRICT_KW? typedExpr RBRACE { pin = 1 }
 
