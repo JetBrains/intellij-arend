@@ -96,7 +96,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if ((myNode.psi is ArendNameTele || myNode.psi is ArendTypedExpr) && (c1et == IDENTIFIER_OR_UNKNOWN && c2et == COLON)) return oneSpaceWrap
 
-            if (c1et == NAME_TELE && c2et == NAME_TELE || c1et == TYPE_TELE && c2et == TYPE_TELE || c1et == FIELD_TELE && c2et == FIELD_TELE) return oneSpaceWrap
+            if (c1et == NAME_TELE && c2et == NAME_TELE || c1et == TYPE_TELE && c2et == TYPE_TELE || c1et == FIELD_TELE && c2et == FIELD_TELE || c1et == SIGMA_TYPE_TELE && c2et == SIGMA_TYPE_TELE) return oneSpaceWrap
 
             if (myNode.psi is ArendNewExpr && c1et == ARGUMENT_APP_EXPR && c2et == WITH_BODY) return oneSpaceWrap
 
@@ -108,7 +108,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (myNode.psi is ArendPattern && (c1et == DEF_IDENTIFIER || c1et == ATOM_PATTERN_OR_PREFIX) && c2et == ATOM_PATTERN_OR_PREFIX) return oneSpaceWrap
 
-            if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele || nodePsi is ArendFieldTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
+            if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele || nodePsi is ArendSigmaTypeTele || nodePsi is ArendFieldTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
 
             if ((myNode.psi is ArendDefinition || myNode.psi is ArendClassStat) && (psi2 is ArendPrec || psi2 is ArendDefIdentifier)) return oneSpaceNoWrap
 
@@ -183,9 +183,9 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             nodePsi is ArendPiExpr || nodePsi is ArendLamExpr || nodePsi is ArendSigmaExpr)
                     && newChildIndex <= subBlocks.size) {
                 when (if (prevET == ERROR_ELEMENT) prev2ET else prevET) {
-                    TYPE_TELE, NAME_TELE, FIELD_TELE -> {
+                    TYPE_TELE, NAME_TELE, FIELD_TELE, SIGMA_TYPE_TELE -> {
                         val isLast = if (nextChild is AbstractArendBlock) when (nextChild.node.elementType) {
-                            TYPE_TELE, NAME_TELE, FIELD_TELE -> false
+                            TYPE_TELE, NAME_TELE, FIELD_TELE, SIGMA_TYPE_TELE -> false
                             else -> true
                         } else true
                         val align = (if (prevET == ERROR_ELEMENT) prev2Child else prevChild).let {
@@ -248,7 +248,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         val sB = subBlocks[newChildIndex - 2]
                         if (sB is AbstractBlock && sB.node.elementType == TYPE_TELE) return ChildAttributes(sB.indent, sB.alignment)
                     }
-                    ARROW, FAT_ARROW, PI_KW, LAM_KW, TYPE_TELE, NAME_TELE -> {
+                    ARROW, FAT_ARROW, PI_KW, LAM_KW, TYPE_TELE, NAME_TELE, SIGMA_TYPE_TELE -> {
                     }
                     else -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 }
@@ -314,7 +314,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             if ((blocks.size > 0) && notFBodyWithClauses) Indent.getNormalIndent() else Indent.getNoneIndent()
                         } else when (childET) {
                             CO_CLAUSE, LOCAL_CO_CLAUSE, CONSTRUCTOR_CLAUSE, LET_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT,
-                            NAME_TELE, TYPE_TELE, FIELD_TELE, CASE_ARG -> Indent.getNormalIndent()
+                            NAME_TELE, TYPE_TELE, FIELD_TELE, SIGMA_TYPE_TELE, CASE_ARG -> Indent.getNormalIndent()
                             STATEMENT -> if (nodePsi is ArendFile) Indent.getNoneIndent() else Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
                         }
@@ -340,7 +340,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                     } else null
                     else -> when (childET) {
                         CO_CLAUSE, LOCAL_CO_CLAUSE, CLASS_STAT -> alignment
-                        NAME_TELE, TYPE_TELE, FIELD_TELE, CASE_ARG -> alignment2
+                        NAME_TELE, TYPE_TELE, FIELD_TELE, SIGMA_TYPE_TELE, CASE_ARG -> alignment2
                         else -> null
                     }
                 }

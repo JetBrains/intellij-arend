@@ -277,7 +277,6 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func f (a : Nat) => \\let a => 101 \\in {-caret-}",
                     "\\func f (a : Nat) => \\let a => {-caret-}\\in 101",
                     "\\func f (a : Nat) => \\Pi ({-caret-})",
-                    "\\func f (a : Nat) => \\Sigma ({-caret-})",
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}",
                     "\\func g => 101 (\\lam a => {-caret-})",
@@ -287,6 +286,10 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class C (A : \\Pi (A : \\Type) -> {-caret-}",
                     "\\func lol : \\level ({-caret-})",
                     "\\func lol : \\level (Nat) ({-caret-})")
+
+    fun `test expression keywords for sigma`() = checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + SIGMA_TELE_START_KWS, CompletionCondition.SAME_KEYWORDS,
+            "\\func f (a : Nat) => \\Sigma ({-caret-})"
+            )
 
     fun `test absence of keywords after level`() =
             checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,

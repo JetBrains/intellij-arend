@@ -57,7 +57,7 @@ abstract class ArendTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node),
     override fun isStrict() = strictKw != null
 }
 
-abstract class ArendSigmaTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendTypeTele, ArendSigmaTypeTele {
+abstract class ArendSigmaTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendSigmaTypeTele {
     override fun getData() = this
 
     override fun isExplicit() = false
@@ -66,12 +66,6 @@ abstract class ArendSigmaTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(n
         typedExpr?.identifierOrUnknownList?.map { it.defIdentifier }?.ifEmpty { listOf(null) } ?: listOf(null)
 
     override fun getType(): Abstract.Expression? = typedExpr?.expr ?: literal ?: universeAtom
-
-    override fun getLbrace(): PsiElement? = null
-
-    override fun getRbrace(): PsiElement? = null
-
-    override fun getStrictKw(): PsiElement? = null
 
     override fun isStrict() = false
 
