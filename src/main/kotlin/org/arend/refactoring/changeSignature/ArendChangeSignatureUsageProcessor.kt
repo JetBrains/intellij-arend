@@ -25,40 +25,20 @@ class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
         return usages.toTypedArray()
     }
 
-    override fun findConflicts(info: ChangeInfo?, refUsages: Ref<Array<UsageInfo>>?): MultiMap<PsiElement, String> =
-        MultiMap.empty()
+    override fun findConflicts(info: ChangeInfo?, refUsages: Ref<Array<UsageInfo>>?): MultiMap<PsiElement, String> = MultiMap.empty()
 
-    override fun processUsage(
-        changeInfo: ChangeInfo?,
-        usageInfo: UsageInfo?,
-        beforeMethodChange: Boolean,
-        usages: Array<out UsageInfo>?
-    ): Boolean {
-//        TODO("Not yet implemented")
-        return false
-    }
+    override fun processUsage(changeInfo: ChangeInfo?, usageInfo: UsageInfo?, beforeMethodChange: Boolean, usages: Array<out UsageInfo>?): Boolean = false
 
     override fun processPrimaryMethod(changeInfo: ChangeInfo?): Boolean {
         if (changeInfo !is ArendChangeInfo) return false
-        // TODO: don't always change signature
         processFunction(changeInfo.method.project, changeInfo, changeInfo.method as ArendDefFunction)
         return true
     }
 
     override fun shouldPreviewUsages(changeInfo: ChangeInfo?, usages: Array<out UsageInfo>?): Boolean = false
 
-    override fun setupDefaultValues(
-        changeInfo: ChangeInfo?,
-        refUsages: Ref<Array<UsageInfo>>?,
-        project: Project?
-    ): Boolean = false
+    override fun setupDefaultValues(changeInfo: ChangeInfo?, refUsages: Ref<Array<UsageInfo>>?, project: Project?): Boolean = false
 
-    override fun registerConflictResolvers(
-        snapshots: MutableList<in ResolveSnapshotProvider.ResolveSnapshot>?,
-        resolveSnapshotProvider: ResolveSnapshotProvider,
-        usages: Array<out UsageInfo>?,
-        changeInfo: ChangeInfo?
-    ) {
-//        TODO("Not yet implemented")
-    }
+    override fun registerConflictResolvers(snapshots: MutableList<in ResolveSnapshotProvider.ResolveSnapshot>?, resolveSnapshotProvider: ResolveSnapshotProvider, usages: Array<out UsageInfo>?, changeInfo: ChangeInfo?) {}
+
 }

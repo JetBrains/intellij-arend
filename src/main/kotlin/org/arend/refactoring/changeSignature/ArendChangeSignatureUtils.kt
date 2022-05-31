@@ -1,59 +1,42 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
-import com.intellij.psi.search.searches.ReferencesSearch
-import com.intellij.refactoring.changeSignature.ParameterInfo
+import org.arend.codeInsight.ArendParameterInfoHandler
+import org.arend.intention.NameFieldApplier
+import org.arend.intention.NewParameter
+import org.arend.intention.Parameter
+import org.arend.intention.RefactoringDescriptor
 import org.arend.psi.*
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.refactoring.RenameReferenceAction
 import java.util.Collections.singletonList
 
-fun processFunction(
-    project: Project,
-    changeInfo: ArendChangeInfo,
-    function: ArendDefFunction,
-) {
+
+fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: ArendDefFunction) {
     val factory = ArendPsiFactory(project)
 
-    val newTeles = changeInfo.newParameters.toList().map { it as ArendParameterInfo }
-
-    renameParametersUsages(function.nameTeleList, newTeles)
-    changeParameters(factory, function, newTeles)
+    renameParametersUsages(project, function, changeInfo.newParameters.toList().map { it as ArendParameterInfo })
+    changeParameters(factory, function, changeInfo)
 }
 
-private fun renameParametersUsages(
-    originalTeles: List<ArendNameTele>,
-    newTeles: List<ArendParameterInfo>
-) {
-    for (tele in newTeles) {
-        if (tele.oldIndex == ParameterInfo.NEW_PARAMETER) continue
-
-        val oldParameter = originalTeles[tele.oldIndex]
-        val oldName = oldParameter.identifierOrUnknownList[0].defIdentifier?.name
-        if (oldName != tele.name) {
-            // one parameter in tele
-            val usages =
-                ReferencesSearch.search(oldParameter.identifierOrUnknownList[0].defIdentifier as PsiElement).toList()
-            for (usage in usages) {
-                RenameReferenceAction(usage.element as ArendReferenceElement, singletonList(tele.name)).execute(null)
-            }
-        }
+private fun renameParametersUsages(project: Project, function: ArendDefFunction, newParams: List<ArendParameterInfo>) {
+    val oldParameters = ArrayList<Parameter>()
+    val newParameters = ArrayList<NewParameter>()
+    for (tele in function.nameTeleList) for (p in tele.identifierOrUnknownList) oldParameters.add(Parameter(tele.isExplicit, p.defIdentifier))
+    for (newParam in newParams) newParameters.add(NewParameter(newParam.isExplicit(), oldParameters.getOrNull(newParam.oldIndex)))
+    if (function.ancestor<ArendDefClass>() != null) {
+        val t = Parameter(false, null)
+        oldParameters.add(0, t)
+        newParameters.add(0, NewParameter(false, t))
     }
+    NameFieldApplier(project).applyTo(singletonList(RefactoringDescriptor(function, oldParameters, newParameters)).toSet())
 }
 
-private fun changeParameters(
-    factory: ArendPsiFactory,
-    function: ArendDefFunction,
-    newTeles: List<ArendParameterInfo>
-) {
-    function.deleteChildRangeWithNotification(function.nameTeleList.first(), function.nameTeleList.last())
-
-    for (tele in newTeles) {
-        val psiTele = factory.createNameTele(tele.name, tele.typeText ?: "ERROR_TYPE", tele.isExplicit())
-        val addAfter = if (function.nameTeleList.isEmpty()) function.defIdentifier else function.nameTeleList.last()
-        val added = function.addAfterWithNotification(psiTele, addAfter)
-        val psiWs = factory.createWhitespace(" ")
-        function.addBeforeWithNotification(psiWs, added)
+private fun changeParameters(factory: ArendPsiFactory, function: ArendDefFunction, changeInfo: ArendChangeInfo) {
+    if (function.nameTeleList.isNotEmpty()) function.deleteChildRangeWithNotification(function.nameTeleList.first(), function.nameTeleList.last())
+    val anchor = function.alias ?: function.hLevelParams ?: function.pLevelParams ?: function.defIdentifier
+    val signatureText = changeInfo.signature()
+    val sampleFunc = factory.createFromText(signatureText)!!.childOfType<ArendDefFunction>()!!
+    val whitespaceBeforeFirstNameTele = sampleFunc.defIdentifier!!.nextSibling
+    if (signatureText.trim() != "" && whitespaceBeforeFirstNameTele != null && anchor != null) {
+        function.addRangeAfterWithNotification(whitespaceBeforeFirstNameTele, sampleFunc.nameTeleList.last(), anchor)
     }
 }

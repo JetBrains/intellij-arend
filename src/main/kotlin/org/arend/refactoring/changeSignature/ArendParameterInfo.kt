@@ -1,16 +1,20 @@
 package org.arend.refactoring.changeSignature
 
+import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterInfo
+import org.arend.psi.ArendDefIdentifier
+import org.arend.psi.ArendIdentifierOrUnknown
 import org.arend.psi.ArendNameTele
+import org.arend.psi.ArendNameTeleUntyped
 
-class ArendParameterInfo private constructor(
-    private var name: String,
+class ArendParameterInfo constructor(
+    private var name: String?,
     private var type: String?,
-    private val oldIndex: Int,
+    private val oldIndex: Int, // Should be -1 if it does not correspond to any old parameter
     private var isExplicit: Boolean
 ) : ParameterInfo {
 
-    override fun getName(): String = name
+    override fun getName(): String = name ?: "_"
 
     override fun getOldIndex(): Int = oldIndex
 
@@ -22,6 +26,10 @@ class ArendParameterInfo private constructor(
     }
 
     override fun getTypeText(): String? = type
+
+    override fun isUseAnySingleVariable(): Boolean = false
+
+    override fun setUseAnySingleVariable(b: Boolean) {}
 
     fun setType(type: String?) {
         if (type == null) return
@@ -35,18 +43,11 @@ class ArendParameterInfo private constructor(
     }
 
     fun showTele(): String {
-        val (lBr, rBr) = if (isExplicit) Pair("(", ")") else Pair("{", "}")
-        return "$lBr$name : $type$rBr"
+        val (lParen, rParen) = if (isExplicit) Pair("(", ")") else Pair("{", "}")
+        return "$lParen$name : $type$rParen"
     }
 
-    override fun isUseAnySingleVariable(): Boolean = false
-
-    override fun setUseAnySingleVariable(b: Boolean) {}
-
     companion object {
-        fun create(tele: ArendNameTele, index: Int): ArendParameterInfo =
-            ArendParameterInfo(tele.identifierOrUnknownList[0].text, tele.expr?.text ?: "", index, tele.isExplicit)
-
         fun createEmpty(): ArendParameterInfo = ArendParameterInfo("", "", ParameterInfo.NEW_PARAMETER, true)
     }
 }

@@ -12,20 +12,11 @@ import org.arend.ArendFileType
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 
-class ArendParameterTableModel(
-    val descriptor: ArendSignatureDescriptor,
-    defaultValueContext: PsiElement,
-) : ParameterTableModelBase<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(
-    descriptor.method,
-    defaultValueContext,
-    ArendNameColumn(descriptor),
-    ArendTypeColumn(descriptor),
-    ArendImplicitnessColumn()
-) {
+class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, defaultValueContext: PsiElement):
+    ParameterTableModelBase<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor), ArendTypeColumn(descriptor), ArendImplicitnessColumn()) {
     override fun createRowItem(parameterInfo: ArendParameterInfo?): ParameterTableModelItemBase<ArendParameterInfo> {
         val resultParameterInfo = if (parameterInfo == null) {
             val newParameter = ArendParameterInfo.createEmpty()
-            descriptor.addNewParameter(newParameter)
             newParameter
         } else parameterInfo
 
@@ -49,11 +40,10 @@ class ArendParameterTableModel(
 
     @Suppress("UnstableApiUsage")
     override fun removeRow(idx: Int) {
-        descriptor.removeParameter(idx)
         super.removeRow(idx)
     }
 
-    private class ArendNameColumn(private val descriptor: ArendSignatureDescriptor) :
+    private class ArendNameColumn(private val descriptor: ArendChangeSignatureDescriptor) :
         NameColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(descriptor.method.project) {
         override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>, value: String?) {
             value ?: return
@@ -68,16 +58,11 @@ class ArendParameterTableModel(
                 }
             }
 
-            val returnType = descriptor.getReturnType()
-            if (returnType != null && returnType.contains(oldName) && oldName.isNotEmpty()) {
-                descriptor.setReturnType(returnType.replace(oldName, value))
-            }
-
             super.setValue(item, value)
         }
     }
 
-    private class ArendTypeColumn(descriptor: ArendSignatureDescriptor) :
+    private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor) :
         TypeColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(
             descriptor.method.project,
             ArendFileType

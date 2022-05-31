@@ -43,7 +43,6 @@ import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
 import org.arend.util.getBounds
 import java.util.Collections.singletonList
-import kotlin.math.max
 
 data class ProcessAppExprResult(val text: String, val strippedText: String?, val parenthesizedPrefixTest: String?, val isAtomic: Boolean, val referable: GlobalReferable?)
 data class ArgumentDescriptor(val text: String, val strippedText: String?, val parenthesizedPrefixText: String?, val isExplicit: Boolean, val isAtomic: Boolean, val spacingText: String?, val referable: GlobalReferable?) {
@@ -52,7 +51,22 @@ data class ArgumentDescriptor(val text: String, val strippedText: String?, val p
 
 abstract class UsageEntry(val refactoringContext: RefactoringContext, val contextPsi: ArendCompositeElement) {
     abstract fun getArguments(): List<ArgumentDescriptor>
-    open fun getLambdaParams(startFromIndex: Int): List<Parameter> = refactoringContext.oldParameters.subList(startFromIndex, max(startFromIndex, refactoringContext.oldParameters.size - refactoringContext.diffIndex))
+
+    fun getTrailingParameters(): List<Parameter> {
+        val result = ArrayList<Parameter>()
+        val newParameters = getParameters().second
+        for (newParam in newParameters.reversed()) if (newParam.isExplicit != newParam.oldParameter?.isExplicit) break else {
+            result.add(newParam.oldParameter)
+        }
+        return result
+    }
+
+    open fun getLambdaParams(parameterMap: Set<Parameter>, includingSuperfluousTrailingParams: Boolean): List<Parameter> {
+        val lambdaParameters = ArrayList<Parameter>(getParameters().first)
+        lambdaParameters.removeAll(parameterMap)
+        if (!includingSuperfluousTrailingParams) lambdaParameters.removeAll(getTrailingParameters().toSet())
+        return lambdaParameters
+    }
     abstract fun getParameters(): Pair<List<Parameter>, List<NewParameter>>
     abstract fun getDefName(): String
 
@@ -162,7 +176,7 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
         }
     }
 
-    override fun getLambdaParams(startFromIndex: Int): List<Parameter> = emptyList()
+    override fun getLambdaParams(parameterMap: Set<Parameter>, includingSuperfluousTrailingParams: Boolean): List<Parameter> = emptyList()
 
     override fun getArguments(): List<ArgumentDescriptor> = procArguments
 
@@ -206,7 +220,7 @@ class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactor
             procArguments.add(ArgumentDescriptor(text, strippedText, null, isExplicit, data1 is ArendIdentifierOrUnknown, spacingMap[arg], null))
         }
     }
-    override fun getLambdaParams(startFromIndex: Int): List<Parameter> = emptyList()
+    override fun getLambdaParams(parameterMap: Set<Parameter>, includingSuperfluousTrailingParams: Boolean): List<Parameter> = emptyList()
 
     override fun getArguments(): List<ArgumentDescriptor> = procArguments
 
@@ -236,9 +250,7 @@ data class RefactoringContext(
     val oldParameters: List<Parameter>, val newParameters: List<NewParameter>,
     val oldParametersConstructor: List<Parameter>?, val newParametersConstructor: List<NewParameter>?, /* These 2 fields make sense only for ArendConstructor */
     val textReplacements: HashMap<PsiElement, String>,
-    val rangeData: HashMap<Concrete.Expression, TextRange>) {
-    val diffIndex = oldParameters.reversed().zip(newParameters.reversed()).indexOfFirst { (o, n) -> n.oldParameter != o || n.isExplicit != o.isExplicit }
-}
+    val rangeData: HashMap<Concrete.Expression, TextRange>)
 
 private enum class RenderedParameterKind {INFIX_LEFT, INFIX_RIGHT}
 
@@ -271,8 +283,9 @@ fun doProcessEntry(entry: UsageEntry, globalReferable: GlobalReferable? = null):
     val referables = ArrayList<Variable>()
     val oldArgToLambdaArgMap = HashMap<Parameter, String>()
     var lambdaArgs = ""
+    val lambdaParams = entry.getLambdaParams(parameterMap.keys, false)
 
-    entry.getLambdaParams(i).map {
+    lambdaParams.map {
         val freshName = StringRenamer().generateFreshName(VariableImpl(it.referable?.refName), context + referables)
         referables.add(VariableImpl(freshName))
         lambdaArgs += if (it.isExplicit) " $freshName" else " {$freshName}"
@@ -307,9 +320,9 @@ fun doProcessEntry(entry: UsageEntry, globalReferable: GlobalReferable? = null):
     fun printParams(params: List<NewParameter>) {
         var implicitArgPrefix = ""
         var spacingContents = ""
-        for ((newParamIndex, newParam) in params.withIndex()) {
+        for (newParam in params) {
             val oldParam = newParam.oldParameter
-            if (oldParameters.indexOf(oldParam) >= i && newParamIndex >= params.size - entry.refactoringContext.diffIndex) break
+            if (!lambdaParams.contains(oldParam) && entry.getLambdaParams(parameterMap.keys, true).contains(oldParam)) break
 
             val (text, spacing) = renderParameter(oldParam, newParam.isExplicit)
 
@@ -445,7 +458,8 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
             val isPostfix = (function as ArendIPName).postfix != null
             if (isPostfix && refactoringContext.def == resolve) {
                 builder.append(doProcessEntry(object: AppExpressionEntry(exprBody, psiElement, defName, refactoringContext) {
-                    override fun getLambdaParams(startFromIndex: Int): List<Parameter> = (this.getParameters().first.firstOrNull { it.isExplicit }?.let { listOf(it) } ?: emptyList()) + super.getLambdaParams(startFromIndex)
+                    override fun getLambdaParams(parameterMap: Set<Parameter>, includingSuperfluousTrailingParams: Boolean): List<Parameter> =
+                        (this.getParameters().first.firstOrNull { it.isExplicit }?.let { listOf(it) } ?: emptyList()) + super.getLambdaParams(parameterMap, includingSuperfluousTrailingParams)
 
                     override fun getArguments(): List<ArgumentDescriptor> = listOf(ArgumentDescriptor("", null,  null, isExplicit = true, isAtomic = true, spacingText = null, referable = null)) + super.getArguments()
                 }).first)
@@ -512,7 +526,7 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
                 refactoringDescriptors.add(RefactoringDescriptor(clazz, oldParameters, oldParameters.map { NewParameter(if (switchedFieldIdentifiers.contains(it.referable)) !it.isExplicit else it.isExplicit, it) }))
             }
 
-            NameFieldApplier(project).applyTo(refactoringDescriptors, null, null)
+            NameFieldApplier(project).applyTo(refactoringDescriptors)
         } else {
             if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
                 val teleSize = if (element is ArendTypeTele && element.typedExpr?.identifierOrUnknownList?.isEmpty() == true) 1 else getTele(element)?.size ?: return
@@ -589,7 +603,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
         applyTo(singletonList(rd).toSet(), oldParametersConstructor, newParametersConstructor)
     }
 
-    fun applyTo(referableData: Set<RefactoringDescriptor>, oldParametersConstructor: List<Parameter>?, newParametersConstructor: List<NewParameter>?) {
+    fun applyTo(referableData: Set<RefactoringDescriptor>, oldParametersConstructor: List<Parameter>? = null, newParametersConstructor: List<NewParameter>? = null) {
         val fCallParents: LinkedHashSet<Pair<PsiElement, RefactoringDescriptor>> = referableData.map { descriptor ->
             ReferencesSearch.search(descriptor.def).map {
                 Pair(it.element, descriptor)

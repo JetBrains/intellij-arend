@@ -10,28 +10,19 @@ import com.intellij.util.Consumer
 import org.arend.ArendFileType
 import org.arend.psi.ArendPsiFactory
 
-class ArendChangeSignatureDialog(
-    project: Project,
-    val descriptor: ArendSignatureDescriptor,
-    private val changeInfo: ArendChangeInfo?
-) : ChangeSignatureDialogBase<
-        ArendParameterInfo,
-        PsiElement,
-        String,
-        ArendSignatureDescriptor,
-        ParameterTableModelItemBase<ArendParameterInfo>,
-        ArendParameterTableModel
-        >(project, descriptor, false, descriptor.method.context) {
+class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
+    ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ParameterTableModelItemBase<ArendParameterInfo>, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context) {
 
     override fun getFileType() = ArendFileType
 
-    override fun createParametersInfoModel(descriptor: ArendSignatureDescriptor) =
+    override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
         ArendParameterTableModel(descriptor, myDefaultValueContext)
 
     override fun createRefactoringProcessor(): BaseRefactoringProcessor =
-        ArendChangeSignatureProcessor(project, changeInfo)
+        ArendChangeSignatureProcessor(project, evaluateChangeInfo(myParametersTableModel))
 
-    override fun createReturnTypeCodeFragment(): PsiCodeFragment = createTypeCodeFragment(myMethod.method)
+    override fun createReturnTypeCodeFragment(): PsiCodeFragment =
+        createTypeCodeFragment(myMethod.method)
 
     override fun createCallerChooser(
         title: String?,
@@ -42,7 +33,13 @@ class ArendChangeSignatureDialog(
     // TODO: add information about errors
     override fun validateAndCommitData(): String? = null
 
-    override fun calculateSignature(): String = changeInfo?.signature() ?: ""
+    private fun evaluateChangeInfo(parametersModel: ArendParameterTableModel): ArendChangeInfo? {
+        return ArendChangeInfo(parametersModel.items.map {  it.parameter }.toMutableList(), myMethod.method)
+    }
+
+    override fun calculateSignature(): String =
+        evaluateChangeInfo(myParametersTableModel)?.signature() ?: ""
+
 
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
 
