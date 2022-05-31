@@ -27,7 +27,6 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
@@ -423,6 +422,8 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
 
             val processedFunction = appExprEntry.procFunction
             var explicitArgCount = 0
+            val isAtomic = if (appExprEntry.blocks.size == 1 && appExprEntry.blocks[0] == FUNCTION_INDEX) getStrippedPsi(expr.function.data as PsiElement).second else false
+
             for (block in appExprEntry.blocks) when (block) {
                 is Int -> if (block == FUNCTION_INDEX) append(processedFunction) else appExprEntry.getArguments()[block].let {
                     if (it.isExplicit) explicitArgCount++
@@ -433,8 +434,7 @@ fun processAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, 
                 }
                 is PsiElement -> append(textGetter(block, refactoringContext.textReplacements))
             }
-            val isAtomic = if (appExprEntry.blocks.size == 1 && appExprEntry.blocks[0] == FUNCTION_INDEX) getStrippedPsi(expr.function.data as PsiElement).second else false
-            ProcessAppExprResult(builder.toString(), null, parenthesizedBuilder.toString(), isAtomic, resolve as? GlobalReferable)
+            ProcessAppExprResult(builder.toString().let { if (isAtomic && resolveIsInfix) "($it)" else it}, null, parenthesizedBuilder.toString(), isAtomic, resolve as? GlobalReferable)
         }
     } else if (expr is Concrete.LamExpression && expr.data == null) {
         val builder = StringBuilder()
@@ -502,12 +502,8 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
         if (def is ArendDefClass) {
             val descendants = ClassDescendantsSearch(project).getAllDescendants(def)
             for (clazz in descendants.filterIsInstance<ArendDefClass>().union(singletonList(def))) {
-                val fieldDefIdentifiers = ArrayList<ArendFieldDefIdentifier>()
-                ClassFieldImplScope(clazz, false).elements.forEach { t ->
-                    if (t is ArendFieldDefIdentifier) fieldDefIdentifiers.add(t)
-                }
-
-                val oldParameters = fieldDefIdentifiers.map { Parameter(it.isExplicitField, it) }
+                val fieldDefIdentifiers = ClassFieldImplScope(clazz, false).elements
+                val oldParameters = fieldDefIdentifiers.map { Parameter(if (it is ArendFieldDefIdentifier) it.isExplicitField else true, it) }
                 val switchedFieldIdentifiers: List<Referable> = if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
                     (element as ArendFieldTele).fieldDefIdentifierList
                 } else {

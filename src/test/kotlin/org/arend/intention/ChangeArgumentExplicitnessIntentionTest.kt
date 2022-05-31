@@ -947,6 +947,16 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func foo => (\lam b => ** 1 {b}) ++ (\lam b => ** 3 {b}) 
     """)
 
+    fun testBrackets9() = doTest("""
+       \class Monoid ({-caret-}E : \Set) | \infixl 1 op : E -> E -> E
+       
+       \func foo (M : Monoid) => Monoid M.E (M.op) 
+    """, """
+       \class Monoid {E : \Set} | \infixl 1 op : E -> E -> E
+       
+       \func foo (M : Monoid) => Monoid {M.E} (M.op) 
+    """)
+
     fun testRecord() = doTest("""
        \record R {
          \func foo {{-caret-}x : Nat} => x
