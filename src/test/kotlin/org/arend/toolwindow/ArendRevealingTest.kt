@@ -110,6 +110,20 @@ class ArendRevealingTest : ArendTestBase() {
             """.trimIndent(), "idp"
         )
     }
+
+    fun `test reveal for coclause 3`() {
+        testRevealing(
+                """
+            \record R { \field r : 1 = 1 }
+            \func foo : R { | r => idp } => {?}""",
+                """
+                Expected type:
+                  R {
+                    | r => {-caret-}idp
+                  }
+            """.trimIndent(), "idp"
+        )
+    }
 }
 
 private val EMPTY_PP_CONFIG: PrettyPrinterConfig = object : PrettyPrinterConfig {

@@ -98,7 +98,7 @@ private fun Doc.findInjectedCoreByOffset(offset: Int, error: GeneralError): Pair
                 relativeOffset += offset - range.startOffset - substring.length
                 return expression to relativeOffset
             }
-            relativeOffset += range.length + 1 - substring.length // 1 for a space
+            relativeOffset += range.length - substring.length
         }
     }
     return null
@@ -143,7 +143,7 @@ private class InterceptingPrettyPrintVisitor(
         val offsetBefore = sb.length
         super.printIndent()
         val offsetAfter = sb.length
-        indentOffset += offsetAfter - offsetBefore
+        indentOffset += offsetAfter - offsetBefore + 1 // 1 for a newline
     }
 
     override fun visitTuple(expr: Concrete.TupleExpression, prec: Precedence): Void? {
