@@ -3,8 +3,10 @@ package org.arend.injection
 import com.intellij.util.castSafelyTo
 import org.arend.core.context.param.DependentLink
 import org.arend.core.context.param.EmptyDependentLink
+import org.arend.core.expr.ClassCallExpression.ClassCallBinding
 import org.arend.core.expr.DefCallExpression
 import org.arend.core.expr.Expression
+import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.Doc
@@ -131,6 +133,9 @@ private class InterceptingPrettyPrintVisitor(
         val offsetAfter = sb.length
         if (actualRelativeOffset in offsetBefore..offsetAfter) {
             revealableResult = ConcreteRefExpr(expr)
+            if (expr.data?.castSafelyTo<DefCallExpression>()?.defCallArguments?.singleOrNull()?.castSafelyTo<ReferenceExpression>()?.binding is ClassCallBinding) {
+                return
+            }
             val parameterLink = expr.data?.castSafelyTo<DefCallExpression>()?.definition?.parameters
             if (parameterLink != null && parameterLink.accumulate(true) { prev, link -> prev && !link.isExplicit }) {
                 lifetime = parameterLink.accumulate(0) { prev, _ -> prev + 1 }
@@ -189,7 +194,7 @@ private class InterceptingPrettyPrintVisitor(
         val offsetBefore = sb.length
         super.prettyPrintParameter(parameter)
         val offsetAfter = sb.length
-        if (revealableResult == null && actualRelativeOffset in offsetBefore..offsetAfter) {
+        if (visitParent && revealableResult == null && actualRelativeOffset in offsetBefore..offsetAfter) {
             if (parameter is Concrete.NameParameter) {
                 revealableResult = ConcreteLambdaParameter(parameter)
                 lifetime = 1
@@ -201,6 +206,17 @@ private class InterceptingPrettyPrintVisitor(
                 hideLifetime = 1
             }
         }
+    }
+
+    override fun visitSigma(expr: Concrete.SigmaExpression, prec: Precedence?): Void? {
+        val resultBefore = revealableResult
+        super.visitSigma(expr, prec)
+        val resultAfter = revealableResult
+        if (visitParent && resultBefore != resultAfter && resultAfter is ConcreteLambdaParameter && expr.parameters.any { it == resultAfter.expr }) {
+            visitParent = false
+            revealableResult = null
+        }
+        return null
     }
 
     override fun visitGoal(expr: Concrete.GoalExpression, prec: Precedence?): Void? {
