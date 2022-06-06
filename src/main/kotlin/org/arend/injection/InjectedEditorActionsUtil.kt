@@ -112,6 +112,9 @@ private class InterceptingPrettyPrintVisitor(
     private var visitParent: Boolean = true
     var lifetime: Int = 0
     var hideLifetime: Int = 0
+    var indentOffset = 0
+
+    private val actualRelativeOffset : Int get() = relativeOffset + indentOffset
 
     override fun visitReference(expr: Concrete.ReferenceExpression, prec: Precedence?): Void? {
         visitReferenceExpression(expr) { super.visitReference(expr, prec) }
@@ -122,10 +125,11 @@ private class InterceptingPrettyPrintVisitor(
         visitReferenceExpression(expr) { super.printReferenceName(expr, prec) }
     }
 
-    private fun visitReferenceExpression(expr: Concrete.ReferenceExpression, action : () -> Unit) { val offsetBefore = sb.length
+    private fun visitReferenceExpression(expr: Concrete.ReferenceExpression, action : () -> Unit) {
+        val offsetBefore = sb.length
         action()
         val offsetAfter = sb.length
-        if (relativeOffset in offsetBefore..offsetAfter) {
+        if (actualRelativeOffset in offsetBefore..offsetAfter) {
             revealableResult = ConcreteRefExpr(expr)
             val parameterLink = expr.data?.castSafelyTo<DefCallExpression>()?.definition?.parameters
             if (parameterLink != null && parameterLink.accumulate(true) { prev, link -> prev && !link.isExplicit }) {
@@ -135,11 +139,18 @@ private class InterceptingPrettyPrintVisitor(
         }
     }
 
+    override fun printIndent() {
+        val offsetBefore = sb.length
+        super.printIndent()
+        val offsetAfter = sb.length
+        indentOffset += offsetAfter - offsetBefore
+    }
+
     override fun visitTuple(expr: Concrete.TupleExpression, prec: Precedence): Void? {
         val offsetBefore = sb.length
         super.visitTuple(expr, prec)
         val offsetAfter = sb.length
-        if (revealableResult == null && relativeOffset in offsetBefore..offsetAfter) {
+        if (revealableResult == null && actualRelativeOffset in offsetBefore..offsetAfter) {
             revealableResult = ConcreteTuple(expr)
             lifetime = 1
             hideLifetime = 0
@@ -178,7 +189,7 @@ private class InterceptingPrettyPrintVisitor(
         val offsetBefore = sb.length
         super.prettyPrintParameter(parameter)
         val offsetAfter = sb.length
-        if (revealableResult == null && relativeOffset in offsetBefore..offsetAfter) {
+        if (revealableResult == null && actualRelativeOffset in offsetBefore..offsetAfter) {
             if (parameter is Concrete.NameParameter) {
                 revealableResult = ConcreteLambdaParameter(parameter)
                 lifetime = 1
@@ -196,7 +207,7 @@ private class InterceptingPrettyPrintVisitor(
         val offsetBefore = sb.length
         super.visitGoal(expr, prec)
         val offsetAfter = sb.length
-        if (revealableResult == null && relativeOffset in offsetBefore..offsetAfter) {
+        if (revealableResult == null && actualRelativeOffset in offsetBefore..offsetAfter) {
             revealableResult = ConcreteImplementation(expr)
             lifetime = 1
             hideLifetime = 0
