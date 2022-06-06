@@ -107,8 +107,17 @@ private class InterceptingPrettyPrintVisitor(
     var hideLifetime: Int = 0
 
     override fun visitReference(expr: Concrete.ReferenceExpression, prec: Precedence?): Void? {
+        visitReferenceExpression(expr) { super.visitReference(expr, prec) }
+        return null
+    }
+
+    override fun printReferenceName(expr: Concrete.ReferenceExpression, prec: Precedence?) {
+        visitReferenceExpression(expr) { super.printReferenceName(expr, prec) }
+    }
+
+    private fun visitReferenceExpression(expr: Concrete.ReferenceExpression, action : () -> Unit) {
         val offsetBefore = sb.length
-        super.visitReference(expr, prec)
+        action()
         val offsetAfter = sb.length
         if (relativeOffset in offsetBefore..offsetAfter) {
             revealableResult = ConcreteRefExpr(expr)
@@ -118,7 +127,6 @@ private class InterceptingPrettyPrintVisitor(
                 hideLifetime = 0
             }
         }
-        return null
     }
 
     override fun visitTuple(expr: Concrete.TupleExpression, prec: Precedence): Void? {

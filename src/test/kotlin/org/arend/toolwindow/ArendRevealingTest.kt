@@ -69,7 +69,17 @@ class ArendRevealingTest : ArendTestBase() {
             \func foo : idp = {1 = 1} idp => {?}""",
                 """
                 Expected type: idp{-caret-} = idp
-            """.trimIndent(), "i"
+            """.trimIndent(), "idp"
+        )
+    }
+
+    fun `test reveal for infix`() {
+        testRevealing(
+                """
+            \func foo : idp = {1 = 1} idp => {?}""",
+                """
+                Expected type: idp ={-caret-} idp
+            """.trimIndent(), "="
         )
     }
 }
