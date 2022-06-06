@@ -62,6 +62,16 @@ class ArendRevealingTest : ArendTestBase() {
             """.trimIndent(), "i"
         )
     }
+
+    fun `test reveal for idp`() {
+        testRevealing(
+                """
+            \func foo : idp = {1 = 1} idp => {?}""",
+                """
+                Expected type: idp{-caret-} = idp
+            """.trimIndent(), "i"
+        )
+    }
 }
 
 private val EMPTY_PP_CONFIG: PrettyPrinterConfig = object : PrettyPrinterConfig {
