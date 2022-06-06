@@ -76,7 +76,7 @@ private fun InjectedArendEditor.getUndoAction(
             id
         )
 
-        is ConcreteRefExpr, is ConcreteTuple -> UndoableConfigModificationAction(
+        is ConcreteRefExpr, is ConcreteTuple, is ConcreteImplementation -> UndoableConfigModificationAction(
             this,
             editor.document,
             verboseLevelMap,

@@ -43,6 +43,13 @@ value class ConcreteTuple(override val expr: Concrete.TupleExpression) : Concret
     }
 }
 
+@JvmInline
+value class ConcreteImplementation(override val expr: Concrete.Expression) : ConcreteResult {
+    override fun getTextId(): String {
+        return expr.toString()
+    }
+}
+
 data class RevealableFragment(
     val revealLifetime: Int,
     val hideLifetime: Int,
@@ -115,8 +122,7 @@ private class InterceptingPrettyPrintVisitor(
         visitReferenceExpression(expr) { super.printReferenceName(expr, prec) }
     }
 
-    private fun visitReferenceExpression(expr: Concrete.ReferenceExpression, action : () -> Unit) {
-        val offsetBefore = sb.length
+    private fun visitReferenceExpression(expr: Concrete.ReferenceExpression, action : () -> Unit) { val offsetBefore = sb.length
         action()
         val offsetAfter = sb.length
         if (relativeOffset in offsetBefore..offsetAfter) {
@@ -160,9 +166,9 @@ private class InterceptingPrettyPrintVisitor(
         if (visitParent && resultAfter != resultBefore && resultAfter is ConcreteRefExpr && resultAfter.expr == expr.function) {
             visitParent = false
             val argumentsShown = expr.arguments.count()
-            val agumentsOverall =
+            val argumentsOverall =
                 resultAfter.expr.data.castSafelyTo<DefCallExpression>()?.defCallArguments?.count() ?: return null
-            lifetime = agumentsOverall - argumentsShown
+            lifetime = argumentsOverall - argumentsShown
             hideLifetime = expr.arguments.count { !it.isExplicit }
         }
         return null
@@ -182,6 +188,30 @@ private class InterceptingPrettyPrintVisitor(
                 revealableResult = ConcreteLambdaParameter(parameter)
                 lifetime = 0
                 hideLifetime = 1
+            }
+        }
+    }
+
+    override fun visitGoal(expr: Concrete.GoalExpression, prec: Precedence?): Void? {
+        val offsetBefore = sb.length
+        super.visitGoal(expr, prec)
+        val offsetAfter = sb.length
+        if (revealableResult == null && relativeOffset in offsetBefore..offsetAfter) {
+            revealableResult = ConcreteImplementation(expr)
+            lifetime = 1
+            hideLifetime = 0
+        }
+        return null
+    }
+
+    override fun prettyPrintClassFieldImpl(classFieldImpl: Concrete.ClassFieldImpl) {
+        val resultBefore = revealableResult
+        super.prettyPrintClassFieldImpl(classFieldImpl)
+        val resultAfter = revealableResult
+        if (visitParent && resultBefore != resultAfter && resultAfter is ConcreteImplementation) {
+            visitParent = false
+            if (classFieldImpl.implementation != resultAfter.expr) {
+                revealableResult = null
             }
         }
     }

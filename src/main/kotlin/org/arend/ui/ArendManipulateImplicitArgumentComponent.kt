@@ -13,10 +13,7 @@ import com.intellij.ui.HintHint
 import com.intellij.ui.LightweightHint
 import com.intellij.ui.components.JBLabel
 import org.arend.ArendIcons
-import org.arend.injection.ConcreteLambdaParameter
-import org.arend.injection.ConcreteRefExpr
-import org.arend.injection.ConcreteTuple
-import org.arend.injection.RevealableFragment
+import org.arend.injection.*
 import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import java.awt.Point
@@ -94,6 +91,7 @@ private class ArendManipulateImplicitArgumentComponent(private val fragment: Rev
                     is ConcreteLambdaParameter -> ArendBundle.message("arend.reveal.lambda.parameter.type")
                     is ConcreteRefExpr -> ArendBundle.message("arend.reveal.implicit.argument")
                     is ConcreteTuple -> ArendBundle.message("arend.reveal.type.of.tuple")
+                    is ConcreteImplementation -> ArendBundle.message("arend.reveal.proof")
                 } + " (${
                     KeymapUtil.getFirstKeyboardShortcutText(
                         ActionManager.getInstance().getAction("Arend.PrettyPrint.RevealImplicitInformation") as AnAction
@@ -124,6 +122,7 @@ private class ArendManipulateImplicitArgumentComponent(private val fragment: Rev
                     is ConcreteLambdaParameter -> ArendBundle.message("arend.hide.lambda.parameter.type")
                     is ConcreteRefExpr -> ArendBundle.message("arend.hide.implicit.argument")
                     is ConcreteTuple -> ArendBundle.message("arend.hide.type.of.tuple")
+                    is ConcreteImplementation -> ArendBundle.message("arend.hide.proof")
                 } + " (${
                     KeymapUtil.getFirstKeyboardShortcutText(
                         ActionManager.getInstance().getAction("Arend.PrettyPrint.HideImplicitInformation") as AnAction
