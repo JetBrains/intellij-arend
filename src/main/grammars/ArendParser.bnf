@@ -1040,7 +1040,7 @@ typeTele ::= literal
 
 private typedTeleExplicit ::= LPAREN STRICT_KW? typedExpr RPAREN { pin = 1 }
 
-private typedSigmaTele ::= LPAREN (PROPERTY_KW | FIELD_KW)? typedExpr RPAREN { pin = 1 }
+private typedSigmaTele ::= LPAREN PROPERTY_KW? typedExpr RPAREN { pin = 1 }
 
 private typedTeleImplicit ::= LBRACE STRICT_KW? typedExpr RBRACE { pin = 1 }
 

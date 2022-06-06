@@ -70,9 +70,7 @@ abstract class ArendSigmaTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(n
     override fun isStrict() = false
 
     override fun getFieldKind(): SigmaFieldKind {
-        return if (fieldKw != null) {
-            SigmaFieldKind.FIELD
-        } else if (propertyKw != null) {
+        return if (propertyKw != null) {
             SigmaFieldKind.PROPERTY
         } else {
             SigmaFieldKind.ANY
