@@ -1,8 +1,5 @@
 package org.arend.refactoring
 
-import com.intellij.openapi.components.service
-import org.arend.settings.ArendSettings
-
 class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
     fun testSimpleMove1() =

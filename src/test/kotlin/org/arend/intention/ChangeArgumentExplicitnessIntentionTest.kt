@@ -1014,7 +1014,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        } 
     """, """
        \record R {
-         \func test => test.foo {_} {1}
+         \func test => foo {_} {1}
            \where {
            \func foo {x : Nat} => x
          }

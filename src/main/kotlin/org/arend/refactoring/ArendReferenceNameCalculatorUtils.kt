@@ -1,6 +1,7 @@
 package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.isAncestor
 import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.module.ModuleLocation
@@ -110,6 +111,9 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         }
 
         val statements: List<ArendStatCmd>? = containingGroup?.namespaceCommands?.filterIsInstance<ArendStatCmd>()?.toList()
+
+        if (!allowSelfImport) if (psi is PsiLocatedReferable && psi.isAncestor(defaultLocation.target))
+            defaultLocation.processParentGroup(psi)
 
         if (statements != null)
             ancestorGroups.add(0, Pair(containingGroup, statements.filter { it.kind == NamespaceCommand.Kind.OPEN }))
