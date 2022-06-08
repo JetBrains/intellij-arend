@@ -153,7 +153,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                         def.resultType
                     }
                     is FunctionDefinitionAdapter -> {
-                        val defClass = def.parent?.parent as? ArendDefClass
+                        val defClass = def.ancestor<ArendDefClass>()
                         val className = defClass?.name
                         if (className != null) {
                             params.add(0, psiFactory.createNameTele("this", className, false))
