@@ -752,14 +752,14 @@ private coClauseImpl ::= lamParam* FAT_ARROW expr { pin = 2 }
 
 private coClauseRec ::= LBRACE coClauseImp* RBRACE
 
-letClause ::= letClauseName FAT_ARROW expr {
+letClause ::= letClauseName typeAnnotation? FAT_ARROW expr {
     pin = 1
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.LetClause" ]
     mixin = "org.arend.psi.ext.ArendLetClauseImplMixin"
 }
 
-private letClauseName ::= defIdentifier_letClause nameTele* typeAnnotation? | atomPattern { pin(".*") = 1 }
+private letClauseName ::= defIdentifier_letClause nameTele* | atomPattern { pin(".*") = 1 }
 
 private defIdentifier_letClause ::= defIdentifier {
     recoverWhile = defIdentifier_letClause_recover
