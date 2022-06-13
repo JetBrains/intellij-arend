@@ -6,15 +6,20 @@ import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.expr.ClassCallExpression.ClassCallBinding
 import org.arend.core.expr.DefCallExpression
 import org.arend.core.expr.Expression
+import org.arend.core.expr.FieldCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.reference.Precedence
 import org.arend.injection.actions.NormalizationCache
+import org.arend.naming.reference.ModuleReferable
 import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.Concrete.LongReferenceExpression
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
+import org.arend.util.allBindings
+import org.arend.util.allParameters
 import org.jetbrains.annotations.TestOnly
 
 sealed interface ConcreteResult {
@@ -133,15 +138,28 @@ private class InterceptingPrettyPrintVisitor(
         val offsetAfter = sb.length
         if (actualRelativeOffset in offsetBefore..offsetAfter) {
             revealableResult = ConcreteRefExpr(expr)
-            if (expr.data?.castSafelyTo<DefCallExpression>()?.defCallArguments?.singleOrNull()?.castSafelyTo<ReferenceExpression>()?.binding is ClassCallBinding) {
-                return
-            }
-            val parameterLink = expr.data?.castSafelyTo<DefCallExpression>()?.definition?.parameters
-            if (parameterLink != null && parameterLink.accumulate(true) { prev, link -> prev && !link.isExplicit }) {
-                lifetime = parameterLink.accumulate(0) { prev, _ -> prev + 1 }
+            val data = expr.data.castSafelyTo<Expression>()
+            if (data != null) {
+                lifetime = getImplicitArgumentsCount(data, expr)
                 hideLifetime = 0
             }
         }
+    }
+
+    private fun getImplicitArgumentsCount(core: Expression, expr: Concrete.ReferenceExpression) : Int {
+        if (core.castSafelyTo<DefCallExpression>()?.defCallArguments?.singleOrNull()?.castSafelyTo<ReferenceExpression>()?.binding is ClassCallBinding) {
+            return 0
+        }
+        if (core is FieldCallExpression) {
+            val definition = core.definition.type.allParameters().flatMap { it.parameters.allBindings() }
+            val subtractee = expr.castSafelyTo<LongReferenceExpression>()?.qualifier?.referent?.takeIf { it !is ModuleReferable }?.let { 1 } ?: 0
+            return definition.count { !it.isExplicit } - subtractee
+        }
+        val parameterLink = core.castSafelyTo<DefCallExpression>()?.definition?.parameters
+        if (parameterLink != null && parameterLink.accumulate(true) { prev, link -> prev && !link.isExplicit }) {
+            return parameterLink.accumulate(0) { prev, _ -> prev + 1 }
+        }
+        return 0
     }
 
     override fun printIndent() {

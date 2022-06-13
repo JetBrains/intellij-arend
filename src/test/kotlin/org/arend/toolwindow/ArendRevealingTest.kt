@@ -1,6 +1,7 @@
 package org.arend.toolwindow
 
 import com.intellij.openapi.components.service
+import com.intellij.util.containers.tail
 import junit.framework.TestCase
 import org.arend.ArendTestBase
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
@@ -15,20 +16,22 @@ import java.util.*
 
 class ArendRevealingTest : ArendTestBase() {
 
-    private fun testRevealing(@Language("Arend") typecheckable: String, docString: String, expectedRepr: String?) {
+    private fun testRevealing(@Language("Arend") typecheckable: String, docString: String, expectedRepr: String?, vararg flags : PrettyPrinterFlag) {
         val file = myFixture.addFileToProject("Main.ard", typecheckable)
         typecheck()
         val error = project.service<ErrorService>().errors[file]!!.single().error as GoalError
-        val doc = error.getBodyDoc(EMPTY_PP_CONFIG)!!
+        val config = getConfig(*flags)
+        val doc = error.getBodyDoc(config)!!
         val docOffset = docString.findAnyOf(listOf(CARET_MARKER))!!.first
         val actualDocString = docString.removeRange(docOffset, docOffset + CARET_MARKER.length)
         TestCase.assertEquals(doc.toString(), actualDocString)
-        val fragment = findRevealableCoreAtOffset(docOffset, doc, error, EMPTY_PP_CONFIG, NormalizationCache())
+        val fragment = findRevealableCoreAtOffset(docOffset, doc, error, config, NormalizationCache())
         TestCase.assertEquals(expectedRepr == null, fragment == null)
         if (fragment == null) {
             return
         }
         TestCase.assertEquals(expectedRepr, fragment.result.getTextId())
+        TestCase.assertTrue("Result is nontrivial", fragment.hideLifetime + fragment.revealLifetime > 0)
     }
 
     fun `test basic reveal`() {
@@ -123,6 +126,31 @@ class ArendRevealingTest : ArendTestBase() {
                   }
             """.trimIndent(), "idp"
         )
+    }
+
+    fun `test reveal for field call`() {
+        testRevealing("""
+            \class A {
+              | f {n : Nat} : n = 1
+            }
+
+            \func e (q : A) : q.f = idp => {?}
+        """.trimIndent(), """
+            Expected type: q.{-caret-}f = idp
+            Context: q : A
+        """.trimIndent(), "f", PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)
+    }
+}
+
+private fun getConfig(vararg flags: PrettyPrinterFlag): PrettyPrinterConfig {
+    if (flags.isEmpty()) {
+        return EMPTY_PP_CONFIG
+    } else {
+        return object : PrettyPrinterConfig {
+            override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> {
+                return EnumSet.of(flags.first(), *flags.toList().tail().toTypedArray())
+            }
+        }
     }
 }
 
