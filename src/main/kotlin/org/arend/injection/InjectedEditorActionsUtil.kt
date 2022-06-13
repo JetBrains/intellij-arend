@@ -199,11 +199,10 @@ private class InterceptingPrettyPrintVisitor(
         val resultAfter = revealableResult
         if (visitParent && resultAfter != resultBefore && resultAfter is ConcreteRefExpr && resultAfter.expr == expr.function) {
             visitParent = false
-            val argumentsShown = expr.arguments.count()
-            val argumentsOverall =
-                resultAfter.expr.data.castSafelyTo<DefCallExpression>()?.defCallArguments?.count() ?: return null
-            lifetime = argumentsOverall - argumentsShown
-            hideLifetime = expr.arguments.count { !it.isExplicit }
+            val implicitArgumentsShown = expr.arguments.count { !it.isExplicit }
+            val implicitArgumentsOverall = resultAfter.expr.data?.castSafelyTo<Expression>()?.let { getImplicitArgumentsCount(it.function, resultAfter.expr)} ?: return null
+            lifetime = implicitArgumentsOverall - implicitArgumentsShown
+            hideLifetime = implicitArgumentsShown
         }
         return null
     }
