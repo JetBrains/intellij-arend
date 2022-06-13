@@ -133,7 +133,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         return cellRenderer as ListCellRenderer<Any>
     }
 
-    override fun createTopLeftPanel(): JPanel {
+    private fun doCreateTopLeftPanel(): JPanel {
         @Suppress("DialogTitleCapitalization")
         val title = JBLabel(ArendBundle.message("arend.proof.search.title"))
         val topPanel = JPanel(MigLayout("flowx, ins 0, gap 0, fillx, filly"))
@@ -159,7 +159,15 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         return topPanel
     }
 
-    override fun createSettingsPanel(): JPanel {
+    override fun createHeader(): JComponent {
+        val header = JPanel(BorderLayout())
+        header.add(doCreateTopLeftPanel(), BorderLayout.WEST)
+        header.add(doCreateSettingsPanel(), BorderLayout.EAST)
+        header.background = JBUI.CurrentTheme.BigPopup.headerBackground()
+        return header
+    }
+
+    private fun doCreateSettingsPanel(): JPanel {
         val res = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 0))
         res.isOpaque = false
 
@@ -169,7 +177,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         actionGroup.addAction(ShowHelpAction(this))
         val toolbar = ActionManager.getInstance().createActionToolbar("proof.search.top.toolbar", actionGroup, true)
         toolbar.layoutPolicy = ActionToolbar.NOWRAP_LAYOUT_POLICY
-        toolbar.setTargetComponent(this)
+        toolbar.targetComponent = this
         val toolbarComponent = toolbar.component
         toolbarComponent.isOpaque = false
         res.add(toolbarComponent)
