@@ -10,6 +10,7 @@ import org.arend.core.expr.FieldCallExpression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.reference.Precedence
 import org.arend.injection.actions.NormalizationCache
@@ -77,7 +78,7 @@ fun findRevealableCoreAtOffset(
     val (coreExpression, relativeOffset) = doc.findInjectedCoreByOffset(offset, error) ?: return null
     val normalizedCore = cache.getNormalizedExpression(coreExpression)
     val concreteExpression = ToAbstractVisitor.convert(normalizedCore, ppConfig)
-    val stringInterceptor = InterceptingPrettyPrintVisitor(relativeOffset)
+    val stringInterceptor = InterceptingPrettyPrintVisitor(relativeOffset, ppConfig)
     concreteExpression.accept(
         stringInterceptor,
         Precedence(Precedence.Associativity.NON_ASSOC, Concrete.Expression.PREC, true)
@@ -113,6 +114,7 @@ private fun Doc.findInjectedCoreByOffset(offset: Int, error: GeneralError): Pair
 
 private class InterceptingPrettyPrintVisitor(
     private val relativeOffset: Int,
+    private val ppConfig: PrettyPrinterConfig,
     private val sb: StringBuilder = StringBuilder()
 ) : PrettyPrintVisitor(sb, 0, false) {
     var revealableResult: ConcreteResult? = null
@@ -277,6 +279,9 @@ private class InterceptingPrettyPrintVisitor(
         val resultAfter = revealableResult
         if (visitParent && resultBefore != resultAfter && resultAfter is ConcreteLambdaParameter) {
             visitParent = false
+            if (ppConfig.expressionFlags.contains(PrettyPrinterFlag.SHOW_TYPES_IN_LAM)) {
+                revealableResult = null
+            }
         }
         return null
     }
