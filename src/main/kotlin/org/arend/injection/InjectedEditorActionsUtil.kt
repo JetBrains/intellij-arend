@@ -158,8 +158,8 @@ private class InterceptingPrettyPrintVisitor(
             return definition.count { !it.isExplicit } - subtractee
         }
         val parameterLink = core.castSafelyTo<DefCallExpression>()?.definition?.parameters
-        if (parameterLink != null && parameterLink.accumulate(true) { prev, link -> prev && !link.isExplicit }) {
-            return parameterLink.accumulate(0) { prev, _ -> prev + 1 }
+        if (parameterLink != null) {
+            return parameterLink.accumulate(0) { prev, link -> prev + (if (!link.isExplicit) 1 else 0) }
         }
         return 0
     }
