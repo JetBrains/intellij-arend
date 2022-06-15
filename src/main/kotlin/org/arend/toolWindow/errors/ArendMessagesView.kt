@@ -190,8 +190,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                             updateGoalsView(goalEmptyPanel)
                         }
                         else if (isCausePsiInvalid(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
-                            val goalRemovedTitle = " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})"
-                            goalsTabInfo.append(goalRemovedTitle, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+                            runInEdt {
+                                goalsTabInfo.append(
+                                    " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})",
+                                    SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES
+                                )
+                            }
                         }
                     }
                 }
@@ -263,7 +267,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private fun updateGoalsView(component: JComponent) {
         updatePanel(goalsPanel, component)
-        goalsTabInfo.text = defaultGoalsTabTitle
+        runInEdt { goalsTabInfo.text = defaultGoalsTabTitle }
     }
 
     fun updateGoalText() {
