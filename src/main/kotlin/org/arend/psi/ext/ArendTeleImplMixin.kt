@@ -1,6 +1,8 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
+import org.arend.ext.concrete.expr.SigmaFieldKind
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.term.abs.Abstract
@@ -53,6 +55,27 @@ abstract class ArendTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node),
     override fun getType(): Abstract.Expression? = typedExpr?.expr ?: literal ?: universeAtom
 
     override fun isStrict() = strictKw != null
+}
+
+abstract class ArendSigmaTypeTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendSigmaTypeTele {
+    override fun getData() = this
+
+    override fun isExplicit() = false
+
+    override fun getReferableList(): List<Referable?> =
+        typedExpr?.identifierOrUnknownList?.map { it.defIdentifier }?.ifEmpty { listOf(null) } ?: listOf(null)
+
+    override fun getType(): Abstract.Expression? = typedExpr?.expr ?: literal ?: universeAtom
+
+    override fun isStrict() = false
+
+    override fun getFieldKind(): SigmaFieldKind {
+        return if (propertyKw != null) {
+            SigmaFieldKind.PROPERTY
+        } else {
+            SigmaFieldKind.ANY
+        }
+    }
 }
 
 abstract class ArendFieldTeleImplMixin(node: ASTNode): ArendSourceNodeImpl(node), ArendFieldTele {

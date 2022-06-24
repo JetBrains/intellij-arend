@@ -15,6 +15,7 @@ import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.repl.CommandHandler
@@ -148,7 +149,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(BASIC_EXPRESSION_KW_PATTERN, BASIC_EXPRESSION_KW)
         basic(and(or(EXPRESSION_CONTEXT, TELE_CONTEXT), expressionPattern.invoke(false, true)), NEW_KW_LIST)
-
+        basic(and(PlatformPatterns.psiElement().inside(ArendSigmaTypeTele::class.java), PlatformPatterns.psiElement().afterLeaf("(")), SIGMA_TELE_START_KWS)
         val truncatedTypeInsertHandler = InsertHandler<LookupElement> { insertContext, _ ->
             val document = insertContext.document
             document.insertString(insertContext.tailOffset, " ") // add tail whitespace
@@ -509,9 +510,10 @@ class ArendCompletionContributor : CompletionContributor() {
 
         private val TELE_CONTAINERS = arrayOf<Class<out PsiElement>>(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java, ArendFunctionalDefinition::class.java, ArendCoClauseDef::class.java)
         private val TELE_CONTEXT = or(
-                and(withParent(PsiErrorElement::class.java), withGrandParents(ArendTypeTele::class.java, ArendNameTele::class.java), withGreatGrandParents(*TELE_CONTAINERS)),
-                and(withParents(ArendTypeTele::class.java, ArendNameTele::class.java), withGrandParents(*TELE_CONTAINERS)),
-                withAncestors(*(LITERAL_PREFIX + arrayOf(ArendTypeTele::class.java))))
+                and(withParent(PsiErrorElement::class.java), withGrandParents(ArendTypeTele::class.java, ArendNameTele::class.java, ArendSigmaTypeTele::class.java), withGreatGrandParents(*TELE_CONTAINERS)),
+                and(withParents(ArendTypeTele::class.java, ArendNameTele::class.java, ArendSigmaTypeTele::class.java), withGrandParents(*TELE_CONTAINERS)),
+                withAncestors(*(LITERAL_PREFIX + arrayOf(ArendTypeTele::class.java))),
+                withAncestors(*(LITERAL_PREFIX + arrayOf(ArendSigmaTypeTele::class.java))))
 
         private val EXPRESSION_CONTEXT = and(
                 or(withAncestors(*ATOM_PREFIX),
@@ -526,7 +528,8 @@ class ArendCompletionContributor : CompletionContributor() {
                         and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
                         and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java)),
                         withAncestors(ArendNameTele::class.java, ArendDefFunction::class.java),
-                        withAncestors(ArendTypeTele::class.java, ArendDefData::class.java)),
+                        withAncestors(ArendTypeTele::class.java, ArendDefData::class.java),
+                        withAncestors(ArendSigmaTypeTele::class.java)),
                 not(afterLeaves(PIPE, COWITH_KW, COERCE_KW, CLASSIFYING_KW, FIELD_KW, PROPERTY_KW))) // no expression keywords after pipe
 
         private val FIRST_TYPE_TELE_CONTEXT = and(afterLeaf(ID), withParent(PsiErrorElement::class.java),
@@ -587,9 +590,9 @@ class ArendCompletionContributor : CompletionContributor() {
 
             val context = ofType(PI_KW, SIGMA_KW)
 
-            var tele: ArendTypeTele? = null
+            var tele: ArendCompositeElement? = null
             while (result != null) {
-                if (result is ArendTypeTele) tele = result
+                if (result is ArendTypeTele || result is ArendSigmaTypeTele) tele = result as ArendCompositeElement
                 if (result is ArendExpr && result !is ArendUniverseAtom) break
                 result = result.parent
             }

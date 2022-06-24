@@ -522,8 +522,11 @@ class ArendMoveRefactoringProcessor(project: Project,
                     val greatGreatGrandParent = greatGrandParent.parent
                     if (greatGreatGrandParent is ArendArgumentAppExpr) doAddImplicitFirstArgument(greatGrandParent)
                 }
+            } else if (parent is ArendSigmaTypeTele) {
+                val newTypeTele = psiFactory.createExpression("\\Sigma (${literal.text} {$argument})").childOfType<ArendSigmaTypeTele>()
+                if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
             } else if (parent is ArendTypeTele) {
-                val newTypeTele = psiFactory.createExpression("\\Sigma (${literal.text} {$argument})").childOfType<ArendTypeTele>()
+                val newTypeTele = psiFactory.createExpression("\\Pi (${literal.text} {$argument}) -> \\Set").childOfType<ArendTypeTele>()
                 if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
             }
         }

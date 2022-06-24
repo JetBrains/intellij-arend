@@ -13,7 +13,9 @@ fun afterLeaves (vararg types: IElementType) = StandardPatterns.or(*types.map { 
 
 fun ofType(vararg types: IElementType) = StandardPatterns.or(*types.map { PlatformPatterns.psiElement(it) }.toTypedArray())
 
-fun <T : PsiElement> withParent(et: Class<T>) = PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
+fun <T : PsiElement> withParent(et: Class<T>): PsiElementPattern.Capture<PsiElement> {
+    return PlatformPatterns.psiElement().withParent(PlatformPatterns.psiElement(et))
+}
 
 fun <T : PsiElement> withGrandParent(et: Class<T>) = PlatformPatterns.psiElement().withSuperParent(2, PlatformPatterns.psiElement(et))
 
