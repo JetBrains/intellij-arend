@@ -6,6 +6,7 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendDefFunction
+import org.arend.psi.ArendDefMeta
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendLongName
 import org.arend.psi.CoClauseBase
@@ -28,7 +29,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
     fun findClassReference(referent: Referable?, originalScope: Scope): ClassReferable? {
         mode = Mode.EXPRESSION
         var ref: Referable? = referent
-        var visited: MutableSet<ArendDefFunction>? = null
+        var visited: MutableSet<Referable>? = null
         var scope = originalScope
         while (true) {
             if (ref == null) {
@@ -38,11 +39,12 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
             if (ref is ClassReferable) {
                 return ref
             }
-            if (ref !is ArendDefFunction) {
-                return null
-            }
 
-            val term = ref.functionBody?.expr ?: return null
+            val term = when (ref) {
+                is ArendDefFunction -> ref.functionBody?.expr
+                is ArendDefMeta -> ref.expr
+                else -> null
+            } ?: return null
 
             if (visited == null) {
                 visited = mutableSetOf(ref)
