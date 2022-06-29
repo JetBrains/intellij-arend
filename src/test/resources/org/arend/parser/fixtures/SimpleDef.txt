@@ -1,5 +1,5 @@
 FILE
-  ArendStatImpl(STATEMENT)
+  ArendStatImpl(STAT)
     ArendDefFunctionImpl(DEF_FUNCTION)
       ArendFunctionKwImpl(FUNCTION_KW)
         PsiElement(\func)('\func')
