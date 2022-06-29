@@ -236,16 +236,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getReferable(): PsiLocatedReferable = this
 
-    override fun getSubgroups(): List<ArendGroup> = children.mapNotNull { child -> (child as? ArendStatement)?.let { it.definition ?: it.defModule } }
-
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
-    override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
-
-    override val statements
-        get() = children.filterIsInstance<ArendStatement>()
+    override fun getStatements() = children.filterIsInstance<ArendStat>()
 
     override val where: ArendWhere?
         get() = null

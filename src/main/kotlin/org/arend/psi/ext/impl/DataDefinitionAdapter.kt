@@ -41,7 +41,7 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
         return body.constructorClauseList + body.constructorList
     }
 
-    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
+    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statList?.mapNotNull {
         val def = it.definition
         if ((def as? ArendDefFunction)?.functionKw?.useKw != null) def else null
     } ?: emptyList()

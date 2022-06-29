@@ -56,6 +56,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.ui.*
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
+import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
@@ -261,7 +262,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
                 if (modules.isNotEmpty()) {
                     val groups = StubIndex.getElements(ArendDefinitionIndex.KEY, modules.last(), project, GlobalSearchScope.allScope(project), PsiReferable::class.java).filterIsInstance<ArendGroup>()
                         .filter { it.hasSuffixGroupStructure(modules.subList(0, modules.size - 1)) }
-                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { it.definition?.castSafelyTo<ReferableAdapter<*>>()?.takeIf { ref -> matcher.prefixMatches(ref.refName) } } })
+                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { it.group?.castSafelyTo<ReferableAdapter<*>>()?.takeIf { ref -> ref is ArendDefinition && matcher.prefixMatches(ref.refName) } } })
                 } else {
                     StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
                         StubIndex.getInstance().processElements(ArendDefinitionIndex.KEY, name, project, null, PsiReferable::class.java) {

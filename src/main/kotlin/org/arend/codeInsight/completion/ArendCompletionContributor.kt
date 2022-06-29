@@ -506,7 +506,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
 
-        private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
+        private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStat::class.java)
 
         private val TELE_CONTAINERS = arrayOf<Class<out PsiElement>>(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java, ArendFunctionalDefinition::class.java, ArendCoClauseDef::class.java)
         private val TELE_CONTEXT = or(
@@ -778,7 +778,7 @@ class ArendCompletionContributor : CompletionContributor() {
             prevElement = prev
 
             val statementCondition = { psi: PsiElement ->
-                if (psi is ArendStatement) {
+                if (psi is ArendStat) {
                     val psiParent = psi.parent
                     !(psiParent is ArendWhere && psiParent.lbrace == null)
                 } else psi is ArendClassStat

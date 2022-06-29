@@ -221,7 +221,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                         insertAnchor!!.parent!!.addAfterWithNotification(mCopyClassStat, insertAnchor)
                     } else {
                         val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
-                            val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStatement>()
+                            val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStat>()
                             statementContainer!!.definition!!.replace(member.copy())
                             statementContainer
                         } else mStatementOrClassStat.copy()
@@ -232,10 +232,10 @@ class ArendMoveRefactoringProcessor(project: Project,
 
             fun markGroupAsTheOneThatNeedsLeadingThisParameter(group: ArendGroup) {
                 if (group is PsiConcreteReferable) definitionsThatNeedThisParameter.add(group)
-                for (sg in group.subgroups) markGroupAsTheOneThatNeedsLeadingThisParameter(sg)
+                for (stat in group.statements) markGroupAsTheOneThatNeedsLeadingThisParameter(stat.group ?: continue)
             }
 
-            if (memberIsInDynamicPart && copyOfMemberStatement is ArendStatement) {
+            if (memberIsInDynamicPart && copyOfMemberStatement is ArendStat) {
                 copyOfMemberStatement.definition?.let { markGroupAsTheOneThatNeedsLeadingThisParameter(it) }
                 copyOfMemberStatement.defModule?.let { markGroupAsTheOneThatNeedsLeadingThisParameter(it) }
             } else if (memberIsInDynamicPart && copyOfMemberStatement is ArendClassStat && forceThisParameter) {
@@ -272,7 +272,7 @@ class ArendMoveRefactoringProcessor(project: Project,
         for (descriptor in myReferableDescriptors) (locateChild(descriptor) as? PsiLocatedReferable)?.let { movedReferablesMap[descriptor] = it }
         val movedReferablesNamesSet = movedReferablesMap.values.mapNotNull { it.name }.toSet()
         run {
-            val referablesWithUsagesInSourceContainer = movedReferablesMap.values.intersect(remainderReferables.map { movedReferablesMap[it] }).
+            val referablesWithUsagesInSourceContainer = movedReferablesMap.values.intersect(remainderReferables.map { movedReferablesMap[it] }.toSet()).
                 union(movedReferablesMap.values.filterIsInstance<ArendDefInstance>()).mapNotNull { it?.name }.toList()
             val movedReferablesUniqueNames = movedReferablesNamesSet.filter { name -> referablesWithUsagesInSourceContainer.filter { it == name }.size == 1 }
             val referablesWithUniqueNames = HashMap<String, PsiLocatedReferable>()
@@ -322,7 +322,7 @@ class ArendMoveRefactoringProcessor(project: Project,
             }
 
             val where = mySourceContainer.where
-            if (where != null && where.statementList.isEmpty() && (sourceContainerWhereBlockFreshlyCreated || where.lbrace == null))  where.deleteWithNotification()
+            if (where != null && where.statList.isEmpty() && (sourceContainerWhereBlockFreshlyCreated || where.lbrace == null))  where.deleteWithNotification()
         }
 
         //Fix usages of namespace commands
@@ -640,7 +640,7 @@ class ArendMoveRefactoringProcessor(project: Project,
         val usages = refUsages.get()
 
         if (mySourceContainer != myTargetContainer) {
-            val localGroup = HashSet(myTargetContainer.subgroups)
+            val localGroup = HashSet(myTargetContainer.statements.mapNotNull { it.group })
             localGroup.addAll(myTargetContainer.dynamicSubgroups)
 
             val localNamesMap = HashMap<String, ArendGroup>()

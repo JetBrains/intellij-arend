@@ -31,8 +31,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val scope: Scope
         get() = groupScope
 
-    override val statements: List<ArendStatement>
-        get() = where?.statementList ?: emptyList()
+    override fun getStatements(): List<ArendStatement> = where?.statList ?: emptyList()
 
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition {
         val def = ConcreteBuilder.convert(referableConverter, this, errorReporter)
@@ -50,11 +49,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getReferable(): LocatedReferable = this
 
-    override fun getSubgroups(): List<ArendGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule } ?: emptyList()
-
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
-
-    override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 

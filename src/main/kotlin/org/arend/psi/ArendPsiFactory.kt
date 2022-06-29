@@ -29,7 +29,7 @@ class ArendPsiFactory(
             ?: error("Failed to create alias identifier: `$name`")
 
     fun createLongName(name: String): ArendLongName =
-        createImportCommand(name, StatCmdKind.IMPORT).statCmd?.longName ?: error("Failed to create long name: `$name`")
+        createImportCommand(name, StatCmdKind.IMPORT).namespaceCommand?.longName ?: error("Failed to create long name: `$name`")
 
     fun createLetExpression(letClause : String, expressionToWrap : String) : ArendLetExpr =
         createFromText("\\func foo => \\let \n $letClause \n\\in $expressionToWrap")?.childOfType<ArendFunctionBody>()?.childOfType<ArendLetExpr>()
@@ -161,14 +161,14 @@ class ArendPsiFactory(
     fun createStatCmd(name: String): ArendStatCmd =
         createFromText("\\open X \\hiding ($name)")?.childOfType() ?: error("Failed to create stat cmd: `$name`")
 
-    fun createImportCommand(command : String, cmdKind: StatCmdKind): ArendStatement {
+    fun createImportCommand(command : String, cmdKind: StatCmdKind): ArendStat {
         val prefix = when (cmdKind) {
             StatCmdKind.OPEN -> "\\open "
             StatCmdKind.IMPORT -> "\\import "
         }
-        val commands = createFromText(prefix + command)?.namespaceCommands
-        if (commands != null && commands.size == 1) {
-            return commands[0].parent as ArendStatement
+        val statements = createFromText(prefix + command)?.statements
+        if (statements != null && statements.size == 1) {
+            return statements[0]
         }
         error("Failed to create import command: $command")
     }

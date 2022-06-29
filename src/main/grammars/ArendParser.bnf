@@ -116,7 +116,7 @@ statements ::= repl_line | (topStatement | topStatement_recovery)*
 
 repl_line ::= REPL_COMMAND? expr | REPL_COMMAND
 
-private topStatement ::= !<<eof>> statement
+private topStatement ::= !<<eof>> stat
 
 private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
@@ -126,9 +126,12 @@ private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | S
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
-statement ::= statCmd | definition | defModule | statement_recovery
+stat ::= statCmd | definition | defModule | stat_recovery {
+    implements = "org.arend.psi.ext.impl.ArendStatement"
+    mixin = "org.arend.psi.ext.ArendStatImplMixin"
+}
 
-private statement_recovery ::= statement_recover {
+private stat_recovery ::= statement_recover {
     recoverWhile = statement_recover
 }
 
@@ -450,9 +453,9 @@ private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc) & statement_re
 
 elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>> { pin(".*") = 1}
 
-where ::= WHERE_KW (statementList | statement) { pin = 1 }
+where ::= WHERE_KW (statementList | stat) { pin = 1 }
 
-private statementList ::= LBRACE statement* RBRACE {
+private statementList ::= LBRACE stat* RBRACE {
     pin = 1
 }
 
@@ -723,7 +726,8 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
 
 coClause ::= longName (coClauseRec | coClauseImpl | [AS_KW prec? defIdentifier] coClauseDef?) {
     implements = [ "org.arend.psi.CoClauseBase"
-                   "org.arend.term.abs.Abstract.CoClauseFunctionReference" ]
+                   "org.arend.term.abs.Abstract.CoClauseFunctionReference"
+                   "org.arend.psi.ext.impl.ArendStatement" ]
     mixin = "org.arend.psi.ext.ArendCoClauseImplMixin"
 }
 

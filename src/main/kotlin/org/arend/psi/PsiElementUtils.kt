@@ -91,8 +91,8 @@ inline fun <reified T : PsiElement> PsiElement.childOfType(
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 
 fun ArendGroup.findGroupByFullName(fullName: List<String>): ArendGroup? =
-        if (fullName.isEmpty()) this else (subgroups.find { it.referable.textRepresentation() == fullName[0] }
-                ?: dynamicSubgroups.find { it.referable.textRepresentation() == fullName[0] })?.findGroupByFullName(fullName.drop(1))
+        if (fullName.isEmpty()) this else (statements.find { it.group?.referable?.refName == fullName[0] }?.group
+                ?: dynamicSubgroups.find { it.referable.refName == fullName[0] })?.findGroupByFullName(fullName.drop(1))
 
 fun PsiElement.findNextSibling(): PsiElement? = findNextSibling(null)
 

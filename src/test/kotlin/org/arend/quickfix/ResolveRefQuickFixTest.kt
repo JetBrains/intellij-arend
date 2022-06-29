@@ -674,7 +674,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
     fun `test AddIdToUsing action on an incomplete namespace command`() =  simpleActionTest(
             "\\import A \\using {-caret-}",
             "\\import A \\using (b \\as b')") { file ->
-        val cmd = file.namespaceCommands.first()
+        val cmd = file.statements.first().statCmd!!
         WriteCommandAction.runWriteCommandAction(project, "", null, {
             doAddIdToUsing(cmd, listOf(Pair("b", "b'")))
         }, file) }
@@ -687,7 +687,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
     fun `test RemoveFromHidingAction on namespace command with comments`() = simpleActionTest(
             "\\import Prelude \\hiding (Nat {- 1 -} , {- 2 -} Int {- 3 -} , {- 4 -} Path){-caret-}",
             "\\import Prelude \\hiding (Nat {- 1 -}  {- 2 -}  {- 3 -} , {- 4 -} Path)") {file ->
-        val cmd = file.namespaceCommands.first()
+        val cmd = file.statements.first().statCmd!!
         val ref = cmd.refIdentifierList[1]
         WriteCommandAction.runWriteCommandAction(project, "", null, {
             doRemoveRefFromStatCmd(ref)

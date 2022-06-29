@@ -120,8 +120,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         for (referable in internalReferables) {
             (referable as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
         }
-        for (subgroup in subgroups) {
-            (subgroup as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
+        for (statement in statements) {
+            (statement.group as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
         }
         for (subgroup in dynamicSubgroups) {
             (subgroup as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()

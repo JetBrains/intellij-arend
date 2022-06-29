@@ -38,12 +38,12 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getClauses(): List<ArendClause> = functionBody?.functionClauses?.clauseList ?: emptyList()
 
-    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statementList?.mapNotNull {
+    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statList?.mapNotNull {
         val def = it.definition
         if ((def as? ArendDefFunction)?.functionKw?.useKw != null) def else null
     } ?: emptyList()
 
-    override fun getSubgroups(): List<ArendGroup> = (functionBody?.coClauseList?.mapNotNull { it.coClauseDef } ?: emptyList()) + super.getSubgroups()
+    override fun getStatements() = (functionBody?.coClauseList ?: emptyList()) + super.getStatements()
 
     override fun withTerm() = functionBody?.fatArrow != null
 

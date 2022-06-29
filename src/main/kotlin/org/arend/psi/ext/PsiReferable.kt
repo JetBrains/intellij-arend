@@ -21,7 +21,7 @@ interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, Navigata
     val documentation: ArendDocComment?
         get() {
             val stat = parent
-            if (!(stat is ArendClassStat || stat is ArendStatement)) {
+            if (!(stat is ArendClassStat || stat is ArendStat)) {
                 return null
             }
             var sibling = stat.prevSibling

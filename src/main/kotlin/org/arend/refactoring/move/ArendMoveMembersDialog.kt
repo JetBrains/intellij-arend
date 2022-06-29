@@ -128,7 +128,10 @@ class ArendMoveMembersDialog(project: Project,
             }
         }
 
-        container.subgroups.forEach { c -> addToSink(c) }
+        container.statements.forEach { c ->
+            val group = c.group
+            if (group != null) addToSink(group)
+        }
         if (container is ArendDefClass) container.classStatList.forEach { c -> c.definition?.let{ addToSink(it) } }
     }
 

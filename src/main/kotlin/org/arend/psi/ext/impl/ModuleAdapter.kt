@@ -22,18 +22,13 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
     override val scope: Scope
         get() = groupScope
 
-    override val statements: List<ArendStatement>
-        get() = where?.statementList ?: emptyList()
+    override fun getStatements(): List<ArendStatement> = where?.statList ?: emptyList()
 
     override fun getParentGroup() = parent.ancestor<ArendGroup>()
 
     override fun getReferable() = this
 
-    override fun getSubgroups(): List<ArendGroup> = where?.statementList?.mapNotNull { it.definition ?: it.defModule } ?: emptyList()
-
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
-
-    override fun getNamespaceCommands(): List<ArendStatCmd> = where?.statementList?.mapNotNull { it.statCmd } ?: emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 

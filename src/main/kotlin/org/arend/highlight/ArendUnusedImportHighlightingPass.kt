@@ -21,7 +21,7 @@ import org.arend.inspection.ArendUnusedImportInspection
 import org.arend.intention.ArendOptimizeImportsQuickFix
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendNsId
-import org.arend.psi.ArendStatement
+import org.arend.psi.ArendStat
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
@@ -67,10 +67,10 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
         val infos = mutableListOf<HighlightInfo>()
         for (element in redundantElements) {
             val message = when {
-                element is ArendStatement && element.statCmd?.importKw != null -> element.statCmd?.longName?.text?.run {
+                element is ArendStat && element.statCmd?.importKw != null -> element.statCmd?.longName?.text?.run {
                     ArendBundle.message("arend.inspection.unused.import.message.unused.import.0", this)
                 } ?: ArendBundle.message("arend.inspection.unused.import.message.unused.import")
-                element is ArendStatement && element.statCmd?.openKw != null -> element.statCmd?.longName?.text?.run {
+                element is ArendStat && element.statCmd?.openKw != null -> element.statCmd?.longName?.text?.run {
                     ArendBundle.message("arend.inspection.unused.import.message.unused.open.0", this)
                 } ?: ArendBundle.message("arend.inspection.unused.import.message.unused.open")
                 element is ArendNsId -> element.name?.run {

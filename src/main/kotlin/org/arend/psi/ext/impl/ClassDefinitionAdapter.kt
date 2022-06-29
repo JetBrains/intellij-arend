@@ -69,7 +69,7 @@ abstract class ClassDefinitionAdapter : DefinitionAdapter<ArendDefClassStub>, Ar
         ClassReferenceData(this, emptyList(), emptySet(), false)
 
     override fun getUsedDefinitions(): List<LocatedReferable> =
-        (dynamicSubgroups + subgroups).mapNotNull { if ((it as? ArendDefFunction)?.functionKw?.useKw != null) it else null }
+        (dynamicSubgroups + statements.mapNotNull { it.group }).mapNotNull { if ((it as? ArendDefFunction)?.functionKw?.useKw != null) it else null }
 
     override val typeOf: Abstract.Expression
         get() = Universe

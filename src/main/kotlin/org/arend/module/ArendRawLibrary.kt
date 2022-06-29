@@ -139,7 +139,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
             var first = true
 
             for (element in scope.elements) {
-                if (!(element is MetaReferable || element is EmptyLocatedReferable)) {
+                if (!(element is MetaReferable || element is EmptyLocatedReferable || element is ConcreteLocatedReferable)) {
                     continue
                 }
 
@@ -212,7 +212,8 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         }
 
         private fun fillGroup(group: Group, scope: Scope) {
-            for (subgroup in group.subgroups) {
+            for (statement in group.statements) {
+                val subgroup = statement.group ?: continue
                 val name = subgroup.referable.refName
                 val meta = scope.resolveName(name)
                 if (meta is MetaReferable) {
