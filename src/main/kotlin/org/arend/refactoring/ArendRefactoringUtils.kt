@@ -306,7 +306,7 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
 
     if ((scope != null && scope.resolveName(shortName) == null || instanceMode) && mySourceContainer != null) {
         val anchor = mySourceContainer.statements.lastOrNull { it.namespaceCommand?.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, it)}
-            ?: mySourceContainer.statements.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it) }
+            ?: mySourceContainer.statements.lastOrNull {it.namespaceCommand != null}?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it) }
             ?: if (mySourceContainer is ArendFile || mySourceContainer.statements.size > 1) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
                 getAnchorInAssociatedModule(psiFactory, mySourceContainer, headPosition = true)?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it) }
 
