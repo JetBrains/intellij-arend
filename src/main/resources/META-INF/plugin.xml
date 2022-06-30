@@ -380,6 +380,7 @@
         <highlightingPassFactory implementation="org.arend.highlight.TypecheckerPassFactory"/>
         <highlightingPassFactory implementation="org.arend.injection.InjectionHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.ArendUnusedImportHighlightingPassFactory"/>
+        <highlightingPassFactory implementation="org.arend.highlight.ArendInlayHighlightingPassFactory"/>
 
         <!-- Tool Windows -->
 
