@@ -1,8 +1,11 @@
 package org.arend.util
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.codeInsight.hints.InlayHintsPassFactory
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -14,6 +17,7 @@ import org.arend.injection.InjectedArendEditor
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
+import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.ArendExtensionChangeListener
 import org.arend.typechecking.ArendTypechecking
@@ -61,3 +65,14 @@ fun Module.register() {
 }
 
 fun Editor.isDetailedViewEditor() : Boolean = getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null
+
+fun Project.afterTypechecking(files: Collection<ArendFile>) {
+    for (editor in EditorFactory.getInstance().allEditors) {
+        InlayHintsPassFactory.clearModificationStamp(editor)
+    }
+    runReadAction {
+        for (file in files) {
+            DaemonCodeAnalyzer.getInstance(this).restart(file)
+        }
+    }
+}

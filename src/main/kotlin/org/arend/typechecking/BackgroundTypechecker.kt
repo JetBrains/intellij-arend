@@ -16,6 +16,7 @@ import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
 import org.arend.util.FullName
+import org.arend.util.afterTypechecking
 
 class BackgroundTypechecker(private val project: Project, private val instanceProviderSet: PsiInstanceProviderSet, private val concreteProvider: ConcreteProvider, private val modificationCount: Long) {
     private val definitionBlackListService = service<DefinitionBlacklistService>()
@@ -54,7 +55,6 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
                     return false
                 }
             }
-            if (runAnalyzer) runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
         }
 
         if (!settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true) {
@@ -65,9 +65,13 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
                         return false
                     }
                 }
-                if (runAnalyzer) runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
             }
         }
+
+        if (runAnalyzer) {
+            project.afterTypechecking(listOf(file))
+        }
+
         file.lastDefinitionModification.updateAndGet { maxOf(it, modificationCount) }
         return true
     }

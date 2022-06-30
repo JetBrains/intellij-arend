@@ -1,6 +1,5 @@
 package org.arend.typechecking.execution
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -40,6 +39,7 @@ import org.arend.typechecking.error.ParserError
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
+import org.arend.util.afterTypechecking
 import org.jetbrains.ide.PooledThreadExecutor
 import java.io.OutputStream
 
@@ -186,13 +186,11 @@ class TypeCheckProcessHandler(
                         typeCheckerService.project.service<BinaryFileSaver>().saveAll()
                     } finally {
                         typecheckingErrorReporter.flush()
-                        for (file in typechecking.filesToRestart) {
-                            DaemonCodeAnalyzer.getInstance(typeCheckerService.project).restart(file)
-                        }
+                        typeCheckerService.project.afterTypechecking(typechecking.filesToRestart)
                     }
                 }
             }
-            catch (e: ProcessCanceledException) {}
+            catch (_: ProcessCanceledException) {}
             catch (e: Exception) {
                 Logger.getInstance(TypeCheckingService::class.java).error(e)
             }
