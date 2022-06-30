@@ -7,4 +7,8 @@ abstract class ArendStatImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), Ar
     override fun getGroup() = definition ?: defModule
 
     override fun getNamespaceCommand() = statCmd
+
+    override fun getPLevelsDefinition() = defPLevels?.levelParams
+
+    override fun getHLevelsDefinition() = defHLevels?.levelParams
 }
