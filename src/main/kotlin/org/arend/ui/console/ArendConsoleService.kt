@@ -3,7 +3,7 @@ package org.arend.ui.console
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.Project
 import org.arend.ext.prettyprinting.doc.Doc
-import org.arend.naming.scope.Scope
+import org.arend.naming.scope.Scopes
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class ArendConsoleService(private val project: Project) {
@@ -40,9 +40,9 @@ class ArendConsoleService(private val project: Project) {
         }
     }
 
-    fun print(doc: Doc, scope: Scope) {
+    fun print(doc: Doc, scopes: Scopes) {
         withView {
-            editor.addDoc(doc, scope)
+            editor.addDoc(doc, scopes)
         }
     }
 

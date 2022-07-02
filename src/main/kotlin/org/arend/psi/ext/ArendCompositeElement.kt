@@ -17,12 +17,14 @@ import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocReference
+import org.arend.psi.ext.impl.ArendGroup
 import org.arend.resolving.ArendReference
 import org.arend.resolving.util.ModifiedClassFieldImplScope
 import org.arend.term.abs.Abstract
 import java.util.function.Predicate
 
 interface ArendCompositeElement : PsiElement, SourceInfo {
+    val scopes: Scopes
     val scope: Scope
     override fun getReference(): ArendReference?
 }
@@ -81,6 +83,11 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
     }
 }
 
+private fun getArendScopes(element: ArendCompositeElement): Scopes {
+    val group = element.ancestor<ArendGroup>() ?: element.containingFile as? ArendFile
+    return Scopes(getArendScope(element), group?.groupPLevelScope ?: EmptyScope.INSTANCE, group?.groupHLevelScope ?: EmptyScope.INSTANCE)
+}
+
 fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode {
     var current = sourceNode
     while (true) {
@@ -113,6 +120,9 @@ abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(n
     override val scope
         get() = getArendScope(this)
 
+    override val scopes
+        get() = getArendScopes(this)
+
     override fun getReference(): ArendReference? = null
 
     override fun moduleTextRepresentation(): String? = runReadAction { moduleTextRepresentationImpl() }
@@ -133,6 +143,9 @@ abstract class ArendStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiEle
 
     override val scope
         get() = getArendScope(this)
+
+    override val scopes
+        get() = getArendScopes(this)
 
     override fun getReference(): ArendReference? = null
 

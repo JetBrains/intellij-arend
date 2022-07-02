@@ -11,8 +11,7 @@ import org.arend.naming.reference.LocatedReferableImpl
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
-import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.Scope
+import org.arend.naming.scope.Scopes
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
@@ -31,7 +30,7 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
 
     private fun getConcreteDefinition(psiReferable: PsiConcreteReferable): Concrete.GeneralDefinition? {
         var cached = true
-        var scope: Scope? = null
+        var scopes: Scopes? = null
         val result = cache[psiReferable] ?: runReadAction {
             cached = false
             if (eventsProcessor != null) {
@@ -41,8 +40,8 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
 
             val def = psiReferable.computeConcrete(referableConverter, errorReporter)
             if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
-                scope = CachingScope.make(psiReferable.scope)
-                def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, true, errorReporter, resolverListener), scope)
+                scopes = psiReferable.scopes.caching()
+                def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, true, errorReporter, resolverListener), scopes)
             }
             eventsProcessor?.stopTimer(psiReferable)
             return@runReadAction cache.putIfAbsent(psiReferable, def) ?: def
@@ -57,10 +56,10 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
 
         if (resolve && result.relatedDefinition.stage < Concrete.Stage.RESOLVED) {
             runReadAction {
-                if (scope == null) {
-                    scope = CachingScope.make(psiReferable.scope)
+                if (scopes == null) {
+                    scopes = psiReferable.scopes.caching()
                 }
-                result.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, errorReporter, resolverListener), scope)
+                result.relatedDefinition.accept(DefinitionResolveNameVisitor(this, referableConverter, errorReporter, resolverListener), scopes)
             }
         }
 

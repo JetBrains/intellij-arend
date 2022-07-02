@@ -12,6 +12,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
+import org.arend.naming.scope.Scopes
 import org.arend.psi.*
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
@@ -30,6 +31,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override val scope: Scope
         get() = groupScope
+
+    override val scopes: Scopes
+        get() = groupScopes
 
     override fun getStatements(): List<ArendStatement> = where?.statList ?: emptyList()
 

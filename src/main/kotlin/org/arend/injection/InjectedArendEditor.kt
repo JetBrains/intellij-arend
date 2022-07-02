@@ -31,10 +31,7 @@ import org.arend.injection.actions.withNormalizedTerms
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
-import org.arend.naming.scope.EmptyScope
-import org.arend.naming.scope.Scope
+import org.arend.naming.scope.*
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
@@ -85,7 +82,7 @@ abstract class InjectedArendEditor(
             panel.add(editor.component, BorderLayout.CENTER)
 
             val toolbar = ActionManager.getInstance().createActionToolbar("ArendEditor.toolbar", actionGroup, false)
-            toolbar.setTargetComponent(panel)
+            toolbar.targetComponent = panel
             panel.add(toolbar.component, BorderLayout.WEST)
         } else {
             panel = null
@@ -111,7 +108,7 @@ abstract class InjectedArendEditor(
         invokeLater {
             val builder = StringBuilder()
             val visitor = CollectingDocStringBuilder(builder, treeElement.sampleError.error)
-            var fileScope: Scope = EmptyScope.INSTANCE
+            var fileScopes = Scopes.EMPTY
 
             runReadAction {
                 var first = true
@@ -123,11 +120,11 @@ abstract class InjectedArendEditor(
                     }
 
                     val error = arendError.error
-                    val (resolve, scope) = resolveCauseReference(error)
-                    if (scope != null) {
-                        fileScope = scope
+                    val (resolve, scopes) = resolveCauseReference(error)
+                    if (scopes != null) {
+                        fileScopes = scopes
                     }
-                    val ppConfig = getCurrentConfig(scope)
+                    val ppConfig = getCurrentConfig(scopes?.expressionScope)
                     val doc = if (causeIsMetaExpression(error.causeSourceNode, resolve))
                         error.getDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
                     else
@@ -146,7 +143,7 @@ abstract class InjectedArendEditor(
                 modifyDocument { setText(text) }
                 getInjectionFile()?.apply {
                     injectionRanges = visitor.textRanges
-                    scope = fileScope
+                    scopes = fileScopes
                     injectedExpressions = visitor.expressions
                 }
                 postWriteCallback()
@@ -171,7 +168,7 @@ abstract class InjectedArendEditor(
         )
     }
 
-    fun addDoc(doc: Doc, docScope: Scope) {
+    fun addDoc(doc: Doc, docScopes: Scopes) {
         if (editor == null) return
 
         val builder = StringBuilder()
@@ -187,7 +184,7 @@ abstract class InjectedArendEditor(
             editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
 
             getInjectionFile()?.apply {
-                scope = docScope
+                scopes = docScopes
                 injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
                 injectedExpressions.addAll(visitor.expressions)
             }
@@ -276,19 +273,19 @@ abstract class InjectedArendEditor(
     companion object {
         val AREND_GOAL_EDITOR: Key<InjectedArendEditor> = Key.create("Arend goal editor")
 
-        fun resolveCauseReference(error: GeneralError): Pair<Referable?, Scope?> {
+        fun resolveCauseReference(error: GeneralError): Pair<Referable?, Scopes?> {
             val causeSourceNode = error.causeSourceNode
             val data = (causeSourceNode?.data as? DataContainer)?.data ?: causeSourceNode?.data
             val unresolvedRef = (data as? Reference)?.referent
-            val scope =
+            val scopes =
                 if (unresolvedRef != null || error.hasExpressions())
-                    (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) }
+                    (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scopes?.caching()
                 else null
             val ref =
-                if (unresolvedRef != null && scope != null)
-                    ExpressionResolveNameVisitor.resolve(unresolvedRef, scope)
+                if (unresolvedRef != null && scopes != null)
+                    ExpressionResolveNameVisitor.resolve(unresolvedRef, scopes.expressionScope)
                 else null
-            return Pair(ref, scope)
+            return Pair(ref, scopes)
         }
 
         fun causeIsMetaExpression(cause: ConcreteSourceNode?, resolve: Referable?) =

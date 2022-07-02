@@ -71,7 +71,7 @@ class ArendReplExecutionHandler(
     private fun closeRepl() {
         toolWindow.hide()
         repl.clearScope()
-        repl.resetCurrentLineScope()
+        repl.resetCurrentLineScopes()
         resetRepl()
     }
 

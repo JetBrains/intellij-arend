@@ -11,10 +11,7 @@ import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
-import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
-import org.arend.naming.scope.Scope
-import org.arend.naming.scope.ScopeFactory
+import org.arend.naming.scope.*
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.repl.Repl
@@ -64,14 +61,14 @@ abstract class IntellijRepl private constructor(
     )
 
     init {
-        myScope = ConvertingScope(ArendReferableConverter, myScope)
+        scopes = Scopes(ConvertingScope(ArendReferableConverter, scopes.expressionScope), scopes.pLevelScope, scopes.hLevelScope)
     }
 
     private val project = service.project
     private val definitionModificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
     private val psiFactory = ArendPsiFactory(project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
-        ?.also { resetCurrentLineScope() }
+        ?.also { resetCurrentLineScopes() }
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(it) }
 
@@ -94,22 +91,23 @@ abstract class IntellijRepl private constructor(
         super.loadCommands()
         registerAction("prompt", SetPromptCommand)
         val arendFile = handler.arendFile
-        arendFile.enforcedScope = ::resetCurrentLineScope
+        arendFile.enforcedScopes = ::resetCurrentLineScopes
         arendFile.enforcedLibraryConfig = myLibraryConfig
-        resetCurrentLineScope()
+        resetCurrentLineScopes()
     }
 
     final override fun loadLibraries() {
         val service = project.service<TypeCheckingService>()
         if (service.initialize()) println("[INFO] Initialized prelude.")
-        val prelude = service.preludeScope.also(myReplScope::addPreludeScope)
+        val prelude = service.preludeScope.also(replScope::addPreludeScope)
         if (prelude.elements.isEmpty()) eprintln("[FATAL] Failed to obtain prelude scope")
     }
 
-    fun resetCurrentLineScope(): Scope {
-        val scope = ScopeFactory.forGroup(handler.arendFile, availableModuleScopeProvider)
-        myReplScope.setCurrentLineScope(CachingScope.make(scope))
-        return myScope
+    fun resetCurrentLineScopes(): Scopes {
+        replScope.setCurrentLineScope(CachingScope.make(ScopeFactory.forGroup(handler.arendFile, availableModuleScopeProvider)))
+        pLevelScope.setCurrentLineScope(NameCachingScope.make(LevelLexicalScope(EmptyScope.INSTANCE, handler.arendFile, true, true)))
+        hLevelScope.setCurrentLineScope(NameCachingScope.make(LevelLexicalScope(EmptyScope.INSTANCE, handler.arendFile, false, true)))
+        return scopes
     }
 
     private val myLibraryConfig = object : LibraryConfig(project) {
