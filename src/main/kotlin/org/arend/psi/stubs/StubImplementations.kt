@@ -49,6 +49,8 @@ fun factory(name: String): ArendStubElementType<*, *> = when (name) {
     "CO_CLAUSE_DEF" -> ArendCoClauseDefStub.Type
     "DEF_INSTANCE" -> ArendDefInstanceStub.Type
     "CONSTRUCTOR" -> ArendConstructorStub.Type
+    "DEF_P_LEVELS" -> ArendPLevelsStub.Type
+    "DEF_H_LEVELS" -> ArendHLevelsStub.Type
     "DEF_DATA" -> ArendDefDataStub.Type
     "DEF_FUNCTION" -> ArendDefFunctionStub.Type
     "DEF_META" -> ArendDefMetaStub.Type
@@ -214,5 +216,35 @@ class ArendDefModuleStub(parent: StubElement<*>?, elementType: IStubElementType<
         override fun createPsi(stub: ArendDefModuleStub) = ArendDefModuleImpl(stub, this)
 
         override fun indexStub(stub: ArendDefModuleStub, sink: IndexSink) = sink.indexModule(stub)
+    }
+}
+
+class ArendPLevelsStub(parent: StubElement<*>?, elementType: IStubElementType<*, *>, name: String?)
+    : ArendStub<ArendDefPLevels>(parent, elementType, name, null) {
+
+    override val precedence = null
+
+    object Type : ArendStubElementType<ArendPLevelsStub, ArendDefPLevels>("DEF_P_LEVELS") {
+        override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
+            ArendPLevelsStub(parentStub, this, name)
+
+        override fun createPsi(stub: ArendPLevelsStub) = ArendDefPLevelsImpl(stub, this)
+
+        override fun indexStub(stub: ArendPLevelsStub, sink: IndexSink) {}
+    }
+}
+
+class ArendHLevelsStub(parent: StubElement<*>?, elementType: IStubElementType<*, *>, name: String?)
+    : ArendStub<ArendDefHLevels>(parent, elementType, name, null) {
+
+    override val precedence = null
+
+    object Type : ArendStubElementType<ArendHLevelsStub, ArendDefHLevels>("DEF_H_LEVELS") {
+        override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
+            ArendHLevelsStub(parentStub, this, name)
+
+        override fun createPsi(stub: ArendHLevelsStub) = ArendDefHLevelsImpl(stub, this)
+
+        override fun indexStub(stub: ArendHLevelsStub, sink: IndexSink) {}
     }
 }

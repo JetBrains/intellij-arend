@@ -282,9 +282,21 @@ metaLevels ::= <<comma_separated_sequence defIdentifier>>? {
     mixin = "org.arend.psi.ext.ArendMetaLevelsImplMixin"
 }
 
-defPLevels ::= PLEVELS_KW levelParams { pin = 1 }
+defPLevels ::= PLEVELS_KW levelParams {
+    pin = 1
+    implements = "org.arend.psi.ext.PsiLocatedReferable"
+    mixin = "org.arend.psi.ext.ArendDefPLevelsImplMixin"
+    stubClass = "org.arend.psi.stubs.ArendPLevelsStub"
+    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
 
-defHLevels ::= HLEVELS_KW levelParams { pin = 1 }
+defHLevels ::= HLEVELS_KW levelParams {
+    pin = 1
+    implements = "org.arend.psi.ext.PsiLocatedReferable"
+    mixin = "org.arend.psi.ext.ArendDefHLevelsImplMixin"
+    stubClass = "org.arend.psi.stubs.ArendHLevelsStub"
+    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
 
 private defIdentifier_module ::= defIdentifier {
     recoverWhile = defIdentifier_module_recover
