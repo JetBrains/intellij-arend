@@ -76,7 +76,7 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
             }
             override fun resolveNamespace(name: String?, onlyInternal: Boolean) = scope.resolveNamespace(name, onlyInternal)
             override fun getGlobalSubscope() = scope.globalSubscope
-            override fun getGlobalSubscopeWithoutOpens() = scope.globalSubscopeWithoutOpens
+            override fun getGlobalSubscopeWithoutOpens(withImports: Boolean) = scope.getGlobalSubscopeWithoutOpens(withImports)
             override fun getImportedSubscope() = scope.importedSubscope
         }
         else -> scope
