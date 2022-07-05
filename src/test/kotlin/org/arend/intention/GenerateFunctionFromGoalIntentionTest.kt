@@ -29,7 +29,7 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
         """
     )
 
-    fun `test sigma type`() = doTest("""
+    fun `_test sigma type`() = doTest("""
         \func lorem {A : \Type} {B : A -> \Type} (c d : \Sigma (a : A) (B a)) : c = d => {?{-caret-}}
     """, """
         \func lorem {A : \Type} {B : A -> \Type} (c d : \Sigma (a : A) (B a)) : c = d => lorem-lemma B c d
