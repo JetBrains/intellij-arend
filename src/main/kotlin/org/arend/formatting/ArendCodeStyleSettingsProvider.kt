@@ -46,7 +46,7 @@ class ArendCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider() {
     }
 
     override fun createConfigurable(baseSettings: CodeStyleSettings, modelSettings: CodeStyleSettings) = object : CodeStyleAbstractConfigurable(baseSettings, modelSettings, "Arend") {
-        override fun createPanel(settings: CodeStyleSettings?) = object : TabbedLanguageCodeStylePanel(ArendLanguage.INSTANCE, currentSettings, settings) {
+        override fun createPanel(settings: CodeStyleSettings) = object : TabbedLanguageCodeStylePanel(ArendLanguage.INSTANCE, currentSettings, settings) {
             override fun initTabs(settings: CodeStyleSettings) {
                 addIndentOptionsTab(settings)
                 addTab(ArendCodeStyleImportsPanelWrapper(settings))

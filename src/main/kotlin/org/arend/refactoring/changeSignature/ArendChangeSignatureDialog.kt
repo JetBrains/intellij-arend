@@ -27,7 +27,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     override fun createCallerChooser(
         title: String?,
         treeToReuse: Tree?,
-        callback: Consumer<MutableSet<PsiElement>>?
+        callback: Consumer<in MutableSet<PsiElement>>?
     ): CallerChooserBase<PsiElement>? = null
 
     // TODO: add information about errors
