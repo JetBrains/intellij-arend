@@ -81,7 +81,9 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
         val def = element.anyDefinition.data
         val ok = definitionBlackListService.runTimed(def, indicator) {
             typechecking.run(indicator) {
-                element.feedTo(typechecking)
+                if (element.allDefinitions.any { it !is TCDefReferable || it.typechecked == null || it.typechecked?.status()?.needsTypeChecking() == true }) {
+                    element.feedTo(typechecking)
+                }
                 true
             }
         }
