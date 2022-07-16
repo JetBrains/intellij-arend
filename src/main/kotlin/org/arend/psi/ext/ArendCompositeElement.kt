@@ -45,7 +45,7 @@ interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
     override fun getParentSourceNode(): ArendSourceNode?
 }
 
-private fun getArendScope(element: ArendCompositeElement): Scope {
+fun getArendScope(element: ArendCompositeElement): Scope {
     val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
     ((sourceNode as? ArendLongName)?.parent as? ArendDocReference)?.let { return it.scope }
 

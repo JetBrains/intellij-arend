@@ -13,6 +13,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.stubs.ArendCoClauseDefStub
 import org.arend.ext.concrete.definition.FunctionKind
+import org.arend.psi.ext.getArendScope
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.resolving.util.ReferableExtractVisitor
@@ -25,6 +26,9 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
 
     val parentCoClause: ArendCoClause?
         get() = parent as? ArendCoClause
+
+    override val scope: Scope
+        get() = getArendScope(this)
 
     override fun getNameIdentifier() = parentCoClause?.defIdentifier ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 
