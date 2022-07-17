@@ -3,7 +3,6 @@ package org.arend.typechecking
 import com.intellij.openapi.application.runReadAction
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.typechecking.instance.provider.InstanceProvider
 import org.arend.typechecking.instance.provider.InstanceProviderSet
@@ -22,7 +21,7 @@ class PsiInstanceProviderSet : InstanceProviderSet() {
         val psiElement = PsiLocatedReferable.fromReferable(referable) ?: return null
         return runReadAction {
             val file = psiElement.containingFile as? ArendFile ?: return@runReadAction null
-            if (collectInstances(file, CachingScope.make(ScopeFactory.parentScopeForGroup(file, file.moduleScopeProvider, true, Scope.Kind.EXPR)), ArendReferableConverter)) super.get(referable) else null
+            if (collectInstances(file, CachingScope.make(ScopeFactory.parentScopeForGroup(file, file.moduleScopeProvider, true)), ArendReferableConverter)) super.get(referable) else null
         }
     }
 }

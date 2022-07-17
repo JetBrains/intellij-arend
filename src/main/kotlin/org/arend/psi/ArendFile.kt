@@ -132,23 +132,45 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     val isInjected: Boolean
         get() = injectionContext != null
 
-    override fun getGroupScope(kind: Scope.Kind): Scope = CachedValuesManager.getCachedValue(this) {
-        val enforcedScopes = (originalFile as? ArendFile ?: this).enforcedScopes()
-        if (enforcedScopes != null) return@getCachedValue cachedValue(enforcedScopes.getScope(kind))
+    override val scope: Scope
+        get() = CachedValuesManager.getCachedValue(this) {
+            val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScopes()
+            if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope.expressionScope)
+            val injectedIn = injectionContext
+            cachedValue(if (injectedIn != null) {
+                (injectedIn.containingFile as? PsiInjectionTextFile)?.scopes?.expressionScope
+                    ?: EmptyScope.INSTANCE
+            } else {
+                CachingScope.make(ScopeFactory.forGroup(this, moduleScopeProvider))
+            })
+        }
+
+    override fun getGroupPLevelScope(): Scope = CachedValuesManager.getCachedValue(this) {
+        val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScopes()
+        if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope.pLevelScope)
         val injectedIn = injectionContext
         cachedValue(if (injectedIn != null) {
-            (injectedIn.containingFile as? PsiInjectionTextFile)?.scopes?.getScope(kind)
+            (injectedIn.containingFile as? PsiInjectionTextFile)?.scopes?.pLevelScope
                 ?: EmptyScope.INSTANCE
         } else {
-            CachingScope.make(ScopeFactory.forGroup(this, moduleScopeProvider, kind))
+            CachingScope.make(LevelLexicalScope.insideOf(this, EmptyScope.INSTANCE, true))
         })
     }
 
-    override val scope: Scope
-        get() = getGroupScope(Scope.Kind.EXPR)
+    override fun getGroupHLevelScope(): Scope = CachedValuesManager.getCachedValue(this) {
+        val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScopes()
+        if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope.hLevelScope)
+        val injectedIn = injectionContext
+        cachedValue(if (injectedIn != null) {
+            (injectedIn.containingFile as? PsiInjectionTextFile)?.scopes?.hLevelScope
+                ?: EmptyScope.INSTANCE
+        } else {
+            CachingScope.make(LevelLexicalScope.insideOf(this, EmptyScope.INSTANCE, false))
+        })
+    }
 
     override val scopes: Scopes
-        get() = Scopes(getGroupScope(Scope.Kind.EXPR), getGroupScope(Scope.Kind.PLEVEL), getGroupScope(Scope.Kind.HLEVEL))
+        get() = Scopes(scope, groupPLevelScope, groupHLevelScope)
 
     private fun <T> cachedValue(value: T) =
         CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT)
@@ -189,19 +211,19 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             val config = arendFile.arendLibrary?.config
             val typecheckingService = arendFile.project.service<TypeCheckingService>()
             val inTests = config?.getFileLocationKind(arendFile) == ModuleLocation.LocationKind.TEST
-            cachedValue(ModuleScopeProvider { modulePath, kind ->
+            cachedValue(ModuleScopeProvider { modulePath ->
                 val file = if (modulePath == Prelude.MODULE_PATH) {
-                    if (kind == Scope.Kind.EXPR) typecheckingService.prelude else return@ModuleScopeProvider EmptyScope.INSTANCE
+                    typecheckingService.prelude
                 } else {
                     if (config == null) {
                         return@ModuleScopeProvider typecheckingService.libraryManager.registeredLibraries.mapFirstNotNull {
-                            it.moduleScopeProvider.forModule(modulePath, kind)
+                            it.moduleScopeProvider.forModule(modulePath)
                         }
                     } else {
                         config.forAvailableConfigs { it.findArendFile(modulePath, true, inTests) }
                     }
                 }
-                file?.let { LexicalScope.opened(it, kind) }
+                file?.let { LexicalScope.opened(it) }
             })
         }
 
@@ -224,6 +246,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getTypecheckable(): PsiLocatedReferable = this
 
     override fun getLocatedReferableParent(): LocatedReferable? = null
+
+    override fun getGroupScope(extent: LexicalScope.Extent) = scope
 
     override fun getNameIdentifier(): PsiElement? = null
 

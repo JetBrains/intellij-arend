@@ -44,7 +44,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     val fileGroup = object : Group by currentFile {
         override fun getStatements() = currentFile.statements.filter { it.group == null }
     }
-    val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false, Scope.Kind.EXPR))
+    val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
     val minimalImportMode = targetFile.statements.any { stat -> stat.group?.let { importedScope.resolveName(it.referable.textRepresentation()) } != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
     var targetFileAlreadyImported = false
     var preludeImportedManually = false
@@ -225,7 +225,7 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
             override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetContainers
                     .filterIsInstance<ArendGroup>()
                     .firstOrNull { name == it.textRepresentation() || name == it.aliasName }
-                    ?.let { LexicalScope.opened(it, Scope.Kind.EXPR) }
+                    ?.let { LexicalScope.opened(it) }
         }
     }
 
