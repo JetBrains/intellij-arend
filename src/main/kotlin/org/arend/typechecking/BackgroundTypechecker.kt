@@ -11,7 +11,6 @@ import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.typechecking.error.local.inference.ArgInferenceError
 import org.arend.typechecking.order.listener.CollectingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
@@ -84,7 +83,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
         }
 
         if (ok == null) {
-            NotificationErrorReporter(project).warn("Typechecking of ${FullName(def)} was interrupted after " + ArgInferenceError.number(service<ArendSettings>().typecheckingTimeLimit, "second"))
+            NotificationErrorReporter(project).warn("Typechecking of ${FullName(def)} was interrupted after ${service<ArendSettings>().typecheckingTimeLimit} second(s)")
         }
 
         return ok == true

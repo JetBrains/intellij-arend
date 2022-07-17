@@ -27,9 +27,9 @@ enum class Choice {
 }
 
 fun InjectedArendEditor.performPrettyPrinterManipulation(editor: Editor, choice: Choice) {
-    val (_, scopes) = treeElement?.sampleError?.error?.let(InjectedArendEditor.Companion::resolveCauseReference)
+    val (_, scope) = treeElement?.sampleError?.error?.let(InjectedArendEditor.Companion::resolveCauseReference)
         ?: return
-    val ppConfig = getCurrentConfig(scopes?.expressionScope)
+    val ppConfig = getCurrentConfig(scope)
     val offset = editor.caretModel.offset
     val revealableFragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return
     val id = "Arend Verbose level increase " + Random.nextInt()

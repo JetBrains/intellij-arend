@@ -20,10 +20,13 @@ import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
 import org.arend.module.ArendRawLibrary
+import org.arend.module.ModuleLocation
 import org.arend.module.error.ModuleNotFoundError
+import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.FullModuleReferable
 import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
+import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendStat
 import org.arend.psi.ext.PsiLocatedReferable
@@ -120,7 +123,15 @@ class TypeCheckProcessHandler(
                             if (module == null) {
                                 typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
                             } else if (command.definitionFullName == "") {
-                                DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, module.groupScopes)
+                                val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
+                                val moduleScopeProvider = if (module.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST) {
+                                    val testsModuleScopeProvider = library.testsModuleScopeProvider
+                                    ModuleScopeProvider { modulePath ->
+                                        sourcesModuleScopeProvider.forModule(modulePath)
+                                            ?: testsModuleScopeProvider.forModule(modulePath)
+                                    }
+                                } else sourcesModuleScopeProvider
+                                DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))
                             }
                             module
                         }

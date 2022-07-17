@@ -7,16 +7,17 @@ import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.ui.ArendConsole
-import org.arend.naming.scope.Scopes
+import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.EmptyScope
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.settings.ArendProjectSettings
 import org.arend.ui.console.ArendConsoleService
 
 class ArendConsoleImpl(private val project: Project, marker: Any?) : ArendConsole {
-    private val scopes = if (marker is ArendCompositeElement) runReadAction { marker.scopes.caching() } else Scopes.EMPTY
+    private val scope = if (marker is ArendCompositeElement) runReadAction { CachingScope.make(marker.scope) } else EmptyScope.INSTANCE
 
     override fun println(doc: Doc) {
-        project.service<ArendConsoleService>().print(doc, scopes)
+        project.service<ArendConsoleService>().print(doc, scope)
     }
 
     override fun getPrettyPrinterConfig() =

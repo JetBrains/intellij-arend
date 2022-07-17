@@ -14,6 +14,7 @@ import org.arend.naming.reference.*
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -126,7 +127,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         }
         when {
             def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ArendIdReferableConverter).getConcrete(def)
-            expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, element.scopes.caching(), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
+            expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
             else -> {}
         }
 
@@ -169,7 +170,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                         cache.getCached(element)
                     }
                     expr != null -> {
-                        ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, element.scopes.caching(), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
+                        ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
                         cache.getCached(element)
                     }
                     else -> element.scope.resolveName(element.referenceName)

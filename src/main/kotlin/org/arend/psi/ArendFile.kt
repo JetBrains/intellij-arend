@@ -54,9 +54,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     var generatedModuleLocation: ModuleLocation? = null
 
     /**
-     * You can enforce the scopes of a file to be something else.
+     * You can enforce the scope of a file to be something else.
      */
-    var enforcedScopes: () -> Scopes? = { null }
+    var enforcedScope: () -> Scope? = { null }
 
     var enforcedLibraryConfig: LibraryConfig? = null
 
@@ -134,43 +134,16 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override val scope: Scope
         get() = CachedValuesManager.getCachedValue(this) {
-            val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScopes()
-            if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope.expressionScope)
+            val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScope()
+            if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope)
             val injectedIn = injectionContext
             cachedValue(if (injectedIn != null) {
-                (injectedIn.containingFile as? PsiInjectionTextFile)?.scopes?.expressionScope
+                (injectedIn.containingFile as? PsiInjectionTextFile)?.scope
                     ?: EmptyScope.INSTANCE
             } else {
                 CachingScope.make(ScopeFactory.forGroup(this, moduleScopeProvider))
             })
         }
-
-    override fun getGroupPLevelScope(): Scope = CachedValuesManager.getCachedValue(this) {
-        val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScopes()
-        if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope.pLevelScope)
-        val injectedIn = injectionContext
-        cachedValue(if (injectedIn != null) {
-            (injectedIn.containingFile as? PsiInjectionTextFile)?.scopes?.pLevelScope
-                ?: EmptyScope.INSTANCE
-        } else {
-            CachingScope.make(LevelLexicalScope.insideOf(this, EmptyScope.INSTANCE, true))
-        })
-    }
-
-    override fun getGroupHLevelScope(): Scope = CachedValuesManager.getCachedValue(this) {
-        val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScopes()
-        if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope.hLevelScope)
-        val injectedIn = injectionContext
-        cachedValue(if (injectedIn != null) {
-            (injectedIn.containingFile as? PsiInjectionTextFile)?.scopes?.hLevelScope
-                ?: EmptyScope.INSTANCE
-        } else {
-            CachingScope.make(LevelLexicalScope.insideOf(this, EmptyScope.INSTANCE, false))
-        })
-    }
-
-    override val scopes: Scopes
-        get() = Scopes(scope, groupPLevelScope, groupHLevelScope)
 
     private fun <T> cachedValue(value: T) =
         CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT)

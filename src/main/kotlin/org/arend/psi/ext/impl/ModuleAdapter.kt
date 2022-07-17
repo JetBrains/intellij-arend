@@ -8,7 +8,6 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.Scope
-import org.arend.naming.scope.Scopes
 import org.arend.psi.*
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendDefModuleStub
@@ -22,9 +21,6 @@ abstract class ModuleAdapter : ReferableAdapter<ArendDefModuleStub>, ArendDefMod
 
     override val scope: Scope
         get() = groupScope
-
-    override val scopes: Scopes
-        get() = groupScopes
 
     override fun getStatements(): List<ArendStatement> = where?.statList ?: emptyList()
 

@@ -28,6 +28,7 @@ import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.scope.CachingScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.resolving.ArendReferableConverter
@@ -142,10 +143,10 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
         val injectedExpr = if (index != null) injectionHost.injectedExpressions[index] else null
         val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(it) }
         if (injectedExpr != null && cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
-            val scopes = injectionHost.scopes.caching()
+            val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(resolver?.result ?: subExpr)
             errors = subExprVisitor.errors
-            cExpr.accept(ExpressionResolveNameVisitor(ArendReferableConverter, scopes, null, DummyErrorReporter.INSTANCE, null), null)
+            cExpr.accept(ExpressionResolveNameVisitor(ArendReferableConverter, scope, null, DummyErrorReporter.INSTANCE, null), null)
                 .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
                 .accept(subExprVisitor, injectedExpr)
         } else {

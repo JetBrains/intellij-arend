@@ -160,7 +160,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
                 advanceProgress(1)
             }
-        }).resolveGroup(file, file.scopes)
+        }).resolveGroup(file, file.scope)
 
         concreteProvider.resolve = true
 

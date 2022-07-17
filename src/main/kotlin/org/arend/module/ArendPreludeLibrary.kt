@@ -12,7 +12,9 @@ import org.arend.library.LibraryManager
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
-import org.arend.naming.scope.*
+import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.LexicalScope
+import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
 import org.arend.term.group.Group
@@ -77,7 +79,7 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
         if (scope != null) throw IllegalStateException()
         val preludeFile = prelude ?: return
         scope = CachingScope.make(LexicalScope.opened(preludeFile))
-        runReadAction { DefinitionResolveNameVisitor(concreteProvider, null, errorReporter).resolveGroup(preludeFile, Scopes(scope, EmptyScope.INSTANCE, EmptyScope.INSTANCE)) }
+        runReadAction { DefinitionResolveNameVisitor(concreteProvider, null, errorReporter).resolveGroup(preludeFile, scope) }
     }
 
     companion object {
