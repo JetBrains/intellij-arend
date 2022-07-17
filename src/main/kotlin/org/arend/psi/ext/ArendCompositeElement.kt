@@ -57,7 +57,7 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
         if (classDef != null) {
             isExtends = true
             // The last parameters is set to ONLY_EXTERNAL to prevent infinite recursion during resolving of references in \\extends
-            LexicalScope.insideOf(classDef, classDef.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
+            LexicalScope.insideOf(classDef, classDef.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true, Scope.Kind.EXPR), LexicalScope.Extent.ONLY_EXTERNAL, Scope.Kind.EXPR)
         } else it.scope
     } ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
 
@@ -85,7 +85,7 @@ private fun getArendScope(element: ArendCompositeElement): Scope {
 
 private fun getArendScopes(element: ArendCompositeElement): Scopes {
     val group = element.ancestor<ArendGroup>() ?: element.containingFile as? ArendFile
-    return Scopes(getArendScope(element), group?.groupPLevelScope ?: EmptyScope.INSTANCE, group?.groupHLevelScope ?: EmptyScope.INSTANCE)
+    return Scopes(getArendScope(element), group?.getGroupScope(Scope.Kind.PLEVEL) ?: EmptyScope.INSTANCE, group?.getGroupScope(Scope.Kind.HLEVEL) ?: EmptyScope.INSTANCE)
 }
 
 fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode {

@@ -104,9 +104,9 @@ abstract class IntellijRepl private constructor(
     }
 
     fun resetCurrentLineScopes(): Scopes {
-        replScope.setCurrentLineScope(CachingScope.make(ScopeFactory.forGroup(handler.arendFile, availableModuleScopeProvider)))
-        pLevelScope.setCurrentLineScope(NameCachingScope.make(LevelLexicalScope(EmptyScope.INSTANCE, handler.arendFile, true, true)))
-        hLevelScope.setCurrentLineScope(NameCachingScope.make(LevelLexicalScope(EmptyScope.INSTANCE, handler.arendFile, false, true)))
+        replScope.setCurrentLineScope(CachingScope.make(ScopeFactory.forGroup(handler.arendFile, availableModuleScopeProvider, Scope.Kind.EXPR)))
+        pLevelScope.setCurrentLineScope(CachingScope.make(ScopeFactory.forGroup(handler.arendFile, availableModuleScopeProvider, false, Scope.Kind.PLEVEL)))
+        hLevelScope.setCurrentLineScope(CachingScope.make(ScopeFactory.forGroup(handler.arendFile, availableModuleScopeProvider, false, Scope.Kind.HLEVEL)))
         return scopes
     }
 

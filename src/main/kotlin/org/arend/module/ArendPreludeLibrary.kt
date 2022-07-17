@@ -41,7 +41,11 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
     override fun getModuleGroup(modulePath: ModulePath, inTests: Boolean) =
         if (!inTests && modulePath == Prelude.MODULE_PATH) prelude else null
 
-    override fun getDeclaredModuleScopeProvider() = ModuleScopeProvider { if (it == Prelude.MODULE_PATH) scope else null }
+    override fun getDeclaredModuleScopeProvider() = object : ModuleScopeProvider {
+        override fun forModule(module: ModulePath, kind: Scope.Kind) = if (module == Prelude.MODULE_PATH) (if (kind == Scope.Kind.EXPR) scope else EmptyScope.INSTANCE) else null
+
+        override fun isCaching() = true
+    }
 
     override fun containsModule(modulePath: ModulePath) = modulePath == Prelude.MODULE_PATH
 
@@ -76,7 +80,7 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
     fun resolveNames(concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
         if (scope != null) throw IllegalStateException()
         val preludeFile = prelude ?: return
-        scope = CachingScope.make(LexicalScope.opened(preludeFile))
+        scope = CachingScope.make(LexicalScope.opened(preludeFile, Scope.Kind.EXPR))
         runReadAction { DefinitionResolveNameVisitor(concreteProvider, null, errorReporter).resolveGroup(preludeFile, Scopes(scope, EmptyScope.INSTANCE, EmptyScope.INSTANCE)) }
     }
 
