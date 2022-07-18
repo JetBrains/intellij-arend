@@ -51,7 +51,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
         val defIdentifier = when (element) {
-//            is ArendPattern -> element.defIdentifier
             is ArendAtomPattern -> element.longName ?: element.ipName
             else -> null
         }
@@ -137,8 +136,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                   typeCheckedDefinition = ((expr as? LamExpression)?.body as? FunCallExpression)?.definition ?: typeCheckedDefinition
                   concreteClauseOwner = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcrete(typeCheckedDefinition.ref.underlyingReferable as GlobalReferable).castSafelyTo<Concrete.FunctionDefinition>() ?: concreteClauseOwner
                 }
-
-                val xx = typeCheckedDefinition
 
                 val elimBody = (((typeCheckedDefinition as? FunctionDefinition)?.actualBody as? IntervalElim)?.otherwise
                         ?: ((typeCheckedDefinition as? FunctionDefinition)?.actualBody as? ElimBody) ?: return null)
