@@ -399,7 +399,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         if (currAnchor is ArendClause) {
                             val elementCopy = currAnchor.findElementAt(relativeOffsetOfReplaceablePsi)?.parentOfType<ArendAtomPattern>()?.goUpIfImplicit()
 
-//                            findReplaceablePsiElement(localIndexList.drop(1), topLevelPatterns.find { it.data == localIndexList[0] })
                             if (elementCopy != null) {
                                 doSubstituteUsages(project, elementCopy.childOfType(), currAnchor, expressionString)
                                 doReplacePattern(factory, elementCopy, patternString, splitPatternEntry.requiresParentheses())
@@ -428,15 +427,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (pattern !is Concrete.ConstructorPattern) return false
             val typechecked = pattern.constructor.castSafelyTo<TCDefReferable>()?.typechecked
             return typechecked == Prelude.SUC || typechecked == Prelude.FIN_SUC
-//            if (pattern !is ArendPatternImplMixin || pattern.sequence.size != 1) {
-//                return false
-//            }
-
-//            val constructor = (pattern.singleReferable as? UnresolvedReference)?.resolve(pattern.ancestor<ArendDefinition>()?.scope ?: return false, null) as? ArendConstructor
-//                    ?: return false
-//            return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT ||
-//                   constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.FIN
-
         }
 
         fun findAllVariablePatterns(patterns: List<Concrete.Pattern>, excludedPsi: PsiElement?): HashSet<String> {
@@ -484,12 +474,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     }
                     indexList.add(pattern)
                 }
-//                if (patternOwner is ArendPattern) {
-//                    indexList.add(pattern)
-//                }
-//                if (patternOwner is ArendClause) indexList.add(patternOwner.patternList.indexOf(pattern))
-//                if (patternOwner is ArendConstructorClause) indexList.add(0, patternOwner.patternList.indexOf(pattern))
-//                if (patternOwner is ArendAtomPattern && patternOwner.patternList.size > 1) indexList.add(0, patternOwner.patternList.indexOf(pattern))
             }
 
             if (pattern == null) return null

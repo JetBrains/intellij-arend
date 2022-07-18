@@ -24,7 +24,6 @@ class MakePatternExplicitQuickFix(private val atomPatternRef: SmartPsiElementPoi
 
     private fun getTargetPattern(pattern: ArendAtomPattern) =
             pattern.patternList.singleOrNull()?.atomPatternList?.singleOrNull()
-//    let { if (pattern.asPattern == null) it else null }
 
     private fun getImplicitPattern(atom: ArendAtomPattern): ArendAtomPattern? {
         return if (atom.lbrace == null) {
@@ -43,10 +42,6 @@ class MakePatternExplicitQuickFix(private val atomPatternRef: SmartPsiElementPoi
             return
         }
 
-//        val id = if (pattern.parent.castSafelyTo<ArendPattern>()?.asPattern == null && /*pattern.atomPattern?.type == null &&*/ pattern.patternList.isEmpty())
-//            pattern.patternList.firstOrNull()?.longName /*?: pattern.longName*/
-//        else null
-//
 
         if (atomPattern.parent.castSafelyTo<ArendPattern>()?.atomPatternList != listOf(atomPattern)) {
             val lbrace = atomPattern.lbrace ?: return
@@ -59,20 +54,6 @@ class MakePatternExplicitQuickFix(private val atomPatternRef: SmartPsiElementPoi
         } else {
             atomPattern.parent.replaceWithNotification(pattern.patternList.single())
         }
-//        when (val parent = atomPattern.parent) {
-////            is ArendPattern ->
-////                if (id != null && parent.asPattern == null) {
-////                    atomPattern.replaceWithNotification(id)
-////                } else {
-////                    parent.replaceWithNotification(pattern)
-////                }
-//            is ArendPattern -> {
-////                if (id != null) {
-////                    atomPattern.replaceWithNotification(id)
-////                } else {
-//
-//                }
-//        }
     }
 
     private fun makeAllExplicit(): Boolean {
@@ -81,18 +62,6 @@ class MakePatternExplicitQuickFix(private val atomPatternRef: SmartPsiElementPoi
         var ok = false
         var node = parent.firstChild
         while (node != null) {
-            if (node is ArendClause || node is ArendConstructorClause) {
-                for (pattern in PsiTreeUtil.getChildrenOfTypeAsList(node, ArendPattern::class.java)) {
-//                    pattern.atomPattern?.let {
-//                        if (it.rbrace != null) {
-//                            if (it == atomPattern) {
-//                                ok = true
-//                            }
-//                            makeExplicit(it)
-//                        }
-//                    }
-                }
-            }
             node = node.nextSibling
         }
 

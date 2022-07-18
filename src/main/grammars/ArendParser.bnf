@@ -501,8 +501,6 @@ asPattern ::= AS_KW defIdentifier private_typeAnnotation? {
 
 private private_typeAnnotation ::= COLON expr { pin = 1 }
 
-//private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | STRING | UNDERSCORE | COLON | AS_KW) & pattern_recover
-
 atomPattern ::= longNameIP
     | LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE

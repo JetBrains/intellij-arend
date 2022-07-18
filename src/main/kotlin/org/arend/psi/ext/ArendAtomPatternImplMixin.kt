@@ -46,18 +46,13 @@ abstract class ArendAtomPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(no
 
     override fun getSequence(): List<Abstract.Pattern> {
         return patternList
-//        return if (patterns.size == 1) patterns[0].sequence else patterns
     }
 
     override fun getType(): ArendExpr? {
-//        val patterns = patternList
         return null
-//        return if (patterns.size == 1) patterns[0].type.castSafelyTo<ArendExpr>() else null
     }
 
     override fun getAsPatterns(): List<Abstract.TypedReferable> {
         return emptyList()
-//        val patterns = patternList
-//        return if (patterns.size != 1) emptyList() else patterns[0].asPatterns
     }
 }

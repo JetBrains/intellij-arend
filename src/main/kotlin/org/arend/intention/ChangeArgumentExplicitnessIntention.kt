@@ -797,20 +797,6 @@ class NameFieldApplier(project: Project) : ChangeArgumentExplicitnessApplier(pro
         return argumentAppExpr.scope.elements.map { VariableImpl(it.textRepresentation()) }
     }
 
-//    override fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiReference? {
-//        val function = when (call) {
-//            is ArendArgumentAppExpr -> call.atomFieldsAcc
-//            is ArendPattern -> when {
-//                call.defIdentifier != null -> call.defIdentifier
-//                call.longName != null -> call.longName?.refIdentifierList?.last()
-//                else -> null
-//            }
-//            else -> null
-//        } ?: throw IllegalArgumentException()
-//
-//        val refs = searchRefsInPsiElement(def, function)
-//        return if (refs.isEmpty()) null else refs.first()
-//    }
 
     override fun getCallingParametersWithPhantom(call: PsiElement): List<String> {
         return when (call) {
