@@ -74,7 +74,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
-                if ((lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
+                if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
                     when {
                         (((referent as? RedirectingReferable)?.originalReferable ?: referent) as? MetaReferable)?.resolver != null ->
                             addHighlightInfo(lastReference.textRange, ArendHighlightingColors.META_RESOLVER)

@@ -1,5 +1,8 @@
 package org.arend.resolving
 
+import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.util.castSafelyTo
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.Referable
@@ -39,7 +42,15 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
                 data.parentLongName?.let { it.refIdentifierList + last } ?: last
             }
             is ArendReferenceElement -> listOf(data)
-            is ArendPattern -> data.atomPatternList.flatMap { listOfNotNull(it.longName?.refIdentifierList?.last()) + listOfNotNull(it.ipName) }
+            is ArendPattern -> {
+                val firstReference = data.atomPatternList.getOrNull(0)
+                val secondReference = data.atomPatternList.getOrNull(1).castSafelyTo<ArendAtomPattern>()
+                if (secondReference?.longName?.refIdentifierList?.last()?.text?.equals(referent.refName) == true) {
+                    listOf(secondReference.longName!!.refIdentifierList!!.last())
+                } else {
+                    listOf(firstReference!!.longName!!.refIdentifierList.last())
+                }
+            }
             is ArendAtomLevelExpr -> data.refIdentifier?.let { listOf(it) } ?: return
             else -> return
         }
