@@ -26,6 +26,7 @@ import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
@@ -36,6 +37,7 @@ import org.arend.refactoring.*
 import org.arend.resolving.ArendReferableConverter
 import org.arend.search.ClassDescendantsSearch
 import org.arend.term.abs.Abstract
+import org.arend.term.abs.Abstract.Pattern
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
@@ -158,12 +160,17 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
             } else if (!pattern.children.contains(block)) buffer += block.text
         }
 
-        for (arg in pattern.arguments) {
+        var concrete = ConcreteBuilder.convertPattern(pattern, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
+        val list = mutableListOf(concrete)
+        ExpressionResolveNameVisitor(ArendReferableConverter, pattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(list, mutableMapOf(), true)
+        concrete = list.single()
+
+        for (arg in concrete.patterns) {
             val data = arg.data as PsiElement
             var data1: PsiElement? = data
             while (true) {
-                if (data1 is ArendAtomPatternOrPrefix && data1.atomPattern != null && data1.defIdentifier == null && data1.longName == null) {
-                    data1 = data1.atomPattern; continue
+                if (data1 is ArendAtomPattern && data1.patternList.size == 1 && data1.longName == null) {
+                    data1 = data1.patternList.single(); continue
                 } else if (data1 is ArendAtomPattern && data1.patternList.size == 1 && (data1.lparen != null || data1.lbrace != null)) {
                     data1 = data1.patternList[0]; continue
                 }
@@ -172,7 +179,7 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
             val text = textGetter(data, refactoringContext.textReplacements)
             val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
             val isAtomic = data1 is ArendDefIdentifier || data1 is ArendAtomPattern && (data1.patternList.size == 0 && data1.lparen != null || data1.underscore != null)
-            procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, spacingMap[arg], null))
+            procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, spacingMap[arg.data as Pattern], null))
         }
     }
 
@@ -638,7 +645,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                             }
                             if (errorReporter.errorsNumber > 0) failingAppExprs.add(Pair(fCall, d.def))
                         }
-                        is ArendPattern, is ArendLocalCoClause -> concreteSet.add(Pair(Pair(fCall, d), null))
+                        is ArendAtomPattern, is ArendLocalCoClause -> concreteSet.add(Pair(Pair(fCall, d), null))
                     }
                 }
 
@@ -662,11 +669,12 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                                 null
                             }
                         }
-                        is ArendPattern -> doProcessEntry(PatternEntry(psiElement, refactoringContext, defName)).first
+                        is ArendAtomPattern -> doProcessEntry(PatternEntry(psiElement.parent as ArendPattern, refactoringContext, defName)).first
                         is ArendLocalCoClause -> doProcessEntry(LocalCoClauseEntry(psiElement, refactoringContext, defName)).first
                         else -> null
                     }?.let { result ->
-                        textReplacements[psiElement] = result
+                        val elementToReplace = if (psiElement is ArendAtomPattern) psiElement.parent else psiElement
+                        textReplacements[elementToReplace] = result
                     }
                 }
 
@@ -763,11 +771,6 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
     abstract fun getContext(element: PsiElement): List<Variable>
 
     /**
-     * Extracts reference to the function of given call
-     */
-    abstract fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiReference?
-
-    /**
      * Returns all parameters including phantoms
      */
     abstract fun getCallingParametersWithPhantom(call: PsiElement): List<String>
@@ -780,12 +783,12 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
 
 class NameFieldApplier(project: Project) : ChangeArgumentExplicitnessApplier(project) {
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement =
-        if (element.parent is ArendPattern || element.parent is ArendLongName && element.parent.parent is ArendPattern) element.ancestor<ArendPattern>()!! else
+        if (element.parentOfType<ArendAtomPattern>() != null) element.ancestor<ArendAtomPattern>()!! else
         element.ancestor<ArendArgumentAppExpr>() ?: element
 
     override fun getCallingParameters(call: PsiElement): List<PsiElement> = when (call) {
         is ArendArgumentAppExpr -> call.argumentList
-        is ArendPattern -> call.atomPatternOrPrefixList
+        is ArendPattern -> call.atomPatternList
         else -> throw IllegalArgumentException()
     }
 
@@ -794,20 +797,20 @@ class NameFieldApplier(project: Project) : ChangeArgumentExplicitnessApplier(pro
         return argumentAppExpr.scope.elements.map { VariableImpl(it.textRepresentation()) }
     }
 
-    override fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiReference? {
-        val function = when (call) {
-            is ArendArgumentAppExpr -> call.atomFieldsAcc
-            is ArendPattern -> when {
-                call.defIdentifier != null -> call.defIdentifier
-                call.longName != null -> call.longName?.refIdentifierList?.last()
-                else -> null
-            }
-            else -> null
-        } ?: throw IllegalArgumentException()
-
-        val refs = searchRefsInPsiElement(def, function)
-        return if (refs.isEmpty()) null else refs.first()
-    }
+//    override fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiReference? {
+//        val function = when (call) {
+//            is ArendArgumentAppExpr -> call.atomFieldsAcc
+//            is ArendPattern -> when {
+//                call.defIdentifier != null -> call.defIdentifier
+//                call.longName != null -> call.longName?.refIdentifierList?.last()
+//                else -> null
+//            }
+//            else -> null
+//        } ?: throw IllegalArgumentException()
+//
+//        val refs = searchRefsInPsiElement(def, function)
+//        return if (refs.isEmpty()) null else refs.first()
+//    }
 
     override fun getCallingParametersWithPhantom(call: PsiElement): List<String> {
         return when (call) {
@@ -841,12 +844,6 @@ class TypeApplier(project: Project) : ChangeArgumentExplicitnessApplier(project)
     override fun getContext(element: PsiElement): List<Variable> {
         val localCoClause = element as ArendLocalCoClause
         return localCoClause.scope.elements.map { VariableImpl(it.textRepresentation()) }
-    }
-
-    override fun extractRefIdFromCalling(def: PsiElement, call: PsiElement): PsiReference? {
-        val function = (call as ArendLocalCoClause).longName!!
-        val refs = searchRefsInPsiElement(def, function)
-        return if (refs.isEmpty()) null else refs.first()
     }
 
     override fun getCallingParametersWithPhantom(call: PsiElement): List<String> {

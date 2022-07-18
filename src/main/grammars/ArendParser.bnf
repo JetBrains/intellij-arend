@@ -105,6 +105,9 @@
         BLOCK_COMMENT       = 'BLOCK_COMMENT'
     ]
 
+    mixin("pattern") = "org.arend.psi.ext.ArendPatternImplMixin"
+    implements("pattern") = [ "org.arend.psi.ext.ArendCompositeElement"
+                              "org.arend.term.abs.Abstract.Pattern" ]
     extends("def(Function|Data|Class|Instance|Meta)") = definition
     extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
@@ -485,16 +488,9 @@ private statementList ::= LBRACE stat* RBRACE {
     pin = 1
 }
 
-pattern ::= atomPattern asPattern? | patternConstructor {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.Pattern" ]
-    mixin = "org.arend.psi.ext.ArendPatternImplMixin"
-    recoverWhile = pattern_recover
-}
+pattern ::= atomPattern+ (private_typeAnnotation | asPattern?) { pin = 1 }
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
-
-private patternConstructor ::= defIdentifier_pattern (private_typeAnnotation | atomPatternOrPrefix* asPattern?) { pin = 1 }
 
 asPattern ::= AS_KW defIdentifier private_typeAnnotation? {
     pin = 1
@@ -505,19 +501,10 @@ asPattern ::= AS_KW defIdentifier private_typeAnnotation? {
 
 private private_typeAnnotation ::= COLON expr { pin = 1 }
 
-atomPatternOrPrefix ::= atomPattern | defIdentifier_pattern {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.Pattern" ]
-    mixin = "org.arend.psi.ext.ArendPatternImplMixin"
-}
+//private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | STRING | UNDERSCORE | COLON | AS_KW) & pattern_recover
 
-private defIdentifier_pattern ::= defIdentifier !DOT | longName {
-    recoverWhile = defIdentifier_pattern_recover
-}
-
-private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | STRING | UNDERSCORE | COLON | AS_KW) & pattern_recover
-
-atomPattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN
+atomPattern ::= longNameIP
+    | LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | LBRACE pattern RBRACE
     | NUMBER
     | NEGATIVE_NUMBER
@@ -705,6 +692,7 @@ lamExprWOB ::= LAM_KW lamParam+ [FAT_ARROW exprWOB?] {
 lamParam ::= lamTele | atomPattern {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.LamParameter" ]
+    extends = "org.arend.psi.ext.ArendLamParameterImplMixin"
 }
 
 private pipe_def_un ::= PIPE {
@@ -921,6 +909,7 @@ argument ::= atomArgument
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.Argument"
                    "org.arend.term.abs.Abstract.BinOpSequenceElem" ]
+    extends = "org.arend.psi.ext.ArendArgumentImplMixin"
 }
 
 lamArgument ::= lamExpr {

@@ -6,11 +6,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.util.castSafelyTo
 import org.arend.psi.*
 import org.arend.psi.ext.ArendPatternImplMixin
+import org.arend.term.abs.Abstract
 import org.arend.util.ArendBundle
 
-class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElementPointer<ArendPatternImplMixin>): IntentionAction {
+class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElementPointer<PsiElement>): IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getFamilyName(): String = text
@@ -20,15 +22,15 @@ class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElement
     override fun getText(): String = ArendBundle.message("arend.pattern.remove")
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val pattern = patternRef.element ?: return
+        val pattern = patternRef.element?.castSafelyTo<Abstract.Pattern>() ?: return
         val factory = ArendPsiFactory(project)
         val patternLine = if (pattern.isExplicit) "_" else "{_}"
         val wildcardPattern: PsiElement? = when (pattern) {
             is ArendPattern -> factory.createClause(patternLine).childOfType<ArendPattern>()!!
-            is ArendAtomPatternOrPrefix -> factory.createAtomPattern(patternLine)
+            is ArendAtomPattern -> factory.createAtomPattern(patternLine)
             else -> null
         }
 
-        if (wildcardPattern != null) pattern.replaceWithNotification(wildcardPattern)
+        if (wildcardPattern != null) pattern.castSafelyTo<PsiElement>()?.replaceWithNotification(wildcardPattern)
     }
 }

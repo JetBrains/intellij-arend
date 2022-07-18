@@ -63,6 +63,12 @@ fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
         .filter(ArendDefIdentifier::class.java)
         .firstOrNull()
 
+fun refBinding(p: PsiElement, selected: TextRange) = SyntaxTraverser
+        .psiTraverser(p)
+        .onRange { selected in it.textRange }
+        .filter(ArendRefIdentifier::class.java)
+        .firstOrNull()
+
 data class SubExprResult(
         val subCore: Expression,
         val subConcrete: Concrete.Expression,
@@ -89,7 +95,7 @@ data class SubExprResult(
         it to FindBinding.visitSigma(it, subConcrete, subCore)
     } else if (subPsi is ArendCaseExprImplMixin
             && subConcrete is Concrete.CaseExpression
-            && subCore is CaseExpression) binding(subPsi, selected)?.let {
+            && subCore is CaseExpression) refBinding(subPsi, selected)?.let {
         it to FindBinding.visitCase(it, subConcrete, subCore)
     } else null
 }
@@ -102,7 +108,7 @@ private class MyResolverListener(private val data: Any) : ResolverListener {
         if (expression.data == data) {
             this.result = result
             var expr = if (clauses == null) Concrete.AppExpression.make(data, expression, args) else
-                Concrete.BinOpSequenceExpression(data, listOf(Concrete.BinOpSequenceElem(expression)) + args.map { Concrete.BinOpSequenceElem(it.expression, Fixity.NONFIX, it.isExplicit) }, clauses)
+                Concrete.BinOpSequenceExpression(data, listOf(Concrete.BinOpSequenceElem<Concrete.Expression>(expression)) + args.map { Concrete.BinOpSequenceElem(it.expression, Fixity.NONFIX, it.isExplicit) }, clauses)
             if (coclauses != null) {
                 expr = Concrete.ClassExtExpression.make(data, expr, coclauses)
             }
@@ -199,7 +205,7 @@ private fun everyExprOf(concrete: Concrete.Expression): Sequence<Any?> = sequenc
     if (concrete is Concrete.AppExpression)
         for (arg in concrete.arguments) yieldAll(everyExprOf(arg.expression))
     if (concrete is Concrete.BinOpSequenceExpression) {
-        for (arg in concrete.sequence) yieldAll(everyExprOf(arg.expression))
+        for (arg in concrete.sequence) yieldAll(everyExprOf(arg.component))
         concrete.clauses?.let { yield(it.data) }
     }
 }

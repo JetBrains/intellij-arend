@@ -2,7 +2,7 @@ package org.arend.search.proof
 
 import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
-import org.arend.naming.BinOpParser
+import org.arend.naming.binOp.ExpressionBinOpEngine
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
@@ -139,7 +139,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
     ): Concrete.Expression? =
         when (tree) {
             is PatternTree.BranchingNode -> {
-                val binOpList = ArrayList<Concrete.BinOpSequenceElem>(tree.subNodes.size)
+                val binOpList = ArrayList<Concrete.BinOpSequenceElem<Concrete.Expression>>(tree.subNodes.size)
                 for (i in tree.subNodes.indices) {
                     val expr = reassembleConcrete(tree.subNodes[i].first, scope, references) ?: break
                     val explicitness = tree.subNodes[i].second.toBoolean()
@@ -153,7 +153,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
                 if (binOpList.size != tree.subNodes.size) {
                     null
                 } else {
-                    binOpParser.parse(Concrete.BinOpSequenceExpression(null, binOpList, null))
+                    ExpressionBinOpEngine.parse(Concrete.BinOpSequenceExpression(null, binOpList, null), DummyErrorReporter.INSTANCE)
                 }
             }
             is PatternTree.LeafNode -> {
@@ -225,5 +225,4 @@ private fun disambiguate(candidates: List<Referable>, path: List<String>): Refer
 }
 
 
-private val binOpParser = BinOpParser(DummyErrorReporter.INSTANCE)
 internal data class ProofSearchMatchingResult(val inPattern: List<Pair<Concrete.Expression, List<Concrete.Expression>>>, val inCodomain: List<Concrete.Expression>)

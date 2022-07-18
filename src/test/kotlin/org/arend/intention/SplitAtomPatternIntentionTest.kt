@@ -274,7 +274,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | foo Nat
          
        \func plus {a : Nat} (b : Foo) : Nat \elim b
-         | foo 2 => zero
+         | foo ((2)) => zero
          | foo ((suc ((Nat.suc (suc b))))) => suc b 
     """)
 

@@ -6,6 +6,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
+import com.intellij.util.castSafelyTo
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
@@ -70,7 +72,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
     private fun collectInfo(progress: ProgressIndicator) {
         val definitions = ArrayList<Concrete.Definition>()
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
-            override fun resolveReference(data: Any?, referent: Referable, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
+            override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
                 if ((lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
                     when {
@@ -106,6 +108,12 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                         addHighlightInfo(textRange, ArendHighlightingColors.LONG_NAME)
                     }
                 }
+            }
+
+            override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
+                super.patternResolved(originalRef, pattern, resolvedRefs)
+                val psi = pattern.data.castSafelyTo<ArendPattern>()?.atomPatternList?.find { it.text == pattern.constructor.refName } ?: pattern.data.castSafelyTo<ArendAtomPattern>()?.takeIf { it.text == pattern.constructor.refName } ?: return
+                addHighlightInfo(psi.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
             }
 
             private fun highlightParameters(definition: Concrete.GeneralDefinition) {

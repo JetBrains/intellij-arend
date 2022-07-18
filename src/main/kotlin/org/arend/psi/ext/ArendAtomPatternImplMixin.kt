@@ -1,6 +1,7 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.intellij.util.castSafelyTo
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.term.abs.Abstract
@@ -10,19 +11,11 @@ abstract class ArendAtomPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(no
     override fun getData(): Any? = this
 
     override fun isUnnamed(): Boolean {
-        if (underscore != null) {
-            return true
-        }
-        val patterns = patternList
-        return if (patterns.size == 1) patterns.first().isUnnamed else false
+        return underscore != null
     }
 
     override fun isExplicit(): Boolean {
-        if (lbrace != null) {
-            return false
-        }
-        val patterns = patternList
-        return if (patterns.size == 1) patterns.first().isExplicit else true
+        return lbrace == null
     }
 
     override fun getInteger(): Int? {
@@ -40,27 +33,31 @@ abstract class ArendAtomPatternImplMixin(node: ASTNode) : ArendSourceNodeImpl(no
                 else -> value
             }
         }
-        val patterns = patternList
-        return if (patterns.size == 1) patterns[0].integer else null
+        return null
     }
 
-    override fun getHeadReference(): Referable? {
-        val patterns = patternList
-        return if (patterns.size == 1) patterns[0].headReference else null
+    override fun getSingleReferable(): Referable? {
+        return longName?.unresolvedReference
     }
 
-    override fun getArguments(): List<Abstract.Pattern> {
-        val patterns = patternList
-        return if (patterns.size == 1) patterns[0].arguments else patterns
+    override fun isTuplePattern(): Boolean {
+        return lparen != null && rparen != null
+    }
+
+    override fun getSequence(): List<Abstract.Pattern> {
+        return patternList
+//        return if (patterns.size == 1) patterns[0].sequence else patterns
     }
 
     override fun getType(): ArendExpr? {
-        val patterns = patternList
-        return if (patterns.size == 1) patterns[0].expr else null
+//        val patterns = patternList
+        return null
+//        return if (patterns.size == 1) patterns[0].type.castSafelyTo<ArendExpr>() else null
     }
 
     override fun getAsPatterns(): List<Abstract.TypedReferable> {
-        val patterns = patternList
-        return if (patterns.size != 1) emptyList() else patterns[0].asPatterns
+        return emptyList()
+//        val patterns = patternList
+//        return if (patterns.size != 1) emptyList() else patterns[0].asPatterns
     }
 }

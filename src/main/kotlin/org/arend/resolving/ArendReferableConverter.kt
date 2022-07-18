@@ -5,10 +5,11 @@ import org.arend.psi.ext.PsiLocatedReferable
 
 
 object ArendReferableConverter : BaseReferableConverter() {
-    override fun toDataLocatedReferable(referable: LocatedReferable?): TCReferable? =
-        when (referable) {
+    override fun toDataLocatedReferable(referable: LocatedReferable?): TCReferable? {
+        return when (referable) {
             is PsiLocatedReferable -> referable.tcReferable
             is TCReferable -> referable
             else -> null
         }
+    }
 }

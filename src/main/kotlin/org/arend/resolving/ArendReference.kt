@@ -114,7 +114,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
         val def = expr?.ancestor<PsiConcreteReferable>()
         var elements = if (expr == null) element.scope.getElements(refKind) else emptyList()
         val resolverListener = if (expr == null) null else object : ResolverListener {
-            override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
+            override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable?, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
                 if (refExpr.data == parent || refExpr.data == element) {
                     elements = scope.getElements(refKind)
                 }

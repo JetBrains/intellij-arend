@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.util.castSafelyTo
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.param.DependentLink
@@ -26,19 +27,24 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.reference.DataContainer
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.intention.SplitAtomPatternIntention
 import org.arend.intention.SplitAtomPatternIntention.Companion.doReplacePattern
 import org.arend.intention.SplitAtomPatternIntention.Companion.isSucPattern
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.TCDefReferable
+import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.ext.ArendPatternImplMixin
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.PsiLocatedRenamer
@@ -165,7 +171,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             }
         }
 
-        abstract class ExpectedConstructorQuickFixRunner<K : AbstractExpectedConstructorErrorEntry>(val thisError: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>, val project: Project) {
+        sealed class ExpectedConstructorQuickFixRunner<K : AbstractExpectedConstructorErrorEntry>(val thisError: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>, val project: Project) {
             val errorHintBuffer = StringBuffer()
             val psiFactory = ArendPsiFactory(project)
 
@@ -267,23 +273,21 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                         // STEP 6: Unify matched patterns with existing patterns and calculate elementary substitutions (of the form "variable" -> "expression")
                         for (cS in ecEntry.correctedSubsts) {
-                            val patternPrimer = ecEntry.patternPrimers[cS.key]
-                            if (patternPrimer != null) {
-                                var concretePrimer = convertPattern(patternPrimer, ArendReferableConverter, null, null)
-                                val primerOk: Boolean
-                                run {
-                                    val cer = CountingErrorReporter(DummyErrorReporter.INSTANCE)
-                                    val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, patternPrimer.scope, ArrayList<Referable>(), cer, null)
-                                    val primerList = ArrayList<Concrete.Pattern>()
-                                    primerList.add(concretePrimer)
-                                    resolver.visitPatterns(primerList, null, true)
-                                    concretePrimer = primerList[0]
-                                    resolver.resolvePattern(concretePrimer)
-                                    primerOk = cer.errorsNumber == 0
-                                }
-
-                                if (primerOk) unify(cS.value, concretePrimer, processedSubstitutions, newPrimers, mismatchedPatterns)
+                            val patternPrimer = ecEntry.patternPrimers[cS.key] ?: continue
+                            var concretePrimer = convertPattern(patternPrimer, ArendReferableConverter, null, null)
+                            val primerOk: Boolean
+                            run {
+                                val cer = CountingErrorReporter(DummyErrorReporter.INSTANCE)
+                                val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, patternPrimer.scope, ArrayList<Referable>(), cer, null)
+                                val primerList = ArrayList<Concrete.Pattern>()
+                                primerList.add(concretePrimer)
+                                resolver.visitPatterns(primerList, null, true)
+                                concretePrimer = primerList[0]
+                                resolver.resolvePattern(concretePrimer)
+                                primerOk = cer.errorsNumber == 0
                             }
+
+                            if (primerOk) unify(cS.value, concretePrimer, processedSubstitutions, newPrimers, mismatchedPatterns)
                         }
 
                         // STEP 7: Insert new primers
@@ -310,43 +314,41 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             is ArendConstructorClause -> currentClause.constructorList
                             else -> emptyList()
                         }
-                        val variablePatterns = SplitAtomPatternIntention.findAllVariablePatterns(currentClause, null)
+                        val variablePatterns = SplitAtomPatternIntention.findAllVariablePatterns(emptyList(), null)
                         val newVariables = ArrayList<String>()
 
                         for (clauseExpression in clauseExpressionList) if (clauseExpression != null)
                             for (mismatchedEntry in mismatchedPatterns) {
                                 for (varToRemove in mismatchedEntry.value.second) {
-                                    val defIdentifier = varToRemove.childOfType<ArendDefIdentifier>()
+                                    val defIdentifier = varToRemove.childOfType<ArendRefIdentifier>()
                                     if (defIdentifier != null) SplitAtomPatternIntention.doSubstituteUsages(project, defIdentifier, clauseExpression, "{?${defIdentifier.name}}")
                                 }
                             }
 
                         for (mismatchedEntry in mismatchedPatterns) {
-                            val printData = printPattern(mismatchedEntry.value.first, currentClause as ArendCompositeElement, variablePatterns.map{ VariableImpl(it.name)}.toList(), newVariables, StringRenamer())
+                            val printData = printPattern(mismatchedEntry.value.first, currentClause as ArendCompositeElement, variablePatterns.map{ VariableImpl(it)}.toList(), newVariables, StringRenamer())
                             doReplacePattern(psiFactory, mismatchedEntry.key, printData.patternString, printData.requiresParentheses)
                         }
 
-                        val varsNoLongerUsed = HashSet<ArendDefIdentifier>()
+                        val varsNoLongerUsed = HashSet<ArendRefIdentifier>()
 
                         for (substEntry in processedSubstitutions) {
                             val renamer = StringRenamer()
                             fun computePrintData() =
-                                printPattern(substEntry.value, currentClause as ArendCompositeElement, getOccupiedNames(variablePatterns).minus(varsNoLongerUsed.mapToSet { it.name }).map { VariableImpl(it) }.toList(), newVariables, renamer)
+                                printPattern(substEntry.value, currentClause as ArendCompositeElement, getOccupiedNames(HashSet()).minus(varsNoLongerUsed.mapToSet { it.name }).map { VariableImpl(it) }.toList(), newVariables, renamer)
 
                             var printData = computePrintData()
                             val namePatternToReplace = substEntry.key
 
-                            val idOrUnderscore = namePatternToReplace.childOfType<ArendDefIdentifier>() ?: namePatternToReplace.childOfType<ArendAtomPattern>()?.underscore
-                            val asPiece = namePatternToReplace.childOfType<ArendAsPattern>()
+                            val idOrUnderscore = namePatternToReplace.childOfType<ArendRefIdentifier>() ?: namePatternToReplace.childOfType<ArendAtomPattern>()?.underscore
+                            val asPiece = namePatternToReplace.parent.childOfType<ArendAsPattern>()
                             val asDefIdentifier = asPiece?.defIdentifier
 
-                            if (idOrUnderscore is ArendDefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
+                            if (idOrUnderscore is ArendRefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
 
-                            val target = asDefIdentifier ?: if (idOrUnderscore is ArendDefIdentifier) idOrUnderscore else null
-                            val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = {
-                                val name = it.name
-                                if (name != null) it.scope.resolveName(name) as? PsiElement else null
-                            }
+                            val target = asDefIdentifier ?: if (idOrUnderscore is ArendRefIdentifier) idOrUnderscore else null
+                            val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = { val name = it.name
+                                if (name != null) it.scope.resolveName(name) as? PsiElement else null }
 
                             val noOfUsages = if (target != null) {
                                 fun calculateNumberOfUsages(element: PsiElement): Int {
@@ -362,9 +364,9 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                 noOfUsages
                             } else 0
 
-                            val useAsPattern = (printData.complexity > 2 || printData.containsClassConstructor) && noOfUsages > 0
+                            val useAsPattern = asDefIdentifier != null || ((printData.complexity > 2 || printData.containsClassConstructor) && noOfUsages > 0)
 
-                            if (!useAsPattern && asPiece == null && idOrUnderscore is ArendDefIdentifier) {
+                            if (!useAsPattern && asPiece == null && idOrUnderscore is ArendRefIdentifier) {
                                 varsNoLongerUsed.add(idOrUnderscore)
                                 newVariables.clear()
                                 printData = computePrintData() //Recompute print data, this time allowing the variable being substituted to be reused in the subtituted pattern (as one of its NamePatterns)
@@ -372,15 +374,15 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                             val existingAsName = asPiece?.defIdentifier
                             for (clauseExpression in clauseExpressionList) if (clauseExpression != null) {
-                                if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendDefIdentifier)
+                                if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendRefIdentifier)
                                     SplitAtomPatternIntention.doSubstituteUsages(project, idOrUnderscore, clauseExpression, printData.patternString, nonCachedResolver)
                             }
 
                             if (idOrUnderscore != null) {
                                 var asName: String = if (!useAsPattern) "" else {
-                                    val n = (if (existingAsName != null) existingAsName.name else (idOrUnderscore as? ArendDefIdentifier)?.name)
+                                    val n = (if (existingAsName != null) existingAsName.name else (idOrUnderscore as? ArendRefIdentifier)?.name)
                                     if (n != null) n else {
-                                        val freshName = Renamer().generateFreshName(VariableImpl("_x"), (variablePatterns.map{ VariableImpl(it.name) } + newVariables.map { VariableImpl(it) }).toList())
+                                        val freshName = Renamer().generateFreshName(VariableImpl("_x"), (variablePatterns.map{ VariableImpl(it) } + newVariables.map { VariableImpl(it) }).toList())
                                         newVariables.add(freshName)
                                         freshName
                                     }
@@ -390,7 +392,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                 }
 
                                 var result = doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName)
-                                var number = (result as? ArendAtomPatternOrPrefix)?.integer
+                                var number = (result as? ArendAtomPattern)?.integer
                                 if (number != null) {
                                     var needsReplace = false
                                     while (result != null && isSucPattern(result.parent)) {
@@ -412,6 +414,17 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     val text = errorHintBuffer.toString().trim()
                     HintManager.getInstance().showErrorHint(editor, text)
                 }
+            }
+
+            private fun isSucPattern(pattern: PsiElement): Boolean {
+                if (pattern !is ArendPatternImplMixin || pattern.sequence.size != 2) {
+                    return false
+                }
+
+                val constructor = (pattern.sequence[0].singleReferable as? UnresolvedReference)?.resolve(pattern.ancestor<ArendDefinition>()?.scope ?: return false, null) as? ArendConstructor
+                        ?: return false
+                return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT ||
+                       constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.FIN
             }
 
             abstract fun computeMatchingPatterns(ecEntry: K, definitionParameters: List<DependentLink>, elimParams: List<DependentLink>)
@@ -718,7 +731,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 for (ecEntry in expectedConstructorErrorEntries) {
                     for (p in ecEntry.clauseParametersToSpecialize) {
                         when (val descriptor = ecEntry.matchData[p]) {
-                            is ExplicitNamePattern -> ecEntry.patternPrimers[p] = descriptor.bindingPsi as ArendPattern
+                            is ExplicitNamePattern -> ecEntry.patternPrimers[p] = descriptor.bindingPsi.let { if (it is ArendPattern) it else it.parent as ArendPattern }
                             is ImplicitConstructorPattern -> {
                                 val positionKey = Pair(descriptor.enclosingNode, descriptor.followingParameter)
                                 var positionList = ecEntry.insertData[positionKey]
@@ -859,10 +872,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 if (elimParams != null && elimParams.isNotEmpty()) sampleParameters.map { elimParams.contains(it) } else sampleParameters.map { it.isExplicit }
 
         private fun stripOfImplicitBraces(patternPsi: PsiElement): PsiElement {
-            if (patternPsi is ArendPattern && patternPsi.let { it.defIdentifier == null && it.atomPatternOrPrefixList.size == 0 && it.atomPattern != null }) {
-                val atom = patternPsi.atomPattern!!
-                if (atom.lbrace != null && atom.rbrace != null && atom.patternList.size == 1)
-                    return atom.patternList[0]
+            if (patternPsi is ArendPattern && patternPsi.let { it.atomPatternList.size == 0 }) {
+//                val atom = patternPsi.atomPattern!!
+//                if (atom.lbrace != null && atom.rbrace != null && atom.patternList.size == 1)
+//                    return atom.patternList[0]
             }
             return patternPsi
         }
@@ -881,17 +894,19 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     var patternLine = ""
                     for (i in 0 until entry.first - skippedParams) patternLine += " {_}"
                     patternLine += " {${entry.second.name}}"
-                    val templateList = (psiFactory.createAtomPattern(patternLine).parent as ArendPattern).atomPatternOrPrefixList
+                    val atomPattern = psiFactory.createAtomPattern(patternLine)
+                    val templateList = (atomPattern.parent as ArendPattern).atomPatternList.drop(1)
                     if (position == null) {
-                        if (enclosingNode is ArendPattern) {
-                            if (nullAnchor == null) nullAnchor = enclosingNode.defIdentifier
-                            enclosingNode.addRangeAfterWithNotification(templateList.first(), templateList.last(), nullAnchor!!)
-                            nullAnchor = enclosingNode.atomPatternOrPrefixList.last()
+                        if (enclosingNode is ArendAtomPattern) {
+                            if (nullAnchor == null) nullAnchor = enclosingNode
+                            enclosingNode.parent.addRangeAfterWithNotification(templateList.first(), templateList.last(), nullAnchor!!)
+                            nullAnchor = enclosingNode.parent.castSafelyTo<ArendPattern>()!!.atomPatternList.last()
                             nullAnchor.childOfType<ArendPattern>()?.let { callback.invoke(entry.second, it) }
                         }
                     } else {
-                        enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), position)
-                        position.prevSibling.childOfType<ArendPattern>()?.let { callback.invoke(entry.second, it) }
+                        val actualPosition = if (enclosingNode is ArendPattern && position is ArendPattern) position.parent else position
+                        enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), actualPosition)
+                        actualPosition.prevSibling.childOfType<ArendPattern>()?.let { callback.invoke(entry.second, it) }
                     }
                     skippedParams = entry.first + 1
                 }

@@ -107,7 +107,7 @@ class ArendFieldCompletionTest : ArendCompletionTestBase() {
             "\\func test (a : 0 + 1) => a.{-caret-}",
             listOf("f", "g"))
 
-    fun `test pattern`() =
+    fun `_test pattern`() =
         checkCompletionVariants(
             "\\class A (f g : Nat)\n" +
             "\\data D | con A\n" +

@@ -10,6 +10,7 @@ import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
@@ -181,19 +182,24 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                             val concreteData : Concrete.GeneralDefinition = ConcreteBuilder.convert(ArendReferableConverter, data, CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE))
                             if (concreteData is Concrete.DataDefinition) {
                                 val clause = concreteData.constructorClauses.firstOrNull { it.constructors.map { (it.data as? DataLocatedReferable)?.data?.element }.contains(def) }
+                                val clausePatterns = clause?.patterns?.run {
+                                    val newList = ArrayList(this)
+                                    ExpressionResolveNameVisitor(ArendReferableConverter, data.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(newList, mutableMapOf(), true)
+                                    newList
+                                }
                                 fun collectNamePatterns(pattern: Concrete.Pattern): List<Concrete.NamePattern> = if (pattern is Concrete.NamePattern) singletonList(pattern) else pattern.patterns.map { collectNamePatterns(it) }.flatten()
                                 when {
-                                    elim.withKw != null -> clause?.patterns?.map { collectNamePatterns(it) }?.flatten()?.reversed()?.map {
+                                    elim.withKw != null -> clausePatterns?.map { collectNamePatterns(it) }?.flatten()?.reversed()?.map {
                                         params.add(0, ParameterImpl(false, singletonList(it.referable), null))
                                     }
 
                                     elim.elimKw != null -> {
                                         val dataArgs = data.typeTeleList.map { it.referableList }.flatten().filterIsInstance<ArendDefIdentifier>()
                                         val eliminatedArgs = elim.refIdentifierList.map { it.resolve }.filterIsInstance<ArendDefIdentifier>()
-                                        if (eliminatedArgs.size == clause?.patterns?.size) {
+                                        if (eliminatedArgs.size == clausePatterns?.size) {
                                             dataArgs.map { it ->
                                                 val elimIndex = eliminatedArgs.indexOf(it)
-                                                if (elimIndex == -1) singletonList(it) else collectNamePatterns(clause.patterns[elimIndex]).map { it.referable }
+                                                if (elimIndex == -1) singletonList(it) else collectNamePatterns(clausePatterns[elimIndex]).map { it.referable }
                                             }.flatten().reversed().forEach {
                                                 params.add(0, ParameterImpl(false, singletonList(it), null))
                                             }

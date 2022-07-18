@@ -29,7 +29,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         }
     }
 
-    protected open fun resolveReference(data: Any?, referent: Referable, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {}
+    protected open fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {}
 
     private fun resolveReference(data: Any?, referent: Referable, resolvedRefs: List<Referable?>) {
         val list = when (data) {
@@ -39,8 +39,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
                 data.parentLongName?.let { it.refIdentifierList + last } ?: last
             }
             is ArendReferenceElement -> listOf(data)
-            is ArendPattern -> data.defIdentifier?.let { listOf<ArendReferenceElement>(it) } ?: data.longName?.refIdentifierList ?: return
-            is ArendAtomPatternOrPrefix -> data.defIdentifier?.let { listOf(it) } ?: return
+            is ArendPattern -> data.atomPatternList.flatMap { listOfNotNull(it.longName?.refIdentifierList?.last()) + listOfNotNull(it.ipName) }
             is ArendAtomLevelExpr -> data.refIdentifier?.let { listOf(it) } ?: return
             else -> return
         }
@@ -62,7 +61,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         resolveReference(refExpr.data, refExpr.referent, listOf(resolvedRef))
     }
 
-    override fun patternResolved(originalRef: Referable, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
+    override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
         resolveReference(pattern.data, pattern.constructor, resolvedRefs)
     }
 

@@ -16,7 +16,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
 
         when {
             parent is ArendStatCmd || (parent is ArendNsId && parent.parent is ArendNsUsing) -> return nsUsageInList
-            parent is ArendPattern || parent is ArendAtomPatternOrPrefix -> return usagesInPatterns
+            parent is ArendPattern || parent is ArendAtomPattern -> return usagesInPatterns
         }
 
         if (!(parent is ArendLongName || parent is ArendIPName)) {

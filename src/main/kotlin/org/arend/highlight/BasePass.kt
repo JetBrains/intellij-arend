@@ -14,6 +14,7 @@ import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.util.castSafelyTo
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
@@ -51,6 +52,7 @@ import org.arend.quickfix.replacers.ReplaceFunctionKindQuickFix
 import org.arend.quickfix.replacers.ReplaceWithWildcardPatternQuickFix
 import org.arend.refactoring.replaceExprSmart
 import org.arend.resolving.DataLocatedReferable
+import org.arend.term.abs.Abstract
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
@@ -224,7 +226,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return
             }
 
-            val info = addHighlightInfo(builder) ?: return
+            val actualBuilder = if (error is CertainTypecheckingError && (cause.parent.parent.let { it is ArendAtomPattern && !it.isExplicit && it.patternList.flatMap(ArendPattern::getAtomPatternList) == listOf(cause) } || cause.parent.let { it is ArendAtomPattern && !it.isExplicit })) {
+                createHighlightInfoBuilder(error, cause.castSafelyTo<PsiElement>()?.parent?.parent!!.textRange)
+            } else {
+                builder
+            }
+            val info = addHighlightInfo(actualBuilder) ?: return
             when (error) {
                 is ParsingError -> when (error.kind) {
                     MISPLACED_IMPORT -> {
@@ -283,18 +290,19 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     registerFix(info, ReplaceAbsurdPatternQuickFix(error.constructors, SmartPointerManager.createPointer(cause)))
 
                 is CertainTypecheckingError -> when (error.kind) {
-                    TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> if (cause is ArendPatternImplMixin) {
+                    TOO_MANY_PATTERNS, EXPECTED_EXPLICIT_PATTERN, IMPLICIT_PATTERN -> if (cause is Abstract.Pattern) {
                         val single = error.kind == EXPECTED_EXPLICIT_PATTERN
                         if (error.kind != TOO_MANY_PATTERNS) {
-                            cause.atomPattern?.let {
+                            cause.let {
                                 if (it.isValid) {
                                     registerFix(info, MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
                                 }
                             }
                         }
 
-                        if (!single || cause.nextSibling.findNextSibling { it is ArendPatternImplMixin } != null) {
-                            registerFix(info, RemovePatternsQuickFix(SmartPointerManager.createPointer(cause), single))
+                        if (!single || cause.nextSibling.findNextSibling { it is Abstract.Pattern } != null) {
+                            val actualCause = if (cause.parent.parent.let { it is ArendAtomPattern && !it.isExplicit && it.patternList.size == 1 }) cause.parent.parent else cause
+                            registerFix(info, RemovePatternsQuickFix(SmartPointerManager.createPointer(actualCause as ArendAtomPattern), single))
                         }
                     }
                     AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) registerFix(info, RemoveAsPatternQuickFix(SmartPointerManager.createPointer(cause)))
@@ -304,7 +312,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                                 registerFix(info, RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
                             }
                         }
-                    PATTERN_IGNORED -> if (cause is ArendPatternImplMixin) registerFix(info, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                    PATTERN_IGNORED -> if (cause is Abstract.Pattern) registerFix(info, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
                     COULD_BE_LEMMA -> if (cause is ArendDefFunction) registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
                     else -> {}
                 }

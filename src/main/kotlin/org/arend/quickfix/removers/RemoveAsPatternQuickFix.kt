@@ -23,9 +23,8 @@ class RemoveAsPatternQuickFix (private val asPatternRef: SmartPsiElementPointer<
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val asPattern = asPatternRef.element ?: return
         val pattern = asPattern.parent as? ArendPattern
-        val atomPattern = pattern?.atomPattern
         asPattern.deleteWithNotification()
-        if (atomPattern != null) deleteSuperfluousPatternParentheses(atomPattern)
+        pattern?.atomPatternList?.forEach { deleteSuperfluousPatternParentheses(it) }
     }
 
 }

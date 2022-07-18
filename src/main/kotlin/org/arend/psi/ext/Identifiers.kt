@@ -57,7 +57,7 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
         if (parent is ArendLetClause ||
             (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
             pParent is ArendLamTele ||
-            parent is ArendAtomPatternOrPrefix && pParent != null ||
+            parent is ArendAtomPattern && pParent != null ||
             parent is ArendPattern ||
             parent is ArendCaseArg || parent is ArendCaseArgExprAs ||
             parent is ArendLongName) {
@@ -87,7 +87,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
     override fun textRepresentation(): String = referenceName
 
     override fun getReference(): ArendReference = when (parent) {
-        is ArendPattern, is ArendAtomPatternOrPrefix -> ArendPatternDefReferenceImpl<ArendReferenceElement>(this)
+        is ArendPattern, is ArendAtomPattern -> ArendPatternDefReferenceImpl<ArendReferenceElement>(this)
         else -> ArendDefReferenceImpl<ArendReferenceElement>(this)
     }
 

@@ -10,9 +10,10 @@ import org.arend.refactoring.RenameReferenceAction
 import org.arend.util.ArendBundle
 
 class ReplaceWithShortNameIntention: SelfTargetingIntention<ArendLongName>(ArendLongName::class.java, ArendBundle.message("arend.import.replaceWithShortName")) {
-    override fun isApplicableTo(element: ArendLongName, caretOffset: Int, editor: Editor): Boolean =
-        element.refIdentifierList.size > 1 && element.refIdentifierList.all { it.resolve is PsiLocatedReferable } &&
+    override fun isApplicableTo(element: ArendLongName, caretOffset: Int, editor: Editor): Boolean {
+        return element.refIdentifierList.size > 1 && element.refIdentifierList.all { it.resolve is PsiLocatedReferable } &&
                 isApplicableTo(element.refIdentifierList.last())
+    }
 
     override fun applyTo(element: ArendLongName, project: Project, editor: Editor) {
         val currentRefIdentifier = element.refIdentifierList.last()

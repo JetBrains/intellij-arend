@@ -6,7 +6,7 @@ import com.intellij.psi.PsiElement
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.intention.binOp.BinOpSeqProcessor
 import org.arend.intention.binOp.CaretHelper
-import org.arend.naming.MetaBinOpParser
+import org.arend.naming.binOp.MetaBinOpParser
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.refactoring.rangeOfConcrete
