@@ -58,8 +58,6 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig?,
         return result
     }
 
-    override fun getAllElements(): Collection<Referable> = elements
-
     override fun getElements(kind: RefKind?): Collection<Referable> = if (kind == null || kind == RefKind.EXPR) elements else emptyList()
 
     override fun resolveNamespace(name: String, onlyInternal: Boolean): Scope {

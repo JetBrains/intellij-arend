@@ -31,8 +31,8 @@ private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: Cl
 }
 
 class ModifiedClassFieldImplScope(referable: ClassReferable, private val classRefHolder: ClassReferenceHolder?) : ClassFieldImplScope(referable, true) {
-    override fun getElements(kind: Referable.RefKind): List<Referable> {
-        if (kind != Referable.RefKind.EXPR) return emptyList()
+    override fun getElements(kind: Referable.RefKind?): List<Referable> {
+        if (kind != null && kind != Referable.RefKind.EXPR) return emptyList()
         val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
         val fields = getNotImplementedFields(classReference, classRefHolder, superClassesFields)
         return fields.toList() + superClassesFields.mapNotNull { entry -> if (entry.value.isEmpty()) null else entry.key }
