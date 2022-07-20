@@ -842,7 +842,9 @@ levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
 maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
 
-maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | maybeAtomLevelExpr
+maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | maybeAtomLevelExpr {
+    mixin = "org.arend.psi.ext.ArendTopLevelLevelExpr"
+}
 
 private levelsLevels ::= LEVELS_KW maybeAtomLevelExprs maybeAtomLevelExprs { pin = 1 }
 

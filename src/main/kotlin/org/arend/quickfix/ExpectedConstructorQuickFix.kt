@@ -57,6 +57,7 @@ import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.typechecking.visitor.VoidConcreteVisitor
 import org.arend.util.ArendBundle
 import org.arend.util.Decision
+import org.arend.util.mapToSet
 import java.util.Collections.singletonList
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -247,7 +248,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                     for (ecEntry in expectedConstructorErrorEntries) calculateEntriesToEliminate(ecEntry)
 
-                    expectedConstructorErrorEntries.removeAll(entriesToRemove)
+                    expectedConstructorErrorEntries.removeAll(entriesToRemove.toSet())
 
                     for (entry in expectedConstructorErrorEntries) clauseToEntryMap[entry.clause.data as Abstract.Clause] = entry
 
@@ -330,7 +331,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         for (substEntry in processedSubstitutions) {
                             val renamer = StringRenamer()
                             fun computePrintData() =
-                                printPattern(substEntry.value, currentClause as ArendCompositeElement, getOccupiedNames(variablePatterns).minus(varsNoLongerUsed.map { it.name }).map{ VariableImpl(it)}.toList(), newVariables, renamer)
+                                printPattern(substEntry.value, currentClause as ArendCompositeElement, getOccupiedNames(variablePatterns).minus(varsNoLongerUsed.mapToSet { it.name }).map { VariableImpl(it) }.toList(), newVariables, renamer)
 
                             var printData = computePrintData()
                             val namePatternToReplace = substEntry.key
@@ -342,7 +343,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             if (idOrUnderscore is ArendDefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
 
                             val target = asDefIdentifier ?: if (idOrUnderscore is ArendDefIdentifier) idOrUnderscore else null
-                            val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = { (it as ArendCompositeElement).scope.resolveName(it.name) as? PsiElement }
+                            val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = {
+                                val name = it.name
+                                if (name != null) it.scope.resolveName(name) as? PsiElement else null
+                            }
 
                             val noOfUsages = if (target != null) {
                                 fun calculateNumberOfUsages(element: PsiElement): Int {
@@ -548,7 +552,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         }
 
         class ElimWithExpectedConstructorErrorQuickFix(thisError: ExpectedConstructorError, cause: SmartPsiElementPointer<ArendCompositeElement>, project: Project): ExpectedConstructorQuickFixRunner<ElimWithErrorEntry>(thisError, cause, project) {
-            val elimPsi = when {
+            private val elimPsi = when {
                 bodyPsi != null -> bodyPsi.elim
                 constructorPsi != null -> constructorPsi.elim
                 dataBodyPsi != null -> dataBodyPsi.elim
@@ -669,7 +673,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     for (e in elimParams.zip(elimPsi.refIdentifierList)) paramsMap[e.first] = e.second
                     for (ecEntry in expectedConstructorErrorEntries) for (e in elimParams.zip((ecEntry.clause.data as Abstract.Clause).patterns)) (e.second as? ArendPattern)?.let { ecEntry.patternPrimers[e.first] = it}
 
-                    definitionParametersToEliminate.removeAll(elimParams)
+                    definitionParametersToEliminate.removeAll(elimParams.toSet())
 
                     doInsertElimVars(psiFactory, definitionParameters, definitionParametersToEliminate, elimPsi, paramsMap)
 
@@ -1006,9 +1010,9 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             }
         }
 
-        fun doInsertPattern(psiFactory: ArendPsiFactory, anchor: PsiElement?, param: Binding,
-                            clause: PsiElement, patternPrimers: HashMap<Variable, ArendPattern>?,
-                            nameCalculator: (Binding) -> String): PsiElement {
+        private fun doInsertPattern(psiFactory: ArendPsiFactory, anchor: PsiElement?, param: Binding,
+                                    clause: PsiElement, patternPrimers: HashMap<Variable, ArendPattern>?,
+                                    nameCalculator: (Binding) -> String): PsiElement {
             val template = psiFactory.createClause("${nameCalculator.invoke(param)}, dummy").childOfType<ArendPattern>()!!
             val comma = template.nextSibling
             var commaInserted = false

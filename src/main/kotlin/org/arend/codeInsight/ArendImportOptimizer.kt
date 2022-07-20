@@ -232,7 +232,7 @@ private fun doAddNamespaceCommands(
         if (path.toList().isEmpty()) continue
         if (settings.OPTIMIZE_IMPORTS_POLICY == OptimizeImportsPolicy.ONLY_IMPLICIT || identifiers.size > settings.EXPLICIT_IMPORTS_LIMIT) {
             importStatements.add(createImplicitImport(prefix, path, scopeProvider, alreadyImported, identifiers.mapToSet(ImportedName::visibleName)))
-            scopeProvider(path)?.globalSubscope?.elements?.forEach { alreadyImported[it.refName] = it }
+            scopeProvider(path)?.globalSubscope?.allElements?.forEach { alreadyImported[it.refName] = it }
         } else {
             importStatements.add(createExplicitImport("$prefix ${path.toList().joinToString(".")}", identifiers))
         }
@@ -285,7 +285,7 @@ private fun createImplicitImport(
         LOG.error("No library containing required module found while optimizing imports. Please report it to maintainers")
     }
     currentScope!!
-    val namesToHide = currentScope.globalSubscope.elements.mapNotNull { ref -> ref.refName.takeIf { it !in toImportHere && it in alreadyImportedNames && alreadyImportedNames[it] != ref } }
+    val namesToHide = currentScope.globalSubscope.allElements.mapNotNull { ref -> ref.refName.takeIf { it !in toImportHere && it in alreadyImportedNames && alreadyImportedNames[it] != ref } }
     val baseName = "$prefix ${modulePath.toList().joinToString(".")}"
     return if (namesToHide.isEmpty()) {
         baseName

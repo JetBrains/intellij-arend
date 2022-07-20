@@ -10,6 +10,7 @@ import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.NamedUnresolvedReference
+import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
@@ -58,7 +59,6 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
 
         if (parent is ArendLetClause ||
             (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
-            pParent is ArendNameTele ||
             pParent is ArendLamTele ||
             parent is ArendAtomPatternOrPrefix && pParent != null ||
             parent is ArendPattern ||
@@ -151,10 +151,11 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
     override fun getReferent() = NamedUnresolvedReference(this, referenceName)
 
     override fun getReference(): ArendReference {
-        val parent = parent as? ArendLongName
-        val isImport = (parent?.parent as? ArendStatCmd)?.importKw != null
-        val last = if (isImport) parent?.refIdentifierList?.lastOrNull() else null
-        return ArendReferenceImpl<ArendRefIdentifier>(this, last != null && last != this)
+        val parent = parent
+        val parentLongName = parent as? ArendLongName
+        val isImport = (parentLongName?.parent as? ArendStatCmd)?.importKw != null
+        val last = if (isImport) parentLongName?.refIdentifierList?.lastOrNull() else null
+        return ArendReferenceImpl<ArendRefIdentifier>(this, last != null && last != this, if (parent is ArendAtomLevelExpr) (if (ancestors.filterIsInstance<ArendTopLevelLevelExpr>().firstOrNull()?.isPLevels() != false) Referable.RefKind.PLEVEL else Referable.RefKind.HLEVEL) else Referable.RefKind.EXPR)
     }
 
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)

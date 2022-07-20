@@ -11,6 +11,7 @@ import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.*
+import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -47,7 +48,7 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : PsiRef
     override fun isReferenceTo(element: PsiElement): Boolean = false
 }
 
-open class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T) : ArendReferenceImpl<T>(element) {
+class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T) : ArendReferenceImpl<T>(element) {
     override fun resolve() = resolve(true)
 }
 
@@ -73,7 +74,7 @@ object ArendIdReferableConverter : ReferableConverter {
     override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaRef ?: referable
 }
 
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false, private val refKind: RefKind = RefKind.EXPR) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -111,11 +112,11 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             element.ancestor<ArendExpr>()
         } else null
         val def = expr?.ancestor<PsiConcreteReferable>()
-        var elements = if (expr == null) element.scope.elements else emptyList()
+        var elements = if (expr == null) element.scope.getElements(refKind) else emptyList()
         val resolverListener = if (expr == null) null else object : ResolverListener {
             override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
                 if (refExpr.data == parent || refExpr.data == element) {
-                    elements = scope.elements
+                    elements = scope.getElements(refKind)
                 }
             }
 
@@ -145,7 +146,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             beforeImportDot -> {
                 val refName = element.referenceName
                 var result: Referable? = null
-                for (ref in element.scope.elements) {
+                for (ref in element.scope.getElements(refKind)) {
                     val name = if (ref is ModuleReferable) ref.path.lastName else ref.refName
                     if (name == refName) {
                         result = ref
@@ -157,7 +158,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 result
             }
             onlyConstructor -> {
-                val ref = element.scope.globalSubscope.resolveName(element.referenceName)
+                val ref = element.scope.globalSubscope.resolveName(element.referenceName, refKind)
                 if (ref is GlobalReferable && ref.kind.isConstructor) ref else element as? ArendDefIdentifier
             }
             else -> {
@@ -173,7 +174,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                         ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
                         cache.getCached(element)
                     }
-                    else -> element.scope.resolveName(element.referenceName)
+                    else -> element.scope.resolveName(element.referenceName, refKind)
                 }
             }
         } }

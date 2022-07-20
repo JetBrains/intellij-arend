@@ -5,7 +5,7 @@ import org.arend.psi.ArendAtomOnlyLevelExpr
 import org.arend.term.abs.AbstractLevelExpressionVisitor
 
 
-abstract class ArendAtomOnlyLevelExprImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), ArendAtomOnlyLevelExpr {
+abstract class ArendAtomOnlyLevelExprImplMixin(node: ASTNode) : ArendTopLevelLevelExpr(node), ArendAtomOnlyLevelExpr {
     override fun getData() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R {
