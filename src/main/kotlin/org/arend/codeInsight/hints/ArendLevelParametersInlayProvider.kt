@@ -55,13 +55,13 @@ class ArendLevelParametersInlayProvider : InlayHintsProvider<NoSettings> {
                 if (levelParams[0].type == LevelVariable.LvlType.PLVL && levelParams[0] is ParamLevelVariable && PsiTreeUtil.getChildOfType(arendDef, ArendPLevelParams::class.java) == null) {
                     builder.append(" ")
                     val ppv = PrettyPrintVisitor(builder, 0)
-                    ppv.prettyPrintLevelParameters(ToAbstractVisitor.visitLevelParameters(levelParams.subList(0, def.numberOfPLevelParameters)), true)
+                    ppv.prettyPrintLevelParameters(ToAbstractVisitor.visitLevelParameters(levelParams.subList(0, def.numberOfPLevelParameters), true), true)
                 }
                 val lastVar = levelParams[levelParams.size - 1]
                 if (lastVar.type == LevelVariable.LvlType.HLVL && lastVar is ParamLevelVariable && PsiTreeUtil.getChildOfType(arendDef, ArendHLevelParams::class.java) == null) {
                     builder.append(" ")
                     val ppv = PrettyPrintVisitor(builder, 0)
-                    ppv.prettyPrintLevelParameters(ToAbstractVisitor.visitLevelParameters(levelParams.subList(def.numberOfPLevelParameters, levelParams.size)), false)
+                    ppv.prettyPrintLevelParameters(ToAbstractVisitor.visitLevelParameters(levelParams.subList(def.numberOfPLevelParameters, levelParams.size), false), false)
                 }
 
                 val str = builder.toString()
