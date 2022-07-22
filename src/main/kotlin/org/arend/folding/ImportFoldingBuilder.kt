@@ -28,12 +28,12 @@ class ImportFoldingBuilder : FoldingBuilderEx(), DumbAware {
         val statements = group.statements
         var i = 0
         while (i + 1 < statements.size) {
-            val statCmd = statements[i++].statCmd
+            val statCmd = statements[i++].namespaceCommand
             val start = statCmd?.longName ?: continue
             val isImport = statCmd.importKw != null
-            if (statements[i].statCmd.let { it != null && (it.importKw != null) == isImport }) {
+            if (statements[i].namespaceCommand.let { it != null && (it.importKw != null) == isImport }) {
                 i++
-                while (i < statements.size && statements[i].statCmd.let { it != null && (it.importKw != null) == isImport }) {
+                while (i < statements.size && statements[i].namespaceCommand.let { it != null && (it.importKw != null) == isImport }) {
                     i++
                 }
 
@@ -44,10 +44,7 @@ class ImportFoldingBuilder : FoldingBuilderEx(), DumbAware {
         }
 
         for (statement in statements) {
-            statement.definition?.let {
-                buildForGroup(it, descriptors)
-            }
-            statement.defModule?.let {
+            statement.group?.let {
                 buildForGroup(it, descriptors)
             }
         }

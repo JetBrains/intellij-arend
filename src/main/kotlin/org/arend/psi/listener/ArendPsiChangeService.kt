@@ -67,8 +67,8 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
             group.dropTCReferable()
         }
 
-        for (subgroup in group.subgroups) {
-            checkGroup(subgroup, file)
+        for (statement in group.statements) {
+            checkGroup(statement.group ?: continue, file)
         }
         for (subgroup in group.dynamicSubgroups) {
             checkGroup(subgroup, file)
@@ -82,7 +82,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
             checkGroup(file, file)
         }
         modificationTracker.incModificationCount()
-        event.file.castSafelyTo<ArendFile>()?.tcRefMap?.cleanup(event.file?.project)
+        event.file.castSafelyTo<ArendFile>()?.cleanupTCRefMaps()
     }
 
     override fun beforePropertyChange(event: PsiTreeChangeEvent) {
@@ -114,7 +114,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
 
     private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
         val file = event.file as? ArendFile ?: return
-        file.tcRefMap.cleanup(file.project)
+        file.cleanupTCRefMaps()
         processChildren(event.child, file)
         processChildren(event.oldChild, file)
         processParent(file, event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)
@@ -172,8 +172,8 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
         if (group is PsiConcreteReferable) {
             updateDefinition(group, file, false)
         }
-        for (subgroup in group.subgroups) {
-            invalidateChildren(subgroup, file)
+        for (statement in group.statements) {
+            invalidateChildren(statement.group ?: continue, file)
         }
         for (subgroup in group.dynamicSubgroups) {
             invalidateChildren(subgroup, file)
@@ -183,7 +183,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
     private fun processChildren(element: PsiElement?, file: ArendFile) {
         when (element) {
             is ArendGroup -> invalidateChildren(element, file)
-            is ArendStatement -> {
+            is ArendStat -> {
                 element.statCmd?.let { invalidateChildren(file, file) }
                 element.definition?.let { invalidateChildren(it, file) }
                 element.defModule?.let { invalidateChildren(it, file) }

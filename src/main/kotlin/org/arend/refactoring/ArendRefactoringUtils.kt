@@ -253,7 +253,7 @@ fun findPlaceForNsCmd(currentFile: ArendFile, fileToImport: LongName): RelativeP
             val fullName = fileToImport.toString()
             var after = false
 
-            val currFileCommands = currentFile.namespaceCommands.filter { it.importKw != null }
+            val currFileCommands = currentFile.statements.mapNotNull { it.namespaceCommand }.filter { it.importKw != null }
             if (currFileCommands.isNotEmpty()) {
                 val name = LongName(currFileCommands[0].path).toString()
                 anchor = currFileCommands[0].parent
@@ -274,7 +274,7 @@ fun createStatCmdStatement(factory: ArendPsiFactory, fullName: String, usingList
         factory.createImportCommand(fullName + " " + usingListToString(usingList), kind)
 
 fun addStatCmd(factory: ArendPsiFactory,
-               commandStatement: ArendStatement,
+               commandStatement: ArendStat,
                relativePosition: RelativePosition): PsiElement {
     val insertedStatement: PsiElement
 
@@ -305,8 +305,8 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
     val mySourceContainer =  if (!instanceMode) enclosingDefinition?.containingFile as? ArendGroup else enclosingDefinition?.parentGroup
 
     if ((scope != null && scope.resolveName(shortName) == null || instanceMode) && mySourceContainer != null) {
-        val anchor = mySourceContainer.namespaceCommands.lastOrNull { it.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent)}
-            ?: mySourceContainer.namespaceCommands.lastOrNull()?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, (it as PsiElement).parent) }
+        val anchor = mySourceContainer.statements.lastOrNull { it.namespaceCommand?.kind == NamespaceCommand.Kind.OPEN }?.let {RelativePosition(PositionKind.AFTER_ANCHOR, it)}
+            ?: mySourceContainer.statements.lastOrNull {it.namespaceCommand != null}?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it) }
             ?: if (mySourceContainer is ArendFile || mySourceContainer.statements.size > 1) RelativePosition(PositionKind.BEFORE_ANCHOR, mySourceContainer.statements.first()) else
                 getAnchorInAssociatedModule(psiFactory, mySourceContainer, headPosition = true)?.let{ RelativePosition(PositionKind.AFTER_ANCHOR, it) }
 
@@ -336,8 +336,9 @@ fun addIdToUsing(groupMember: PsiElement?,
                  renamings: List<Pair<String, String?>>,
                  factory: ArendPsiFactory,
                  relativePosition: RelativePosition): Pair<List<ArendNsId>, Boolean> {
-    (groupMember?.ancestor<ArendGroup>())?.namespaceCommands?.map { statCmd ->
-        if (statCmd is ArendStatCmd) {
+    (groupMember?.ancestor<ArendGroup>())?.statements?.map { stat ->
+        val statCmd = stat.namespaceCommand
+        if (statCmd != null) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
             if (ref != null) {
                 val target = ref.reference?.resolve()
@@ -470,7 +471,7 @@ fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: 
 
     val actualWhereImpl = getCompleteWhere(myTargetContainer, psiFactory)
 
-    return (if (!headPosition) actualWhereImpl.statementList.lastOrNull() else null) ?: actualWhereImpl.lbrace
+    return (if (!headPosition) actualWhereImpl.statList.lastOrNull() else null) ?: actualWhereImpl.lbrace
 }
 
 fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory): ArendWhere {

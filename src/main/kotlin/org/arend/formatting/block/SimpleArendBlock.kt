@@ -78,9 +78,9 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val c2et = child2.node.elementType
             val c1comment = child1 is DocCommentBlock
 
-            if ((AREND_COMMENTS.contains(c1et) || c1comment) && (psi2 is ArendStatement || psi2 is ArendClassStat))
-                return (if ((c1et == DOC_COMMENT || c1comment) && (psi2 is ArendStatement && psi2.statCmd == null)) oneCrlf else oneBlankLine)
-            else if ((psi1 is ArendStatement || psi1 is ArendClassStat) && (TokenSet.create(BLOCK_COMMENT, DOC_COMMENT, DOC_TEXT).contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
+            if ((AREND_COMMENTS.contains(c1et) || c1comment) && (psi2 is ArendStat || psi2 is ArendClassStat))
+                return (if ((c1et == DOC_COMMENT || c1comment) && (psi2 is ArendStat && psi2.statCmd == null)) oneCrlf else oneBlankLine)
+            else if ((psi1 is ArendStat || psi1 is ArendClassStat) && (TokenSet.create(BLOCK_COMMENT, DOC_COMMENT, DOC_TEXT).contains(c2et) || child2 is DocCommentBlock)) return oneBlankLine
 
             if (myNode.psi is ArendWithBody && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
 
@@ -123,10 +123,10 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 }
             }
 
-            return if (psi1 is ArendStatement && psi2 is ArendStatement) {
+            return if (psi1 is ArendStat && psi2 is ArendStat) {
                 if (psi1.statCmd == null || psi2.statCmd == null) oneBlankLine else oneCrlf /* Delimiting blank line between proper statements */
-            } else if (psi1 is ArendStatement && c2et == RBRACE ||
-                    c1et == LBRACE && (psi2 is ArendStatement || child2 is DocCommentBlock || c2et == DOC_COMMENT)) oneCrlf
+            } else if (psi1 is ArendStat && c2et == RBRACE ||
+                    c1et == LBRACE && (psi2 is ArendStat || child2 is DocCommentBlock || c2et == DOC_COMMENT)) oneCrlf
             else if ((myNode.psi is ArendNsUsing || myNode.psi is ArendStatCmd)) { /* Spacing rules for hiding/using refs in namespace commands */
                 when {
                     (c1et == LPAREN && (c2et == REF_IDENTIFIER || c2et == NS_ID || c2et == RPAREN)) ||
@@ -160,7 +160,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
         val nodePsi = node.psi
 
-        if (node.elementType == STATEMENT || nodePsi is ArendFile) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+        if (node.elementType == STAT || nodePsi is ArendFile) return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
         if (node.elementType == TUPLE && subBlocks.size > 1 && newChildIndex == 1)
             return ChildAttributes(Indent.getNormalIndent(), null)
@@ -174,7 +174,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             val prev2ET = if (prev2Child is AbstractArendBlock) prev2Child.node.elementType else null
 
             if (nodePsi is ArendWhere) {
-                if (prevET == STATEMENT) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                if (prevET == STAT) return ChildAttributes.DELEGATE_TO_PREV_CHILD
                 if (prevET == WHERE_KW || prevET == LBRACE || prevET == ERROR_ELEMENT) return ChildAttributes(Indent.getNormalIndent(), null)
             }
 
@@ -315,7 +315,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         } else when (childET) {
                             CO_CLAUSE, LOCAL_CO_CLAUSE, CONSTRUCTOR_CLAUSE, LET_CLAUSE, WHERE, TUPLE_EXPR, CLASS_STAT,
                             NAME_TELE, TYPE_TELE, FIELD_TELE, SIGMA_TYPE_TELE, CASE_ARG -> Indent.getNormalIndent()
-                            STATEMENT -> if (nodePsi is ArendFile) Indent.getNoneIndent() else Indent.getNormalIndent()
+                            STAT -> if (nodePsi is ArendFile) Indent.getNoneIndent() else Indent.getNormalIndent()
                             else -> Indent.getNoneIndent()
                         }
 

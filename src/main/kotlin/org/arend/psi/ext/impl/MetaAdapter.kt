@@ -54,18 +54,28 @@ abstract class MetaAdapter : DefinitionAdapter<ArendDefMetaStub>, ArendDefMeta, 
 
     override fun getHLevelParams(): ArendHLevelParams? = null
 
-    override fun getPLevelParameters(): Abstract.LevelParameters? = metaPLevels?.metaLevels?.let { MetaLevelParameters(it) }
+    override fun getPLevelParameters(): Abstract.LevelParameters? = metaPLevels?.metaPLevelsSeq?.let { MetaPLevelParameters(it) }
 
-    override fun getHLevelParameters(): Abstract.LevelParameters? = metaHLevels?.metaLevels?.let { MetaLevelParameters(it) }
+    override fun getHLevelParameters(): Abstract.LevelParameters? = metaHLevels?.metaHLevelsSeq?.let { MetaHLevelParameters(it) }
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R =
         visitor.visitMeta(this)
 }
 
-private class MetaLevelParameters(private val levels: ArendMetaLevels) : Abstract.LevelParameters {
+private class MetaPLevelParameters(private val levels: ArendMetaPLevelsSeq) : Abstract.LevelParameters {
     override fun getData() = levels
 
-    override fun getReferables(): List<ArendDefIdentifier> = levels.defIdentifierList
+    override fun getReferables(): List<ArendPLevelIdentifier> = levels.pLevelIdentifierList
+
+    override fun getComparisonList(): List<Abstract.Comparison> = emptyList()
+
+    override fun isIncreasing() = true
+}
+
+private class MetaHLevelParameters(private val levels: ArendMetaHLevelsSeq) : Abstract.LevelParameters {
+    override fun getData() = levels
+
+    override fun getReferables(): List<ArendHLevelIdentifier> = levels.hLevelIdentifierList
 
     override fun getComparisonList(): List<Abstract.Comparison> = emptyList()
 

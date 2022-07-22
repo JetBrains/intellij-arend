@@ -417,12 +417,11 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(and(afterLeaf(ID), after(and(withParent(ArendDefIdentifier::class.java), withGrandParents(ArendDefData::class.java, ArendDefInstance::class.java,
                 ArendDefFunction::class.java, ArendDefClass::class.java)))), PH_LEVELS_KW_LIST)
 
-        val levelParamsPattern = withAncestors(ArendDefIdentifier::class.java, ArendLevelParam::class.java, ArendLevelParams::class.java)
+        val levelParamsPattern = or(withAncestors(ArendPLevelIdentifier::class.java, ArendPLevelParamsSeq::class.java), withAncestors(ArendHLevelIdentifier::class.java, ArendHLevelParamsSeq::class.java))
 
         basic(or(afterLeaf(PLEVELS_KW), after(levelParamsPattern)), HLEVELS_KW_LIST) { cP: CompletionParameters ->
             val jointData = ArendCompletionParameters(cP)
-            val levelParams = jointData.prevElement?.parent?.parent?.parent as? ArendLevelParams
-            val prevKeyword = levelParams?.findPrevSibling()
+            val prevKeyword = jointData.prevElement?.parent?.parent?.findPrevSibling()
             if (prevKeyword != null) prevKeyword.elementType == PLEVELS_KW else true
         }
 
@@ -499,14 +498,14 @@ class ArendCompletionContributor : CompletionContributor() {
         private val INSIDE_RETURN_EXPR_CONTEXT = or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
 
         private val WHERE_CONTEXT = and(
-                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX), withAncestors(ArendDefIdentifier::class.java, ArendLevelParam::class.java, ArendLevelParams::class.java)),
+                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX), withAncestors(ArendPLevelIdentifier::class.java, ArendPLevelParamsSeq::class.java), withAncestors(ArendHLevelIdentifier::class.java, ArendHLevelParamsSeq::class.java)),
                 not(PREC_CONTEXT),
                 not(INSIDE_RETURN_EXPR_CONTEXT),
                 not(afterLeaves(COLON, TRUNCATED_KW, FAT_ARROW, WITH_KW, ARROW, IN_KW, INSTANCE_KW, EXTENDS_KW, DOT, NEW_KW, EVAL_KW, PEVAL_KW, CASE_KW, SCASE_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WHERE_KW, USE_KW, PIPE, LEVEL_KW, COERCE_KW)),
                 not(withAncestors(PsiErrorElement::class.java, ArendDefInstance::class.java)), // don't allow \where in incomplete instance expressions
                 not(withAncestors(ArendDefIdentifier::class.java, ArendIdentifierOrUnknown::class.java, ArendNameTele::class.java, ArendDefInstance::class.java)))
 
-        private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStatement::class.java)
+        private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStat::class.java)
 
         private val TELE_CONTAINERS = arrayOf<Class<out PsiElement>>(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java, ArendFunctionalDefinition::class.java, ArendCoClauseDef::class.java)
         private val TELE_CONTEXT = or(
@@ -640,6 +639,7 @@ class ArendCompletionContributor : CompletionContributor() {
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
     }
 
+    @Suppress("unused")
     private class Logger : CompletionProvider<CompletionParameters>() {
         override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
             val text = parameters.position.containingFile.text
@@ -778,7 +778,7 @@ class ArendCompletionContributor : CompletionContributor() {
             prevElement = prev
 
             val statementCondition = { psi: PsiElement ->
-                if (psi is ArendStatement) {
+                if (psi is ArendStat) {
                     val psiParent = psi.parent
                     !(psiParent is ArendWhere && psiParent.lbrace == null)
                 } else psi is ArendClassStat

@@ -123,7 +123,25 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private val instances = MultiMap.createConcurrent<TCDefReferable, TCDefReferable>()
 
-    val tcRefMaps = ConcurrentHashMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>()
+    /*
+    val tcRefMaps = EnumMap<Referable.RefKind, Map<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>>(Referable.RefKind::class.java).also {
+        for (kind in Referable.RefKind.values()) {
+            it[kind] = ConcurrentHashMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>()
+        }
+    }
+    */
+
+    private val tcRefMaps = Array<MutableMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>>(Referable.RefKind.values().size) {
+        ConcurrentHashMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>()
+    }
+
+    fun getTCRefMaps(refKind: Referable.RefKind) = tcRefMaps[refKind.ordinal]
+
+    fun clearTCRefMaps() {
+        for (tcRefMap in tcRefMaps) {
+            tcRefMap.clear()
+        }
+    }
 
     val updatedModules = HashSet<ModuleLocation>()
 
@@ -150,7 +168,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
 
             if (Prelude.isInitialized()) {
-                val tcRefMap = preludeLibrary.prelude?.tcRefMap
+                val tcRefMap = preludeLibrary.prelude?.getTCRefMap(Referable.RefKind.EXPR)
                 if (tcRefMap != null) {
                     Prelude.forEach {
                         val name = it.referable.refLongName
@@ -322,7 +340,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                         libraryManager.reload {
                             project.service<ArendResolveCache>().clear()
                             extensionDefinitions.clear()
-                            tcRefMaps.clear()
+                            clearTCRefMaps()
 
                             prepareReload()
                         }
@@ -368,7 +386,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         val curRef = referable.underlyingReferable
         val fullName = FullName(referable)
-        val tcRefMap = fullName.modulePath?.let { tcRefMaps[it] }
+        val tcRefMap = fullName.modulePath?.let { getTCRefMaps(Referable.RefKind.EXPR)[it] }
         val tcReferable = tcRefMap?.get(fullName.longName)
         if (tcReferable !is TCDefReferable) {
             resetErrors(curRef, removeTCRef)

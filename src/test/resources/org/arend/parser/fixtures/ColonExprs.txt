@@ -1,5 +1,5 @@
 FILE
-  ArendStatementImpl(STATEMENT)
+  ArendStatImpl(STAT)
     ArendDefDataImpl(DEF_DATA)
       PsiElement(\data)('\data')
       PsiWhiteSpace(' ')
@@ -65,7 +65,7 @@ FILE
                               PsiElement(ID)('A')
             PsiElement())(')')
   PsiWhiteSpace('\n')
-  ArendStatementImpl(STATEMENT)
+  ArendStatImpl(STAT)
     ArendDefFunctionImpl(DEF_FUNCTION)
       ArendFunctionKwImpl(FUNCTION_KW)
         PsiElement(\func)('\func')

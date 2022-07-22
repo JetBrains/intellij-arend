@@ -116,19 +116,22 @@ statements ::= repl_line | (topStatement | topStatement_recovery)*
 
 repl_line ::= REPL_COMMAND? expr | REPL_COMMAND
 
-private topStatement ::= !<<eof>> statement
+private topStatement ::= !<<eof>> stat
 
 private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | PLEVELS_KW | HLEVELS_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
-statement ::= statCmd | definition | defModule | statement_recovery
+stat ::= statCmd | definition | defModule | pLevelParams | hLevelParams | stat_recovery {
+    implements = "org.arend.psi.ext.impl.ArendStatement"
+    mixin = "org.arend.psi.ext.ArendStatImplMixin"
+}
 
-private statement_recovery ::= statement_recover {
+private stat_recovery ::= statement_recover {
     recoverWhile = statement_recover
 }
 
@@ -268,15 +271,36 @@ defMeta ::= META_KW prec? defIdentifier_func metaPLevels? metaHLevels? alias? [n
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-metaPLevels ::= PLEVELS_KW metaLevels { pin = 1 }
+metaPLevels ::= PLEVELS_KW metaPLevelsSeq { pin = 1 }
 
-metaHLevels ::= HLEVELS_KW metaLevels { pin = 1 }
+metaHLevels ::= HLEVELS_KW metaHLevelsSeq { pin = 1 }
 
-metaLevels ::= <<comma_separated_sequence defIdentifier>>? {
+metaPLevelsSeq ::= <<comma_separated_sequence pLevelIdentifier>>? {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.LevelParameters"
                  ]
-    mixin = "org.arend.psi.ext.ArendMetaLevelsImplMixin"
+    mixin = "org.arend.psi.ext.ArendMetaPLevelsSeqImplMixin"
+}
+
+metaHLevelsSeq ::= <<comma_separated_sequence hLevelIdentifier>>? {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LevelParameters"
+                 ]
+    mixin = "org.arend.psi.ext.ArendMetaHLevelsSeqImplMixin"
+}
+
+pLevelIdentifier ::= ID {
+    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
+                   "org.arend.naming.reference.LevelReferable"
+                   "org.arend.psi.ext.ArendReferenceElement" ]
+    mixin = "org.arend.psi.ext.ArendPLevelIdentifierImplMixin"
+}
+
+hLevelIdentifier ::= ID {
+    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
+                   "org.arend.naming.reference.LevelReferable"
+                   "org.arend.psi.ext.ArendReferenceElement" ]
+    mixin = "org.arend.psi.ext.ArendHLevelIdentifierImplMixin"
 }
 
 private defIdentifier_module ::= defIdentifier {
@@ -296,22 +320,27 @@ defFunction ::= functionKw prec? defIdentifier_func pLevelParams? hLevelParams? 
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-pLevelParams ::= PLEVELS_KW levelParams { pin = 1 }
+pLevelParams ::= PLEVELS_KW pLevelParamsSeq { pin = 1 }
 
-hLevelParams ::= HLEVELS_KW levelParams { pin = 1 }
+hLevelParams ::= HLEVELS_KW hLevelParamsSeq { pin = 1 }
+
+pLevelParamsSeq ::= [pLevelIdentifier (levelCmp pLevelIdentifier)*] {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LevelParameters"
+                 ]
+    mixin = "org.arend.psi.ext.ArendPLevelParamsSeqImplMixin"
+}
+
+hLevelParamsSeq ::= [hLevelIdentifier (levelCmp hLevelIdentifier)*] {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LevelParameters"
+                 ]
+    mixin = "org.arend.psi.ext.ArendHLevelParamsSeqImplMixin"
+}
 
 functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | useMod
 
 levelCmp ::= LESS_OR_EQUALS | GREATER_OR_EQUALS
-
-levelParams ::= [levelParam (levelCmp levelParam)*] {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.LevelParameters"
-                 ]
-    mixin = "org.arend.psi.ext.ArendLevelParamsImplMixin"
-}
-
-levelParam ::= defIdentifier
 
 private functionType ::= COLON returnExprWOB { pin = 1 }
 
@@ -450,9 +479,9 @@ private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc) & statement_re
 
 elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>> { pin(".*") = 1}
 
-where ::= WHERE_KW (statementList | statement) { pin = 1 }
+where ::= WHERE_KW (statementList | stat) { pin = 1 }
 
-private statementList ::= LBRACE statement* RBRACE {
+private statementList ::= LBRACE stat* RBRACE {
     pin = 1
 }
 
@@ -723,7 +752,8 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
 
 coClause ::= longName (coClauseRec | coClauseImpl | [AS_KW prec? defIdentifier] coClauseDef?) {
     implements = [ "org.arend.psi.CoClauseBase"
-                   "org.arend.term.abs.Abstract.CoClauseFunctionReference" ]
+                   "org.arend.term.abs.Abstract.CoClauseFunctionReference"
+                   "org.arend.psi.ext.impl.ArendStatement" ]
     mixin = "org.arend.psi.ext.ArendCoClauseImplMixin"
 }
 
@@ -822,7 +852,9 @@ levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
 maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
 
-maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | maybeAtomLevelExpr
+maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | maybeAtomLevelExpr {
+    mixin = "org.arend.psi.ext.ArendTopLevelLevelExpr"
+}
 
 private levelsLevels ::= LEVELS_KW maybeAtomLevelExprs maybeAtomLevelExprs { pin = 1 }
 

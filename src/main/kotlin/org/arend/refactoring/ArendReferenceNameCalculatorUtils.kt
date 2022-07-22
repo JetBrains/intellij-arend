@@ -42,21 +42,24 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     var fallbackImportAction: NsCmdRefactoringAction? = null
 
     val fileGroup = object : Group by currentFile {
-        override fun getSubgroups(): Collection<Group> = emptyList()
+        override fun getStatements() = currentFile.statements.filter { it.group == null }
     }
     val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
-    val minimalImportMode = targetFile.subgroups.any { importedScope.resolveName(it.referable.textRepresentation()) != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
+    val minimalImportMode = targetFile.statements.any { stat -> stat.group?.let { importedScope.resolveName(it.referable.textRepresentation()) } != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
     var targetFileAlreadyImported = false
     var preludeImportedManually = false
     val fileResolveActions = HashMap<LocationData, NsCmdRefactoringAction?>()
 
-    for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
-        val nsCmdLongName = namespaceCommand.longName?.referent?.textRepresentation()
-        preludeImportedManually = preludeImportedManually || nsCmdLongName == Prelude.MODULE_PATH.toString()
+    for (statement in currentFile.statements) {
+        val command = statement.namespaceCommand ?: continue
+        if (command.importKw != null) {
+            val nsCmdLongName = command.longName?.referent?.textRepresentation()
+            preludeImportedManually = preludeImportedManually || nsCmdLongName == Prelude.MODULE_PATH.toString()
 
-        if (nsCmdLongName == targetFile.fullName) {
-            targetFileAlreadyImported = true // even if some of the members are unused or hidden we still can access them using "very long name"
-            for (location in locations) location.processStatCmd(namespaceCommand)
+            if (nsCmdLongName == targetFile.fullName) {
+                targetFileAlreadyImported = true // even if some members are unused or hidden we still can access them using "very long name"
+                for (location in locations) location.processStatCmd(command)
+            }
         }
     }
 
@@ -110,7 +113,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
             else -> null
         }
 
-        val statements: List<ArendStatCmd>? = containingGroup?.namespaceCommands?.filterIsInstance<ArendStatCmd>()?.toList()
+        val statements: List<ArendStatCmd>? = containingGroup?.statements?.mapNotNull { it.namespaceCommand as? ArendStatCmd }
 
         if (!allowSelfImport) if (psi is PsiLocatedReferable && psi.isAncestor(defaultLocation.target))
             defaultLocation.processParentGroup(psi)
@@ -219,7 +222,7 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
     fun getComplementScope(): Scope {
         val targetContainers = myLongNameWithRefs.reversed().map { it.second }
         return object : ListScope(targetContainers + targetContainers.mapNotNull { if (it is GlobalReferable) AliasReferable(it) else null }) {
-            override fun resolveNamespace(name: String?, onlyInternal: Boolean): Scope? = targetContainers
+            override fun resolveNamespace(name: String, onlyInternal: Boolean): Scope? = targetContainers
                     .filterIsInstance<ArendGroup>()
                     .firstOrNull { name == it.textRepresentation() || name == it.aliasName }
                     ?.let { LexicalScope.opened(it) }
@@ -283,7 +286,7 @@ abstract class NsCmdRefactoringAction(val currentFile: ArendFile,
 
 class ImportFileAction(currentFile: ArendFile,
                        longName: ModulePath,
-                       val usingList: List<String>?) : NsCmdRefactoringAction(currentFile, longName) {
+                       private val usingList: List<String>?) : NsCmdRefactoringAction(currentFile, longName) {
     override fun toString() = "Import file $longName"
 
     override fun execute() {
@@ -310,11 +313,14 @@ class AddIdToUsingAction(currentFile: ArendFile,
     override fun execute() {
         /* locate statCmd using longName */
         var statCmd: ArendStatCmd? = null
-        for (namespaceCommand in currentFile.namespaceCommands) if (namespaceCommand.importKw != null) {
-            val nsCmdLongName = namespaceCommand.longName?.referent?.textRepresentation()
-            if (nsCmdLongName == longName.toString()) {
-                statCmd = namespaceCommand
-                break
+        for (statement in currentFile.statements) {
+            val namespaceCommand = statement.namespaceCommand ?: continue
+            if (namespaceCommand.importKw != null) {
+                val nsCmdLongName = namespaceCommand.longName?.referent?.textRepresentation()
+                if (nsCmdLongName == longName.toString()) {
+                    statCmd = namespaceCommand
+                    break
+                }
             }
         }
 

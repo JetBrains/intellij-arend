@@ -14,12 +14,13 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ArendPrec
 import org.arend.psi.ancestor
 import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.psi.ext.PsiDefReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.typechecking.TypeCheckingService
 
-abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
+abstract class ReferableAdapter<StubT> : PsiStubbedReferableImpl<StubT>, PsiDefReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
@@ -57,7 +58,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                 tcReferableCache ?: run {
                     val file = (if (isValid) containingFile as? ArendFile else null) ?: return@run null
                     val longName = refLongName
-                    file.tcRefMap[longName]?.let {
+                    val tcRefMap = file.getTCRefMap(Referable.RefKind.EXPR)
+                    tcRefMap[longName]?.let {
                         tcReferableCache = it
                         return@run it
                     }
@@ -66,7 +68,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                     val pointer = SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer<PsiLocatedReferable>(this, file)
                     val ref = makeTCReferable(pointer, parent)
                     tcReferableCache = ref
-                    file.tcRefMap[longName] = ref
+                    tcRefMap[longName] = ref
                     ref
                 }
             }
@@ -76,7 +78,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         val service = project.service<TypeCheckingService>()
         val tcRef = tcReferableCache ?: run {
             val location = (containingFile as? ArendFile)?.moduleLocation ?: return
-            service.tcRefMaps[location]?.get(refLongName)
+            service.getTCRefMaps(Referable.RefKind.EXPR)[location]?.get(refLongName)
         } ?: return
         service.dependencyListener.update(tcRef)
         (tcRef as? TCDefReferable)?.typechecked = null
@@ -120,8 +122,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         for (referable in internalReferables) {
             (referable as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
         }
-        for (subgroup in subgroups) {
-            (subgroup as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
+        for (statement in statements) {
+            (statement.group as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()
         }
         for (subgroup in dynamicSubgroups) {
             (subgroup as? ReferableAdapter<*>)?.dropTCRefCachesRecursively()

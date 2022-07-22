@@ -30,6 +30,7 @@ import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiStubbedReferableImpl
 import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.impl.ArendStatement
 import org.arend.psi.ext.impl.ReferableAdapter
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.getCompleteWhere
@@ -119,7 +120,7 @@ class ArendImportOptimizer : ImportOptimizer {
                         // if this function was called, then at least two nsId was imported, and one of them is used
                     }
                 }
-                val singularWhere = element.parentOfType<ArendWhere>()?.takeIf { it.statementList.singleOrNull() == element }
+                val singularWhere = element.parentOfType<ArendWhere>()?.takeIf { it.statList.singleOrNull() == element }
                 element.delete()
                 singularWhere?.delete()
             }
@@ -145,7 +146,7 @@ internal fun processRedundantImportedDefinitions(file : ArendFile, fileImports: 
 
 private fun checkStatements(action: (ArendCompositeElement) -> Unit, statements: List<ArendStatement>, pattern: Map<ModulePath, Set<ImportedName>>) {
     for (import in statements) {
-        val statCmd = import.statCmd ?: continue
+        val statCmd = import.namespaceCommand ?: continue
         val qualifiedReferences = statCmd.getQualifiedReferenceFromOpen()
         val imported = qualifiedReferences.firstNotNullOfOrNull { pattern[it] }
         if (imported == null || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in imported } } == true)  {
@@ -180,8 +181,8 @@ private fun ArendGroup.qualifiedName() : MutableList<String> {
 }
 
 private fun visitModuleInconsistencies(action : (ArendCompositeElement) -> Unit, group: ArendGroup, moduleStructure: OptimalModuleStructure?, treeUsages : Map<ModulePath, Set<ImportedName>>) {
-    checkStatements(action, group.statements.filter { it.statCmd?.openKw != null }, treeUsages)
-    for (subgroup in group.subgroups + group.dynamicSubgroups) {
+    checkStatements(action, group.statements.filter { it.namespaceCommand?.openKw != null }, treeUsages)
+    for (subgroup in group.statements.mapNotNull { it.group } + group.dynamicSubgroups) {
         val substructure = moduleStructure?.subgroups?.find { it.name == subgroup.name }
         visitModuleInconsistencies(action, subgroup, substructure, treeUsages + (substructure?.usages ?: emptyMap()))
     }
@@ -211,7 +212,7 @@ private fun addModuleOpens(
     if (rootStructure != null && rootStructure.usages.isNotEmpty()) {
         doAddNamespaceCommands(group, rootStructure.usages, alreadyImported)
     }
-    for (subgroup in group.subgroups.flatMap { listOf(it) + it.dynamicSubgroups }) {
+    for (subgroup in group.statements.flatMap { stat -> stat.group?.let { listOf(it) + it.dynamicSubgroups } ?: emptyList() }) {
         val substructure = rootStructure?.subgroups?.find { it.name == subgroup.name }
         val subset = if (substructure == null) alreadyImported else HashMap(alreadyImported)
         addModuleOpens(subgroup, substructure, subset) // remove nested opens
@@ -231,7 +232,7 @@ private fun doAddNamespaceCommands(
         if (path.toList().isEmpty()) continue
         if (settings.OPTIMIZE_IMPORTS_POLICY == OptimizeImportsPolicy.ONLY_IMPLICIT || identifiers.size > settings.EXPLICIT_IMPORTS_LIMIT) {
             importStatements.add(createImplicitImport(prefix, path, scopeProvider, alreadyImported, identifiers.mapToSet(ImportedName::visibleName)))
-            scopeProvider(path)?.globalSubscope?.elements?.forEach { alreadyImported[it.refName] = it }
+            scopeProvider(path)?.globalSubscope?.getElements(null)?.forEach { alreadyImported[it.refName] = it }
         } else {
             importStatements.add(createExplicitImport("$prefix ${path.toList().joinToString(".")}", identifiers))
         }
@@ -284,7 +285,7 @@ private fun createImplicitImport(
         LOG.error("No library containing required module found while optimizing imports. Please report it to maintainers")
     }
     currentScope!!
-    val namesToHide = currentScope.globalSubscope.elements.mapNotNull { ref -> ref.refName.takeIf { it !in toImportHere && it in alreadyImportedNames && alreadyImportedNames[it] != ref } }
+    val namesToHide = currentScope.globalSubscope.getElements(null).mapNotNull { ref -> ref.refName.takeIf { it !in toImportHere && it in alreadyImportedNames && alreadyImportedNames[it] != ref } }
     val baseName = "$prefix ${modulePath.toList().joinToString(".")}"
     return if (namesToHide.isEmpty()) {
         baseName
@@ -295,7 +296,7 @@ private fun createImplicitImport(
 
 @RequiresWriteLock
 private fun eraseNamespaceCommands(group: ArendGroup) {
-    val statCommands = group.statements.filter { it.statCmd != null }
+    val statCommands = group.statements.filter { it.namespaceCommand != null }
     val deleteWhere = statCommands.size == group.statements.size
     statCommands.forEach { it.delete() }
     if (deleteWhere) {
@@ -395,7 +396,7 @@ private class ImportStructureCollector(
         // only \open-ed instances can participate in instance candidate resolution
         val scope = element.scope
         val referables =
-            element.namespaceCommands.flatMap { NamespaceCommandNamespace.makeNamespace(scope, it).elements }
+            element.statements.flatMap { stat -> stat.namespaceCommand?.let { NamespaceCommandNamespace.makeNamespace(scope, it).elements } ?: emptyList() }
         for (instanceCandidate in referables) {
             if (instanceCandidate is ArendDefInstance && instanceCandidate.isDefinitelyInstance()) {
                 currentFrame.instancesFromScope.add(instanceCandidate)

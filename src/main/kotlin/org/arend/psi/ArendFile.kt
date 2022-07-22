@@ -31,6 +31,7 @@ import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
@@ -113,11 +114,16 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         }
     }
 
-    val tcRefMap: LifetimeAwareDefinitionRegistry
-        get() {
-            val location = moduleLocation ?: return LifetimeAwareDefinitionRegistry()
-            return project.service<TypeCheckingService>().tcRefMaps.computeIfAbsent(location) { LifetimeAwareDefinitionRegistry() }
+    fun getTCRefMap(refKind: RefKind): LifetimeAwareDefinitionRegistry {
+        val location = moduleLocation ?: return LifetimeAwareDefinitionRegistry()
+        return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { LifetimeAwareDefinitionRegistry() }
+    }
+
+    fun cleanupTCRefMaps() {
+        for (refKind in RefKind.values()) {
+            getTCRefMap(refKind).cleanup(project)
         }
+    }
 
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
@@ -236,16 +242,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getReferable(): PsiLocatedReferable = this
 
-    override fun getSubgroups(): List<ArendGroup> = children.mapNotNull { child -> (child as? ArendStatement)?.let { it.definition ?: it.defModule } }
-
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
-    override fun getNamespaceCommands(): List<ArendStatCmd> = children.mapNotNull { (it as? ArendStatement)?.statCmd }
-
-    override val statements
-        get() = children.filterIsInstance<ArendStatement>()
+    override fun getStatements() = children.filterIsInstance<ArendStat>()
 
     override val where: ArendWhere?
         get() = null

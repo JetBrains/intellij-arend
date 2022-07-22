@@ -53,12 +53,13 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
         }
     }
 
-    private fun numberOfDefinitions(group: Group): Int {
+    private fun numberOfDefinitions(group: Group?): Int {
+        if (group == null) return 0
         val def = group.referable
         var res = if (def is TCDefinition) 1 else 0
 
-        for (subgroup in group.subgroups) {
-            res += numberOfDefinitions(subgroup)
+        for (statement in group.statements) {
+            res += numberOfDefinitions(statement.group)
         }
         for (subgroup in group.dynamicSubgroups) {
             res += numberOfDefinitions(subgroup)

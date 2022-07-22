@@ -53,5 +53,5 @@ private class ArendStructureViewElement(val psi: ArendCompositeElement)
             childElements.mapNotNull { e -> (e as? ArendCompositeElement)?.let { ArendStructureViewElement(it) } }.toTypedArray()
 
     private val childElements: List<Any>
-        get() = (psi as? Group)?.let { it.internalReferables + it.subgroups + it.dynamicSubgroups } ?: emptyList()
+        get() = (psi as? Group)?.let { it.internalReferables + it.statements.mapNotNull { stat -> stat.group } + it.dynamicSubgroups } ?: emptyList()
 }

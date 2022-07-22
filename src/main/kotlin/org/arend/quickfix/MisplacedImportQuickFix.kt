@@ -26,7 +26,7 @@ class MisplacedImportQuickFix(private val misplacedStatCmdRef: SmartPsiElementPo
         val parentCopy = parent?.copy()
         val containingFile = misplacedStatCmd?.containingFile
 
-        if (misplacedStatCmd != null && parentCopy is ArendStatement && containingFile is ArendFile) {
+        if (misplacedStatCmd != null && parentCopy is ArendStat && containingFile is ArendFile) {
             val path = ModulePath(misplacedStatCmd.path)
             val factory = ArendPsiFactory(project)
 

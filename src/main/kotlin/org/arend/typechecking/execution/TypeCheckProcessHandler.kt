@@ -27,7 +27,7 @@ import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendStatement
+import org.arend.psi.ArendStat
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.findGroupByFullName
@@ -197,7 +197,7 @@ class TypeCheckProcessHandler(
             finally {
                 typecheckingErrorReporter.eventsProcessor.onSuitesFinished()
                 ApplicationManager.getApplication().executeOnPooledThread {
-                    destroyProcessImpl() //we prefer to call this method rather than "this@TypeCheckProcessHandler.destroyProcess()" for if processHandler state is not equal to PROCESS_RUNNING then destroyProcessImpl will not be invoked (this is true e. g. in the case when the user stops computation using Detach Process button)
+                    destroyProcessImpl() //we prefer to call this method rather than "this@TypeCheckProcessHandler.destroyProcess()" for if processHandler state is not equal to PROCESS_RUNNING then destroyProcessImpl will not be invoked (this is true e.g. in the case when the user stops computation using Detach Process button)
                 }
             }
         }
@@ -216,8 +216,8 @@ class TypeCheckProcessHandler(
             }
         }
 
-        for (subgroup in group.subgroups) {
-            resetGroup(subgroup)
+        for (stat in group.statements) {
+            resetGroup(stat.group ?: continue)
         }
         for (subgroup in group.dynamicSubgroups) {
             resetGroup(subgroup)
@@ -231,8 +231,8 @@ class TypeCheckProcessHandler(
 
         (ordering.concreteProvider.getConcrete(group) as? Concrete.Definition)?.let { ordering.order(it) }
 
-        for (subgroup in group.subgroups) {
-            orderGroup(subgroup, ordering)
+        for (stat in group.statements) {
+            orderGroup(stat.group ?: continue, ordering)
         }
         for (subgroup in group.dynamicSubgroups) {
             orderGroup(subgroup, ordering)
@@ -254,7 +254,7 @@ class TypeCheckProcessHandler(
                         }
                     }
                 }
-                is ArendStatement -> child.definition?.let { reportParserErrors(it, module, typecheckingErrorReporter) }
+                is ArendStat -> child.definition?.let { reportParserErrors(it, module, typecheckingErrorReporter) }
             }
         }
     }

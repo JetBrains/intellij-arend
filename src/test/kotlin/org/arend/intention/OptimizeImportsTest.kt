@@ -686,9 +686,9 @@ class OptimizeImportsTest : ArendTestBase() {
         
             \instance a : A Nat
               | + => +
-              \where {
-                \open Nat (+)
-              } 
+            \where {
+              \open Nat (+)
+            } 
         """
         )
     }
