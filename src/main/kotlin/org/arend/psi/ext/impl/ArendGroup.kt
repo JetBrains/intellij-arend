@@ -4,6 +4,7 @@ import org.arend.psi.ArendStatCmd
 import org.arend.psi.ArendWhere
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.ext.PsiDefReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
@@ -14,7 +15,7 @@ interface ArendStatement : Statement, ArendCompositeElement {
     override fun getNamespaceCommand(): ArendStatCmd?
 }
 
-interface ArendGroup: ChildGroup, PsiLocatedReferable, ArendSourceNode {
+interface ArendGroup: ChildGroup, PsiDefReferable, ArendSourceNode {
     val where: ArendWhere?
 
     override fun getStatements(): List<ArendStatement>
@@ -26,8 +27,8 @@ interface ArendGroup: ChildGroup, PsiLocatedReferable, ArendSourceNode {
     override fun getInternalReferables(): Collection<ArendInternalReferable>
 }
 
-interface ArendInternalReferable: Group.InternalReferable, PsiLocatedReferable {
-    override fun getReferable(): PsiLocatedReferable
+interface ArendInternalReferable: Group.InternalReferable, PsiDefReferable {
+    override fun getReferable(): PsiDefReferable
 }
 
 fun fillAdditionalNames(group: ArendGroup, names: HashMap<String, ArrayList<PsiLocatedReferable>>) {

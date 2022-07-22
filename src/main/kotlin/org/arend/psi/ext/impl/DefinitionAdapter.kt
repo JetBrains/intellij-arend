@@ -78,7 +78,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     abstract fun getHLevelParams(): ArendHLevelParams?
 
-    override fun getPLevelParameters(): Abstract.LevelParameters? = getPLevelParams()?.levelParams
+    override fun getPLevelParameters(): Abstract.LevelParameters? = getPLevelParams()?.pLevelParamsSeq
 
-    override fun getHLevelParameters(): Abstract.LevelParameters? = getHLevelParams()?.levelParams
+    override fun getHLevelParameters(): Abstract.LevelParameters? = getHLevelParams()?.hLevelParamsSeq
 }

@@ -8,7 +8,7 @@ abstract class ArendStatImplMixin(node: ASTNode) : ArendSourceNodeImpl(node), Ar
 
     override fun getNamespaceCommand() = statCmd
 
-    override fun getPLevelsDefinition() = defPLevels?.levelParams
+    override fun getPLevelsDefinition() = pLevelParams?.pLevelParamsSeq
 
-    override fun getHLevelsDefinition() = defHLevels?.levelParams
+    override fun getHLevelsDefinition() = hLevelParams?.hLevelParamsSeq
 }

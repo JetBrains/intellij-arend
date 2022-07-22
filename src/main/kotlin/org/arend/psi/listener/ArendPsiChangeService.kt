@@ -82,7 +82,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
             checkGroup(file, file)
         }
         modificationTracker.incModificationCount()
-        event.file.castSafelyTo<ArendFile>()?.tcRefMap?.cleanup(event.file?.project)
+        event.file.castSafelyTo<ArendFile>()?.cleanupTCRefMaps()
     }
 
     override fun beforePropertyChange(event: PsiTreeChangeEvent) {
@@ -114,7 +114,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
 
     private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
         val file = event.file as? ArendFile ?: return
-        file.tcRefMap.cleanup(file.project)
+        file.cleanupTCRefMaps()
         processChildren(event.child, file)
         processChildren(event.oldChild, file)
         processParent(file, event.child, event.oldChild, event.newChild, event.parent ?: event.oldParent, checkCommentStart)

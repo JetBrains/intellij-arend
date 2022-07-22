@@ -15,7 +15,7 @@ import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.*
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.PsiDefReferable
 import org.arend.psi.ext.impl.ArendGroup
 import org.arend.psi.ext.impl.MetaAdapter
 import org.arend.psi.ext.impl.fillAdditionalNames
@@ -107,13 +107,13 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         super.resetGroup(group)
         (group as? ArendFile)?.apply {
             moduleLocation?.let {
-                config.project.service<TypeCheckingService>().tcRefMaps.remove(it)
+                config.project.service<TypeCheckingService>().getTCRefMaps(Referable.RefKind.EXPR).remove(it)
             }
         }
     }
 
     override fun resetDefinition(referable: LocatedReferable) {
-        if (referable !is PsiLocatedReferable) {
+        if (referable !is PsiDefReferable) {
             return
         }
         runReadAction {

@@ -17,6 +17,14 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 
     val tcReferable: TCReferable?
 
+    companion object {
+        fun fromReferable(referable: GlobalReferable) = referable.underlyingReferable as? PsiLocatedReferable
+
+        fun isValid(ref: TCReferable?) = ref != null && (ref !is DataLocatedReferable || ref.data == null || runReadAction { ref.data?.element } != null)
+    }
+}
+
+interface PsiDefReferable : PsiLocatedReferable {
     fun dropTypechecked()
 
     fun dropTCReferable()
@@ -24,12 +32,6 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
     fun checkTCReferable(): Boolean
 
     fun checkTCReferableName()
-
-    companion object {
-        fun fromReferable(referable: GlobalReferable) = referable.underlyingReferable as? PsiLocatedReferable
-
-        fun isValid(ref: TCReferable?) = ref != null && (ref !is DataLocatedReferable || ref.data == null || runReadAction { ref.data?.element } != null)
-    }
 }
 
 private fun PsiLocatedReferable.getFullName(builder: StringBuilder) {

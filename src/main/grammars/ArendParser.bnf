@@ -126,7 +126,7 @@ private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | S
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
-stat ::= statCmd | definition | defModule | defPLevels | defHLevels | stat_recovery {
+stat ::= statCmd | definition | defModule | pLevelParams | hLevelParams | stat_recovery {
     implements = "org.arend.psi.ext.impl.ArendStatement"
     mixin = "org.arend.psi.ext.ArendStatImplMixin"
 }
@@ -271,31 +271,36 @@ defMeta ::= META_KW prec? defIdentifier_func metaPLevels? metaHLevels? alias? [n
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-metaPLevels ::= PLEVELS_KW metaLevels { pin = 1 }
+metaPLevels ::= PLEVELS_KW metaPLevelsSeq { pin = 1 }
 
-metaHLevels ::= HLEVELS_KW metaLevels { pin = 1 }
+metaHLevels ::= HLEVELS_KW metaHLevelsSeq { pin = 1 }
 
-metaLevels ::= <<comma_separated_sequence defIdentifier>>? {
+metaPLevelsSeq ::= <<comma_separated_sequence pLevelIdentifier>>? {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.LevelParameters"
                  ]
-    mixin = "org.arend.psi.ext.ArendMetaLevelsImplMixin"
+    mixin = "org.arend.psi.ext.ArendMetaPLevelsSeqImplMixin"
 }
 
-defPLevels ::= PLEVELS_KW levelParams {
-    pin = 1
-    implements = "org.arend.psi.ext.PsiLocatedReferable"
-    mixin = "org.arend.psi.ext.ArendDefPLevelsImplMixin"
-    stubClass = "org.arend.psi.stubs.ArendPLevelsStub"
-    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+metaHLevelsSeq ::= <<comma_separated_sequence hLevelIdentifier>>? {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LevelParameters"
+                 ]
+    mixin = "org.arend.psi.ext.ArendMetaHLevelsSeqImplMixin"
 }
 
-defHLevels ::= HLEVELS_KW levelParams {
-    pin = 1
-    implements = "org.arend.psi.ext.PsiLocatedReferable"
-    mixin = "org.arend.psi.ext.ArendDefHLevelsImplMixin"
-    stubClass = "org.arend.psi.stubs.ArendHLevelsStub"
-    elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+pLevelIdentifier ::= ID {
+    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
+                   "org.arend.naming.reference.LevelReferable"
+                   "org.arend.psi.ext.ArendReferenceElement" ]
+    mixin = "org.arend.psi.ext.ArendPLevelIdentifierImplMixin"
+}
+
+hLevelIdentifier ::= ID {
+    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
+                   "org.arend.naming.reference.LevelReferable"
+                   "org.arend.psi.ext.ArendReferenceElement" ]
+    mixin = "org.arend.psi.ext.ArendHLevelIdentifierImplMixin"
 }
 
 private defIdentifier_module ::= defIdentifier {
@@ -315,22 +320,27 @@ defFunction ::= functionKw prec? defIdentifier_func pLevelParams? hLevelParams? 
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-pLevelParams ::= PLEVELS_KW levelParams { pin = 1 }
+pLevelParams ::= PLEVELS_KW pLevelParamsSeq { pin = 1 }
 
-hLevelParams ::= HLEVELS_KW levelParams { pin = 1 }
+hLevelParams ::= HLEVELS_KW hLevelParamsSeq { pin = 1 }
+
+pLevelParamsSeq ::= [pLevelIdentifier (levelCmp pLevelIdentifier)*] {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LevelParameters"
+                 ]
+    mixin = "org.arend.psi.ext.ArendPLevelParamsSeqImplMixin"
+}
+
+hLevelParamsSeq ::= [hLevelIdentifier (levelCmp hLevelIdentifier)*] {
+    implements = [ "org.arend.psi.ext.ArendCompositeElement"
+                   "org.arend.term.abs.Abstract.LevelParameters"
+                 ]
+    mixin = "org.arend.psi.ext.ArendHLevelParamsSeqImplMixin"
+}
 
 functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | useMod
 
 levelCmp ::= LESS_OR_EQUALS | GREATER_OR_EQUALS
-
-levelParams ::= [levelParam (levelCmp levelParam)*] {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.LevelParameters"
-                 ]
-    mixin = "org.arend.psi.ext.ArendLevelParamsImplMixin"
-}
-
-levelParam ::= defIdentifier
 
 private functionType ::= COLON returnExprWOB { pin = 1 }
 

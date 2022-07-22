@@ -31,6 +31,7 @@ import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
@@ -113,11 +114,16 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         }
     }
 
-    val tcRefMap: LifetimeAwareDefinitionRegistry
-        get() {
-            val location = moduleLocation ?: return LifetimeAwareDefinitionRegistry()
-            return project.service<TypeCheckingService>().tcRefMaps.computeIfAbsent(location) { LifetimeAwareDefinitionRegistry() }
+    fun getTCRefMap(refKind: RefKind): LifetimeAwareDefinitionRegistry {
+        val location = moduleLocation ?: return LifetimeAwareDefinitionRegistry()
+        return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { LifetimeAwareDefinitionRegistry() }
+    }
+
+    fun cleanupTCRefMaps() {
+        for (refKind in RefKind.values()) {
+            getTCRefMap(refKind).cleanup(project)
         }
+    }
 
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)

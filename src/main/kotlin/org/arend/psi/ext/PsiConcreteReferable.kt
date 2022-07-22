@@ -5,6 +5,6 @@ import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.term.concrete.Concrete
 
 
-interface PsiConcreteReferable: PsiLocatedReferable {
+interface PsiConcreteReferable: PsiDefReferable {
     fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition
 }

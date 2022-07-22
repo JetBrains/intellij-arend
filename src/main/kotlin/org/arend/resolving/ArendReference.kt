@@ -48,7 +48,7 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : PsiRef
     override fun isReferenceTo(element: PsiElement): Boolean = false
 }
 
-class ArendPatternDefReferenceImpl<T : ArendDefIdentifier>(element: T) : ArendReferenceImpl<T>(element) {
+class ArendPatternDefReferenceImpl<T : ArendReferenceElement>(element: T) : ArendReferenceImpl<T>(element) {
     override fun resolve() = resolve(true)
 }
 
