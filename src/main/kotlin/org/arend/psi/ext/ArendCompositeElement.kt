@@ -8,6 +8,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import com.intellij.psi.tree.IElementType
+import com.intellij.psi.util.PsiTreeUtil
 import org.arend.ext.error.SourceInfo
 import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
@@ -17,6 +19,7 @@ import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocReference
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.resolving.ArendReference
 import org.arend.resolving.util.ModifiedClassFieldImplScope
 import org.arend.term.abs.Abstract
@@ -122,6 +125,8 @@ abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(n
 
 abstract class ArendSourceNodeImpl(node: ASTNode) : ArendCompositeElementImpl(node), ArendSourceNode {
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
+
+    protected fun hasChildOfType(elementType: IElementType) : Boolean = findChildByType<PsiElement>(elementType) != null
 
     override fun getParentSourceNode() = getParentSourceNode(this)
 }

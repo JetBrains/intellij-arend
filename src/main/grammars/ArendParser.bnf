@@ -105,9 +105,6 @@
         BLOCK_COMMENT       = 'BLOCK_COMMENT'
     ]
 
-    mixin("pattern") = "org.arend.psi.ext.ArendPatternImplMixin"
-    implements("pattern") = [ "org.arend.psi.ext.ArendCompositeElement"
-                              "org.arend.term.abs.Abstract.Pattern" ]
     extends("def(Function|Data|Class|Instance|Meta)") = definition
     extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
@@ -488,7 +485,13 @@ private statementList ::= LBRACE stat* RBRACE {
     pin = 1
 }
 
-pattern ::= atomPattern+ (private_typeAnnotation | asPattern?) { pin = 1 }
+pattern ::= privatePattern {
+    recoverWhile=pattern_recover
+}
+
+private privatePattern ::= atomPattern+ patternEnd { pin = 1 }
+
+private patternEnd ::= private_typeAnnotation | asPattern?
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
 
@@ -501,16 +504,16 @@ asPattern ::= AS_KW defIdentifier private_typeAnnotation? {
 
 private private_typeAnnotation ::= COLON expr { pin = 1 }
 
-atomPattern ::= longNameIP
+atomPattern ::= privateAtomPattern {
+  elementType=pattern
+}
+
+private privateAtomPattern ::= (longNameIP
     | LPAREN <<comma_separated_sequence pattern>>? RPAREN
-    | LBRACE pattern RBRACE
+    | <<maybeImplicitPattern privatePattern privateAtomPattern>>
     | NUMBER
     | NEGATIVE_NUMBER
-    | UNDERSCORE {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.Pattern" ]
-    mixin = "org.arend.psi.ext.ArendAtomPatternImplMixin"
-}
+    | UNDERSCORE) patternEnd
 
 constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
     pin = 3
@@ -733,6 +736,7 @@ clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.FunctionClause" ]
     mixin = "org.arend.psi.ext.ArendClauseImplMixin"
+    methods = [ pattern="" ]
     recoverWhile = pipe_seq_recover
 }
 
@@ -773,6 +777,7 @@ letClause ::= letClauseName typeAnnotation? FAT_ARROW expr {
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.LetClause" ]
     mixin = "org.arend.psi.ext.ArendLetClauseImplMixin"
+    methods = [ pattern = "" ]
 }
 
 private letClauseName ::= defIdentifier_letClause nameTele* | atomPattern { pin(".*") = 1 }
@@ -1108,3 +1113,5 @@ private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 private meta comma_separated_sequence_trail ::= <<p>> (COMMA <<p>>)* COMMA? { pin = 1 }
 
 private meta piped ::= pipe_def <<p>> { pin = 1 }
+
+private external fail ::= noMatch

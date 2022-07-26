@@ -16,6 +16,7 @@ import org.arend.psi.*
 import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocReference
 import org.arend.psi.doc.ArendDocReferenceText
+import org.arend.psi.parser.ArendPsiCreator
 import org.arend.psi.stubs.ArendFileStub
 
 class ArendParserDefinition : ParserDefinition {
@@ -43,6 +44,7 @@ class ArendParserDefinition : ParserDefinition {
         DOC_CODE_BLOCK -> ArendDocCodeBlock(node)
         DOC_REFERENCE -> ArendDocReference(node)
         DOC_REFERENCE_TEXT -> ArendDocReferenceText(node)
+        ArendElementTypes.PATTERN -> ArendPsiCreator.createPsi(node)
         else -> ArendElementTypes.Factory.createElement(node)
     }
 }

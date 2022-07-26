@@ -2,18 +2,16 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.search.LocalSearchScope
+import com.intellij.psi.util.PsiTreeUtil
 import org.arend.naming.reference.ClassReferable
-import org.arend.psi.ArendExpr
-import org.arend.psi.ArendLetClause
-import org.arend.psi.ArendNameTele
-import org.arend.psi.ArendNewExpr
+import org.arend.psi.*
 import org.arend.resolving.util.ReferableExtractVisitor
 
 
 abstract class ArendLetClauseImplMixin(node: ASTNode) : ArendCompositeElementImpl(node), ArendLetClause {
     override fun getReferable() = defIdentifier
 
-    override fun getPattern() = atomPattern
+    override fun getPattern() = PsiTreeUtil.getChildOfType(this, org.arend.psi.parser.api.ArendPattern::class.java)
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 

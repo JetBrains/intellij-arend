@@ -272,9 +272,10 @@ private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: P
     service.processEvent(file, lastChild, null, null, parent, true)
 }
 
-fun PsiElement.addBeforeWithNotification(element: PsiElement, anchor: PsiElement?): PsiElement {
+fun <T : PsiElement> PsiElement.addBeforeWithNotification(element: T, anchor: PsiElement?): T {
     notify(element, null, null, this, true)
-    return this.addBefore(element, anchor)
+    @Suppress("UNCHECKED_CAST")
+    return this.addBefore(element, anchor) as T
 }
 
 fun PsiElement.addAfterWithNotification(element: PsiElement, anchor: PsiElement?): PsiElement {
@@ -287,9 +288,10 @@ fun PsiElement.addWithNotification(element: PsiElement): PsiElement {
     return this.add(element)
 }
 
-fun PsiElement.replaceWithNotification(newElement: PsiElement): PsiElement {
+fun <T : PsiElement> T.replaceWithNotification(newElement: T): T {
     notify(null, this, newElement, parent, false)
-    return this.replace(newElement)
+    @Suppress("UNCHECKED_CAST")
+    return this.replace(newElement) as T
 }
 
 fun PsiElement.deleteWithNotification() {
