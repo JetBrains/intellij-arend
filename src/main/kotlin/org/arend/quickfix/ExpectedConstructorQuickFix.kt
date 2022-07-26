@@ -8,7 +8,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import com.intellij.psi.util.siblings
 import com.intellij.util.castSafelyTo
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.binding.TypedBinding
@@ -18,7 +17,10 @@ import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
 import org.arend.core.definition.DataDefinition
 import org.arend.core.expr.*
-import org.arend.core.pattern.*
+import org.arend.core.pattern.BindingPattern
+import org.arend.core.pattern.ConstructorExpressionPattern
+import org.arend.core.pattern.ExpressionPattern
+import org.arend.core.pattern.Pattern
 import org.arend.core.subst.ExprSubstitution
 import org.arend.core.subst.SubstVisitor
 import org.arend.error.CountingErrorReporter
@@ -33,10 +35,7 @@ import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.intention.SplitAtomPatternIntention
 import org.arend.intention.SplitAtomPatternIntention.Companion.doReplacePattern
-import org.arend.intention.SplitAtomPatternIntention.Companion.isSucPattern
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.TCDefReferable
-import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
@@ -46,14 +45,15 @@ import org.arend.psi.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.stubs.factory
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.PsiLocatedRenamer
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.Abstract
-import org.arend.term.abs.ConcreteBuilder.*
+import org.arend.term.abs.ConcreteBuilder.convert
+import org.arend.term.abs.ConcreteBuilder.convertPattern
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.error.local.ExpectedConstructorError
@@ -66,12 +66,7 @@ import org.arend.util.ArendBundle
 import org.arend.util.Decision
 import org.arend.util.mapToSet
 import java.util.Collections.singletonList
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.collections.HashSet
-import kotlin.collections.LinkedHashSet
 import kotlin.math.abs
-import org.arend.psi.parser.api.ArendPattern as ArendPattern
 
 class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause: SmartPsiElementPointer<ArendCompositeElement>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
@@ -349,8 +344,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             if (idOrUnderscore is ArendRefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
 
                             val target = asDefIdentifier ?: if (idOrUnderscore is ArendRefIdentifier) idOrUnderscore else null
-                            val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = { val name = it.name
-                                if (name != null) it.scope.resolveName(name) as? PsiElement else null }
+                            val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = {
+                                val name = it.name
+                                if (name != null) it.scope.resolveName(name).castSafelyTo<DataContainer>()?.data.castSafelyTo<PsiElement>() else null
+                            }
 
                             val noOfUsages = if (target != null) {
                                 fun calculateNumberOfUsages(element: PsiElement): Int {
@@ -883,7 +880,6 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 var skippedParams = 0
                 toInsertList.sortBy { it.first }
 
-                var nullAnchor: PsiElement? = null
                 for (entry in toInsertList) {
                     var patternLine = ""
                     for (i in 0 until entry.first - skippedParams) patternLine += " {_}"
@@ -891,7 +887,6 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     val atomPattern = psiFactory.createPattern(patternLine)
                     val templateList = atomPattern.sequence.takeIf { it.isNotEmpty() } ?: listOf(atomPattern)
                     if (position == null) {
-                        val x = 1
                         enclosingNode = if (enclosingNode.parent is ArendPattern && enclosingNode.singleReferable != null && !enclosingNode.isTuplePattern) {
                             enclosingNode.replaceWithNotification(psiFactory.createPattern("(${enclosingNode.text})"))
                         } else {
@@ -909,12 +904,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                 val first = enclosingNode.addRangeAfterWithNotification(templateList.first(), templateList.last(), enclosingNode.sequence.last())
                                 enclosingNode.addBefore(psiFactory.createWhitespace(" "), first)
                             }
-//                            parent.addRangeAfterWithNotification(templateList.first(), templateList.last(), actualEnclosingNode)
-//                            actualEnclosingNode.parent.addAfter(psiFactory.createWhitespace(" "), actualEnclosingNode)
                             enclosingNode.sequence.last().let { callback.invoke(entry.second, it) }
                         }
-//                        if (nullAnchor == null) nullAnchor = enclosingNode
-//                        nullAnchor = enclosingNode.castSafelyTo<ArendPattern>()!!.sequence.last()
                     } else {
                         val actualPosition = absorbParenthesesUp(position)
                         enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), actualPosition)
@@ -1008,7 +999,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val abstractExpr = ToAbstractVisitor.convert(expression, ppConfig)
             val newCaseArg = psiFactory.createCaseArg("$abstractExpr \\as $freshName")!!
             val comma = newCaseArg.findNextSibling()!!
-            bindingToCaseArgMap[binding] = dependentCaseArg.parent.addBeforeWithNotification(newCaseArg, dependentCaseArg) as ArendCaseArg
+            bindingToCaseArgMap[binding] = dependentCaseArg.parent.addBeforeWithNotification(newCaseArg, dependentCaseArg)
             dependentCaseArg.parent.addBeforeWithNotification(comma, dependentCaseArg)
         }
 

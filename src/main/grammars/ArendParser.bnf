@@ -489,9 +489,7 @@ pattern ::= privatePattern {
     recoverWhile=pattern_recover
 }
 
-private privatePattern ::= atomPattern+ patternEnd { pin = 1 }
-
-private patternEnd ::= private_typeAnnotation | asPattern?
+private privatePattern ::= atomPattern+ (private_typeAnnotation | asPattern?) { pin = 1 }
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
 
@@ -508,12 +506,12 @@ atomPattern ::= privateAtomPattern {
   elementType=pattern
 }
 
-private privateAtomPattern ::= (longNameIP
+private privateAtomPattern ::= longNameIP
     | LPAREN <<comma_separated_sequence pattern>>? RPAREN
     | <<maybeImplicitPattern privatePattern privateAtomPattern>>
     | NUMBER
     | NEGATIVE_NUMBER
-    | UNDERSCORE) patternEnd
+    | UNDERSCORE
 
 constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
     pin = 3
@@ -1113,5 +1111,3 @@ private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 private meta comma_separated_sequence_trail ::= <<p>> (COMMA <<p>>)* COMMA? { pin = 1 }
 
 private meta piped ::= pipe_def <<p>> { pin = 1 }
-
-private external fail ::= noMatch

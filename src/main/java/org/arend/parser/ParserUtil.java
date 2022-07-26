@@ -52,8 +52,4 @@ public class ParserUtil extends GeneratedParserUtilBase {
       return sequenceParser.parse(builder, level + 1);
     }
   }
-
-  public static boolean noMatch(PsiBuilder ignoredBuilder, int ignoredLevel) {
-    return false;
-  }
 }

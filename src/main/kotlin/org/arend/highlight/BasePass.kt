@@ -227,11 +227,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return
             }
 
-//            val actualBuilder = if (error is CertainTypecheckingError && (cause.parent.parent.let { it is ArendAtomPattern && !it.isExplicit && it.patternList.flatMap(ArendPattern::getAtomPatternList) == listOf(cause) } || cause.parent.let { it is ArendAtomPattern && !it.isExplicit })) {
-//                createHighlightInfoBuilder(error, cause.castSafelyTo<PsiElement>()?.parent?.parent!!.textRange)
-//            } else {
-                builder
-//            }
             val info = addHighlightInfo(builder) ?: return
             when (error) {
                 is ParsingError -> when (error.kind) {

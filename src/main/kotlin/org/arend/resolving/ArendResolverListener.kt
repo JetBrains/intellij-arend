@@ -44,13 +44,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
             }
             is ArendReferenceElement -> listOf(data)
             is ArendPattern -> {
-//                val firstReference = data.atomPatternList.getOrNull(0)
-//                val secondReference = data.atomPatternList.getOrNull(1).castSafelyTo<ArendAtomPattern>()
-//                if (secondReference?.longName?.refIdentifierList?.last()?.text?.equals(referent.refName) == true) {
-//                    listOf(secondReference.longName!!.refIdentifierList!!.last())
-//                } else {
-//                    listOf(firstReference!!.longName!!.refIdentifierList.last())
-//                }
+                // todo why is this branch ok?
                 return
             }
             is ArendAtomLevelExpr -> data.refIdentifier?.let { listOf(it) } ?: return

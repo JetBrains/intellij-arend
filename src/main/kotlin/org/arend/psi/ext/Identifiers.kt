@@ -107,7 +107,6 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
             is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
             is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.expr
             is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
-//            is ArendPattern -> parent.expr
             is ArendAsPattern -> parent.expr
             else -> null
         }
