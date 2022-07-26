@@ -175,7 +175,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \func foo (l : List Nat) : Nat
          | nil => 0
          | :: x nil => (foo nil) Nat.+ x 
-         | :: x (:: a xs) => (foo (a :: xs)) Nat.+ x
+         | :: x (a :: xs) => (foo (a :: xs)) Nat.+ x
     """)
 
     fun testSimpleResolving() = doTest("""
@@ -194,7 +194,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
       
       \func foo (xs : List Nat) : Nat
         | List.nil => 0
-        | List.:: a xs => 0  
+        | a List.:: xs => 0  
     """)
 
     fun testLongName() = doTest("""
@@ -464,7 +464,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """, """
        \func foo (a : Array Nat) : Nat
          | nil => {?}
-         | :: a a1 => {?} 
+         | a :: a1 => {?} 
     """)
 
     fun test_arrays2() = doTest("""
@@ -472,7 +472,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
          | a{-caret-} => {?} 
     """, """
        \func foo {n : Nat} (x : Array Nat (suc n)) : Nat
-         | :: a a1 => {?} 
+         | a :: a1 => {?} 
     """)
 
     fun test_arrays3() = doTest("""
@@ -525,6 +525,19 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
         | a :: 0 :: xs => 1
         | a :: (suc bb) :: xs => 1
         | _ => 0
+   """)
+
+    fun testInfix2() = typedQuickFixTest("Split", """
+      \data List | nil | \infixr 3 :: Nat List
+
+      \func f (a : List) : Nat
+        | {-caret-}a => 1
+   """, """
+      \data List | nil | \infixr 3 :: Nat List
+
+      \func f (a : List) : Nat
+        | nil => 1
+        | n :: a => 1
    """)
 
 }

@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.castSafelyTo
+import com.intellij.util.containers.tail
 import org.arend.ext.variable.Variable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
@@ -229,10 +230,17 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             override fun patternString(location: ArendCompositeElement): String {
                 val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location)
                         ?: constructor.name
-
+                val isInfix = constructor.referable.precedence.isInfix
                 return buildString {
-                    append("$constructorName ")
-                    for (p in params) append("$p ")
+                    if (params.isEmpty()) {
+                        append("$constructorName ")
+                        return@buildString
+                    } else if (isInfix) {
+                        append("${params[0]} $constructorName ")
+                    } else {
+                        append("$constructorName ${params[0]} ")
+                    }
+                    for (p in params.tail()) append("$p ")
                 }.trim()
             }
 
@@ -351,7 +359,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val pipe: PsiElement = factory.createClause("zero").findPrevSibling()!!
                 var currAnchor: PsiElement = localClause
 
-                val offsetOfReplaceablePsi = findReplaceablePsiElement(localIndexList.drop(1), topLevelPatterns.find { matches(it, localIndexList[0]) != MatchData.NO })?.data?.castSafelyTo<PsiElement>()?.startOffset ?: return
+                val offsetOfReplaceablePsi = findReplaceablePsiElement(localIndexList.drop(1), topLevelPatterns.firstNotNullOfOrNull { findDeepInArguments(it, localIndexList[0]) })?.data?.castSafelyTo<PsiElement>()?.startOffset ?: return
                 val offsetOfCurrentAnchor = currAnchor.startOffset
                 val relativeOffsetOfReplaceablePsi = offsetOfReplaceablePsi - offsetOfCurrentAnchor
 
@@ -494,7 +502,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         }
                     }
                 }
-                typecheckedPatterns.getOrNull(j)?.toString()
                 if (isEqual || link.isExplicit) i++
                 if (isEqual || !link.isExplicit) {
                     link = link.next
@@ -583,8 +590,11 @@ private fun matches(concreteNode: Concrete.Pattern, element: ArendPattern) : Mat
 }
 
 private fun findDeepInArguments(node: Concrete.Pattern, element: ArendPattern) : Concrete.Pattern? {
+    if (node.data == element.skipSingleTuples()) {
+        return node
+    }
     if (node !is Concrete.ConstructorPattern) {
-        return node.takeIf { it.data == element }
+        return node.takeIf { it.data == element.skipSingleTuples() }
     }
     return node.patterns.firstNotNullOfOrNull { findDeepInArguments(it, element) }
 }
