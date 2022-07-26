@@ -7,6 +7,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.util.castSafelyTo
+import com.intellij.util.containers.tail
 import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.definition.Definition
 import org.arend.core.expr.DefCallExpression
@@ -27,6 +29,7 @@ import org.arend.refactoring.*
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.ext.error.MissingClausesError
+import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendFunctionalDefinition
 import org.arend.util.ArendBundle
@@ -319,6 +322,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     eliminatedBindings.add(sampleParameter)
                     val definition = pattern.constructor as? Definition
                     val referable = if (definition != null) PsiLocatedReferable.fromReferable(definition.referable) else null
+                    val infixMode = referable?.castSafelyTo<GlobalReferable>()?.precedence?.isInfix ?: false
                     val integralNumber = getIntegralNumber(pattern)
                     val patternMatchingOnIdp = if (missingClausesError.generateIdpPatterns) {
                         admitsPatternMatchingOnIdp(sampleParameter.typeExpr, if (cause is ArendCaseExpr) missingClausesError.parameters else null, eliminatedBindings)
@@ -359,6 +363,14 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         val result = buildString {
                             val defCall = if (referable != null) getTargetName(referable, cause)
                                     ?: referable.name else definition?.name
+                            if (infixMode && argumentPatterns.size >= 2) {
+                                append(argumentPatterns[0])
+                                append(" ")
+                                append(defCall)
+                                append(" ")
+                                append(concat(argumentPatterns.tail(), filter, " "))
+                                return@buildString
+                            }
                             if (tupleMode) append("(") else {
                                 append(defCall)
                                 if (arguments.isNotEmpty()) append(" ")

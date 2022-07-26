@@ -72,6 +72,19 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
         }
         """)
 
+    fun testInfix() = typedQuickFixTest(fixName,
+            """
+        \data List | nil | \infixr 3 :: Nat List
+    
+        \func foo{-caret-} (l : List) : Nat \elim l
+        """, """ 
+        \data List | nil | \infixr 3 :: Nat List
+    
+        \func foo (l : List) : Nat \elim l
+          | nil => {?}
+          | n :: l => {?}
+        """)
+
     fun testBasicElim() = typedQuickFixTest(fixName,
         """
         $listDefinition
