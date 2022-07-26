@@ -156,12 +156,11 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 if (indexList.isNotEmpty()) {
                     val concreteClause = concreteClauseOwner.body.clauses[clauseIndex]
                     val index = patternOwner.patterns.filterIsInstance<PsiElement>().indexOf(indexList[0])
-                    val typecheckedPattern = if (isElim) elimVarPatterns.getOrNull(index) else findMatchingPattern(concreteClause.patterns, typeCheckedDefinition.parameters, corePatterns, indexList[0])
-                    if (typecheckedPattern != null) {
-                        val patternPart = findPattern(indexList.drop(1), typecheckedPattern, concreteClause.patterns.find { it.data == indexList[0] }!!) as? BindingPattern
-                                ?: return null
-                        return patternPart.binding.typeExpr
-                    }
+                    val (typecheckedPattern, concrete) = (if (isElim) elimVarPatterns.getOrNull(index)?.let { it to  concreteClause.patterns.find { it.data == indexList[0] }!! }
+                    else findMatchingPattern(concreteClause.patterns, typeCheckedDefinition.parameters, corePatterns, indexList[0])) ?: return null
+                    val patternPart = findPattern(indexList.drop(1), typecheckedPattern, concrete) as? BindingPattern
+                            ?: return null
+                    return patternPart.binding.typeExpr
                 }
             }
         }
@@ -352,7 +351,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val pipe: PsiElement = factory.createClause("zero").findPrevSibling()!!
                 var currAnchor: PsiElement = localClause
 
-                val offsetOfReplaceablePsi = findReplaceablePsiElement(localIndexList.drop(1), topLevelPatterns.find { matches(it, localIndexList[0]) })?.data?.castSafelyTo<PsiElement>()?.startOffset ?: return
+                val offsetOfReplaceablePsi = findReplaceablePsiElement(localIndexList.drop(1), topLevelPatterns.find { matches(it, localIndexList[0]) != MatchData.NO })?.data?.castSafelyTo<PsiElement>()?.startOffset ?: return
                 val offsetOfCurrentAnchor = currAnchor.startOffset
                 val relativeOffsetOfReplaceablePsi = offsetOfReplaceablePsi - offsetOfCurrentAnchor
 
@@ -368,7 +367,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         var inserted = false
                         if (splitPatternEntry is ConstructorSplitPatternEntry && (splitPatternEntry.constructor == Prelude.ZERO || splitPatternEntry.constructor == Prelude.FIN_ZERO)) {
                             var number = 0
-                            val concretePattern = topLevelPatterns.find { matches(it, localIndexList[0]) }
+                            val concretePattern = topLevelPatterns.firstNotNullOfOrNull { findDeepInArguments(it, localIndexList[0]) }
                             var path = localIndexList.drop(1)
                             while (path.isNotEmpty()) {
                                 var i = 0
@@ -461,35 +460,41 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         private fun findPattern(indexList: List<ArendPattern>, typecheckedPattern: ExpressionPattern, concretePattern: Concrete.Pattern): ExpressionPattern? {
             if (indexList.isEmpty()) return typecheckedPattern
             if (typecheckedPattern is ConstructorExpressionPattern) {
-                val typecheckedPatternChild = findMatchingPattern(concretePattern.patterns, typecheckedPattern.parameters, typecheckedPattern.subPatterns, indexList[0])
-                val concretePatternChild = concretePattern.patterns.find { matches(it, indexList[0]) }
-                if (typecheckedPatternChild != null && concretePatternChild != null) {
-                    var i = 0
-                    while (indexList[i] != indexList[0].skipSingleTuples()) i++
-                    return findPattern(indexList.drop(i + 1), typecheckedPatternChild, concretePatternChild)
-                }
+                val (typecheckedPatternChild, concretePatternChild) = findMatchingPattern(concretePattern.patterns, typecheckedPattern.parameters, typecheckedPattern.subPatterns, indexList[0]) ?: return null
+                var i = 0
+                while (indexList[i] != indexList[0].skipSingleTuples()) i++
+                return findPattern(indexList.drop(i + 1), typecheckedPatternChild, concretePatternChild)
             }
             return null
         }
 
         private fun findReplaceablePsiElement(indexList: List<ArendPattern>, concretePattern: Concrete.Pattern?): Concrete.Pattern? {
             if (indexList.isEmpty()) return concretePattern
-            val concretePatternChild = concretePattern?.patterns?.find { matches(it, indexList[0]) }
+            val concretePatternChild = concretePattern?.patterns?.firstNotNullOfOrNull { findDeepInArguments(it, indexList[0]) }
             var i = 0
             while (indexList[i] != indexList[0].skipSingleTuples()) i++
             if (concretePatternChild != null) return findReplaceablePsiElement(indexList.drop(i + 1), concretePatternChild)
             return null
         }
 
-        private fun findMatchingPattern(concretePatterns: List<Concrete.Pattern>, parameters: DependentLink, typecheckedPatterns: List<ExpressionPattern>, requiredPsi: ArendPattern): ExpressionPattern? {
+        private fun findMatchingPattern(concretePatterns: List<Concrete.Pattern>, parameters: DependentLink, typecheckedPatterns: List<ExpressionPattern>, requiredPsi: ArendPattern): Pair<ExpressionPattern, Concrete.Pattern>? {
             var link = parameters
             var i = 0
             var j = 0
 
             while (link.hasNext() && i < concretePatterns.size) {
                 val isEqual = link.isExplicit == concretePatterns[i].isExplicit
-                if (isEqual && matches(concretePatterns[i], requiredPsi)) return typecheckedPatterns.getOrNull(j)
-
+                if (isEqual) {
+                    when (matches(concretePatterns[i], requiredPsi)) {
+                        MatchData.NO -> Unit
+                        MatchData.DIRECT -> return typecheckedPatterns.getOrNull(j)?.let { it to concretePatterns[i] }
+                        MatchData.DEEP -> {
+                            val typechecked = typecheckedPatterns[j] as ConstructorExpressionPattern
+                            return findMatchingPattern(concretePatterns[i].patterns, typechecked.parameters, typechecked.subPatterns, requiredPsi)
+                        }
+                    }
+                }
+                typecheckedPatterns.getOrNull(j)?.toString()
                 if (isEqual || link.isExplicit) i++
                 if (isEqual || !link.isExplicit) {
                     link = link.next
@@ -561,8 +566,27 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 }
 
-private fun matches(concreteNode: Concrete.Pattern, element: ArendPattern) : Boolean {
-    return concreteNode.data == element.skipSingleTuples()
+private enum class MatchData {
+    NO,
+    DIRECT,
+    DEEP
+}
+
+private fun matches(concreteNode: Concrete.Pattern, element: ArendPattern) : MatchData {
+    return if (concreteNode.data == element.skipSingleTuples()) {
+        MatchData.DIRECT
+    } else if (findDeepInArguments(concreteNode, element) != null) {
+        MatchData.DEEP
+    } else {
+        MatchData.NO
+    }
+}
+
+private fun findDeepInArguments(node: Concrete.Pattern, element: ArendPattern) : Concrete.Pattern? {
+    if (node !is Concrete.ConstructorPattern) {
+        return node.takeIf { it.data == element }
+    }
+    return node.patterns.firstNotNullOfOrNull { findDeepInArguments(it, element) }
 }
 
 private tailrec fun ArendPattern.skipSingleTuples() : ArendPattern {
