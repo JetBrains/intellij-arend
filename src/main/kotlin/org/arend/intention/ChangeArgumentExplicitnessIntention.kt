@@ -15,6 +15,7 @@ import com.intellij.psi.PsiReference
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.containers.SortedList
 import org.arend.codeInsight.ArendParameterInfoHandler.Companion.getAllParametersForReferable
 import org.arend.error.CountingErrorReporter
@@ -45,6 +46,8 @@ import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
 import org.arend.util.getBounds
 import java.util.Collections.singletonList
+import java.util.concurrent.ConcurrentHashMap
+import org.arend.psi.parser.api.ArendPattern as ArendPattern
 
 data class ProcessAppExprResult(val text: String, val strippedText: String?, val parenthesizedPrefixTest: String?, val isAtomic: Boolean, val referable: GlobalReferable?)
 data class ArgumentDescriptor(val text: String, val strippedText: String?, val parenthesizedPrefixText: String?, val isExplicit: Boolean, val isAtomic: Boolean, val spacingText: String?, val referable: GlobalReferable?) {
@@ -151,10 +154,10 @@ class NoArgumentsEntry(refExpr: Concrete.ReferenceExpression, refactoringContext
 class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext, val definitionName: String): UsageEntry(refactoringContext, pattern) {
     private val procArguments = ArrayList<ArgumentDescriptor>()
     init {
-        val spacingMap = HashMap<Abstract.Pattern, String>()
+        val spacingMap = HashMap<Pattern, String>()
         var buffer = ""
         for (block in pattern.childrenWithLeaves) {
-            if (block is Abstract.Pattern) {
+            if (block is Pattern) {
                 spacingMap[block] = buffer
                 buffer = ""
             } else if (!pattern.children.contains(block)) buffer += block.text
@@ -167,18 +170,10 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
 
         for (arg in concrete.patterns) {
             val data = arg.data as PsiElement
-            var data1: PsiElement? = data
-            while (true) {
-                if (data1 is ArendAtomPattern && data1.patternList.size == 1 && data1.longName == null) {
-                    data1 = data1.patternList.single(); continue
-                } else if (data1 is ArendAtomPattern && data1.patternList.size == 1 && (data1.lparen != null || data1.lbrace != null)) {
-                    data1 = data1.patternList[0]; continue
-                }
-                break
-            }
+            val data1: PsiElement? = data
             val text = textGetter(data, refactoringContext.textReplacements)
             val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
-            val isAtomic = data1 is ArendDefIdentifier || data1 is ArendAtomPattern && (data1.patternList.size == 0 && data1.lparen != null || data1.underscore != null)
+            val isAtomic = data1 is ArendDefIdentifier || data1 is ArendPattern && (data1.singleReferable != null || data1.isTuplePattern || data1.isUnnamed)
             procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, spacingMap[arg.data as Pattern], null))
         }
     }
@@ -210,9 +205,7 @@ class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactor
             val data = arg.data as PsiElement
             var data1: PsiElement? = data
             while (true) {
-                if (data1 is ArendAtomPattern && data1.patternList.size == 1 && (data1.lparen != null || data1.lbrace != null)) {
-                    data1 = data1.patternList[0]; continue
-                } else if (data1 is ArendLamTele && data1.identifierOrUnknownList.size == 1 && data1.expr == null) {
+                if (data1 is ArendLamTele && data1.identifierOrUnknownList.size == 1 && data1.expr == null) {
                     data1 = data1.identifierOrUnknownList[0]; continue
                 }
                 break
@@ -221,7 +214,7 @@ class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactor
             val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
             val isExplicit = when (data) {
                 is ArendLamTele -> data.isExplicit
-                is ArendAtomPattern -> data.isExplicit
+                is ArendPattern -> data.isExplicit
                 else -> data.text.trim().startsWith("{")
             }
             procArguments.add(ArgumentDescriptor(text, strippedText, null, isExplicit, data1 is ArendIdentifierOrUnknown, spacingMap[arg], null))
@@ -619,11 +612,11 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                     is ArendRefIdentifier -> (psi.parent as? ArendLongName)?.let { longName -> longName.refIdentifierList.lastOrNull() == psi } ?: true
                     else -> true
                 }
-        }.map { Pair(getParentPsiFunctionCall(it.first), it.second )} }.flatten().sortedBy { it.first.textLength }.toCollection(LinkedHashSet())
+        }.map { Pair(getParentPsiFunctionCall(it.first), it.second )} }.flatten().sortedWith { a, b -> if (a.first.textLength == b.first.textLength) b.first.startOffset.compareTo(a.first.startOffset) else a.first.textLength.compareTo(b.first.textLength)  }.toCollection(LinkedHashSet())
 
         val concreteSet = LinkedHashSet<Pair<Pair<PsiElement, RefactoringDescriptor>, Concrete.Expression?>>()
-        val textReplacements = HashMap<PsiElement, String>()
-        val fileChangeMap = HashMap<PsiFile, SortedList<Pair<TextRange, String>>>()
+        val textReplacements = LinkedHashMap<PsiElement, String>()
+        val fileChangeMap = LinkedHashMap<PsiFile, SortedList<Pair<TextRange, String>>>()
         val rangeData = HashMap<Concrete.Expression, TextRange>()
         val refactoringContexts = HashMap<RefactoringDescriptor, RefactoringContext>()
         referableData.forEach { d -> refactoringContexts[d] = RefactoringContext(d.def, d.oldParameters, d.newParameters, oldParametersConstructor, newParametersConstructor, textReplacements, rangeData) }
@@ -645,7 +638,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                             }
                             if (errorReporter.errorsNumber > 0) failingAppExprs.add(Pair(fCall, d.def))
                         }
-                        is ArendAtomPattern, is ArendLocalCoClause -> concreteSet.add(Pair(Pair(fCall, d), null))
+                        is ArendPattern, is ArendLocalCoClause -> concreteSet.add(Pair(Pair(fCall, d), null))
                     }
                 }
 
@@ -669,11 +662,11 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                                 null
                             }
                         }
-                        is ArendAtomPattern -> doProcessEntry(PatternEntry(psiElement.parent as ArendPattern, refactoringContext, defName)).first
+                        is ArendPattern -> doProcessEntry(PatternEntry(psiElement.parent as ArendPattern, refactoringContext, defName)).first
                         is ArendLocalCoClause -> doProcessEntry(LocalCoClauseEntry(psiElement, refactoringContext, defName)).first
                         else -> null
                     }?.let { result ->
-                        val elementToReplace = if (psiElement is ArendAtomPattern) psiElement.parent else psiElement
+                        val elementToReplace = if (psiElement is ArendPattern) psiElement.parent else psiElement
                         textReplacements[elementToReplace] = result
                     }
                 }
@@ -782,13 +775,13 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
 }
 
 class NameFieldApplier(project: Project) : ChangeArgumentExplicitnessApplier(project) {
-    override fun getParentPsiFunctionCall(element: PsiElement): PsiElement =
-        if (element.parentOfType<ArendAtomPattern>() != null) element.ancestor<ArendAtomPattern>()!! else
-        element.ancestor<ArendArgumentAppExpr>() ?: element
+    override fun getParentPsiFunctionCall(element: PsiElement): PsiElement {
+        return element.parentOfType<ArendPattern>() ?: element.parentOfType<ArendArgumentAppExpr>() ?: element
+    }
 
     override fun getCallingParameters(call: PsiElement): List<PsiElement> = when (call) {
         is ArendArgumentAppExpr -> call.argumentList
-        is ArendPattern -> call.atomPatternList
+        is ArendPattern -> call.sequence
         else -> throw IllegalArgumentException()
     }
 

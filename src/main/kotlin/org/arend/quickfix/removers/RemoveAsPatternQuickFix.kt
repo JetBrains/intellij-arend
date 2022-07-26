@@ -6,8 +6,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendAsPattern
-import org.arend.psi.ArendPattern
 import org.arend.psi.deleteWithNotification
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.refactoring.deleteSuperfluousPatternParentheses
 import org.arend.util.ArendBundle
 
@@ -22,9 +22,9 @@ class RemoveAsPatternQuickFix (private val asPatternRef: SmartPsiElementPointer<
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val asPattern = asPatternRef.element ?: return
-        val pattern = asPattern.parent as? ArendPattern
+        val pattern = asPattern.parent as? ArendPattern ?: return
         asPattern.deleteWithNotification()
-        pattern?.atomPatternList?.forEach { deleteSuperfluousPatternParentheses(it) }
+        deleteSuperfluousPatternParentheses(pattern)
     }
 
 }

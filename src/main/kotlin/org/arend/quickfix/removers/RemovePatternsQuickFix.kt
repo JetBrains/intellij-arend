@@ -5,12 +5,13 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.childrenOfType
 import com.intellij.util.castSafelyTo
 import org.arend.psi.*
-import org.arend.psi.ext.ArendPatternImplMixin
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.util.ArendBundle
 
-class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<ArendAtomPattern>,
+class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<ArendPattern>,
                              private val single: Boolean) : IntentionAction {
     override fun startInWriteAction() = true
 
@@ -43,14 +44,14 @@ class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<Aren
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val pattern = patternRef.element ?: return
-        var first = pattern.parent.extendLeft
+        var first = pattern.extendLeft
         first.prevSibling?.let {
             if (it is LeafPsiElement && it.elementType == ArendElementTypes.COMMA) {
                 first = it.extendLeft
             }
         }
 
-        var last: PsiElement = pattern.parent
+        var last: PsiElement = pattern
         if (single) {
             last.extendRight.nextSibling?.let {
                 if (it is LeafPsiElement && it.elementType == ArendElementTypes.COMMA) {
@@ -58,10 +59,6 @@ class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<Aren
                 }
             }
         } else {
-            if (pattern.parent.castSafelyTo<ArendPattern>()?.atomPatternList != listOf(pattern)) {
-                first = pattern.extendLeft
-                last = pattern
-            }
             // If we need to remove all patterns, just remove all clauses
             if (first.prevSibling.let { it == null || it is LeafPsiElement && it.elementType == ArendElementTypes.PIPE }) {
                 when (val parent = first.parent) {
@@ -96,5 +93,9 @@ class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<Aren
         }
 
         parent.deleteChildRangeWithNotification(first, last)
+        val child = parent.childrenOfType<ArendPattern>().singleOrNull()
+        if (parent is ArendPattern && child is ArendPattern && !parent.isTuplePattern) {
+            parent.replaceWithNotification(child)
+        }
     }
 }

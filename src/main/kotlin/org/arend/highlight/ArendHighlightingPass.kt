@@ -6,7 +6,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
 import com.intellij.util.castSafelyTo
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
@@ -31,6 +30,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
+import org.arend.psi.parser.api.ArendPattern as ArendPattern
 
 class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
@@ -112,8 +112,10 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
             override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
                 super.patternResolved(originalRef, pattern, resolvedRefs)
-                val psi = pattern.data.castSafelyTo<ArendPattern>()?.atomPatternList?.find { it.text == pattern.constructor.refName } ?: pattern.data.castSafelyTo<ArendAtomPattern>()?.takeIf { it.text == pattern.constructor.refName } ?: return
-                addHighlightInfo(psi.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
+                val constructors = pattern.data.castSafelyTo<ArendPattern>()?.sequence?.filter { it.text == pattern.constructor.refName } ?: return
+                for (psi in constructors) {
+                    addHighlightInfo(psi.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
+                }
             }
 
             private fun highlightParameters(definition: Concrete.GeneralDefinition) {

@@ -46,6 +46,7 @@ import org.arend.util.getBounds
 import java.math.BigInteger
 import java.util.Collections.singletonList
 import kotlin.math.max
+import org.arend.psi.parser.api.ArendPattern
 
 private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {
     val nsIds = using.nsIdList
@@ -381,15 +382,10 @@ fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<P
     return if (isHidden) emptyList() else singletonList(Pair(shortName, null))
 }
 
-fun deleteSuperfluousPatternParentheses(atomPattern: ArendAtomPattern) {
-    if (atomPattern.lparen != null && atomPattern.rparen != null) {
-        val pattern = atomPattern.parent as? ArendPattern
-        if (pattern != null) {
-            val parentAtom = pattern.parent as? ArendAtomPattern
-            if (parentAtom != null && parentAtom.lparen != null && parentAtom.rparen != null) {
-                parentAtom.replaceWithNotification(atomPattern)
-            }
-        }
+fun deleteSuperfluousPatternParentheses(pattern: ArendPattern) {
+    val parent = pattern.parent as? ArendPattern ?: return
+    if (parent.isTuplePattern && parent.sequence.size == 1) {
+        parent.replaceWithNotification(pattern)
     }
 
 }

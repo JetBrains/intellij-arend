@@ -14,6 +14,7 @@ import org.arend.core.elimtree.ElimBody
 import org.arend.core.elimtree.IntervalElim
 import org.arend.core.expr.*
 import org.arend.term.prettyprint.ToAbstractVisitor
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorExpressionPattern
 import org.arend.core.pattern.ExpressionPattern
@@ -25,7 +26,6 @@ import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
-import org.arend.naming.reference.UnresolvedReference
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.prelude.Prelude
@@ -34,7 +34,6 @@ import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.*
 import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -51,13 +50,13 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
         val defIdentifier = when (element) {
-            is ArendAtomPattern -> element.longName ?: element.ipName
+            is ArendPattern -> element.singleReferable?.refName
             else -> null
         }
         val project = editor.project
         this.splitPatternEntries = null
 
-        if (!(element is ArendPattern && element.atomPatternList.size == 0 || element is ArendAtomPattern)) return this.splitPatternEntries != null
+        if (!(element is ArendPattern && element.sequence.isEmpty())) return this.splitPatternEntries != null
         val type = getElementType(element, editor)?.let{ TypeConstructorExpression.unfoldType(it) }
         this.splitPatternEntries = when (type) {
             is DataCallExpression -> {
@@ -66,7 +65,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     singletonList(IdpPatternEntry(project))
                 } else if (canDoPatternMatchingOnIdp != PatternMatchingOnIdpResult.DO_NOT_ELIMINATE) {
                     val constructors = type.matchedConstructors ?: return false
-                    constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier?.referenceName, type.definition) }
+                    constructors.map { ConstructorSplitPatternEntry(it.definition, defIdentifier, type.definition) }
                 } else null
             }
             is SigmaExpression -> singletonList(TupleSplitPatternEntry(type.parameters))
@@ -76,7 +75,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val isEmpty = ConstructorExpressionPattern.isArrayEmpty(type)
                     val result = ArrayList<SplitPatternEntry>()
                     for (p in arrayOf(Pair(true, Prelude.EMPTY_ARRAY), Pair(false, Prelude.ARRAY_CONS)))
-                        if (isEmpty == null || isEmpty == p.first) result.add(ConstructorSplitPatternEntry(p.second, defIdentifier?.referenceName, type.definition))
+                        if (isEmpty == null || isEmpty == p.first) result.add(ConstructorSplitPatternEntry(p.second, defIdentifier, type.definition))
                     result
                 } else if (definition.isRecord)
                     singletonList(RecordSplitPatternEntry(type, definition))
@@ -140,7 +139,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val elimBody = (((typeCheckedDefinition as? FunctionDefinition)?.actualBody as? IntervalElim)?.otherwise
                         ?: ((typeCheckedDefinition as? FunctionDefinition)?.actualBody as? ElimBody) ?: return null)
 
-                val patterns = elimBody.clauses.getOrNull(clauseIndex)?.patterns?.let { Pattern.toExpressionPatterns(it, typeCheckedDefinition.parameters) }
+                val corePatterns = elimBody.clauses.getOrNull(clauseIndex)?.patterns?.let { Pattern.toExpressionPatterns(it, typeCheckedDefinition.parameters) }
                         ?: return null
 
                 val parameters = ArrayList<Referable>(); for (pp in definition.parameters) parameters.addAll(pp.referableList)
@@ -150,16 +149,16 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     if (reference is ArendRefIdentifier) {
                         val parameterIndex = (reference.reference?.resolve() as? Referable)?.let { parameters.indexOf(it) }
                                 ?: -1
-                        if (parameterIndex < patterns.size && parameterIndex != -1) patterns[parameterIndex] else throw IllegalStateException()
+                        if (parameterIndex < corePatterns.size && parameterIndex != -1) corePatterns[parameterIndex] else throw IllegalStateException()
                     } else throw IllegalStateException()
-                } else patterns
+                } else corePatterns
 
-                if (indexList.size > 0) {
+                if (indexList.isNotEmpty()) {
                     val concreteClause = concreteClauseOwner.body.clauses[clauseIndex]
-                    val index = patternOwner.patterns.filterIsInstance<PsiElement>().indexOfFirst { it == indexList[0] || it == indexList[0].parent }
-                    val typecheckedPattern = if (isElim) elimVarPatterns.getOrNull(index) else findMatchingPattern(concreteClause.patterns, typeCheckedDefinition.parameters, patterns, indexList[0])
+                    val index = patternOwner.patterns.filterIsInstance<PsiElement>().indexOf(indexList[0])
+                    val typecheckedPattern = if (isElim) elimVarPatterns.getOrNull(index) else findMatchingPattern(concreteClause.patterns, typeCheckedDefinition.parameters, corePatterns, indexList[0])
                     if (typecheckedPattern != null) {
-                        val patternPart = findPattern(indexList.drop(1), typecheckedPattern, concreteClause.patterns.find { matches(it, indexList[0]) }!!) as? BindingPattern
+                        val patternPart = findPattern(indexList.drop(1), typecheckedPattern, concreteClause.patterns.find { it.data == indexList[0] }!!) as? BindingPattern
                                 ?: return null
                         return patternPart.binding.typeExpr
                     }
@@ -201,7 +200,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 var parameter = getDependentLink()
                 var nRecursiveBindings = 0
 
-                if (recursiveTypeDefinition != null && parameterName != null && parameterName.isNotEmpty() && !Character.isDigit(parameterName.last())) {
+                if (recursiveTypeDefinition != null && !parameterName.isNullOrEmpty() && !Character.isDigit(parameterName.last())) {
                     while (parameter.hasNext()) {
                         val parameterType = parameter.type
                         if (parameterType is DataCallExpression && parameterType.definition == recursiveTypeDefinition && parameter.name == null) nRecursiveBindings += 1
@@ -319,6 +318,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
 
         fun doSplitPattern(element: PsiElement, project: Project, splitPatternEntries: Collection<SplitPatternEntry>, generateBody: Boolean = false) {
+            if (element !is ArendPattern) {
+                return
+            }
             val (localClause, localIndexList) = locatePattern(element) ?: return
             if (localClause !is ArendClause) return
 
@@ -329,8 +331,6 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             val localNames = HashSet<Variable>()
             localNames.addAll(findAllVariablePatterns(topLevelPatterns, element).map(::VariableImpl))
-
-            if (element !is Abstract.Pattern) return
 
             val factory = ArendPsiFactory(project)
             if (splitPatternEntries.isEmpty()) {
@@ -371,20 +371,18 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             val concretePattern = topLevelPatterns.find { matches(it, localIndexList[0]) }
                             var path = localIndexList.drop(1)
                             while (path.isNotEmpty()) {
-                                val patternPiece = findReplaceablePsiElement(path.dropLast(1), concretePattern)
+                                var i = 0
+                                while (i < path.size && path[path.lastIndex - i].skipSingleTuples() == path.last()) {
+                                    i++
+                                }
+                                val patternPiece = findReplaceablePsiElement(path.dropLast(i), concretePattern)
                                 if (patternPiece?.data !is PsiElement || !isSucPattern(patternPiece)) break
-                                path = path.dropLast(1)
+                                path = path.dropLast(i)
                                 number += 1
                             }
-                            val psiToReplace = if (number == 0) {
-                                localClause.findElementAt(relativeOffsetOfReplaceablePsi)?.parentOfType<ArendAtomPattern>()
-                            } else {
-                                localIndexList[path.size]
-                            }
-                            if (psiToReplace != null) {
-                                doReplacePattern(factory, psiToReplace, number.toString(), false)
-                                inserted = true
-                            }
+                            val psiToReplace = localIndexList[path.size]
+                            doReplacePattern(factory, psiToReplace, number.toString(), false)
+                            inserted = true
                         }
 
                         if (!inserted)
@@ -397,7 +395,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         anchorParent.addBefore(factory.createWhitespace(" "), currAnchor)
 
                         if (currAnchor is ArendClause) {
-                            val elementCopy = currAnchor.findElementAt(relativeOffsetOfReplaceablePsi)?.parentOfType<ArendAtomPattern>()?.goUpIfImplicit()
+                            val elementCopy = currAnchor.findElementAt(relativeOffsetOfReplaceablePsi)?.parentOfType<ArendPattern>()/*?.goUpIfImplicit()*/
 
                             if (elementCopy != null) {
                                 doSubstituteUsages(project, elementCopy.childOfType(), currAnchor, expressionString)
@@ -411,29 +409,17 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        private fun ArendAtomPattern.goUpIfImplicit() : ArendAtomPattern {
-            if (parent.castSafelyTo<ArendPattern>()?.atomPatternList?.size != 1) {
-                return this
-            }
-            val superParent = parent?.parent?.castSafelyTo<ArendAtomPattern>()?.takeIf { it.patternList.size == 1 } ?: return this
-            return if (!superParent.isExplicit) {
-                superParent
-            } else {
-                this
-            }
-        }
-
         fun isSucPattern(pattern: Concrete.Pattern): Boolean {
             if (pattern !is Concrete.ConstructorPattern) return false
             val typechecked = pattern.constructor.castSafelyTo<TCDefReferable>()?.typechecked
             return typechecked == Prelude.SUC || typechecked == Prelude.FIN_SUC
         }
 
-        fun findAllVariablePatterns(patterns: List<Concrete.Pattern>, excludedPsi: PsiElement?): HashSet<String> {
+        fun findAllVariablePatterns(patterns: List<Concrete.Pattern>, excludedPsi: ArendPattern?): HashSet<String> {
             val result = HashSet<String>()
 
             for (pattern in patterns) doFindVariablePatterns(result, pattern, excludedPsi)
-            result.remove(excludedPsi?.text)
+            result.remove(excludedPsi?.singleReferable?.refName)
 
             val function = excludedPsi?.parentOfType<ArendFunctionalDefinition>() ?: return result
             val elim = function.body?.elim ?: return result
@@ -458,52 +444,44 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         /**
          * @return the owner of pattern alongside with a top-down path to this pattern
          */
-        fun locatePattern(element: PsiElement): Pair<Abstract.Clause, List<PsiElement>>? {
-            var pattern: PsiElement? = null
-            var patternOwner: PsiElement? = element
-            val indexList = ArrayList<PsiElement>()
+        fun locatePattern(element: PsiElement): Pair<Abstract.Clause, List<ArendPattern>>? {
+            var pattern: PsiElement? = element
+            val indexList = ArrayList<ArendPattern>()
 
-            indexList.add(element)
-
-            while (patternOwner is ArendPattern || patternOwner is ArendAtomPattern || patternOwner is ArendAtomPattern) {
-                pattern = patternOwner
-                patternOwner = patternOwner.parent
-                if (pattern is ArendPattern && (!(pattern.atomPatternList.flatMap { it.patternList }.size == 1 && pattern.isTuplePattern))) {
-                    if (pattern.atomPatternList == listOf(indexList.last()) || pattern.atomPatternList.singleOrNull()?.patternList?.singleOrNull() == indexList.last()) {
-                        continue
-                    }
-                    indexList.add(pattern)
-                }
+            while (pattern is ArendPattern) {
+                indexList.add(pattern)
+                pattern = pattern.parent
             }
 
             if (pattern == null) return null
-            val clause: Abstract.Clause = patternOwner as? Abstract.Clause ?: return null
+            val clause: Abstract.Clause = pattern as? Abstract.Clause ?: return null
             return Pair(clause, indexList.reversed())
         }
 
-        private fun findPattern(indexList: List<PsiElement>, typecheckedPattern: ExpressionPattern, concretePattern: Concrete.Pattern): ExpressionPattern? {
+        private fun findPattern(indexList: List<ArendPattern>, typecheckedPattern: ExpressionPattern, concretePattern: Concrete.Pattern): ExpressionPattern? {
             if (indexList.isEmpty()) return typecheckedPattern
-            if (typecheckedPattern is BindingPattern && !typecheckedPattern.binding.isExplicit && indexList.size == 1) {
-                return typecheckedPattern
-            }
             if (typecheckedPattern is ConstructorExpressionPattern) {
                 val typecheckedPatternChild = findMatchingPattern(concretePattern.patterns, typecheckedPattern.parameters, typecheckedPattern.subPatterns, indexList[0])
-                val abstractPatternChild = concretePattern.patterns.find { matches(it, indexList[0]) }
-                if (typecheckedPatternChild != null && abstractPatternChild != null)
-                    return findPattern(indexList.drop(1), typecheckedPatternChild, abstractPatternChild)
+                val concretePatternChild = concretePattern.patterns.find { matches(it, indexList[0]) }
+                if (typecheckedPatternChild != null && concretePatternChild != null) {
+                    var i = 0
+                    while (indexList[i] != indexList[0].skipSingleTuples()) i++
+                    return findPattern(indexList.drop(i + 1), typecheckedPatternChild, concretePatternChild)
+                }
             }
             return null
         }
 
-        private fun findReplaceablePsiElement(indexList: List<PsiElement>, concretePattern: Concrete.Pattern?): Concrete.Pattern? {
+        private fun findReplaceablePsiElement(indexList: List<ArendPattern>, concretePattern: Concrete.Pattern?): Concrete.Pattern? {
             if (indexList.isEmpty()) return concretePattern
-            if (indexList.size == 1 && concretePattern is Concrete.NamePattern && !concretePattern.isExplicit) return concretePattern
             val concretePatternChild = concretePattern?.patterns?.find { matches(it, indexList[0]) }
-            if (concretePatternChild != null) return findReplaceablePsiElement(indexList.drop(1), concretePatternChild)
+            var i = 0
+            while (indexList[i] != indexList[0].skipSingleTuples()) i++
+            if (concretePatternChild != null) return findReplaceablePsiElement(indexList.drop(i + 1), concretePatternChild)
             return null
         }
 
-        private fun findMatchingPattern(concretePatterns: List<Concrete.Pattern>, parameters: DependentLink, typecheckedPatterns: List<ExpressionPattern>, requiredPsi: PsiElement): ExpressionPattern? {
+        private fun findMatchingPattern(concretePatterns: List<Concrete.Pattern>, parameters: DependentLink, typecheckedPatterns: List<ExpressionPattern>, requiredPsi: ArendPattern): ExpressionPattern? {
             var link = parameters
             var i = 0
             var j = 0
@@ -522,27 +500,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return null
         }
 
-        fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: PsiElement, patternLine: String, requiresParentheses: Boolean, asExpression: String = ""): PsiElement? {
+        fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: ArendPattern, patternLine: String, requiresParentheses: Boolean, asExpression: String = ""): ArendPattern? {
             val pLine = if (asExpression.isNotEmpty()) "$patternLine \\as $asExpression" else patternLine
-            val replacementPattern: PsiElement? = when {
-                elementToReplace is ArendPattern ->
-                    factory.createClause(if (!elementToReplace.isExplicit) "{$pLine}" else if ((requiresParentheses || asExpression.isNotEmpty())) "($pLine)" else pLine).childOfType<ArendPattern>()
-                elementToReplace.parent?.parent is Abstract.Clause && elementToReplace.parent.castSafelyTo<ArendPattern>()?.atomPatternList == listOf(elementToReplace) -> {
-                    val replacement = factory.createClause(if (!(elementToReplace as ArendAtomPattern).isExplicit) "{$pLine}" else pLine).childOfType<ArendPattern>() ?: return null
-                    return elementToReplace.parent.replaceWithNotification(replacement)
-                }
-                elementToReplace.parent?.parent?.let { it is ArendAtomPattern && !it.isExplicit && it.patternList.flatMap(ArendPattern::getAtomPatternList) == listOf(elementToReplace) } == true -> {
-                    val replacement = factory.createClause(if (!(elementToReplace as ArendAtomPattern).isExplicit) "{$pLine}" else pLine).childOfType<ArendPattern>() ?: return null
-                    return elementToReplace.parent.replaceWithNotification(replacement)
-                }
-                elementToReplace.parent?.parent?.castSafelyTo<ArendAtomPattern>()?.run { isTuplePattern && patternList.size > 1 } == true -> {
-                    val replacement = factory.createClause(if (!(elementToReplace as ArendAtomPattern).isExplicit) "{$pLine}" else pLine).childOfType<ArendPattern>() ?: return null
-                    return elementToReplace.parent.replaceWithNotification(replacement)
-                }
-                elementToReplace is ArendAtomPattern ->
-                    factory.createAtomPattern(if (!elementToReplace.isExplicit) "{$pLine}" else if ((requiresParentheses || asExpression.isNotEmpty())) "($pLine)" else pLine)
-                else -> null
-            }
+            val replacementPattern: ArendPattern? = factory.createPattern(if (!elementToReplace.isExplicit) "{$pLine}" else if (elementToReplace.parent is ArendPattern && ((requiresParentheses && !elementToReplace.parent.castSafelyTo<ArendPattern>()!!.isTuplePattern) || asExpression.isNotEmpty())) "($pLine)" else pLine)
 
             if (replacementPattern != null) {
                 return elementToReplace.replaceWithNotification(replacementPattern)
@@ -601,8 +561,14 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
     }
 }
 
-private fun matches(concreteNode: Concrete.Pattern, element: PsiElement) : Boolean {
-    return concreteNode.data == element ||
-            (concreteNode is Concrete.TuplePattern && concreteNode.data.castSafelyTo<PsiElement>()?.parent == element) ||
-            (!concreteNode.isExplicit && concreteNode.data.castSafelyTo<PsiElement>()?.parent?.parent?.let { it == element || it.parent == element } == true)
+private fun matches(concreteNode: Concrete.Pattern, element: ArendPattern) : Boolean {
+    return concreteNode.data == element.skipSingleTuples()
+}
+
+private tailrec fun ArendPattern.skipSingleTuples() : ArendPattern {
+    return if (this.isTuplePattern && this.sequence.size == 1) {
+        return this.sequence[0].skipSingleTuples()
+    } else {
+        this
+    }
 }

@@ -5,6 +5,7 @@ import com.intellij.usages.UsageTarget
 import com.intellij.usages.impl.rules.UsageType
 import com.intellij.usages.impl.rules.UsageTypeProviderEx
 import org.arend.psi.*
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.term.concrete.Concrete
 import org.arend.resolving.util.parseBinOp
 
@@ -16,7 +17,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
 
         when {
             parent is ArendStatCmd || (parent is ArendNsId && parent.parent is ArendNsUsing) -> return nsUsageInList
-            parent is ArendPattern || parent is ArendAtomPattern -> return usagesInPatterns
+            parent is ArendPattern -> return usagesInPatterns
         }
 
         if (!(parent is ArendLongName || parent is ArendIPName)) {

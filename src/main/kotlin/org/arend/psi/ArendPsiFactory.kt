@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.ArendFileType
 import org.arend.InjectionTextLanguage
 
@@ -101,9 +102,9 @@ class ArendPsiFactory(
         return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
     }
 
-    fun createAtomPattern(expr: String): ArendAtomPattern {
-        val code = "\\func foo (n : Nat) => \\case n \\with { | suc $expr => {?} }"
-        return createFromText(code)?.childOfType<ArendPattern>()?.atomPatternList?.getOrNull(1) ?: error("Failed to create atom pattern/prefix: `$code`")
+    fun createPattern(expr: String): ArendPattern {
+        val code = "\\func foo (n : Nat) => \\case n \\with { | $expr => {?} }"
+        return createFromText(code)?.childOfType() ?: error("Failed to create pattern: `$code`")
     }
 
     fun createCoClause(name: String, expr: String = "{?}"): ArendCoClause {

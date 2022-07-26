@@ -31,6 +31,7 @@ import org.arend.psi.stubs.index.ArendFileIndex
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.ArendBundle
 import org.arend.util.FileUtils
+import org.arend.psi.parser.api.ArendPattern
 
 enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
 
@@ -157,7 +158,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {
             is ArendSourceNode -> referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
             is ArendIPName -> referenceUnresolved(referenceElement)
-            is ArendDefIdentifier -> referenceElement.parent is ArendPattern
+            is ArendRefIdentifier -> referenceElement.parent is ArendPattern
             else -> false
         }
 

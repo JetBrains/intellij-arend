@@ -12,6 +12,7 @@ import com.intellij.util.castSafelyTo
 import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.refactoring.psiOfConcrete

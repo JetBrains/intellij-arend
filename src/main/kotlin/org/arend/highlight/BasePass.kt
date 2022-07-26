@@ -38,6 +38,7 @@ import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.quickfix.*
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
@@ -226,12 +227,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 return
             }
 
-            val actualBuilder = if (error is CertainTypecheckingError && (cause.parent.parent.let { it is ArendAtomPattern && !it.isExplicit && it.patternList.flatMap(ArendPattern::getAtomPatternList) == listOf(cause) } || cause.parent.let { it is ArendAtomPattern && !it.isExplicit })) {
-                createHighlightInfoBuilder(error, cause.castSafelyTo<PsiElement>()?.parent?.parent!!.textRange)
-            } else {
+//            val actualBuilder = if (error is CertainTypecheckingError && (cause.parent.parent.let { it is ArendAtomPattern && !it.isExplicit && it.patternList.flatMap(ArendPattern::getAtomPatternList) == listOf(cause) } || cause.parent.let { it is ArendAtomPattern && !it.isExplicit })) {
+//                createHighlightInfoBuilder(error, cause.castSafelyTo<PsiElement>()?.parent?.parent!!.textRange)
+//            } else {
                 builder
-            }
-            val info = addHighlightInfo(actualBuilder) ?: return
+//            }
+            val info = addHighlightInfo(builder) ?: return
             when (error) {
                 is ParsingError -> when (error.kind) {
                     MISPLACED_IMPORT -> {
@@ -295,14 +296,13 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         if (error.kind != TOO_MANY_PATTERNS) {
                             cause.let {
                                 if (it.isValid) {
-                                    registerFix(info, MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it), single))
+                                    registerFix(info, MakePatternExplicitQuickFix(SmartPointerManager.createPointer(it as ArendPattern), single))
                                 }
                             }
                         }
 
-                        if (!single || cause.nextSibling.findNextSibling { it is Abstract.Pattern } != null) {
-                            val actualCause = if (cause.parent.parent.let { it is ArendAtomPattern && !it.isExplicit && it.patternList.size == 1 }) cause.parent.parent else cause
-                            registerFix(info, RemovePatternsQuickFix(SmartPointerManager.createPointer(actualCause as ArendAtomPattern), single))
+                        if (!single || cause.nextSibling.findNextSibling { it is ArendPattern } != null) {
+                            registerFix(info, RemovePatternsQuickFix(SmartPointerManager.createPointer(cause as ArendPattern), single))
                         }
                     }
                     AS_PATTERN_IGNORED -> if (cause is ArendAsPattern) registerFix(info, RemoveAsPatternQuickFix(SmartPointerManager.createPointer(cause)))
@@ -459,20 +459,20 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 val prev = improvedElement.extendLeft.prevSibling
                 val startElement = if (prev is LeafPsiElement && prev.elementType == ArendElementTypes.PIPE) prev else improvedElement
                 val endOffset =
-                        if (error is ConditionsError) (improvedElement.patternList.lastOrNull()
+                        if (error is ConditionsError) (improvedElement.patterns.lastOrNull().castSafelyTo<PsiElement>()
                                 ?: improvedElement as PsiElement).textRange.endOffset
                         else improvedElement.textRange.endOffset
                 return TextRange(startElement.textRange.startOffset, endOffset)
             }
 
-            if ((error as? CertainTypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPatternImplMixin) {
-                var endElement: ArendPatternImplMixin = improvedElement
+            if ((error as? CertainTypecheckingError)?.kind == TOO_MANY_PATTERNS && improvedElement is ArendPattern) {
+                var endElement: ArendPattern = improvedElement
                 while (true) {
                     var next = endElement.extendRight.nextSibling
                     if (next is LeafPsiElement && next.elementType == ArendElementTypes.COMMA) {
                         next = next.extendRight.nextSibling
                     }
-                    if (next is ArendPatternImplMixin) {
+                    if (next is ArendPattern) {
                         endElement = next
                     } else {
                         break

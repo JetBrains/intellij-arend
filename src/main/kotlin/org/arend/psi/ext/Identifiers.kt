@@ -10,6 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.psi.doc.ArendDocComment
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendPatternDefReferenceImpl
@@ -57,7 +58,6 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
         if (parent is ArendLetClause ||
             (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
             pParent is ArendLamTele ||
-            parent is ArendAtomPattern && pParent != null ||
             parent is ArendPattern ||
             parent is ArendCaseArg || parent is ArendCaseArgExprAs ||
             parent is ArendLongName) {
@@ -87,7 +87,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
     override fun textRepresentation(): String = referenceName
 
     override fun getReference(): ArendReference = when (parent) {
-        is ArendPattern, is ArendAtomPattern -> ArendPatternDefReferenceImpl<ArendReferenceElement>(this)
+        is ArendPattern -> ArendPatternDefReferenceImpl<ArendReferenceElement>(this)
         else -> ArendDefReferenceImpl<ArendReferenceElement>(this)
     }
 
@@ -107,7 +107,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
             is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
             is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.expr
             is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
-            is ArendPatternImplMixin -> parent.expr
+//            is ArendPattern -> parent.expr
             is ArendAsPattern -> parent.expr
             else -> null
         }

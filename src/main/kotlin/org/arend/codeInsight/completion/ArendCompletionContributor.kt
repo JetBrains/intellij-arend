@@ -14,6 +14,7 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.ProcessingContext
 import com.intellij.util.containers.isNullOrEmpty
 import org.arend.psi.*
+import org.arend.psi.parser.api.ArendPattern
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendFunctionalDefinition

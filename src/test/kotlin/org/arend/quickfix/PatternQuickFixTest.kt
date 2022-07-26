@@ -137,8 +137,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
               | _, _, _{-caret-} => 0
         """)
 
-    // todo It suggest making the pattern explicit instead of removing
-    fun `_test remove implicit`() = simpleQuickFixTest(removePattern,
+    fun `test remove implicit`() = simpleQuickFixTest(removePattern,
         """
             \func test (x : Nat) {y : Nat} (z : Nat) : Nat
               | {-caret-}{_}, _, _ => 0
@@ -236,7 +235,7 @@ class PatternQuickFixTest : QuickFixTestBase() {
             """)
     }
 
-    fun `_test many implicits with elim`() {
+    fun `test many implicits with elim`() {
         configure(
             """
                 \func test (x : Nat) {y : Nat} (z : Nat) : Nat \elim x, y, z
