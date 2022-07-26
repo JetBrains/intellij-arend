@@ -59,4 +59,8 @@ class ArendPatternImpl(node: ASTNode) : ArendSourceNodeImpl(node), ArendPattern 
     override fun getUnderscore(): PsiElement? {
         return findChildByType(ArendElementTypes.UNDERSCORE)
     }
+
+    override fun getReferenceElement(): ArendLongName? {
+        return findChildByType(ArendElementTypes.LONG_NAME)
+    }
 }
