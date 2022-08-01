@@ -156,7 +156,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
                 if (indexList.isNotEmpty()) {
                     val concreteClause = concreteClauseOwner.body.clauses[clauseIndex]
-                    val index = patternOwner.patterns.filterIsInstance<PsiElement>().indexOf(indexList[0])
+                    val index = patternOwner.patterns.filterIsInstance<ArendPattern>().indexOfFirst { it.skipSingleTuples() == indexList[0] }
                     val (typecheckedPattern, concrete) = (if (isElim) elimVarPatterns.getOrNull(index)?.let { it to  concreteClause.patterns.find { it.data == indexList[0] }!! }
                     else findMatchingPattern(concreteClause.patterns, typeCheckedDefinition.parameters, corePatterns, indexList[0])) ?: return null
                     val patternPart = findPattern(indexList.drop(1), typecheckedPattern, concrete) as? BindingPattern
@@ -456,7 +456,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val indexList = ArrayList<ArendPattern>()
 
             while (pattern is ArendPattern) {
-                indexList.add(pattern)
+                if (pattern.skipSingleTuples() == pattern) {
+                    indexList.add(pattern)
+                }
                 pattern = pattern.parent
             }
 
@@ -514,7 +516,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
         fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: ArendPattern, patternLine: String, requiresParentheses: Boolean, asExpression: String = ""): ArendPattern? {
             val pLine = if (asExpression.isNotEmpty()) "$patternLine \\as $asExpression" else patternLine
-            val replacementPattern: ArendPattern? = factory.createPattern(if (!elementToReplace.isExplicit) "{$pLine}" else if (elementToReplace.parent is ArendPattern && ((requiresParentheses && !elementToReplace.parent.castSafelyTo<ArendPattern>()!!.isTuplePattern) || asExpression.isNotEmpty())) "($pLine)" else pLine)
+            val replacementPattern: ArendPattern? = factory.createPattern(if (!elementToReplace.isExplicit) "{$pLine}" else if (elementToReplace.parent is ArendPattern && ((requiresParentheses && !elementToReplace.parent.castSafelyTo<ArendPattern>()!!.isTuplePattern && !patternLine.startsWith("(")) || asExpression.isNotEmpty())) "($pLine)" else pLine)
 
             if (replacementPattern != null) {
                 return elementToReplace.replaceWithNotification(replacementPattern)
@@ -600,8 +602,10 @@ private fun findDeepInArguments(node: Concrete.Pattern, element: ArendPattern) :
 }
 
 private tailrec fun ArendPattern.skipSingleTuples() : ArendPattern {
-    return if (this.isTuplePattern && this.sequence.size == 1) {
-        return this.sequence[0].skipSingleTuples()
+    return if (this.type != null && this.sequence.size == 1) {
+        this.sequence[0].skipSingleTuples()
+    } else if (this.isTuplePattern && this.sequence.size == 1) {
+        this.sequence[0].skipSingleTuples()
     } else {
         this
     }

@@ -390,7 +390,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                     if (asName.isNotEmpty()) asName += " : ${ResolveReferenceAction.getTargetName(it, currentClause as ArendCompositeElement)}"
                                 }
 
-                                var result = doReplacePattern(psiFactory, namePatternToReplace, printData.patternString, printData.requiresParentheses, asName)
+                                val actualPatternToReplace = if (namePatternToReplace.parent.castSafelyTo<ArendPattern>()?.asPatterns?.isNotEmpty() == true) namePatternToReplace.parent as ArendPattern else namePatternToReplace
+                                var result = doReplacePattern(psiFactory, actualPatternToReplace, printData.patternString, printData.requiresParentheses, asName)
                                 var number = result?.integer
                                 if (number != null) {
                                     var needsReplace = false

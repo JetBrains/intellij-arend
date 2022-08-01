@@ -310,7 +310,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        $pairDefinition
        
        \func test5 {A B : \Type} (p : Pair A B) : A \elim p
-         | (a,b) => fst {\new Pair A B a b} 
+         | (a,b) : Pair => fst {\new Pair A B a b} 
     """)
 
     fun testRecord3() = typedQuickFixTest("Split",
@@ -323,7 +323,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        $pairDefinition2
        
        \func test6 {A B : \Type} (p : Pair {Not A} (Not B)) : A -> Empty \elim p
-         | (a,b) => fst {\new Pair {Not A} (Not B) a b} 
+         | (a,b) : Pair => fst {\new Pair {Not A} (Not B) a b} 
     """)
 
     fun testRecord4() = typedQuickFixTest("Split",
@@ -336,7 +336,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
        \module Foo \where \record Pair (A : \Type) (B : \Type) | fst : A | snd : B
 
        \func test7 {A B : \Type} (p : Foo.Pair A B) : A \elim p
-         | (a,b) => Foo.fst {\new Foo.Pair A B a b} 
+         | (a,b) : Foo.Pair => Foo.fst {\new Foo.Pair A B a b} 
     """)
 
     fun testRecord5() = typedQuickFixTest("Split",
@@ -347,7 +347,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """, """
        $pairDefinition3
        \func test8 {A B : \Type} (p : Pair2 A B) : A \elim p
-         | (p,p1) => fst {fst2 {\new Pair2 A B p p1}}
+         | (p,p1) : Pair2 => fst {fst2 {\new Pair2 A B p p1}}
     """)
 
     fun testRecord6() = doTest("""
@@ -357,7 +357,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """, """
        $pairDefinition3 
        \func test9 (p : Pair2) : Nat \elim p
-         | (p,p1) => (snd {snd2 {\new Pair2 p p1}}).2  
+         | (p,p1) : Pair2 => (snd {snd2 {\new Pair2 p p1}}).2  
     """)
 
     fun testCase() = doTest("""
