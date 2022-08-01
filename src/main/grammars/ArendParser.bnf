@@ -485,11 +485,12 @@ private statementList ::= LBRACE stat* RBRACE {
     pin = 1
 }
 
-pattern ::= privatePattern {
+pattern ::= pattern_sequence
+
+private pattern_sequence ::= atomPattern+ (private_typeAnnotation | asPattern?) {
+    pin = 1
     recoverWhile=pattern_recover
 }
-
-private privatePattern ::= atomPattern+ (private_typeAnnotation | asPattern?) { pin = 1 }
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
 
@@ -502,16 +503,23 @@ asPattern ::= AS_KW defIdentifier private_typeAnnotation? {
 
 private private_typeAnnotation ::= COLON expr { pin = 1 }
 
-atomPattern ::= privateAtomPattern {
-  elementType=pattern
+atomPattern ::= atomic_pattern
+    | tuple_pattern
+    | implicit_pattern {
+    elementType=pattern
 }
 
-private privateAtomPattern ::= longNameIP
-    | LPAREN <<comma_separated_sequence pattern>>? RPAREN
-    | <<maybeImplicitPattern privatePattern privateAtomPattern>>
-    | NUMBER
-    | NEGATIVE_NUMBER
-    | UNDERSCORE
+private atomic_pattern ::= longNameIP | NUMBER | NEGATIVE_NUMBER | UNDERSCORE
+
+tuple_pattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN {
+    pin=1
+    elementType=pattern
+}
+
+implicit_pattern ::= LBRACE (atomic_pattern &RBRACE | pattern_sequence?) RBRACE {
+    pin=1
+    elementType=pattern
+}
 
 constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
     pin = 3

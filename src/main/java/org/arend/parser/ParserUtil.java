@@ -25,31 +25,4 @@ public class ParserUtil extends GeneratedParserUtilBase {
     exit_section_(builder_, level_, marker_, null, result_, pinned_, null);
     return result_ || pinned_;
   }
-
-  static boolean maybeImplicitPattern(PsiBuilder builder, int level, Parser sequenceParser, Parser atomParser) {
-    if (!recursion_guard_(builder, level, "implicitGuard")) return false;
-    if (nextTokenIs(builder, LBRACE)) {
-      boolean result_;
-      PsiBuilder.Marker marker_ = enter_section_(builder, level, 0, ArendElementTypes.PATTERN, "<pattern>");
-      result_ = consumeToken(builder, LBRACE);
-      result_ = result_ && parseMaybeAtomPattern(builder, level, sequenceParser, atomParser, TokenSet.create(RBRACE));
-      result_ = result_ && consumeToken(builder, RBRACE);
-      exit_section_(builder, level, marker_, result_, false, null);
-      return result_;
-    } else {
-      return false;
-    }
-  }
-
-  private static boolean parseMaybeAtomPattern(PsiBuilder builder, int level, Parser sequenceParser, Parser atomParser, TokenSet set) {
-    PsiBuilder.Marker mark = builder.mark();
-    boolean result2 = atomParser.parse(builder, level);
-    if (result2 && set.contains(builder.getTokenType())) {
-      mark.drop();
-      return true;
-    } else {
-      mark.rollbackTo();
-      return sequenceParser.parse(builder, level + 1);
-    }
-  }
 }
