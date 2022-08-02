@@ -18,6 +18,7 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
+import com.intellij.psi.util.parentOfType
 import com.intellij.util.SlowOperations
 import org.arend.settings.ArendSettings
 import org.arend.naming.scope.ScopeFactory
@@ -65,7 +66,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
-        if (!referenceUnresolved(referenceElement)) return // already imported or invalid
+        if (!referenceUnresolved(referenceElement) && referenceElement.parentOfType<ArendPattern>() == null) return // already imported or invalid
 
         ApplicationManager.getApplication().runWriteAction {
             val fixData = getItemsToImport(project, file)
@@ -123,8 +124,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         private fun doComputeAvailability(project: Project, refElement: ArendReferenceElement) = CachedValuesManager.getCachedValue(refElement) {
             val allStubs = getStubElementSet(project, refElement, refElement.containingFile).asSequence()
             val generallyAvailableStubs = allStubs.filter { !availableOnlyAtUserRequest(it) }
-            val allImportActions = allStubs.filter { ResolveReferenceAction.checkIfAvailable(it, refElement) }
-            val generallyAvailableImportActions = generallyAvailableStubs.filter { ResolveReferenceAction.checkIfAvailable(it, refElement) }
+            val allImportActions = allStubs.filter { kindMatches(it, refElement) && ResolveReferenceAction.checkIfAvailable(it, refElement) }
+            val generallyAvailableImportActions = generallyAvailableStubs.filter { kindMatches(it, refElement) && ResolveReferenceAction.checkIfAvailable(it, refElement) }
             CachedValueProvider.Result(when {
                 generallyAvailableImportActions.iterator().hasNext() -> {
                     val allImportActionsIterator = allImportActions.iterator()
@@ -134,6 +135,11 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
                 allImportActions.iterator().hasNext() -> ImportHintActionAvailability.ONLY_AT_USER_REQUEST
                 else -> ImportHintActionAvailability.UNAVAILABLE
             }, PsiModificationTracker.MODIFICATION_COUNT)
+        }
+
+        private fun kindMatches(target: PsiLocatedReferable, element: ArendReferenceElement) : Boolean {
+            if (element.parentOfType<ArendPattern>() == null) return true
+            return target.tcReferable?.kind?.isConstructor == true
         }
 
         private fun getStubElementSet(project: Project, refElement: ArendReferenceElement, file: PsiFile?): List<PsiLocatedReferable> {
@@ -156,9 +162,9 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         }
 
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {
+            is ArendRefIdentifier -> referenceElement.parent.parent is ArendPattern || (referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode))
             is ArendSourceNode -> referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
             is ArendIPName -> referenceUnresolved(referenceElement)
-            is ArendRefIdentifier -> referenceElement.parent is ArendPattern
             else -> false
         }
 
