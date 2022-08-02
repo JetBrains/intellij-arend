@@ -763,8 +763,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func foo => lol'""")
 
 
-    // todo
-    fun `_test imports in patterns`() =
+    fun `test imports in patterns`() =
             simpleImportFixTest("""
                -- ! Main.ard
                \import Prelude (Nat)
