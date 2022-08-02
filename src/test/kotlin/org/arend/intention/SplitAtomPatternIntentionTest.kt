@@ -523,7 +523,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
 
       \func f (a : List) : Nat
         | a :: 0 :: xs => 1
-        | a :: (suc bb) :: xs => 1
+        | a :: suc bb :: xs => 1
         | _ => 0
    """)
 
@@ -538,6 +538,66 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
       \func f (a : List) : Nat
         | nil => 1
         | n :: a => 1
+   """)
+
+    fun testInfix3() = typedQuickFixTest("Split", """  
+    \data List | nill | \infixr 9 :: List Nat
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | {-caret-}e :: a => 0
+   """, """
+    \data List | nill | \infixr 9 :: List Nat
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | nill :: a => 0
+      | (e :: n) :: a => 0
+   """)
+
+    fun testInfix4() = typedQuickFixTest("Split", """  
+    \data List | nill | \infixl 9 :: List Nat
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | {-caret-}e :: a => 0
+   """, """
+    \data List | nill | \infixl 9 :: List Nat
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | nill :: a => 0
+      | e :: n :: a => 0
+   """)
+
+    fun testInfix5() = typedQuickFixTest("Split", """  
+    \data List | nill | \infixr 9 :: Nat List
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | e :: {-caret-}a => 0
+   """, """
+    \data List | nill | \infixr 9 :: Nat List
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | e :: nill => 0
+      | e :: n :: a => 0
+   """)
+
+    fun testInfix6() = typedQuickFixTest("Split", """  
+    \data List | nill | \infixl 9 :: Nat List 
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | e :: {-caret-}a => 0
+   """, """
+    \data List | nill | \infixl 9 :: Nat List
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | e :: nill => 0
+      | e :: (n :: a) => 0
    """)
 
 }

@@ -23,6 +23,7 @@ import org.arend.core.pattern.Pattern
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.ext.reference.Precedence
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
@@ -392,8 +393,10 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             inserted = true
                         }
 
-                        if (!inserted)
-                            doReplacePattern(factory, element, patternString, splitPatternEntry.requiresParentheses())
+                        if (!inserted) {
+                            val referable = splitPatternEntry.castSafelyTo<ConstructorSplitPatternEntry>()?.constructor?.referable
+                            doReplacePattern(factory, element, patternString, splitPatternEntry.requiresParentheses(), insertedReferable = referable)
+                        }
                     } else {
                         val anchorParent = currAnchor.parent
                         currAnchor = anchorParent.addAfter(pipe, currAnchor)
@@ -406,7 +409,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
                             if (elementCopy != null) {
                                 doSubstituteUsages(project, elementCopy.childOfType(), currAnchor, expressionString)
-                                doReplacePattern(factory, elementCopy, patternString, splitPatternEntry.requiresParentheses())
+                                val referable = splitPatternEntry.castSafelyTo<ConstructorSplitPatternEntry>()?.constructor?.referable
+                                doReplacePattern(factory, elementCopy, patternString, splitPatternEntry.requiresParentheses(), insertedReferable = referable)
                             }
                         }
                     }
@@ -514,15 +518,60 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return null
         }
 
-        fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: ArendPattern, patternLine: String, requiresParentheses: Boolean, asExpression: String = ""): ArendPattern? {
+        fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: ArendPattern, patternLine: String, mayRequireParentheses: Boolean, asExpression: String = "", insertedReferable: GlobalReferable? = null): ArendPattern? {
             val pLine = if (asExpression.isNotEmpty()) "$patternLine \\as $asExpression" else patternLine
-            val replacementPattern: ArendPattern? = factory.createPattern(if (!elementToReplace.isExplicit) "{$pLine}" else if (elementToReplace.parent is ArendPattern && ((requiresParentheses && !elementToReplace.parent.castSafelyTo<ArendPattern>()!!.isTuplePattern && !patternLine.startsWith("(")) || asExpression.isNotEmpty())) "($pLine)" else pLine)
+            val replacementPattern: ArendPattern? = factory.createPattern(
+                    if (!elementToReplace.isExplicit) "{$pLine}"
+                    else if (needParentheses(elementToReplace, mayRequireParentheses, asExpression, patternLine, insertedReferable)) "($pLine)"
+                    else pLine
+            )
 
             if (replacementPattern != null) {
                 return elementToReplace.replaceWithNotification(replacementPattern)
             }
 
             return null
+        }
+
+        private fun needParentheses(elementToReplace: ArendPattern, mayRequireParentheses: Boolean, asExpression: String, patternLine: String, referable: GlobalReferable?) : Boolean {
+            val enclosingPattern = elementToReplace.parent.castSafelyTo<ArendPattern>() ?: return false
+            if (asExpression.isNotEmpty()) return true
+            if (!mayRequireParentheses) return false
+            if (enclosingPattern.isTuplePattern) return false
+            if (patternLine.startsWith("(") && patternLine.endsWith(")")) return false
+            val patternList = mutableListOf(ConcreteBuilder.convertPattern(enclosingPattern, ArendReferableConverter, DummyErrorReporter.INSTANCE, null))
+            ExpressionResolveNameVisitor(ArendReferableConverter, enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf(), true)
+            val parsedConcretePattern = patternList[0]
+            val correspondingConcrete = findDeepInArguments(parsedConcretePattern, enclosingPattern)
+            if (correspondingConcrete !is Concrete.ConstructorPattern) {
+                return false
+            }
+            if (parsedConcretePattern.patterns.firstOrNull()?.data.castSafelyTo<ArendPattern>()?.skipSingleTuples()?.startOffset != enclosingPattern.skipSingleTuples().startOffset) {
+                // infix pattern may be written in a prefix form
+                // this way we should wrap the call with parentheses
+                return true
+            }
+            val enclosingPrecedence = correspondingConcrete.constructor.castSafelyTo<GlobalReferable>()?.precedence ?: return false
+            if (!enclosingPrecedence.isInfix) {
+                // non-fix, argument of a function call should be parenthesized
+                return true
+            }
+            val precedence = referable?.precedence ?: return false
+            if (precedence.priority > enclosingPrecedence.priority) {
+                return false
+            } else if (precedence.priority < enclosingPrecedence.priority) {
+                return true
+            }
+            if (correspondingConcrete.constructor != referable) {
+                return true
+            }
+            val addedLeft = correspondingConcrete.patterns.getOrNull(0)?.data?.castSafelyTo<ArendPattern>()?.skipSingleTuples() == elementToReplace
+            val addedRight = correspondingConcrete.patterns.getOrNull(1)?.data?.castSafelyTo<ArendPattern>()?.skipSingleTuples() == elementToReplace
+            return when (precedence.associativity) {
+                Precedence.Associativity.NON_ASSOC -> true
+                Precedence.Associativity.LEFT_ASSOC -> !addedLeft
+                Precedence.Associativity.RIGHT_ASSOC -> !addedRight
+            }
         }
 
         fun doSubstituteUsages(project: Project, elementToReplace: ArendReferenceElement?, element: PsiElement, expressionLine: String, resolver: (ArendRefIdentifier) -> PsiElement? = { it.reference?.resolve() }) {
