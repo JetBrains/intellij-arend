@@ -147,8 +147,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         }
         if (error is CannotFindConstructorError && cause is ArendPattern) {
             val references = when {
-                cause.getReferenceElement() != null -> listOfNotNull(cause.getReferenceElement()?.takeIf { it.refIdentifierList.size == 1 }?.childOfType<ArendReferenceElement>())
-                cause.sequence.isNotEmpty() -> cause.sequence.mapNotNull { it.getReferenceElement()?.takeIf { it.refIdentifierList.size == 1 }?.childOfType<ArendReferenceElement>() }
+                cause.getReferenceElement() != null -> listOfNotNull(cause.getReferenceElement()?.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>())
+                cause.sequence.isNotEmpty() -> cause.sequence.mapNotNull { it.getReferenceElement()?.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>() }
                 else -> listOf()
             }
             var fixRegistered = false

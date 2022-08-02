@@ -509,7 +509,7 @@ atomPattern ::= atomic_pattern
     elementType=pattern
 }
 
-private atomic_pattern ::= longNameIP | NUMBER | NEGATIVE_NUMBER | UNDERSCORE
+private atomic_pattern ::= IPName | longNameIP | NUMBER | NEGATIVE_NUMBER | UNDERSCORE
 
 tuple_pattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN {
     pin=1

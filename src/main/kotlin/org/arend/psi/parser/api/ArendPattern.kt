@@ -6,6 +6,7 @@ import org.arend.psi.ArendAsPattern
 import org.arend.psi.ArendExpr
 import org.arend.psi.ArendLongName
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.term.abs.Abstract
 
 interface ArendPattern : ArendCompositeElement, Abstract.Pattern {
@@ -19,5 +20,5 @@ interface ArendPattern : ArendCompositeElement, Abstract.Pattern {
 
     fun getUnderscore() : PsiElement?
 
-    fun getReferenceElement() : ArendLongName?
+    fun getReferenceElement() : ArendReferenceContainer?
 }

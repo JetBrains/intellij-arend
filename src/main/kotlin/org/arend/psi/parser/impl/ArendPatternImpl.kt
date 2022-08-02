@@ -6,8 +6,10 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.castSafelyTo
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.psi.*
+import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNodeImpl
 import org.arend.psi.parser.api.ArendPattern
+import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
 
 class ArendPatternImpl(node: ASTNode) : ArendSourceNodeImpl(node), ArendPattern {
@@ -51,8 +53,16 @@ class ArendPatternImpl(node: ASTNode) : ArendSourceNodeImpl(node), ArendPattern 
         }
     }
 
+    override fun getFixity(): Fixity? {
+        if (singleReferable == null) {
+            return null
+        }
+        val ip = findChildByType<ArendIPName>(ArendElementTypes.IP_NAME)
+        return ip?.infix?.let { Fixity.INFIX } ?: ip?.postfix?.let { Fixity.POSTFIX } ?: Fixity.NONFIX
+    }
+
     override fun getSingleReferable(): UnresolvedReference? {
-        val longName = findChildByType<ArendLongName>(ArendElementTypes.LONG_NAME)
+        val longName = findChildByType<ArendLongName>(ArendElementTypes.LONG_NAME) ?: findChildByType<ArendIPName>(ArendElementTypes.IP_NAME)
         return longName?.unresolvedReference
     }
 
@@ -60,7 +70,7 @@ class ArendPatternImpl(node: ASTNode) : ArendSourceNodeImpl(node), ArendPattern 
         return findChildByType(ArendElementTypes.UNDERSCORE)
     }
 
-    override fun getReferenceElement(): ArendLongName? {
-        return findChildByType(ArendElementTypes.LONG_NAME)
+    override fun getReferenceElement(): ArendReferenceContainer? {
+        return findChildByType(ArendElementTypes.LONG_NAME) ?: findChildByType(ArendElementTypes.IP_NAME)
     }
 }

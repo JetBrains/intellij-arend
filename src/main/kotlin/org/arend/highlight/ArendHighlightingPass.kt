@@ -114,8 +114,8 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 super.patternResolved(originalRef, pattern, resolvedRefs)
                 val dataPattern = pattern.data.castSafelyTo<ArendPattern>() ?: return
                 val constructors =
-                        dataPattern.sequence.takeIf { it.isNotEmpty() }?.mapNotNull { it.getReferenceElement()?.refIdentifierList?.lastOrNull()?.takeIf { it.text == pattern.constructor.refName } }
-                        ?: dataPattern.takeIf { it.singleReferable != null }?.let { listOf(it.getReferenceElement()!!.refIdentifierList.last()) }
+                        dataPattern.sequence.takeIf { it.isNotEmpty() }?.mapNotNull { it.getReferenceElement()?.referenceNameElement?.takeIf { it.text == pattern.constructor.refName } }
+                        ?: dataPattern.takeIf { it.singleReferable != null }?.let { listOfNotNull(it.getReferenceElement()!!.referenceNameElement) }
                         ?: return
                 for (psi in constructors) {
                     addHighlightInfo(psi.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
