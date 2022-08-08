@@ -542,7 +542,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val patternList = mutableListOf(ConcreteBuilder.convertPattern(enclosingPattern, ArendReferableConverter, DummyErrorReporter.INSTANCE, null))
             ExpressionResolveNameVisitor(ArendReferableConverter, enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf(), true)
             val parsedConcretePattern = patternList[0]
-            val correspondingConcrete = findDeepInArguments(parsedConcretePattern, enclosingPattern)
+            val correspondingConcrete = findParentConcrete(parsedConcretePattern, elementToReplace)
             if (correspondingConcrete !is Concrete.ConstructorPattern) {
                 return false
             }
@@ -649,6 +649,21 @@ private fun findDeepInArguments(node: Concrete.Pattern, element: ArendPattern) :
     }
     return node.patterns.firstNotNullOfOrNull { findDeepInArguments(it, element) }
 }
+
+private fun findParentConcrete(node: Concrete.Pattern, element: ArendPattern) : Concrete.Pattern? {
+    if (node.data == element.skipSingleTuples()) {
+        error("Descended too deep")
+    }
+    if (node !is Concrete.ConstructorPattern) {
+        return null
+    }
+    return if (node.patterns.any { it.data == element.skipSingleTuples() }) {
+        node
+    } else {
+        node.patterns.firstNotNullOfOrNull { findParentConcrete(it, element) }
+    }
+}
+
 
 private tailrec fun ArendPattern.skipSingleTuples() : ArendPattern {
     return if (this.type != null && this.sequence.size == 1) {
