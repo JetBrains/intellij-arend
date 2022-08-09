@@ -918,7 +918,6 @@ argument ::= atomArgument
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.Argument"
                    "org.arend.term.abs.Abstract.BinOpSequenceElem" ]
-    extends = "org.arend.psi.ext.ArendArgumentImplMixin"
 }
 
 lamArgument ::= lamExpr {

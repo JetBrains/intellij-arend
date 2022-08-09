@@ -3,16 +3,15 @@ package org.arend.psi.parser.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.util.castSafelyTo
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.psi.*
 import org.arend.psi.ext.ArendReferenceContainer
-import org.arend.psi.ext.ArendSourceNodeImpl
+import org.arend.psi.impl.ArendLamParamImpl
 import org.arend.psi.parser.api.ArendPattern
 import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
 
-class ArendPatternImpl(node: ASTNode) : ArendSourceNodeImpl(node), ArendPattern {
+class ArendPatternImpl(node: ASTNode) : ArendLamParamImpl(node), ArendPattern {
 
     override fun getSequence(): List<ArendPattern> {
         return PsiTreeUtil.getChildrenOfTypeAsList(this, ArendPattern::class.java)
