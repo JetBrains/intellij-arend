@@ -140,6 +140,16 @@ class ArendRevealingTest : ArendTestBase() {
             Context: q : A
         """.trimIndent(), "f", PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)
     }
+
+    fun `test reveal for class call`() {
+        testRevealing("""
+            \record Class {x y : Nat}
+
+            \func test : Class {0} {1} => {?}
+        """.trimIndent(), """
+            Expected type: Clas{-caret-}s
+        """.trimIndent(), "Class")
+    }
 }
 
 private fun getConfig(vararg flags: PrettyPrinterFlag): PrettyPrinterConfig {

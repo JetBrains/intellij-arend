@@ -3,6 +3,7 @@ package org.arend.injection
 import com.intellij.util.castSafelyTo
 import org.arend.core.context.param.DependentLink
 import org.arend.core.context.param.EmptyDependentLink
+import org.arend.core.expr.ClassCallExpression
 import org.arend.core.expr.ClassCallExpression.ClassCallBinding
 import org.arend.core.expr.DefCallExpression
 import org.arend.core.expr.Expression
@@ -156,6 +157,10 @@ private class InterceptingPrettyPrintVisitor(
             val definition = core.definition.type.allParameters().flatMap { it.parameters.allBindings() }
             val subtractee = expr.castSafelyTo<LongReferenceExpression>()?.qualifier?.referent?.takeIf { it !is ModuleReferable }?.let { 1 } ?: 0
             return definition.count { !it.isExplicit } - subtractee
+        }
+        if (core is ClassCallExpression) {
+            val implementations = core.implementations
+            return core.definition.fields.take(implementations.size).count { !it.referable.isExplicitField }
         }
         val parameterLink = core.castSafelyTo<DefCallExpression>()?.definition?.parameters
         if (parameterLink != null) {
