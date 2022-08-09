@@ -108,7 +108,7 @@
     extends("def(Function|Data|Class|Instance|Meta)") = definition
     extends("(arr|new|pi|sigma|lam|let|case)Expr") = expr
     extends("(universe|setUniverse|truncatedUniverse|argument)AppExpr") = appExpr
-    extends("atomArgument|newArg|universeAtom|implicitArgument|lamArgument|caseArgument") = argument
+    extends("atomArgument|newArg|universeAtom|implicitArgument|lamArgument|caseArgument|letArgument") = argument
     extends("lamTele|atomPattern") = lamParam
 }
 
@@ -914,6 +914,7 @@ argument ::= atomArgument
     | universeAtom
     | implicitArgument
     | lamArgument
+    | letArgument
     | caseArgument {
     implements = [ "org.arend.psi.ext.ArendCompositeElement"
                    "org.arend.term.abs.Abstract.Argument"
@@ -928,11 +929,15 @@ caseArgument ::= caseExpr {
     mixin = "org.arend.psi.ext.ArendCaseArgumentImplMixin"
 }
 
+letArgument ::= letExpr {
+    mixin = "org.arend.psi.ext.ArendLetArgumentImplMixin"
+}
+
 private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW | LET_KW | LETS_KW | HAVE_KW | HAVES_KW | STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc {
     implements = "org.arend.psi.ext.ArendCompositeElement"
