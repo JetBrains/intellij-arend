@@ -349,8 +349,6 @@ private class ImportStructureCollector(
         if (element is ArendDefinition) {
             currentFrame.definitions.add((element as Referable).refName)
             registerCoClauses(element)
-        }
-        if (element is ArendDefinition) {
             addCoreGlobalInstances(element)
         }
         if (element is ArendGroup && element !is ArendFile) {
