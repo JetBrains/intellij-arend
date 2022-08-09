@@ -140,27 +140,40 @@ class ArendImportOptimizer : ImportOptimizer {
 }
 
 internal fun processRedundantImportedDefinitions(file : ArendFile, fileImports: Map<FilePath, Set<ImportedName>>, moduleStructure: OptimalModuleStructure, action: (ArendCompositeElement) -> Unit) {
-    checkStatements(action, file.statements.filter { it.statCmd?.importKw != null }, fileImports)
-    visitModuleInconsistencies(action, file, moduleStructure, moduleStructure.usages)
+    checkStatements(action, file.statements.filter { it.statCmd?.importKw != null }, fileImports, EMPTY_STRUCTURE)
+    visitModuleInconsistencies(action, file, moduleStructure, moduleStructure.usages, emptyMap())
 }
 
-private fun checkStatements(action: (ArendCompositeElement) -> Unit, statements: List<ArendStatement>, pattern: Map<ModulePath, Set<ImportedName>>) {
+/**
+ * @return top-level import statements, that present in the file, but used somewhere in deep subgroups
+ */
+private fun checkStatements(action: (ArendCompositeElement) -> Unit,
+                            statements: List<ArendStatement>,
+                            pattern: Map<ModulePath, Set<ImportedName>>,
+                            hierarchy: OptimalModuleStructure) : Map<ModulePath, Set<ImportedName>>{
+    val deepStatements = mutableMapOf<ModulePath, MutableSet<ImportedName>>()
     for (import in statements) {
         val statCmd = import.namespaceCommand ?: continue
         val qualifiedReferences = statCmd.getQualifiedReferenceFromOpen()
-        val imported = qualifiedReferences.firstNotNullOfOrNull { pattern[it] }
-        if (imported == null || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in imported } } == true)  {
+        val importedPattern = qualifiedReferences.firstNotNullOfOrNull { pattern[it] }
+        val deepPatterns = qualifiedReferences.firstNotNullOfOrNull { hierarchy.getDeeplyImportedNames(it) } ?: emptySet()
+        val importedHere = statCmd.nsUsing?.nsIdList ?: emptyList()
+        val importedNamesHere = importedHere.map { ImportedName(it.refIdentifier.text, it.defIdentifier?.text) }
+        val importedTopLevelButUsedDeeply = deepPatterns intersect importedNamesHere.toSet()
+        if ((importedPattern == null && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in ((importedPattern ?: emptySet()) + deepPatterns) } } == true)  {
             action(import)
             continue
         }
-        val using = statCmd.nsUsing?.nsIdList ?: continue
-        for (nsId in using) {
-            val importedName = ImportedName(nsId.refIdentifier.text, nsId.defIdentifier?.text)
-            if (importedName !in imported) {
+        for ((idx, nsId) in importedHere.withIndex()) {
+            val importedName = importedNamesHere[idx]
+            if (importedName !in importedTopLevelButUsedDeeply && importedName !in (importedPattern ?: emptySet())) {
                 action(nsId)
+            } else if (importedName !in (importedPattern ?: emptySet())) {
+                deepStatements.computeIfAbsent(qualifiedReferences[0]) { mutableSetOf() }.add(importedName)
             }
         }
     }
+    return deepStatements
 }
 
 /**
@@ -180,11 +193,15 @@ private fun ArendGroup.qualifiedName() : MutableList<String> {
     else this.parentGroup?.qualifiedName()?.also { it.add(this.refName) } ?: mutableListOf()
 }
 
-private fun visitModuleInconsistencies(action : (ArendCompositeElement) -> Unit, group: ArendGroup, moduleStructure: OptimalModuleStructure?, treeUsages : Map<ModulePath, Set<ImportedName>>) {
-    checkStatements(action, group.statements.filter { it.namespaceCommand?.openKw != null }, treeUsages)
+private fun visitModuleInconsistencies(action : (ArendCompositeElement) -> Unit, group: ArendGroup, moduleStructure: OptimalModuleStructure?, treeUsages : Map<ModulePath, Set<ImportedName>>, importedOnTopLevel: Map<ModulePath, Set<ImportedName>>) {
+    val filteredPattern = HashMap(treeUsages)
+    for ((modulePath, set) in importedOnTopLevel) {
+        filteredPattern[modulePath] = filteredPattern[modulePath]?.let { it - set }
+    }
+    val deepStatements = checkStatements(action, group.statements.filter { it.namespaceCommand?.openKw != null }, filteredPattern, moduleStructure ?: EMPTY_STRUCTURE)
     for (subgroup in group.statements.mapNotNull { it.group } + group.dynamicSubgroups) {
         val substructure = moduleStructure?.subgroups?.find { it.name == subgroup.name }
-        visitModuleInconsistencies(action, subgroup, substructure, treeUsages + (substructure?.usages ?: emptyMap()))
+        visitModuleInconsistencies(action, subgroup, substructure, treeUsages + (substructure?.usages ?: emptyMap()), importedOnTopLevel + deepStatements)
     }
 }
 
@@ -321,6 +338,12 @@ internal data class OptimalModuleStructure(
     val usages: Map<ModulePath, Set<ImportedName>>,
 )
 
+private val EMPTY_STRUCTURE = OptimalModuleStructure("", emptyList(), emptyMap())
+
+private fun OptimalModuleStructure.getDeeplyImportedNames(path: ModulePath) : Set<ImportedName> {
+    return (usages[path] ?: emptySet()) + subgroups.flatMap { it.getDeeplyImportedNames(path) }
+}
+
 internal fun getOptimalImportStructure(file: ArendFile, progressIndicator: ProgressIndicator? = null): OptimizationResult {
     val rootFrame = MutableFrame("")
     val forbiddenFilesToImport = setOfNotNull(file.moduleLocation?.modulePath, Prelude.MODULE_PATH)
@@ -349,8 +372,6 @@ private class ImportStructureCollector(
         if (element is ArendDefinition) {
             currentFrame.definitions.add((element as Referable).refName)
             registerCoClauses(element)
-        }
-        if (element is ArendDefinition) {
             addCoreGlobalInstances(element)
         }
         if (element is ArendGroup && element !is ArendFile) {

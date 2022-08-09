@@ -1234,4 +1234,37 @@ class OptimizeImportsTest : ArendTestBase() {
         """)
     }
 
+    fun `test local shadowing`() {
+        doSoftTest("""
+            -- ! Main.ard
+            \open B(foo)
+
+            \module A \where {
+              \func foo => 1
+            }
+            
+            \module B \where {
+              \func foo => 2
+            }
+            
+            \func r : foo = 2 => idp
+            
+            \func q : foo = 1 => idp \where \open A
+        """, """
+            \open B(foo)
+
+            \module A \where {
+              \func foo => 1
+            }
+            
+            \module B \where {
+              \func foo => 2
+            }
+            
+            \func r : foo = 2 => idp
+            
+            \func q : foo = 1 => idp \where \open A
+        """)
+    }
+
 }

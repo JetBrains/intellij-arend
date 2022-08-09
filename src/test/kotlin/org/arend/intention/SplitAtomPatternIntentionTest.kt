@@ -600,4 +600,19 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
       | e :: (n :: a) => 0
    """)
 
+    fun testInfix7() = typedQuickFixTest("Split", """  
+    \data List | nill | \infixr 9 :: Nat List 
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | e :: e1 :: {-caret-}a => 0
+   """, """
+    \data List | nill | \infixr 9 :: Nat List
+    
+    \func f (a b : List) : Nat \elim a
+      | nill => 0
+      | e :: e1 :: nill => 0
+      | e :: e1 :: n :: a => 0
+   """)
+
 }
