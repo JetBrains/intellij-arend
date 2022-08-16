@@ -6,7 +6,7 @@ import org.arend.term.concrete.DefinableMetaDefinition
 import org.arend.typechecking.visitor.VoidConcreteVisitor
 import java.util.LinkedList
 
-open class ArendInspectionConcreteVisitor : VoidConcreteVisitor<Void?, Void?>() {
+open class ArendInspectionConcreteVisitor : VoidConcreteVisitor<Void>() {
     private val parents: LinkedList<ConcreteSourceNode> = LinkedList()
 
     protected val parent: ConcreteSourceNode?

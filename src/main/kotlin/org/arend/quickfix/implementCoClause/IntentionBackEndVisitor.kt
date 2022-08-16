@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.visitor.VoidConcreteVisitor
 
-class IntentionBackEndVisitor : VoidConcreteVisitor<Void, Void>() {
+class IntentionBackEndVisitor : VoidConcreteVisitor<Void>() {
     override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
         super.visitFunction(def, params)
         doAnnotate(def.data.underlyingReferable as? PsiElement)

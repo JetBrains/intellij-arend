@@ -478,7 +478,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         is Concrete.CoelimFunctionBody -> for (cce in b.coClauseElements) if (cce is Concrete.ClassFieldImpl) children.add(cce.implementation)
                     }
 
-                    val searcher = object : VoidConcreteVisitor<Void,Void>() {
+                    val searcher = object : VoidConcreteVisitor<Void>() {
                         override fun visitCase(expr: Concrete.CaseExpression?, params: Void?): Void? {
                             if (expr?.data == caseExprPsi) concreteCaseExpr = expr
                             return super.visitCase(expr, params)
