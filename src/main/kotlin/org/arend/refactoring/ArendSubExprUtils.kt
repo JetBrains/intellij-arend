@@ -128,7 +128,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             val data = if (exprAncestor.textRange == range) exprAncestor else null
             parseBinOp(data, head, tail)
         }
-        else ConcreteBuilder.convertExpression(head).accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
+        else SyntacticDesugarVisitor.desugar(ConcreteBuilder.convertExpression(head), DummyErrorReporter.INSTANCE)
     val resolver = subExpr.underlyingReferenceExpression?.let { refExpr -> refExpr.data?.let { MyResolverListener(it) } }
 
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
@@ -152,9 +152,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(resolver?.result ?: subExpr)
             errors = subExprVisitor.errors
-            cExpr.accept(ExpressionResolveNameVisitor(ArendReferableConverter, scope, null, DummyErrorReporter.INSTANCE, null), null)
-                .accept(SyntacticDesugarVisitor(DummyErrorReporter.INSTANCE), null)
-                .accept(subExprVisitor, injectedExpr)
+            SyntacticDesugarVisitor.desugar(cExpr.accept(ExpressionResolveNameVisitor(ArendReferableConverter, scope, null, DummyErrorReporter.INSTANCE, null), null), DummyErrorReporter.INSTANCE).accept(subExprVisitor, injectedExpr)
         } else {
             errors = emptyList()
             null

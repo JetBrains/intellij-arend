@@ -5,9 +5,11 @@ import com.intellij.openapi.project.Project
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.ext.reference.Precedence
+import org.arend.ext.util.Pair
 import org.arend.naming.error.ReferenceError
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferableImpl
+import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
@@ -23,6 +25,12 @@ import org.arend.typechecking.provider.ConcreteProvider
 
 
 private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.OTHER)) {
+    override fun getParameters() = emptyList<Concrete.Parameter>()
+
+    override fun addParameters(parameters: List<Concrete.Parameter>?, parametersOriginalDefinitions: List<Pair<TCDefReferable, Int>>?) {
+        throw IllegalStateException()
+    }
+
     override fun <P : Any?, R : Any?> accept(visitor: ConcreteDefinitionVisitor<in P, out R>?, params: P): R? = null
 }
 
