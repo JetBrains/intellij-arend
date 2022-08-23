@@ -148,7 +148,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     ) = with(ConcreteFactoryImpl(null)) {
         app(ref(TypedBinding(newFunctionName, null)),
             freeVariables.filter { it.second == EXPLICIT }.map { arg(getArgumentConcrete(it), true) })
-    } as Concrete.Expression
+    }
 
     private fun getMinimizationPrettyPrinter(
         selection: SelectionResult,

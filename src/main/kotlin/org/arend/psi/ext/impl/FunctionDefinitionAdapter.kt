@@ -26,6 +26,9 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 
+    override val parametersExt: List<Abstract.Parameter>
+        get() = parameters
+
     override fun getResultType(): ArendExpr? = returnExpr?.let { it.exprList.firstOrNull() ?: it.atomFieldsAccList.firstOrNull() }
 
     override val body: ArendFunctionalBody? get() = functionBody

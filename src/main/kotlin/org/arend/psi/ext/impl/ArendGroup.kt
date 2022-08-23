@@ -24,7 +24,7 @@ interface ArendGroup: ChildGroup, PsiDefReferable, ArendSourceNode {
 
     override fun getDynamicSubgroups(): List<ArendGroup>
 
-    override fun getInternalReferables(): Collection<ArendInternalReferable>
+    override fun getInternalReferables(): List<ArendInternalReferable>
 }
 
 interface ArendInternalReferable: Group.InternalReferable, PsiDefReferable {

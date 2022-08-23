@@ -203,7 +203,7 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
 
                 }
                 val replacementLiteral = factory.createExpression(argumentStr).childOfType<ArendLiteral>()
-                if (replacementLiteral != null) parent.replaceWithNotification(replacementLiteral) as? ArendLiteral
+                if (replacementLiteral != null) parent.replaceWithNotification(replacementLiteral)
             }
             else -> {
                 val longNameStr = LongName(id).toString()
@@ -689,7 +689,7 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
                 argumentAppExpr.parent.replaceWithNotification(newPsi) as? ArendExpr
             } else {
                 rangeCallback?.invoke(argumentAppExpr.textRange, appExpr.textLength)
-                argumentAppExpr.replaceWithNotification(appExpr) as? ArendArgumentAppExpr
+                argumentAppExpr.replaceWithNotification(appExpr)
             }
         }
         operatorRange.contains(nodes.first().textRange) -> {

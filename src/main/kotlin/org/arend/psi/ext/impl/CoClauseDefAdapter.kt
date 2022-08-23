@@ -3,16 +3,13 @@ package org.arend.psi.ext.impl
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.ArendFunctionalBody
 import org.arend.psi.stubs.ArendCoClauseDefStub
 import org.arend.ext.concrete.definition.FunctionKind
+import org.arend.naming.reference.*
 import org.arend.psi.ext.getArendScope
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
@@ -93,4 +90,6 @@ abstract class CoClauseDefAdapter : DefinitionAdapter<ArendCoClauseDefStub>, Are
     override fun getPLevelParams(): ArendPLevelParams? = null
 
     override fun getHLevelParams(): ArendHLevelParams? = null
+
+    override fun getExternalParameters(): List<ParameterReferable> = emptyList()
 }

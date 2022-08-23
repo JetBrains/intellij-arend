@@ -9,6 +9,8 @@ import com.intellij.psi.stubs.StubElement
 import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.ParameterReferable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
@@ -69,6 +71,27 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
             parent = parent.parentGroup
         }
         return null
+    }
+
+    protected open val parametersExt: List<Abstract.Parameter>
+        get() = emptyList()
+
+    override fun getExternalParameters(): List<ParameterReferable> {
+        val parent = locatedReferableParent as? DefinitionAdapter<*> ?: return emptyList()
+        val tcRef = parent.tcReferable as? TCDefReferable ?: return emptyList()
+        val params = parent.parametersExt
+        if (params.isEmpty()) return emptyList()
+        val result = ArrayList<ParameterReferable>()
+        var i = 0
+        for (param in params) {
+            for (referable in param.referableList) {
+                if (referable != null) {
+                    result.add(ParameterReferable(tcRef, i, referable.refName))
+                }
+                i++
+            }
+        }
+        return result
     }
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): TCReferable =

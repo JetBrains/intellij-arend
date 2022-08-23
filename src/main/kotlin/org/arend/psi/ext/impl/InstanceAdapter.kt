@@ -28,6 +28,9 @@ abstract class InstanceAdapter : DefinitionAdapter<ArendDefInstanceStub>, ArendD
 
     override fun getParameters(): List<ArendNameTele> = nameTeleList
 
+    override val parametersExt: List<Abstract.Parameter>
+        get() = parameters
+
     override fun getResultType(): ArendExpr? = returnExpr?.let { it.exprList.firstOrNull() ?: it.atomFieldsAccList.firstOrNull() }
 
     override fun getResultTypeLevel(): ArendExpr? = returnExpr?.let { it.exprList.getOrNull(1) ?: it.atomFieldsAccList.getOrNull(1) }

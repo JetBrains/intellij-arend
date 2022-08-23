@@ -30,6 +30,9 @@ abstract class DataDefinitionAdapter : DefinitionAdapter<ArendDefDataStub>, Aren
 
     override fun getParameters(): List<ArendTypeTele> = typeTeleList
 
+    override val parametersExt: List<Abstract.Parameter>
+        get() = parameters
+
     override fun getEliminatedExpressions(): List<ArendRefIdentifier>? = dataBody?.elim?.refIdentifierList
 
     override fun isTruncated(): Boolean = truncatedKw != null
