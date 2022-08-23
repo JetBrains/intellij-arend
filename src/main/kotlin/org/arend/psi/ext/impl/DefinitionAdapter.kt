@@ -86,7 +86,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         for (param in params) {
             for (referable in param.referableList) {
                 if (referable != null) {
-                    result.add(ParameterReferable(tcRef, i, referable.refName))
+                    result.add(ParameterReferable(tcRef, i, referable))
                 }
                 i++
             }
