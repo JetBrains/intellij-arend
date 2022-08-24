@@ -48,9 +48,7 @@ import org.arend.quickfix.instance.InstanceInferenceQuickFix
 import org.arend.quickfix.instance.ReplaceWithLocalInstanceQuickFix
 import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
-import org.arend.quickfix.replacers.ReplaceAbsurdPatternQuickFix
-import org.arend.quickfix.replacers.ReplaceFunctionKindQuickFix
-import org.arend.quickfix.replacers.ReplaceWithWildcardPatternQuickFix
+import org.arend.quickfix.replacers.*
 import org.arend.refactoring.replaceExprSmart
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.Abstract
@@ -334,6 +332,19 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 else -> {}
             }
 
+            is LevelMismatchError -> when (cause) {
+                is ArendDefFunction -> registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.FUNC))
+                is ArendClassField -> {
+                    val propKw = (cause.parent as? ArendClassStat)?.propertyKw
+                    if (propKw != null) registerFix(info, ReplaceFieldKindQuickFix(SmartPointerManager.createPointer(propKw)))
+                }
+                is ArendSigmaTypeTele -> {
+                    val propKw = cause.propertyKw
+                    if (propKw != null) registerFix(info, ReplaceSigmaFieldKindQuickFix(SmartPointerManager.createPointer(propKw)))
+                }
+                else -> {}
+            }
+
             is RedundantClauseError -> if (cause is ArendClause) registerFix(info, RemoveClauseQuickFix(SmartPointerManager.createPointer(cause)))
 
             is RedundantCoclauseError -> if (cause is ArendLocalCoClause) registerFix(info, RemoveCoClauseQuickFix(SmartPointerManager.createPointer(cause)))
@@ -416,10 +427,11 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     COULD_BE_LEMMA -> (element as? ArendDefFunction)?.functionKw
                     else -> null
                 }
-                is LevelMismatchError -> if (error.isLemma) {
-                    if (element is ArendDefFunction) element.functionKw.lemmaKw else element.ancestor<ArendReturnExpr>()?.levelKw
-                } else {
-                    ((element as? ArendClassField)?.parent as? ArendClassStat)?.propertyKw
+                is LevelMismatchError -> when (element) {
+                    is ArendDefFunction -> element.functionKw.lemmaKw
+                    is ArendClassField -> (element.parent as? ArendClassStat)?.propertyKw
+                    is ArendSigmaTypeTele -> element.propertyKw
+                    else -> null
                 }
                 is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild
                 is ImplicitLambdaError -> error.parameter?.underlyingReferable as? PsiElement

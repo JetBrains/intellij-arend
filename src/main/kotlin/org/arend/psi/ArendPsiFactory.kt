@@ -182,6 +182,8 @@ class ArendPsiFactory(
     fun createWhitespace(symbol: String): PsiElement =
         PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
 
+    fun createPipe(): PsiElement = createFromText("\\data D | con")?.childOfType<ArendDataBody>()?.firstChild ?: error("Failed to create '|'")
+
     fun createWhere(): ArendWhere = createFromText("\\module Test \\where { }")?.childOfType() ?: error("Failed to create '\\where'")
 
     fun createCoClauseBody(): ArendCoClauseBody = createFromText("\\func foo (n : Nat) : R \\cowith\n | f{-caret-} x \\with")?.childOfType() ?: error("Failed to create coClauseBody keyword")
