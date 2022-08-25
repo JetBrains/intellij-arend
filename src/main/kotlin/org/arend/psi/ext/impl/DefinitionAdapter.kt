@@ -19,6 +19,7 @@ import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.DataLocatedReferable
+import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.abs.IncompleteExpressionError
@@ -84,9 +85,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         val result = ArrayList<ParameterReferable>()
         var i = 0
         for (param in params) {
+            val classRef = (param.type as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
             for (referable in param.referableList) {
                 if (referable != null) {
-                    result.add(ParameterReferable(tcRef, i, referable))
+                    result.add(ParameterReferable(tcRef, i, referable, if (classRef == null) null else Concrete.ReferenceExpression(null, classRef)))
                 }
                 i++
             }
