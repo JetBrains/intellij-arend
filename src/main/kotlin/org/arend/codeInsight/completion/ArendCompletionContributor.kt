@@ -473,7 +473,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ATOM_LEVEL_PREFIX = arrayOf<Class<out PsiElement>>(ArendRefIdentifier::class.java, ArendAtomLevelExpr::class.java)
 
         private val PREC_CONTEXT = or(
-                afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, TYPE_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW),
+                afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, TYPE_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW, AXIOM_KW),
                 and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW, COERCE_KW, CLASSIFYING_KW),

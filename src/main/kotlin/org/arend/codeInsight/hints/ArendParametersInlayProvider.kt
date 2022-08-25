@@ -31,7 +31,7 @@ class ArendParametersInlayProvider : InlayHintsProvider<NoSettings> {
         get() = "Parameters"
 
     override val group
-        get() = InlayGroup.TYPES_GROUP
+        get() = InlayGroup.PARAMETERS_GROUP
 
     override val previewText
         get() = """
@@ -45,7 +45,7 @@ class ArendParametersInlayProvider : InlayHintsProvider<NoSettings> {
         """.trimIndent()
 
     override val description
-        get() = "Shows inferred level parameters"
+        get() = "Shows inferred parameters"
 
     override fun isLanguageSupported(language: Language) = language == ArendLanguage.INSTANCE
 

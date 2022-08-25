@@ -38,6 +38,7 @@ class ReplaceFunctionKindQuickFix(private val kwRef: SmartPsiElementPointer<Aren
         FUNC -> "\\func"
         CONS -> "\\cons"
         INSTANCE -> "\\instance"
+        AXIOM -> "\\axiom"
         FUNC_COCLAUSE, CLASS_COCLAUSE -> throw IllegalStateException()
     }
 }

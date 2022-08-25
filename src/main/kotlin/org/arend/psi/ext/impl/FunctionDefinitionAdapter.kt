@@ -59,6 +59,7 @@ abstract class FunctionDefinitionAdapter : DefinitionAdapter<ArendDefFunctionStu
             it.typeKw != null -> FunctionKind.TYPE
             it.levelKw != null -> FunctionKind.LEVEL
             it.coerceKw != null -> FunctionKind.COERCE
+            it.axiomKw != null -> FunctionKind.AXIOM
             else -> FunctionKind.FUNC
         }
     }

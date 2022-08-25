@@ -110,6 +110,7 @@ OCT_DIGIT           = [0-8]
     "\\as"                  { return AS_KW; }
     "\\module"              { return MODULE_KW; }
     "\\func"                { return FUNC_KW; }
+    "\\axiom"               { return AXIOM_KW; }
     "\\sfunc"               { return SFUNC_KW; }
     "\\lemma"               { return LEMMA_KW; }
     "\\type"                { return TYPE_KW; }

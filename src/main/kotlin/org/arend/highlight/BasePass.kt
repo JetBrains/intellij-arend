@@ -328,12 +328,13 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                         }
                     }
                 PATTERN_IGNORED -> if (cause is Abstract.Pattern) registerFix(info, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
-                COULD_BE_LEMMA -> if (cause is ArendDefFunction) registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
+                COULD_BE_LEMMA, AXIOM_WITH_BODY -> if (cause is ArendDefFunction) registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
                 else -> {}
             }
 
             is LevelMismatchError -> when (cause) {
-                is ArendDefFunction -> registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.FUNC))
+                is ArendDefFunction -> if (error.kind != LevelMismatchError.TargetKind.AXIOM)
+                    registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.FUNC))
                 is ArendClassField -> {
                     val propKw = (cause.parent as? ArendClassStat)?.propertyKw
                     if (propKw != null) registerFix(info, ReplaceFieldKindQuickFix(SmartPointerManager.createPointer(propKw)))
@@ -424,11 +425,11 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     CertainTypecheckingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
                     CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseOpt
-                    COULD_BE_LEMMA -> (element as? ArendDefFunction)?.functionKw
+                    COULD_BE_LEMMA, AXIOM_WITH_BODY -> (element as? ArendDefFunction)?.functionKw
                     else -> null
                 }
                 is LevelMismatchError -> when (element) {
-                    is ArendDefFunction -> element.functionKw.lemmaKw
+                    is ArendDefFunction -> element.functionKw.firstChild
                     is ArendClassField -> (element.parent as? ArendClassStat)?.propertyKw
                     is ArendSigmaTypeTele -> element.propertyKw
                     else -> null
