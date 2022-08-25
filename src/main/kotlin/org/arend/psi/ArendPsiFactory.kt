@@ -179,7 +179,7 @@ class ArendPsiFactory(
     private fun psiFactory() = PsiFileFactory.getInstance(project)
 
     fun createWhitespace(symbol: String): PsiElement =
-        PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
+        PsiParserFacade.getInstance(project).createWhiteSpaceFromText(symbol)
 
     fun createWhere(): ArendWhere = createFromText("\\module Test \\where { }")?.childOfType() ?: error("Failed to create '\\where'")
 
