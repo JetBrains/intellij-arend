@@ -156,6 +156,7 @@
         <codeInsight.parameterInfo language="Arend" implementationClass="org.arend.codeInsight.ArendParameterInfoHandler"/>
 
         <codeInsight.inlayProvider language="Arend" implementationClass="org.arend.codeInsight.hints.ArendParametersInlayProvider"/>
+        <codeInsight.inlayProvider language="Arend" implementationClass="org.arend.codeInsight.hints.ArendAxiomsInlayProvider"/>
 
         <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionContributor"/>
         <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendNoVariantsDelegator"/>
