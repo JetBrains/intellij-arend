@@ -17,7 +17,7 @@ import org.arend.psi.ArendDefinition
 import javax.swing.JPanel
 
 @Suppress("UnstableApiUsage")
-object ArendAxiomsInlayProvider : InlayHintsProvider<NoSettings> {
+class ArendAxiomsInlayProvider : InlayHintsProvider<NoSettings> {
     override val key: SettingsKey<NoSettings>
         get() = SettingsKey("arend.inlays")
 
