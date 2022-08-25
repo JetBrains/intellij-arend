@@ -161,7 +161,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             if (!project.isOpen) {
                 return@getCachedValue cachedValue(null)
             }
-            val fileIndex = ProjectFileIndex.SERVICE.getInstance(project)
+            val fileIndex = ProjectFileIndex.getInstance(project)
 
             val module = runReadAction { fileIndex.getModuleForFile(virtualFile) }
             if (module != null) {

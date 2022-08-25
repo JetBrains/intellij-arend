@@ -69,7 +69,7 @@ val PsiElement.module: Module?
     get() {
         val file = containingFile ?: return null
         val virtualFile = file.originalFile.virtualFile ?: return getUserData(KEY_MODULE)
-        return ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
+        return ProjectFileIndex.getInstance(project).getModuleForFile(virtualFile)
     }
 
 val PsiFile.libraryConfig: LibraryConfig?
@@ -77,7 +77,7 @@ val PsiFile.libraryConfig: LibraryConfig?
         val enforcedConfig = (this as? ArendFile)?.enforcedLibraryConfig
         if (enforcedConfig != null) return enforcedConfig
         val virtualFile = originalFile.virtualFile ?: return null
-        val module = ProjectFileIndex.SERVICE.getInstance(project).getModuleForFile(virtualFile)
+        val module = ProjectFileIndex.getInstance(project).getModuleForFile(virtualFile)
         return if (module != null) ArendModuleConfigService.getInstance(module) else null
     }
 

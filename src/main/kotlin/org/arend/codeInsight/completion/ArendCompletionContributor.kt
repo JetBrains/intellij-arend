@@ -12,7 +12,6 @@ import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.util.elementType
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.ProcessingContext
-import com.intellij.util.containers.isNullOrEmpty
 import org.arend.psi.*
 import org.arend.psi.parser.api.ArendPattern
 import org.arend.psi.ArendElementTypes.*
@@ -285,7 +284,7 @@ class ArendCompletionContributor : CompletionContributor() {
                     }
                     if ((pos2 is ArendDefData) && !coWithMode) {
                         val dBody = pos2.dataBody
-                        exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isNullOrEmpty() && dBody.constructorClauseList.isNullOrEmpty())
+                        exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isEmpty() && dBody.constructorClauseList.isEmpty())
                         exprFound = exprFound && !emptyTeleList(pos2.typeTeleList)
                         break
                     }

@@ -7,12 +7,12 @@ import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.8.0"
+version = "1.8.0.1"
 
 plugins {
     idea
-    kotlin("jvm") version "1.6.20"
-    id("org.jetbrains.intellij") version "1.5.2"
+    kotlin("jvm") version "1.7.10"
+    id("org.jetbrains.intellij") version "1.8.1"
     id("org.jetbrains.grammarkit") version "2021.2.2"
 }
 
@@ -63,11 +63,11 @@ tasks {
 }
 
 intellij {
-    version.set("2022.1")
+    version.set("2022.2.1")
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("yaml", "java", "IdeaVIM:1.9.3"))
+    plugins.set(listOf("yaml", "java", "IdeaVIM:1.11.1"))
 }
 
 tasks.named<JavaExec>("runIde") {

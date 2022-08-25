@@ -180,7 +180,7 @@ class ArendPsiFactory(
     private fun psiFactory() = PsiFileFactory.getInstance(project)
 
     fun createWhitespace(symbol: String): PsiElement =
-        PsiParserFacade.SERVICE.getInstance(project).createWhiteSpaceFromText(symbol)
+        PsiParserFacade.getInstance(project).createWhiteSpaceFromText(symbol)
 
     fun createPipe(): PsiElement = createFromText("\\data D | con")?.childOfType<ArendDataBody>()?.firstChild ?: error("Failed to create '|'")
 
