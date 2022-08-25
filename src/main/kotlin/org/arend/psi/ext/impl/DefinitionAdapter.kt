@@ -82,12 +82,19 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         val tcRef = parent.tcReferable as? TCDefReferable ?: return emptyList()
         val params = parent.parametersExt
         if (params.isEmpty()) return emptyList()
+
+        val eliminated = if (parent is Abstract.FunctionDefinition && !parent.withTerm() && !parent.isCowith) {
+            val elimList = parent.eliminatedExpressions
+            if (elimList.isEmpty()) return emptyList()
+            elimList.mapTo(HashSet()) { it.referent.refName }
+        } else emptySet()
+
         val result = ArrayList<ParameterReferable>()
         var i = 0
         for (param in params) {
             val classRef = (param.type as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
             for (referable in param.referableList) {
-                if (referable != null) {
+                if (referable != null && !eliminated.contains(referable.refName)) {
                     result.add(ParameterReferable(tcRef, i, referable, if (classRef == null) null else Concrete.ReferenceExpression(null, classRef)))
                 }
                 i++
