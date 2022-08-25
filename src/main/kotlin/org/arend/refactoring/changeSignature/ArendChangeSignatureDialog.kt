@@ -24,21 +24,17 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     override fun createReturnTypeCodeFragment(): PsiCodeFragment =
         createTypeCodeFragment(myMethod.method)
 
-    override fun createCallerChooser(
-        title: String?,
-        treeToReuse: Tree?,
-        callback: Consumer<MutableSet<PsiElement>>?
-    ): CallerChooserBase<PsiElement>? = null
+    override fun createCallerChooser(title: String?, treeToReuse: Tree?, callback: Consumer<in MutableSet<PsiElement>>?) = null
 
     // TODO: add information about errors
     override fun validateAndCommitData(): String? = null
 
-    private fun evaluateChangeInfo(parametersModel: ArendParameterTableModel): ArendChangeInfo? {
+    private fun evaluateChangeInfo(parametersModel: ArendParameterTableModel): ArendChangeInfo {
         return ArendChangeInfo(parametersModel.items.map {  it.parameter }.toMutableList(), myMethod.method)
     }
 
     override fun calculateSignature(): String =
-        evaluateChangeInfo(myParametersTableModel)?.signature() ?: ""
+        evaluateChangeInfo(myParametersTableModel).signature()
 
 
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
