@@ -6,6 +6,7 @@ import com.intellij.lang.Language
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.suggested.endOffset
 import org.arend.ArendLanguage
@@ -15,10 +16,8 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.naming.reference.TCDefReferable
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendDefinition
-import org.arend.psi.ArendHLevelParams
-import org.arend.psi.ArendPLevelParams
+import org.arend.psi.*
+import org.arend.psi.ArendElementTypes.NO_CLASSIFYING_KW
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
@@ -91,7 +90,12 @@ class ArendParametersInlayProvider : InlayHintsProvider<NoSettings> {
 
                 val str = builder.toString()
                 if (str.isEmpty()) return true
-                sink.addInlineElement(element.endOffset, true, MenuOnClickPresentation(factory.text(str), project) {
+                var lastElement = element
+                val sibling1 = lastElement.findNextSibling()
+                if (sibling1 is ArendAlias) lastElement = sibling1
+                val sibling2 = lastElement.findNextSibling()
+                if (sibling2 is LeafPsiElement && sibling2.elementType == NO_CLASSIFYING_KW) lastElement = sibling2
+                sink.addInlineElement(lastElement.endOffset, true, MenuOnClickPresentation(factory.text(str), project) {
                     val provider = this@ArendParametersInlayProvider
                     listOf(InlayProviderDisablingAction(provider.name, file.language, project, provider.key))
                 }, false)
