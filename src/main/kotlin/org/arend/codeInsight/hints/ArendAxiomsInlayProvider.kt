@@ -19,7 +19,7 @@ import javax.swing.JPanel
 @Suppress("UnstableApiUsage")
 class ArendAxiomsInlayProvider : InlayHintsProvider<NoSettings> {
     override val key: SettingsKey<NoSettings>
-        get() = SettingsKey("arend.inlays")
+        get() = SettingsKey("arend.inlays.axioms")
 
     override val name: String
         get() = "Axioms"

@@ -9,6 +9,9 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.suggested.endOffset
+import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.ui.JBUI
 import org.arend.ArendLanguage
 import org.arend.core.context.binding.LevelVariable
 import org.arend.core.context.binding.ParamLevelVariable
@@ -24,15 +27,14 @@ import org.arend.term.prettyprint.ToAbstractVisitor
 import javax.swing.JPanel
 
 @Suppress("UnstableApiUsage")
-class ArendParametersInlayProvider : InlayHintsProvider<NoSettings> {
-    override val key: SettingsKey<NoSettings>
-        get() = SettingsKey("arend.inlays")
+class ArendParametersInlayProvider : InlayHintsProvider<ArendParametersInlayProvider.Settings> {
+    data class Settings(var showTypes: Boolean = false)
+
+    override val key: SettingsKey<Settings>
+        get() = SettingsKey("arend.inlays.parameters")
 
     override val name
         get() = "Parameters"
-
-    override val group
-        get() = InlayGroup.PARAMETERS_GROUP
 
     override val previewText
         get() = """
@@ -50,9 +52,9 @@ class ArendParametersInlayProvider : InlayHintsProvider<NoSettings> {
 
     override fun isLanguageSupported(language: Language) = language == ArendLanguage.INSTANCE
 
-    override fun createSettings() = NoSettings()
+    override fun createSettings() = Settings()
 
-    override fun getCollectorFor(file: PsiFile, editor: Editor, settings: NoSettings, sink: InlayHintsSink): InlayHintsCollector {
+    override fun getCollectorFor(file: PsiFile, editor: Editor, settings: Settings, sink: InlayHintsSink): InlayHintsCollector {
         val project = file.project
         return object : FactoryInlayHintsCollector(editor) {
             override fun collect(element: PsiElement, editor: Editor, sink: InlayHintsSink): Boolean {
@@ -79,13 +81,22 @@ class ArendParametersInlayProvider : InlayHintsProvider<NoSettings> {
 
                 if (def.parametersOriginalDefinitions.isNotEmpty()) {
                     builder.append(" ")
-                    val ppv = PrettyPrintVisitor(builder, 0)
-                    val parameters = if (def is ClassDefinition) {
-                        def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Concrete.TelescopeParameter(null, it.referable.isExplicitField, listOf(it.referable), ToAbstractVisitor.convert(it.resultType, PrettyPrinterConfig.DEFAULT)) }
+                    if (settings.showTypes) {
+                        val ppv = PrettyPrintVisitor(builder, 0)
+                        val parameters = if (def is ClassDefinition) {
+                            def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Concrete.TelescopeParameter(null, it.referable.isExplicitField, listOf(it.referable), ToAbstractVisitor.convert(it.resultType, PrettyPrinterConfig.DEFAULT)) }
+                        } else {
+                            ToAbstractVisitor.convert(DependentLink.Helper.take(def.parameters, def.parametersOriginalDefinitions.size), PrettyPrinterConfig.DEFAULT)
+                        }
+                        ppv.prettyPrintParameters(parameters)
                     } else {
-                        ToAbstractVisitor.convert(DependentLink.Helper.take(def.parameters, def.parametersOriginalDefinitions.size), PrettyPrinterConfig.DEFAULT)
+                        val list = if (def is ClassDefinition) {
+                            def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Pair(it.referable.isExplicitField, it.name) }
+                        } else {
+                            DependentLink.Helper.toList(DependentLink.Helper.take(def.parameters, def.parametersOriginalDefinitions.size)).map { Pair(it.isExplicit, it.name) }
+                        }
+                        builder.append(list.joinToString(" ") { if (it.first) it.second else "{${it.second}}" })
                     }
-                    ppv.prettyPrintParameters(parameters)
                 }
 
                 val str = builder.toString()
@@ -104,7 +115,23 @@ class ArendParametersInlayProvider : InlayHintsProvider<NoSettings> {
         }
     }
 
-    override fun createConfigurable(settings: NoSettings) = object : ImmediateConfigurable {
-        override fun createComponent(listener: ChangeListener) = JPanel()
+    override fun createConfigurable(settings: Settings) = object : ImmediateConfigurable {
+        private var showTypesBox = JBCheckBox("Show types")
+
+        override fun createComponent(listener: ChangeListener): JPanel {
+            showTypesBox.addChangeListener {
+                settings.showTypes = showTypesBox.isSelected
+                listener.settingsChanged()
+            }
+            return panel {
+                row { cell(showTypesBox) }
+            }.apply {
+                border = JBUI.Borders.empty(5)
+            }
+        }
+
+        override fun reset() {
+          showTypesBox.isSelected = settings.showTypes
+        }
     }
 }
