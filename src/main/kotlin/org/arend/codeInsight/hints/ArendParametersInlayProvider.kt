@@ -12,12 +12,14 @@ import org.arend.ArendLanguage
 import org.arend.core.context.binding.LevelVariable
 import org.arend.core.context.binding.ParamLevelVariable
 import org.arend.core.context.param.DependentLink
+import org.arend.core.definition.ClassDefinition
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendDefIdentifier
 import org.arend.psi.ArendDefinition
 import org.arend.psi.ArendHLevelParams
 import org.arend.psi.ArendPLevelParams
+import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
 import javax.swing.JPanel
@@ -79,7 +81,12 @@ class ArendParametersInlayProvider : InlayHintsProvider<NoSettings> {
                 if (def.parametersOriginalDefinitions.isNotEmpty()) {
                     builder.append(" ")
                     val ppv = PrettyPrintVisitor(builder, 0)
-                    ppv.prettyPrintParameters(ToAbstractVisitor.convert(DependentLink.Helper.take(def.parameters, def.parametersOriginalDefinitions.size), PrettyPrinterConfig.DEFAULT))
+                    val parameters = if (def is ClassDefinition) {
+                        def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Concrete.TelescopeParameter(null, it.referable.isExplicitField, listOf(it.referable), ToAbstractVisitor.convert(it.resultType, PrettyPrinterConfig.DEFAULT)) }
+                    } else {
+                        ToAbstractVisitor.convert(DependentLink.Helper.take(def.parameters, def.parametersOriginalDefinitions.size), PrettyPrinterConfig.DEFAULT)
+                    }
+                    ppv.prettyPrintParameters(parameters)
                 }
 
                 val str = builder.toString()
