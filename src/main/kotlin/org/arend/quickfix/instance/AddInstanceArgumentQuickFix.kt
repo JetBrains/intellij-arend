@@ -13,9 +13,9 @@ import org.arend.core.expr.ClassCallExpression
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.variable.VariableImpl
-import org.arend.psi.*
-import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ancestor
+import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.*
 import org.arend.resolving.DataLocatedReferable
@@ -33,11 +33,11 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
     override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
-        ((cause.element as? PsiElement)?.ancestor<ArendDefinition>()?.let{ it is ArendFunctionalDefinition || it is ArendDefData }?: false) &&
+        ((cause.element as? PsiElement)?.ancestor<ArendDefinition<*>>()?.let{ it is ArendFunctionDefinition || it is ArendDefData }?: false) &&
                 (error.classRef.data as? SmartPsiElementPointer<*>)?.element != null && ((error.classRef.typechecked as? ClassDefinition)?.classifyingField == null || error.classifyingExpression != null)
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val ambientDefinition = (cause.element as? PsiElement)?.ancestor<ArendDefinition>()
+        val ambientDefinition = (cause.element as? PsiElement)?.ancestor<ArendDefinition<*>>()
         val missingClassInstance = (error.classRef.data as? SmartPsiElementPointer<*>)?.element
         val implementedClass = error.classRef.typechecked
         if (ambientDefinition is PsiConcreteReferable && missingClassInstance is ArendDefClass && implementedClass is ClassDefinition) {
@@ -50,8 +50,8 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
             val classCall = if (fCallOk) className + (classifyingTypeExpr?.let { if (argNeedsParentheses(it)) " ($it)" else " $it" } ?: "") else "$className { | ${classifyingField!!.name} => $classifyingTypeExpr }"
             val ambientDefTypechecked = (error.definition as DataLocatedReferable).typechecked
             val l  = when (ambientDefinition) {
-                is ArendFunctionalDefinition -> ambientDefinition.nameTeleList.map { tele -> Pair(tele, tele.identifierOrUnknownList.size) }
-                is ArendDefData -> ambientDefinition.typeTeleList.map { tele -> Pair(tele, tele.typedExpr?.identifierOrUnknownList?.size ?: 1) }
+                is ArendFunctionDefinition -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.identifierOrUnknownList.size) }
+                is ArendDefData -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.typedExpr?.identifierOrUnknownList?.size ?: 1) }
                 else -> null
             }
             var anchor : PsiElement? = ambientDefinition.nameIdentifier

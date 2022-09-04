@@ -37,13 +37,8 @@ import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
-import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.PsiConcreteReferable
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.TCDefinition
-import org.arend.psi.ext.impl.ReferableAdapter
-import org.arend.psi.ext.impl.fillAdditionalNames
+import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendReferableConverter
@@ -372,7 +367,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private fun resetErrors(def: Referable, removeTCRef: Boolean) {
         if (removeTCRef) {
-            (def as? ReferableAdapter<*>)?.dropTCCache()
+            (def as? ReferableBase<*>)?.dropTCCache()
         }
         if (def is TCDefinition) {
             project.service<ErrorService>().clearTypecheckingErrors(def)
@@ -444,7 +439,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             removeDefinition(ref, removeTCRef)
         }
 
-        if ((referable as? ArendDefFunction)?.functionKw?.useKw != null) {
+        if ((referable as? ArendDefFunction)?.functionKind?.isUse == true) {
             (referable.parentGroup as? TCDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH, removeTCRef) }
         }
     }

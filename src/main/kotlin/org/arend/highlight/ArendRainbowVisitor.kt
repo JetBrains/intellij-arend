@@ -4,7 +4,8 @@ import com.intellij.codeInsight.daemon.RainbowVisitor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.descendants
-import org.arend.psi.*
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.*
 import org.arend.resolving.ArendPatternDefReferenceImpl
 
 class ArendRainbowVisitor : RainbowVisitor() {
@@ -13,7 +14,7 @@ class ArendRainbowVisitor : RainbowVisitor() {
     override fun clone() = ArendRainbowVisitor()
 
     override fun visit(function: PsiElement) {
-        if (function !is ArendDefinition) return
+        if (function !is ArendDefinition<*>) return
         val defIdentifier = function.defIdentifier
 
         fun addInfo(ident: PsiElement?, colorTag: String) {
@@ -23,14 +24,14 @@ class ArendRainbowVisitor : RainbowVisitor() {
         val bindingToUniqueName: Map<ArendDefIdentifier, String> = run {
             val allBindings = function.descendants(
                 canGoInside = { it !is ArendWhere }
-            ).filterIsInstance<ArendDefIdentifier>().asSequence()
-                .filter { it.name != null && it != defIdentifier }
+            ).filterIsInstance<ArendDefIdentifier>()
+                .filter { it != defIdentifier }
                 .filter {
                     val parent = it.parent ?: return@filter true
                     parent !is ArendConstructor && parent !is ArendClassField
                 }
                 .filter {
-                    val reference = it.reference ?: return@filter true
+                    val reference = it.reference
                     if (reference is ArendPatternDefReferenceImpl<*>) {
                         reference.resolve() == it
                     } else true
@@ -46,7 +47,7 @@ class ArendRainbowVisitor : RainbowVisitor() {
         for (path in function.descendants(
             canGoInside = { it !is ArendWhere }
         ).filterIsInstance<ArendRefIdentifier>()) {
-            val reference = path.reference ?: continue
+            val reference = path.reference
             val target = reference.resolve() as? ArendDefIdentifier ?: continue
             val colorTag = bindingToUniqueName[target] ?: return
             addInfo(path.referenceNameElement, colorTag)

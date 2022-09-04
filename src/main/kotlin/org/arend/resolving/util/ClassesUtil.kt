@@ -6,7 +6,7 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.psi.ArendLongName
+import org.arend.psi.ext.ArendLongName
 import org.arend.psi.ClassReferenceHolder
 import org.arend.term.abs.Abstract
 

@@ -16,9 +16,7 @@ import org.arend.psi.*
 import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.doc.ArendDocReference
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.*
 import org.arend.term.abs.Abstract
 
 
@@ -126,7 +124,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         wrapTag("b") {
             html(element.textRepresentation())
         }
-        (element as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text?.let {
+        (element as? ReferableBase<*>)?.alias?.aliasIdentifier?.id?.text?.let {
             html(" $it")
         }
 
@@ -154,9 +152,9 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
         getSuperType(element)?.let { append(it) }
 
-        (element as? ReferableAdapter<*>)?.getPrec()?.let { generatePrecedence(it) }
+        (element as? ReferableBase<*>)?.prec?.let { generatePrecedence(it) }
 
-        (element as? ReferableAdapter<*>)?.getAlias()?.let { alias ->
+        (element as? ReferableBase<*>)?.alias?.let { alias ->
             alias.prec?.let {
                 generatePrecedence(it)
                 html(" ${alias.aliasIdentifier?.id?.text ?: ""}")
@@ -186,7 +184,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         is ArendDefMeta -> "meta"
         is ArendLetClause -> "let"
         is ArendDefIdentifier -> if (element.parent is ArendLetClause) "let" else "variable"
-        is ArendPLevelIdentifier, is ArendHLevelIdentifier -> "level"
+        is ArendLevelIdentifier -> "level"
         is PsiFile -> "file"
         else -> null
     }

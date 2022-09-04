@@ -15,9 +15,8 @@ import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.*
-import org.arend.psi.ext.PsiConcreteReferable
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ancestor
+import org.arend.psi.ext.*
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteDefinitionVisitor
 import org.arend.typechecking.execution.TypecheckingEventsProcessor

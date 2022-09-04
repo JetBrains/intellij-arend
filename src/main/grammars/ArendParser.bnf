@@ -1,22 +1,15 @@
 {
+    generate = [
+        psi = 'no'
+    ]
+
     parserClass = "org.arend.parser.ArendParser"
     parserUtilClass = "org.arend.parser.ParserUtil"
     parserImports = ["static org.arend.parser.ParserMixin.recursion_guard_"]
 
-    implements = 'org.arend.psi.ext.ArendCompositeElement'
-    extends = 'org.arend.psi.ext.ArendCompositeElementImpl'
-
     elementTypeHolderClass = "org.arend.psi.ArendElementTypes"
-
     elementTypeClass = "org.arend.psi.ArendCompositeElementType"
     tokenTypeClass = "org.arend.psi.ArendTokenType"
-
-    psiClassPrefix = "Arend"
-    psiImplClassSuffix = "Impl"
-    psiPackage = "org.arend.psi"
-    psiImplPackage = "org.arend.psi.impl"
-
-    generateTokenAccessors = true
 
     tokens = [
         LBRACE              = '{'
@@ -127,10 +120,7 @@ private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | S
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
-stat ::= statCmd | definition | defModule | pLevelParams | hLevelParams | stat_recovery {
-    implements = "org.arend.psi.ext.impl.ArendStatement"
-    mixin = "org.arend.psi.ext.ArendStatImplMixin"
-}
+stat ::= statCmd | definition | defModule | pLevelParams | hLevelParams | stat_recovery
 
 private stat_recovery ::= statement_recover {
     recoverWhile = statement_recover
@@ -138,9 +128,6 @@ private stat_recovery ::= statement_recover {
 
 statCmd ::= (OPEN_KW | IMPORT_KW) ns_longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.NamespaceCommandHolder" ]
-    mixin = "org.arend.psi.ext.ArendStatCmdImplMixin"
 }
 
 private ns_longName ::= longName {
@@ -149,24 +136,14 @@ private ns_longName ::= longName {
 
 private ns_longName_recover ::= !(USING_KW | LPAREN | HIDING_KW) & statement_recover
 
-nsUsing ::= nsUsingUsing | nsUsingParams {
-  recoverWhile = nsUsing_recover
-}
-
-private nsUsingUsing ::= USING_KW nsUsingParams {
+nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN {
     pin = 1
-}
-
-private nsUsingParams ::= LPAREN <<comma_separated_sequence nsId>>? RPAREN {
-    pin = 1
+    recoverWhile = nsUsing_recover
 }
 
 private nsUsing_recover ::= !(LPAREN | HIDING_KW) & statement_recover
 
 nsId ::= ns_refIdentifier [AS_KW prec? defIdentifier] {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.NameRenaming" ]
-    mixin = "org.arend.psi.ext.ArendNsIdImplMixin"
     recoverWhile = nsId_recover
 }
 
@@ -199,40 +176,19 @@ private classFieldStat ::= (FIELD_KW | PROPERTY_KW) classField { pin = 1 }
 
 overriddenField ::= OVERRIDE_KW longName typeTele* COLON returnExpr {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.OverriddenField" ]
-    mixin = "org.arend.psi.ext.ArendOverriddenFieldImplMixin"
 }
 
 classField ::= [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
     pin = 6
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.psi.ext.impl.ArendInternalReferable"
-                   "org.arend.naming.reference.FieldReferable"
-                   "org.arend.term.abs.Abstract.ClassField" ]
-    mixin = "org.arend.psi.ext.impl.ClassFieldAdapter"
-    stubClass = "org.arend.psi.stubs.ArendClassFieldStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
 classImplement ::= localCoClausePrivate {
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.term.abs.Abstract.ClassFieldImpl"
-                   "org.arend.psi.CoClauseBase" ]
-    mixin = "org.arend.psi.ext.impl.ClassFieldImplAdapter"
-    stubClass = "org.arend.psi.stubs.ArendClassImplementStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-coClauseDef ::= nameTele* [functionType] coClauseBody? {
+coClauseDef ::= nameTele* functionType? coClauseBody? {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
-                   "org.arend.term.abs.Abstract.FunctionDefinition"
-                   "org.arend.psi.ext.PsiConcreteReferable"
-                   "org.arend.psi.ext.TCDefinition"
-                   "org.arend.psi.ext.impl.ArendGroup" ]
-    mixin = "org.arend.psi.ext.impl.CoClauseDefAdapter"
-    stubClass = "org.arend.psi.stubs.ArendCoClauseDefStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -241,7 +197,6 @@ coClauseBody ::= functionTermBody
     | elim clausesWithBraces? {
     pin(".*") = 1
     recoverWhile = coClauseBody_recover
-    implements = "org.arend.psi.ext.ArendFunctionalBody"
 }
 
 private coClauseBody_recover ::= !PIPE & statement_recover
@@ -250,59 +205,29 @@ definition ::= defFunction
     | defData
     | defClass
     | defMeta
-    | defInstance {
-    implements = [ "org.arend.psi.ext.PsiConcreteReferable"
-                   "org.arend.psi.ext.impl.ArendGroup" ]
-    mixin = "org.arend.psi.ext.impl.DefinitionAdapter"
-}
+    | defInstance
 
 defModule ::= MODULE_KW defIdentifier_module where? {
     pin = 1
-    implements = "org.arend.psi.ext.impl.ArendGroup"
-    mixin = "org.arend.psi.ext.impl.ModuleAdapter"
-    stubClass = "org.arend.psi.stubs.ArendDefModuleStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
 defMeta ::= META_KW prec? defIdentifier_func metaPLevels? metaHLevels? alias? [nameTeleUntyped* functionTermBody] where? {
     pin = 1
-    implements = "org.arend.psi.ext.impl.ArendGroup"
-    mixin = "org.arend.psi.ext.impl.MetaAdapter"
-    stubClass = "org.arend.psi.stubs.ArendDefMetaStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-metaPLevels ::= PLEVELS_KW metaPLevelsSeq { pin = 1 }
+private metaPLevels ::= PLEVELS_KW metaPLevelsSeq { pin = 1 }
 
-metaHLevels ::= HLEVELS_KW metaHLevelsSeq { pin = 1 }
+private metaHLevels ::= HLEVELS_KW metaHLevelsSeq { pin = 1 }
 
-metaPLevelsSeq ::= <<comma_separated_sequence pLevelIdentifier>>? {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.LevelParameters"
-                 ]
-    mixin = "org.arend.psi.ext.ArendMetaPLevelsSeqImplMixin"
-}
+metaPLevelsSeq ::= <<comma_separated_sequence pLevelIdentifier>>?
 
-metaHLevelsSeq ::= <<comma_separated_sequence hLevelIdentifier>>? {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.LevelParameters"
-                 ]
-    mixin = "org.arend.psi.ext.ArendMetaHLevelsSeqImplMixin"
-}
+metaHLevelsSeq ::= <<comma_separated_sequence hLevelIdentifier>>?
 
-pLevelIdentifier ::= ID {
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.naming.reference.LevelReferable"
-                   "org.arend.psi.ext.ArendReferenceElement" ]
-    mixin = "org.arend.psi.ext.ArendPLevelIdentifierImplMixin"
-}
+pLevelIdentifier ::= ID
 
-hLevelIdentifier ::= ID {
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.naming.reference.LevelReferable"
-                   "org.arend.psi.ext.ArendReferenceElement" ]
-    mixin = "org.arend.psi.ext.ArendHLevelIdentifierImplMixin"
-}
+hLevelIdentifier ::= ID
 
 private defIdentifier_module ::= defIdentifier {
     recoverWhile = defIdentifier_module_recover
@@ -312,32 +237,16 @@ private defIdentifier_module_recover ::= !ALIAS_KW & statement_recover
 
 defFunction ::= functionKw prec? defIdentifier_func pLevelParams? hLevelParams? alias? nameTele* functionType? functionBody? where? {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
-                   "org.arend.term.abs.Abstract.FunctionDefinition"
-                   "org.arend.psi.ext.TCDefinition"
-                   "org.arend.psi.ClassReferenceHolder" ]
-    mixin = "org.arend.psi.ext.impl.FunctionDefinitionAdapter"
-    stubClass = "org.arend.psi.stubs.ArendDefFunctionStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-pLevelParams ::= PLEVELS_KW pLevelParamsSeq { pin = 1 }
+private pLevelParams ::= PLEVELS_KW pLevelParamsSeq { pin = 1 }
 
-hLevelParams ::= HLEVELS_KW hLevelParamsSeq { pin = 1 }
+private hLevelParams ::= HLEVELS_KW hLevelParamsSeq { pin = 1 }
 
-pLevelParamsSeq ::= [pLevelIdentifier (levelCmp pLevelIdentifier)*] {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.LevelParameters"
-                 ]
-    mixin = "org.arend.psi.ext.ArendPLevelParamsSeqImplMixin"
-}
+pLevelParamsSeq ::= [pLevelIdentifier (levelCmp pLevelIdentifier)*]
 
-hLevelParamsSeq ::= [hLevelIdentifier (levelCmp hLevelIdentifier)*] {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.LevelParameters"
-                 ]
-    mixin = "org.arend.psi.ext.ArendHLevelParamsSeqImplMixin"
-}
+hLevelParamsSeq ::= [hLevelIdentifier (levelCmp hLevelIdentifier)*]
 
 functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | useMod
 
@@ -362,22 +271,13 @@ private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW
 
 defInstance ::= instanceOrCons prec? defIdentifier_func pLevelParams? hLevelParams? alias? nameTele* functionType? instanceBody? where? {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendFunctionalDefinition"
-                   "org.arend.term.abs.Abstract.FunctionDefinition"
-                   "org.arend.psi.ext.TCDefinition"
-                   "org.arend.psi.ClassReferenceHolder" ]
-    mixin = "org.arend.psi.ext.impl.InstanceAdapter"
-    stubClass = "org.arend.psi.stubs.ArendDefInstanceStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-instanceOrCons ::= INSTANCE_KW | CONS_KW
+private instanceOrCons ::= INSTANCE_KW | CONS_KW
 
 defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody? where? {
     pin = 1
-    implements = "org.arend.psi.ext.TCDefinition"
-    mixin = "org.arend.psi.ext.impl.DataDefinitionAdapter"
-    stubClass = "org.arend.psi.stubs.ArendDefDataStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -403,10 +303,6 @@ private truncatedKW ::= TRUNCATED_KW {
 }
 
 defClass ::= (defClassClass | defClassRecord) where? {
-    implements = [ "org.arend.naming.reference.ClassReferable"
-                   "org.arend.psi.ext.TCDefinition" ]
-    mixin = "org.arend.psi.ext.impl.ClassDefinitionAdapter"
-    stubClass = "org.arend.psi.stubs.ArendDefClassStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -418,9 +314,6 @@ private defClassHeader ::= prec? defIdentifier pLevelParams? hLevelParams? alias
 
 superClass ::= longName [maybeAtomLevelExprs maybeAtomLevelExprs?] {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.ReferenceExpression" ]
-    mixin = "org.arend.psi.ext.ArendSuperClassImplMixin"
 }
 
 functionBody ::= functionTermBody
@@ -429,8 +322,6 @@ functionBody ::= functionTermBody
     | functionClauses {
     pin(".*") = 1
     recoverWhile = statement_recover
-    implements = "org.arend.psi.ext.ArendFunctionalBody"
-    mixin = "org.arend.psi.ext.ArendFunctionBodyImplMixin"
 }
 
 instanceBody ::= functionTermBody
@@ -439,8 +330,6 @@ instanceBody ::= functionTermBody
     | coClauseReg+ {
     pin(".*") = 1
     recoverWhile = statement_recover
-    implements = "org.arend.psi.ext.ArendFunctionalBody"
-    mixin = "org.arend.psi.ext.ArendInstanceBodyImplMixin"
 }
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }
@@ -465,9 +354,6 @@ private def_recover ::= !(ID | LPAREN | assoc | CLASSIFYING_KW | COERCE_KW) & st
 
 constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | constructors) {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.ConstructorClause" ]
-    mixin = "org.arend.psi.ext.ArendConstructorClauseImplMixin"
 }
 
 private constructors ::= LBRACE pipe_def? constructor (<<piped constructor>>)* RBRACE { pin = 1 }
@@ -488,21 +374,16 @@ private statementList ::= LBRACE stat* RBRACE {
 
 pattern ::= pattern_sequence
 
-private pattern_sequence ::= atomPattern+ (private_typeAnnotation | asPattern?) {
+private pattern_sequence ::= atomPattern+ (typeAnnotation | asPattern?) {
     pin = 1
     recoverWhile=pattern_recover
 }
 
 private pattern_recover ::= !(RPAREN | RBRACE | FAT_ARROW | PIPE | COMMA) & statement_recover
 
-asPattern ::= AS_KW defIdentifier private_typeAnnotation? {
+asPattern ::= AS_KW defIdentifier typeAnnotation? {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.TypedReferable" ]
-    mixin = "org.arend.psi.ext.ArendAsPatternImplMixin"
 }
-
-private private_typeAnnotation ::= COLON expr { pin = 1 }
 
 atomPattern ::= atomic_pattern
     | tuple_pattern
@@ -524,12 +405,6 @@ implicit_pattern ::= LBRACE (atomic_pattern &RBRACE | pattern_sequence?) RBRACE 
 
 constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
     pin = 3
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.psi.ext.impl.ArendInternalReferable"
-                   "org.arend.term.abs.Abstract.Constructor"
-                   "org.arend.term.abs.Abstract.ConstructorClause" ]
-    mixin = "org.arend.psi.ext.impl.ConstructorAdapter"
-    stubClass = "org.arend.psi.stubs.ArendConstructorStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -543,10 +418,7 @@ private assoc ::= NON_ASSOC_KW | LEFT_ASSOC_KW | RIGHT_ASSOC_KW | INFIX_NON_KW |
 
 alias ::= ALIAS_KW prec? aliasIdentifier { pin = 1 }
 
-aliasIdentifier ::= ID {
-    implements = "org.arend.psi.ext.ArendCompositeElement"
-    mixin = "org.arend.psi.ext.ArendAliasIdentifierImplMixin"
-}
+aliasIdentifier ::= ID
 
 prec ::= assoc NUMBER { pin = 1 }
 
@@ -556,12 +428,7 @@ expr ::= arrExpr
     | lamExpr
     | letExpr
     | caseExpr
-    | newExpr {
-    implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.Expression"
-                   "org.arend.term.abs.Abstract.Parameter" ]
-    mixin = "org.arend.psi.ext.ArendExprImplMixin"
-}
+    | newExpr
 
 exprWOB ::= <<exprWOBImpl>> {
     elementType = expr
@@ -573,13 +440,11 @@ private expr_recover ::= !(LBRACE | RBRACE | RPAREN | IN_KW | ARROW | COMMA | PI
 arrExpr ::= expr ARROW expr {
     pin = 2
     rightAssociative = true
-    mixin = "org.arend.psi.ext.ArendArrExprImplMixin"
 }
 
 newExpr ::= appPrefix argumentAppExpr newExprTail withBody?
     | appExpr newExprTail withBody? {
     pin(".*") = 1
-    mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
     recoverWhile = expr_recover
 }
 
@@ -593,9 +458,6 @@ newExprWOB ::= appPrefix argumentAppExpr newExprTail
 
 withBody ::= WITH_KW clausesWithBraces {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.FunctionClauses" ]
-    mixin = "org.arend.psi.ext.ArendWithBodyImplMixin"
 }
 
 appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW {
@@ -615,29 +477,18 @@ private newExprTail ::= [LBRACE localCoClauseSequence RBRACE (argument | argumen
 universeExpr ::= universeAppExpr
     | setUniverseAppExpr
     | truncatedUniverseAppExpr
-    | PROP_KW {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendUniverseExprImplMixin"
-}
+    | PROP_KW
 
 appExpr ::= universeAppExpr
     | setUniverseAppExpr
     | truncatedUniverseAppExpr
     | argumentAppExpr {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendAppExprImplMixin"
     recoverWhile = expr_recover
 }
 
-caseExpr ::= casePrefix caseOpt <<comma_separated_sequence caseArg>> returnCaseExpr? withBody? {
+caseExpr ::= [EVAL_KW | PEVAL_KW] (CASE_KW | SCASE_KW) <<comma_separated_sequence caseArg>> returnCaseExpr? withBody? {
     pin = 2
-    implements = "org.arend.term.abs.Abstract.CaseArgumentsHolder"
-    mixin = "org.arend.psi.ext.ArendCaseExprImplMixin"
 }
-
-casePrefix ::= [EVAL_KW | PEVAL_KW]
-
-caseOpt ::= CASE_KW | SCASE_KW
 
 private returnCaseExpr ::= RETURN_KW returnExprWOB {
     pin = 1
@@ -648,15 +499,12 @@ private returnCaseExpr_recover ::= !WITH_KW & expr_recover
 
 caseArg ::= caseArgExprAs [COLON exprWOB] {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.CaseArgument" ]
-    mixin = "org.arend.psi.ext.ArendCaseArgImplMixin"
     recoverWhile = caseArg_recover
 }
 
 private caseArg_recover ::= !(COMMA | RETURN_KW | WITH_KW) & expr_recover
 
-caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier]
+private caseArgExprAs ::= caseArgExpr [AS_KW defIdentifier]
     | ELIM_KW (refIdentifier | APPLY_HOLE) {
     pin(".*") = 1
     recoverWhile = caseArgExprAs_recover
@@ -672,7 +520,6 @@ private caseArgExpr_recover ::= !(AS_KW | COLON) & expr_recover
 
 piExpr ::= PI_KW typeTele+ ARROW expr {
     pin = 1
-    mixin = "org.arend.psi.ext.ArendPiExprImplMixin"
 }
 
 //noinspection BnfUnusedRule
@@ -683,12 +530,10 @@ piExprWOB ::= PI_KW typeTele+ ARROW exprWOB {
 
 sigmaExpr ::= SIGMA_KW sigmaTypeTele* {
     pin = 1
-    mixin = "org.arend.psi.ext.ArendSigmaExprImplMixin"
 }
 
 lamExpr ::= LAM_KW lamParam+ [FAT_ARROW expr?] {
     pin = 1
-    mixin = "org.arend.psi.ext.ArendLamExprImplMixin"
 }
 
 //noinspection BnfUnusedRule
@@ -697,11 +542,7 @@ lamExprWOB ::= LAM_KW lamParam+ [FAT_ARROW exprWOB?] {
     elementType = lamExpr
 }
 
-lamParam ::= lamTele | atomPattern {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.LamParameter" ]
-    extends = "org.arend.psi.ext.ArendLamParameterImplMixin"
-}
+lamParam ::= lamTele | atomPattern
 
 private pipe_def_un ::= PIPE {
     recoverWhile = def_un_recover
@@ -711,7 +552,6 @@ private def_un_recover ::= !(ID | UNDERSCORE | LPAREN | assoc) & statement_recov
 
 letExpr ::= (HAVE_KW | LET_KW | HAVES_KW | LETS_KW) pipe_def_un? letClause (pipe_def_un letClause)* [IN_KW expr?] {
     pin = 1
-    mixin = "org.arend.psi.ext.ArendLetExprImplMixin"
 }
 
 //noinspection BnfUnusedRule
@@ -740,19 +580,11 @@ private pipe_seq_recover ::= !(PIPE | RBRACE) & statement_recover
 
 clause ::= <<comma_separated_sequence pattern>> [FAT_ARROW expr] {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.FunctionClause" ]
-    mixin = "org.arend.psi.ext.ArendClauseImplMixin"
     methods = [ pattern="" ]
     recoverWhile = pipe_seq_recover
 }
 
-coClause ::= longName (coClauseRec | coClauseImpl | [AS_KW prec? defIdentifier] coClauseDef?) {
-    implements = [ "org.arend.psi.CoClauseBase"
-                   "org.arend.term.abs.Abstract.CoClauseFunctionReference"
-                   "org.arend.psi.ext.impl.ArendStatement" ]
-    mixin = "org.arend.psi.ext.ArendCoClauseImplMixin"
-}
+coClause ::= longName (coClauseRec | coClauseImpl | [AS_KW prec? defIdentifier] coClauseDef?)
 
 private coClauseReg ::= PIPE coClause {
     pin = 1
@@ -761,9 +593,6 @@ private coClauseReg ::= PIPE coClause {
 
 localCoClause ::= PIPE localCoClausePrivate {
     pin = 1
-    implements = [ "org.arend.psi.CoClauseBase"
-                   "org.arend.term.abs.Abstract.ClassFieldImpl" ]
-    mixin = "org.arend.psi.ext.ArendLocalCoClauseImplMixin"
     recoverWhile = pipe_seq_recover
 }
 
@@ -781,9 +610,6 @@ private coClauseRec ::= LBRACE coClauseImp* RBRACE
 
 letClause ::= letClauseName typeAnnotation? FAT_ARROW expr {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.LetClause" ]
-    mixin = "org.arend.psi.ext.ArendLetClauseImplMixin"
     methods = [ pattern = "" ]
 }
 
@@ -795,15 +621,12 @@ private defIdentifier_letClause ::= defIdentifier {
 
 private defIdentifier_letClause_recover ::= !(COLON | FAT_ARROW | IN_KW) & nameTele_first & statement_recover
 
-typeAnnotation ::= COLON expr { pin = 1 }
+private typeAnnotation ::= COLON expr { pin = 1 }
 
 levelExpr ::= atomLevelExpr
     | SUC_KW atomLevelExpr
     | MAX_KW atomLevelExpr atomLevelExpr {
     pin(".*") = 1
-    implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.arend.psi.ext.ArendLevelExprImplMixin"
     recoverWhile = levelExpr_recover
 }
 
@@ -817,24 +640,18 @@ atomLevelExpr ::= LP_KW
     | refIdentifier
     | LPAREN levelExpr RPAREN {
     pin(".*") = 1
-    implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.arend.psi.ext.ArendAtomLevelExprImplMixin"
 }
 
 universeAppExpr ::= UNIVERSE [maybeAtomLevelExpr maybeAtomLevelExpr?] {
     pin = 1
-    mixin = "org.arend.psi.ext.ArendUniverseAppExprImplMixin"
 }
 
 setUniverseAppExpr ::= SET maybeAtomLevelExpr? {
     pin = 1
-    mixin = "org.arend.psi.ext.ArendSetUniverseAppExprImplMixin"
 }
 
 truncatedUniverseAppExpr ::= TRUNCATED_UNIVERSE maybeAtomLevelExpr? {
     pin = 1
-    mixin = "org.arend.psi.ext.ArendTruncatedUniverseAppExprImplMixin"
 }
 
 onlyLevelExpr ::= atomOnlyLevelExpr
@@ -843,70 +660,48 @@ onlyLevelExpr ::= atomOnlyLevelExpr
     pin(".*") = 1
     implements = [ "org.arend.psi.ext.ArendSourceNode"
                    "org.arend.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.arend.psi.ext.ArendOnlyLevelExprImplMixin"
 }
 
 levelsExpr ::= levelsLevels | LPAREN levelsExpr RPAREN
 
 maybeAtomLevelExpr ::= atomLevelExpr | UNDERSCORE
 
-maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | maybeAtomLevelExpr {
-    mixin = "org.arend.psi.ext.ArendTopLevelLevelExpr"
-}
+maybeAtomLevelExprs ::= LPAREN <<comma_separated_sequence levelExpr>>? RPAREN | maybeAtomLevelExpr
 
 private levelsLevels ::= LEVELS_KW maybeAtomLevelExprs maybeAtomLevelExprs { pin = 1 }
 
 atomOnlyLevelExpr ::= LP_KW
     | LH_KW
     | OO_KW
-    | LPAREN onlyLevelExpr RPAREN {
-    implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.LevelExpression" ]
-    mixin = "org.arend.psi.ext.ArendAtomOnlyLevelExprImplMixin"
-}
+    | LPAREN onlyLevelExpr RPAREN
 
 argumentAppExpr ::= (longNameExpr | atomFieldsAcc) (argument | argumentRecovery)* {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendArgumentAppExprImplMixin"
     name = "defCall"
 }
 
 longNameExpr ::= longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) {
     pin = 2
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendLongNameExprImplMixin"
 }
 
-fieldAcc ::= DOT NUMBER { pin = 1 }
+private fieldAcc ::= DOT NUMBER { pin = 1 }
 
 atom ::= literal
     | tuple
     | NEGATIVE_NUMBER
     | NUMBER
-    | THIS_KW {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendAtomImplMixin"
-}
+    | THIS_KW
 
-tuple ::= LPAREN <<comma_separated_sequence_trail tupleExpr>>? RPAREN {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendTupleImplMixin"
-}
+tuple ::= LPAREN <<comma_separated_sequence_trail tupleExpr>>? RPAREN
 
 tupleExpr ::= expr [COLON expr] {
     pin = 1
     recoverWhile = tupleExpr_recover
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.Expression" ]
-    mixin = "org.arend.psi.ext.ArendTupleExprImplMixin"
 }
 
 private tupleExpr_recover ::= !(RPAREN | RBRACE | COMMA) & statement_recover
 
 atomFieldsAcc ::= atom fieldAcc* {
     pin = 1
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendAtomFieldsAccImplMixin"
     recoverWhile = argument_recover
 }
 
@@ -916,23 +711,13 @@ argument ::= atomArgument
     | implicitArgument
     | lamArgument
     | letArgument
-    | caseArgument {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.Argument"
-                   "org.arend.term.abs.Abstract.BinOpSequenceElem" ]
-}
+    | caseArgument
 
-lamArgument ::= lamExpr {
-    mixin = "org.arend.psi.ext.ArendLamArgumentImplMixin"
-}
+lamArgument ::= lamExpr
 
-caseArgument ::= caseExpr {
-    mixin = "org.arend.psi.ext.ArendCaseArgumentImplMixin"
-}
+caseArgument ::= caseExpr
 
-letArgument ::= letExpr {
-    mixin = "org.arend.psi.ext.ArendLetArgumentImplMixin"
-}
+letArgument ::= letExpr
 
 private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
@@ -940,34 +725,19 @@ private argumentRecovery ::= argument_recover {
 
 private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW | LET_KW | LETS_KW | HAVE_KW | HAVES_KW | STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
-atomArgument ::= atomFieldsAcc {
-    implements = "org.arend.psi.ext.ArendCompositeElement"
-    mixin = "org.arend.psi.ext.ArendAtomArgumentImplMixin"
-}
+atomArgument ::= atomFieldsAcc
 
-implicitArgument ::= LBRACE <<comma_separated_sequence_trail tupleExpr>> RBRACE {
-    implements = "org.arend.psi.ext.ArendCompositeElement"
-    mixin = "org.arend.psi.ext.ArendImplicitArgumentImplMixin"
-}
+implicitArgument ::= LBRACE <<comma_separated_sequence_trail tupleExpr>> RBRACE
 
 newArg ::= appPrefix argumentAppExpr [LBRACE localCoClauseSequence RBRACE] {
     pin = 1
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendNewExprImplMixin"
 }
 
 longName ::= refIdentifier (DOT refIdentifier)* {
     pin = 1
-    implements = [ "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.LongReference"
-                   "org.arend.psi.ext.ArendReferenceContainer"]
-    mixin = "org.arend.psi.ext.ArendLongNameImplMixin"
 }
 
-IPName ::= INFIX | POSTFIX {
-    implements = "org.arend.psi.ext.ArendReferenceElement"
-    mixin = "org.arend.psi.ext.ArendIPNameImplMixin"
-}
+IPName ::= INFIX | POSTFIX
 
 private longNameIP ::= longName [DOT IPName] { pin = 1 }
 
@@ -977,15 +747,9 @@ literal ::= longNameIP
     | UNDERSCORE
     | STRING
     | IPName
-    | goal {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendLiteralImplMixin"
-}
+    | goal
 
-goal ::= TGOAL | lGoal {
-    implements = "org.arend.psi.ext.PsiReferable"
-    mixin = "org.arend.psi.ext.PsiReferableImpl"
-}
+goal ::= TGOAL | lGoal
 
 private lGoal ::= LGOAL defIdentifier_goal? [LPAREN expr? RPAREN] RBRACE { pin = 1 }
 
@@ -997,32 +761,19 @@ private defIdentifier_goal_recover ::= !(LPAREN | RBRACE) & statement_recover
 
 universeAtom ::= SET
     | UNIVERSE
-    | TRUNCATED_UNIVERSE {
-    implements = "org.arend.psi.ArendExpr"
-    mixin = "org.arend.psi.ext.ArendUniverseAtomImplMixin"
-}
+    | TRUNCATED_UNIVERSE
 
 nameTele ::= identifierOrUnknown
     | nameTeleExplicit
     | nameTeleImplicit {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.Parameter" ]
-    mixin = "org.arend.psi.ext.ArendNameTeleImplMixin"
     recoverWhile = nameTele_recover
 }
 
 lamTele ::= identifierOrUnknown
     | LPAREN identifierOrUnknown+ COLON expr RPAREN
-    | LBRACE (identifierOrUnknown [identifierOrUnknown* COLON expr]) RBRACE {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.Parameter" ]
-    mixin = "org.arend.psi.ext.ArendLamTeleImplMixin"
-}
+    | LBRACE (identifierOrUnknown [identifierOrUnknown* COLON expr]) RBRACE
 
 nameTeleUntyped ::= defIdentifier {
-    implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                   "org.arend.term.abs.Abstract.Parameter" ]
-    mixin = "org.arend.psi.ext.ArendNameTeleUntypedImplMixin"
     recoverWhile = nameTeleUntyped_recover
 }
 
@@ -1036,11 +787,7 @@ private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
 private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN) & expr_recover
 
-fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery {
-        implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                       "org.arend.term.abs.Abstract.FieldParameter" ]
-        mixin = "org.arend.psi.ext.ArendFieldTeleImplMixin"
-    }
+fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery
 
 private fieldTeleExplicit ::= LPAREN [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
@@ -1055,9 +802,6 @@ private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN | PIPE)
 sigmaTypeTele ::= literal
     | universeAtom
     | typedSigmaTele {
-        implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                       "org.arend.term.abs.Abstract.SigmaParameter" ]
-        mixin = "org.arend.psi.ext.ArendSigmaTypeTeleImplMixin"
         name = "sigma parameters"
         recoverWhile = typeTele_recover
     }
@@ -1066,9 +810,6 @@ typeTele ::= literal
     | universeAtom
     | typedTeleExplicit
     | typedTeleImplicit {
-        implements = [ "org.arend.psi.ext.ArendCompositeElement"
-                       "org.arend.term.abs.Abstract.Parameter" ]
-        mixin = "org.arend.psi.ext.ArendTypeTeleImplMixin"
         name = "parameters"
         recoverWhile = typeTele_recover
     }
@@ -1088,36 +829,19 @@ private typedExprNamed ::= identifierOrUnknown+ COLON expr { pin = 2 }
 identifierOrUnknown ::= defIdentifier | UNDERSCORE
 
 fieldDefIdentifier ::= defIdentifier {
-    implements = [ "org.arend.psi.ext.PsiLocatedReferable"
-                   "org.arend.psi.ext.impl.ArendInternalReferable"
-                   "org.arend.term.abs.Abstract.ClassField"
-                   "org.arend.naming.reference.FieldReferable"
-                   "org.arend.psi.ext.ArendReferenceElement" ]
-    mixin = "org.arend.psi.ext.impl.FieldDefIdentifierAdapter"
-    stubClass = "org.arend.psi.stubs.ArendClassFieldParamStub"
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
     recoverWhile = fieldDefIdentifier_recover
 }
 
 private fieldDefIdentifier_recover ::= !(COLON | ID | EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN) & topStatement_recover
 
-defIdentifier ::= ID {
-    implements = [ "org.arend.psi.ext.PsiReferable"
-                   "org.arend.psi.ext.ArendReferenceElement" ]
-    mixin = "org.arend.psi.ext.ArendDefIdentifierImplMixin"
-}
+defIdentifier ::= ID
 
 private defIdentifier_typeTele ::= defIdentifier {
     recoverWhile = typeTele_recover
 }
 
-refIdentifier ::= ID {
-    implements = [ "org.arend.psi.ext.PsiReferable"
-                   "org.arend.psi.ext.ArendReferenceElement"
-                   "org.arend.psi.ext.ArendSourceNode"
-                   "org.arend.term.abs.Abstract.Reference" ]
-    mixin = "org.arend.psi.ext.ArendRefIdentifierImplMixin"
-}
+refIdentifier ::= ID
 
 private meta comma_separated_sequence ::= <<p>> (COMMA <<p>>)* { pin(".*") = 1 }
 

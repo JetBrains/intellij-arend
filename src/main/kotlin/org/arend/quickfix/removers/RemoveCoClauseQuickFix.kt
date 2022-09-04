@@ -6,8 +6,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.elementType
-import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.PIPE
+import org.arend.psi.deleteChildRangeWithNotification
+import org.arend.psi.deleteWithNotification
+import org.arend.psi.ext.ArendFunctionBody
+import org.arend.psi.ext.CoClauseBase
+import org.arend.psi.findPrevSibling
 import org.arend.refactoring.moveCaretToStartOffset
 import org.arend.util.ArendBundle
 
@@ -29,6 +33,6 @@ class RemoveCoClauseQuickFix(private val coClauseRef: SmartPsiElementPointer<CoC
             parent.deleteChildRangeWithNotification(pipe, coClause)
         } else coClause.deleteWithNotification()
 
-        if ((parent is ArendFunctionBody || parent is ArendInstanceBody) && parent.firstChild == null) parent.deleteWithNotification()
+        if (parent is ArendFunctionBody && parent.firstChild == null) parent.deleteWithNotification()
     }
 }

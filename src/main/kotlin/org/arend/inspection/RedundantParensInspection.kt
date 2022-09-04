@@ -5,6 +5,7 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
@@ -12,9 +13,7 @@ import com.intellij.util.castSafelyTo
 import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
-import org.arend.psi.parser.api.ArendPattern
-import org.arend.psi.ext.ArendFunctionalBody
-import org.arend.psi.ext.ArendReferenceContainer
+import org.arend.psi.ext.*
 import org.arend.refactoring.psiOfConcrete
 import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
@@ -23,10 +22,11 @@ import org.arend.util.appExprToConcrete
 import org.arend.util.isBinOp
 
 class RedundantParensInspection : ArendInspectionBase() {
-    override fun buildArendVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): ArendVisitor {
-        return object : ArendVisitor() {
-            override fun visitTuple(tuple: ArendTuple) {
-                super.visitTuple(tuple)
+    override fun buildArendVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
+        return object : PsiElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                super.visitElement(element)
+                val tuple = element as? ArendTuple ?: return
                 val expression = unwrapParens(tuple) ?: return
                 if (neverNeedsParens(expression) ||
                     isCommonRedundantParensPattern(tuple, expression) ||
@@ -61,11 +61,11 @@ private fun isAtomic(argumentAppExpr: ArendArgumentAppExpr): Boolean =
 private fun hasNoLevelArguments(argumentAppExpr: ArendArgumentAppExpr): Boolean {
     val longNameExpr = argumentAppExpr.longNameExpr
     // Excludes cases like `f (Path \levels 0 0) 1`, `f (Path \lp \lh) 1`
-    return longNameExpr == null || longNameExpr.levelsExpr == null && longNameExpr.atomOnlyLevelExprList.isEmpty()
+    return longNameExpr == null || longNameExpr.levelsExpr == null && longNameExpr.pLevelExpr == null
 }
 
 private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
-    if (atomFieldsAcc.fieldAccList.isNotEmpty()) {
+    if (atomFieldsAcc.numberList.isNotEmpty()) {
         return false
     }
     val literal = atomFieldsAcc.atom.literal ?: return false
@@ -88,7 +88,7 @@ private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
     tuple.parent.castSafelyTo<ArendAtom>()
         ?.parent.castSafelyTo<ArendAtomFieldsAcc>()
         // Excludes cases like `(f a).1`
-        ?.takeIf { it.fieldAccList.isEmpty() }
+        ?.takeIf { it.numberList.isEmpty() }
 
 private fun isRedundantParensForAnyChild(parent: PsiElement?) =
     parent is ArendReturnExpr ||
@@ -97,7 +97,7 @@ private fun isRedundantParensForAnyChild(parent: PsiElement?) =
             parent is ArendFieldTele ||
             parent is ArendTypedExpr ||
             // Bodies, Clauses, CoClauses
-            parent is ArendFunctionalBody ||
+            parent is ArendFunctionBody ||
             parent is ArendDefMeta ||
             parent is ArendClause ||
             parent is CoClauseBase ||
@@ -107,10 +107,8 @@ private fun isRedundantParensForAnyChild(parent: PsiElement?) =
             // Expressions
             parent is ArendPiExpr ||
             parent is ArendLamExpr ||
-            parent is ArendLamTele ||
             parent is ArendLetExpr ||
-            parent is ArendLetClause ||
-            parent is ArendTypeAnnotation
+            parent is ArendLetClause
 
 private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: ArendExpr): Boolean {
     if (parent.colon != null) {

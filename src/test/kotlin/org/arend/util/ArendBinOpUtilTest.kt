@@ -3,9 +3,9 @@ package org.arend.util
 import com.intellij.psi.PsiElement
 import com.intellij.util.castSafelyTo
 import org.arend.ArendTestBase
-import org.arend.psi.ArendArgumentAppExpr
 import org.arend.psi.childOfType
-import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.ext.ArendArgumentAppExpr
+import org.arend.psi.ext.ArendFunctionDefinition
 import org.arend.psi.parentOfType
 import org.arend.term.concrete.Concrete
 
@@ -13,7 +13,7 @@ class ArendBinOpUtilsTest : ArendTestBase() {
     private fun testParseBinOp(file: String, result: String) {
         InlineFile(file)
         val element = myFixture.findElementByText("test", PsiElement::class.java)
-        val appExprPsi = element.parentOfType<ArendFunctionalDefinition>()?.body?.expr?.childOfType<ArendArgumentAppExpr>()!!
+        val appExprPsi = element.parentOfType<ArendFunctionDefinition<*>>()?.body?.expr?.childOfType<ArendArgumentAppExpr>()!!
         val appExpr = appExprToConcrete(appExprPsi) as Concrete.AppExpression
         val functionText = appExpr.function.data.castSafelyTo<PsiElement>()?.text!!
         val firstArgText = appExpr.arguments[0].expression.data.castSafelyTo<PsiElement>()?.text!!

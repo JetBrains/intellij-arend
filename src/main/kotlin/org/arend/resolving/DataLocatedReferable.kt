@@ -10,8 +10,8 @@ import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.impl.CoClauseDefAdapter
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.ArendCoClauseDef
+import org.arend.psi.ext.ReferableBase
 import org.arend.psi.ext.moduleTextRepresentationImpl
 import org.arend.psi.ext.positionTextRepresentationImpl
 import org.arend.typechecking.TypeCheckingService
@@ -23,7 +23,7 @@ open class DataLocatedReferable(
     private var psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
     referable: LocatedReferable,
     parent: LocatedReferable?
-) : LocatedReferableImpl(if (referable is CoClauseDefAdapter && referable.parentCoClause?.prec == null) null else referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
+) : LocatedReferableImpl(if (referable is ArendCoClauseDef && referable.parentCoClause?.prec == null) null else referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
 
     private var alias = referable.aliasName?.let { Alias(it, referable.aliasPrecedence) }
 
@@ -38,11 +38,11 @@ open class DataLocatedReferable(
             return super.getPrecedence()
         } else {
             val ref = underlyingReferable
-            if (ref == this || ref !is CoClauseDefAdapter) {
+            if (ref == this || ref !is ArendCoClauseDef) {
                 return super.getPrecedence()
             }
-            val prec = ref.getPrec() ?: return super.getPrecedence()
-            val result = ReferableAdapter.calcPrecedence(prec)
+            val prec = ref.prec ?: return super.getPrecedence()
+            val result = ReferableBase.calcPrecedence(prec)
             precedence = result
             return result
         }

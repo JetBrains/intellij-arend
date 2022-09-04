@@ -10,7 +10,11 @@ import com.intellij.refactoring.move.moveFilesOrDirectories.MoveFileHandler
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
 import org.arend.module.ArendModuleType
-import org.arend.psi.*
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ext.ArendLongName
+import org.arend.psi.ext.ArendRefIdentifier
+import org.arend.psi.module
 import org.arend.util.FileUtils
 import org.arend.util.getRelativePath
 

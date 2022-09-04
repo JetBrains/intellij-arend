@@ -6,11 +6,9 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
-import com.intellij.psi.util.PsiTreeUtil
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
-import org.arend.psi.parser.api.ArendPattern
 import org.arend.psi.doc.ArendDocComment
 import org.arend.resolving.ArendDefReferenceImpl
 import org.arend.resolving.ArendPatternDefReferenceImpl
@@ -18,6 +16,7 @@ import org.arend.resolving.ArendReference
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
+import org.arend.term.NamespaceCommand
 import org.arend.term.abs.Abstract
 import org.arend.util.mapUntilNotNull
 
@@ -48,7 +47,7 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
         val parent = parent
         val pParent = parent?.parent
         if (pParent is ArendNameTele) {
-            val function = parent.parent.parent
+            val function = pParent.parent
             var prevSibling = function.parent.prevSibling
             if (prevSibling is PsiWhiteSpace) prevSibling = prevSibling.prevSibling
             val docComment = prevSibling as? ArendDocComment
@@ -57,9 +56,8 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
 
         if (parent is ArendLetClause ||
             (pParent as? ArendTypedExpr)?.parent is ArendTypeTele ||
-            pParent is ArendLamTele ||
             parent is ArendPattern ||
-            parent is ArendCaseArg || parent is ArendCaseArgExprAs ||
+            parent is ArendCaseArg ||
             parent is ArendLongName) {
 
             getTopmostExpression(parent)?.let {
@@ -93,7 +91,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
 
     override fun getTypeClassReference(): ClassReferable? {
         val parent = parent
-        return if (parent is ArendLetClauseImplMixin) {
+        return if (parent is ArendLetClause) {
             parent.typeClassReference
         } else {
             (typeOf as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
@@ -105,28 +103,37 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
     override val typeOf: Abstract.Expression?
         get() = when (val parent = parent) {
             is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
-            is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.expr
+            is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.type
             is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
-            is ArendAsPattern -> parent.expr
+            is ArendAsPattern -> parent.type
             else -> null
         }
 
     override val psiElementType: PsiElement?
         get() {
             return when (val parent = parent) {
-                is ArendLetClause -> parent.typeAnnotation?.expr
+                is ArendLetClause -> parent.resultType
                 is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
                 else -> null
             }
         }
 }
 
-abstract class ArendDefIdentifierImplMixin(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR), ArendDefIdentifier {
+class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR) {
+    val id: PsiElement
+        get() = getChildOfTypeStrict(ArendElementTypes.ID)
+
     override val referenceName: String
         get() = id.text
 }
 
-abstract class ArendLevelIdentifierBase(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable, LevelReferable {
+class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable, LevelReferable, ArendReferenceElement {
+    val id: PsiElement
+        get() = getChildOfTypeStrict(ArendElementTypes.ID)
+
+    override val referenceName: String
+        get() = id.text
+
     override val defIdentifier: ArendDefIdentifier? = null
 
     override fun getData() = this
@@ -149,8 +156,7 @@ abstract class ArendLevelIdentifierBase(node: ASTNode, refKind: Referable.RefKin
             synchronized(parent) {
                 tcReferableCache ?: run {
                     val file = (if (parent.isValid) parent.containingFile as? ArendFile else null) ?: return@run null
-                    val list: List<PsiLocatedReferable> = PsiTreeUtil.getChildrenOfTypeAsList(parent, if (refKind == Referable.RefKind.PLEVEL) ArendPLevelIdentifier::class.java else ArendHLevelIdentifier::class.java)
-                            .let { if (it.isEmpty()) listOf(this) else it }
+                    val list = parent.getChildrenOfType<ArendLevelIdentifier>().ifEmpty { listOf(this) }
                     val index = list.indexOf(this).let { if (it == -1) 0 else it }
                     val longName = list.first().refLongName
                     val tcRefMap = file.getTCRefMap(refKind)
@@ -164,7 +170,7 @@ abstract class ArendLevelIdentifierBase(node: ASTNode, refKind: Referable.RefKin
                     val locatedParent = locatedReferableParent
                     val actualParent = if (locatedParent is ArendFile) locatedParent.moduleLocation?.let { FullModuleReferable(it) } else locatedParent?.tcReferable
                     val tcList = ArrayList<TCLevelReferable>(list.size)
-                    val levelDef = LevelDefinition(refKind == Referable.RefKind.PLEVEL, PsiTreeUtil.getChildOfType(parent, ArendLevelCmp::class.java)?.lessOrEquals == null, tcList, actualParent)
+                    val levelDef = LevelDefinition(refKind == Referable.RefKind.PLEVEL, parent.getChildOfType<ArendLevelCmp>()?.isIncreasing != false, tcList, actualParent)
                     for (ref in list) {
                         tcList.add(TCLevelReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer<PsiLocatedReferable>(ref, file), ref.refName, levelDef))
                     }
@@ -176,17 +182,10 @@ abstract class ArendLevelIdentifierBase(node: ASTNode, refKind: Referable.RefKin
         }
 }
 
-abstract class ArendPLevelIdentifierImplMixin(node: ASTNode) : ArendLevelIdentifierBase(node, Referable.RefKind.PLEVEL), ArendPLevelIdentifier {
-    override val referenceName: String
-        get() = id.text
-}
+class ArendRefIdentifier(node: ASTNode) : ArendIdentifierBase(node), ArendSourceNode, Abstract.Reference {
+    val id: PsiElement
+        get() = getChildOfTypeStrict(ArendElementTypes.ID)
 
-abstract class ArendHLevelIdentifierImplMixin(node: ASTNode) : ArendLevelIdentifierBase(node, Referable.RefKind.HLEVEL), ArendHLevelIdentifier {
-    override val referenceName: String
-        get() = id.text
-}
-
-abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(node), ArendRefIdentifier {
     override val referenceName: String
         get() = id.text
 
@@ -197,10 +196,10 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
     override val resolve: PsiElement?
         get() = reference.resolve()
 
-    override val unresolvedReference: UnresolvedReference?
+    override val unresolvedReference: UnresolvedReference
         get() = referent
 
-    override fun setName(name: String): PsiElement? =
+    override fun setName(name: String): PsiElement =
         this.replaceWithNotification(ArendPsiFactory(project).createRefIdentifier(name))
 
     override fun getData() = this
@@ -210,9 +209,9 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
     override fun getReference(): ArendReference {
         val parent = parent
         val parentLongName = parent as? ArendLongName
-        val isImport = (parentLongName?.parent as? ArendStatCmd)?.importKw != null
+        val isImport = (parentLongName?.parent as? ArendStatCmd)?.kind == NamespaceCommand.Kind.IMPORT
         val last = if (isImport) parentLongName?.refIdentifierList?.lastOrNull() else null
-        return ArendReferenceImpl<ArendRefIdentifier>(this, last != null && last != this, if (parent is ArendAtomLevelExpr) (if (ancestors.filterIsInstance<ArendTopLevelLevelExpr>().firstOrNull()?.isPLevels() != false) Referable.RefKind.PLEVEL else Referable.RefKind.HLEVEL) else Referable.RefKind.EXPR)
+        return ArendReferenceImpl(this, last != null && last != this, if (parent is ArendAtomLevelExpr) (if (ancestors.filterIsInstance<ArendTopLevelLevelExpr>().firstOrNull()?.isPLevels() != false) Referable.RefKind.PLEVEL else Referable.RefKind.HLEVEL) else Referable.RefKind.EXPR)
     }
 
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
@@ -220,9 +219,12 @@ abstract class ArendRefIdentifierImplMixin(node: ASTNode) : ArendIdentifierBase(
     override fun getParentSourceNode() = getParentSourceNode(this)
 }
 
-abstract class ArendAliasIdentifierImplMixin(node: ASTNode) : ArendCompositeElementImpl(node), PsiNameIdentifierOwner {
+class ArendAliasIdentifier(node: ASTNode) : ArendCompositeElementImpl(node), PsiNameIdentifierOwner {
+    val id: PsiElement
+        get() = getChildOfTypeStrict(ArendElementTypes.ID)
+
     override fun getNameIdentifier(): PsiElement? = firstChild
 
-    override fun setName(name: String): PsiElement? =
-            this.replaceWithNotification(ArendPsiFactory(project).createAliasIdentifier(name))
+    override fun setName(name: String): PsiElement =
+        replaceWithNotification(ArendPsiFactory(project).createAliasIdentifier(name))
 }

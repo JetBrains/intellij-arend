@@ -2,10 +2,10 @@ package org.arend.refactoring
 
 import com.intellij.lang.refactoring.RefactoringSupportProvider
 import com.intellij.psi.PsiElement
-import org.arend.psi.ArendDefIdentifier
+import org.arend.psi.ext.ArendDefIdentifier
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendLetClause
-import org.arend.psi.ArendRefIdentifier
+import org.arend.psi.ext.ArendLetClause
+import org.arend.psi.ext.ArendRefIdentifier
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.changeSignature.ArendChangeSignatureHandler
 

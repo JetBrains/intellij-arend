@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.panel
@@ -19,8 +18,9 @@ import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.naming.reference.TCDefReferable
-import org.arend.psi.*
+import org.arend.psi.ext.*
 import org.arend.psi.ArendElementTypes.NO_CLASSIFYING_KW
+import org.arend.psi.findNextSibling
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
@@ -59,20 +59,20 @@ class ArendParametersInlayProvider : InlayHintsProvider<ArendParametersInlayProv
         return object : FactoryInlayHintsCollector(editor) {
             override fun collect(element: PsiElement, editor: Editor, sink: InlayHintsSink): Boolean {
                 if (element !is ArendDefIdentifier) return true
-                val arendDef = element.parent as? ArendDefinition ?: return true
+                val arendDef = element.parent as? ArendDefinition<*> ?: return true
                 val def = (arendDef.tcReferable as? TCDefReferable)?.typechecked ?: return true
                 val levelParams = def.levelParameters
                 if ((levelParams == null || levelParams.isEmpty()) && def.parametersOriginalDefinitions.isEmpty()) return true
                 val builder = StringBuilder()
 
                 if (levelParams != null && levelParams.isNotEmpty()) {
-                    if (levelParams[0].type == LevelVariable.LvlType.PLVL && levelParams[0] is ParamLevelVariable && PsiTreeUtil.getChildOfType(arendDef, ArendPLevelParams::class.java) == null) {
+                    if (levelParams[0].type == LevelVariable.LvlType.PLVL && levelParams[0] is ParamLevelVariable && arendDef.pLevelParameters == null) {
                         builder.append(" ")
                         val ppv = PrettyPrintVisitor(builder, 0)
                         ppv.prettyPrintLevelParameters(ToAbstractVisitor.visitLevelParameters(levelParams.subList(0, def.numberOfPLevelParameters), true), true)
                     }
                     val lastVar = levelParams[levelParams.size - 1]
-                    if (lastVar.type == LevelVariable.LvlType.HLVL && lastVar is ParamLevelVariable && PsiTreeUtil.getChildOfType(arendDef, ArendHLevelParams::class.java) == null) {
+                    if (lastVar.type == LevelVariable.LvlType.HLVL && lastVar is ParamLevelVariable && arendDef.hLevelParameters == null) {
                         builder.append(" ")
                         val ppv = PrettyPrintVisitor(builder, 0)
                         ppv.prettyPrintLevelParameters(ToAbstractVisitor.visitLevelParameters(levelParams.subList(def.numberOfPLevelParameters, levelParams.size), false), false)

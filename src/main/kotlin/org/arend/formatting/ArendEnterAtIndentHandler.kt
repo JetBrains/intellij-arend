@@ -12,8 +12,8 @@ import com.intellij.psi.PsiFile
 import com.intellij.openapi.util.Ref
 import org.arend.parser.ParserMixin
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendTuple
-import org.arend.psi.ArendTypeTele
+import org.arend.psi.ext.ArendTuple
+import org.arend.psi.ext.ArendTypeTele
 
 class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
     override fun preprocessEnter(origFile: PsiFile, origEditor: Editor, caretOffset: Ref<Int>, caretAdvance: Ref<Int>, dataContext: DataContext, originalHandler: EditorActionHandler?): EnterHandlerDelegate.Result {

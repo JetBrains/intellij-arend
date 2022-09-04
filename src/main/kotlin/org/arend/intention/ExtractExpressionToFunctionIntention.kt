@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parents
 import org.arend.ext.core.ops.NormalizationMode
-import org.arend.psi.ArendExpr
+import org.arend.psi.ext.ArendExpr
 import org.arend.psi.getSelectionWithoutErrors
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.tryCorrespondedSubExpr

@@ -13,10 +13,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiElement
-import com.intellij.util.containers.toArray
-import org.arend.psi.ArendDefClass
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendDefinition
+import org.arend.psi.ext.ArendDefClass
+import org.arend.psi.ext.ArendDefIdentifier
+import org.arend.psi.ext.ArendDefinition
 import org.arend.search.ClassDescendantsSearch
 import org.arend.util.FullName
 import java.awt.event.MouseEvent
@@ -46,19 +45,19 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
             object : LineMarkerNavigator() {
                 override fun browse(e: MouseEvent, element: PsiElement) {
                     val clazz = element.parent.parent as? ArendDefClass ?: return
-                    PsiElementListNavigator.openTargets(e, clazz.project.service<ClassDescendantsSearch>().getAllDescendants(clazz).toArray(arrayOf()), "Subclasses of " + clazz.name,
+                    PsiElementListNavigator.openTargets(e, clazz.project.service<ClassDescendantsSearch>().getAllDescendants(clazz).toTypedArray(), "Subclasses of " + clazz.name,
                         CodeInsightBundle.message("goto.implementation.findUsages.title", clazz.refName), MyListCellRenderer, null as BackgroundUpdaterTask?)
                 }
             })
     }
 
-    private object MyListCellRenderer : PsiElementListCellRenderer<ArendDefinition>() {
-        override fun getElementText(element: ArendDefinition): String {
+    private object MyListCellRenderer : PsiElementListCellRenderer<ArendDefinition<*>>() {
+        override fun getElementText(element: ArendDefinition<*>): String {
             val fullName = FullName(element)
             return fullName.longName.toString() + " in " + fullName.modulePath.toString()
         }
 
-        override fun getContainerText(element: ArendDefinition, name: String): String? = null
+        override fun getContainerText(element: ArendDefinition<*>, name: String): String? = null
 
         override fun getIconFlags() = 0
     }

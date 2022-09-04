@@ -6,9 +6,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.childrenOfType
-import com.intellij.util.castSafelyTo
 import org.arend.psi.*
-import org.arend.psi.parser.api.ArendPattern
+import org.arend.psi.ext.*
 import org.arend.util.ArendBundle
 
 class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<ArendPattern>,
@@ -30,7 +29,7 @@ class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<Aren
             }
             is ArendFunctionClauses -> {
                 val body = pParent.parent
-                if (body is ArendFunctionBody || body is ArendInstanceBody) {
+                if (body is ArendFunctionBody) {
                     val prev = body.prevSibling
                     if (prev is PsiWhiteSpace) {
                         prev.parent.deleteChildRangeWithNotification(prev, body)

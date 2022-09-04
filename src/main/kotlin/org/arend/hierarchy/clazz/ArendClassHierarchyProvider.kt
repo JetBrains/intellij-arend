@@ -6,14 +6,12 @@ import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.PsiTreeUtil
-import org.arend.psi.ArendDefClass
+import org.arend.psi.ext.ArendDefClass
+import org.arend.psi.getChildOfType
 
 class ArendClassHierarchyProvider : HierarchyProvider {
-    override fun getTarget(dataContext: DataContext): PsiElement? {
-        val element = CommonDataKeys.PSI_ELEMENT.getData(dataContext)
-        return PsiTreeUtil.getParentOfType(element, ArendDefClass::class.java, false)
-    }
+    override fun getTarget(dataContext: DataContext): ArendDefClass? =
+        CommonDataKeys.PSI_ELEMENT.getData(dataContext)?.getChildOfType()
 
     override fun createHierarchyBrowser(target: PsiElement): HierarchyBrowser {
         val browser = ArendClassHierarchyBrowser(target.project, target)

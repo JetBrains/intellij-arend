@@ -8,8 +8,10 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import org.arend.core.expr.ErrorWithConcreteExpression
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
-import org.arend.psi.*
-import org.arend.psi.ext.impl.MetaAdapter
+import org.arend.psi.ArendFile
+import org.arend.psi.ancestor
+import org.arend.psi.ext.*
+import org.arend.psi.ext.ArendDefMeta
 import org.arend.refactoring.*
 import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor
 import org.arend.util.ArendBundle
@@ -18,7 +20,7 @@ class ReplaceMetaWithResultIntention : BaseArendIntention(ArendBundle.message("a
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         val expr = element.ancestor<ArendExpr>()
         val refElement = (expr as? ArendLiteral)?.ipName ?: ((expr as? ArendLiteral)?.longName ?: (expr as? ArendLongNameExpr)?.longName)?.refIdentifierList?.lastOrNull() ?: return false
-        return (refElement.resolve as? MetaAdapter)?.metaRef.let { it?.definition != null || it?.resolver != null }
+        return (refElement.resolve as? ArendDefMeta)?.metaRef.let { it?.definition != null || it?.resolver != null }
     }
 
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {

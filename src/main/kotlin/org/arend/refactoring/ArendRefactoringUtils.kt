@@ -4,7 +4,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.psi.PsiComment
@@ -30,9 +29,10 @@ import org.arend.naming.scope.local.ElimScope
 import org.arend.naming.scope.local.ListScope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
+import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
-import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.FunctionDefinitionAdapter
+import org.arend.psi.ext.ArendGroup
+import org.arend.psi.ext.ArendDefFunction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.settings.ArendSettings
 import org.arend.term.Fixity
@@ -46,7 +46,6 @@ import org.arend.util.getBounds
 import java.math.BigInteger
 import java.util.Collections.singletonList
 import kotlin.math.max
-import org.arend.psi.parser.api.ArendPattern
 
 private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {
     val nsIds = using.nsIdList
@@ -66,7 +65,7 @@ private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using:
     val nsIdStr = if (newName == null) id else "$id \\as $newName"
     val nsCmd = factory.createImportCommand("Dummy (a,$nsIdStr)", ArendPsiFactory.StatCmdKind.IMPORT).statCmd
     val newNsUsing = nsCmd!!.nsUsing!!
-    val nsId = newNsUsing.nsIdList[1]!!
+    val nsId = newNsUsing.nsIdList[1]
     val comma = nsId.prevSibling
 
     if (anchor == null) {
@@ -116,7 +115,7 @@ private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElemen
         if (ref.referenceName == name) return ref
     }
     val statCmd = factory.createFromText("\\import Foo \\hiding (bar, $name)")?.childOfType<ArendStatCmd>()
-    val ref = statCmd!!.refIdentifierList[1]!!
+    val ref = statCmd!!.refIdentifierList[1]
     val comma = ref.findPrevSibling()!!
     if (needsComma) anchor = anchor.parent.addAfterWithNotification(comma, anchor)
     val insertedRef = anchor.parent.addAfterWithNotification(ref, anchor) as ArendRefIdentifier
@@ -148,10 +147,10 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
 
     elementToRemove.deleteWithNotification()
 
-    if (prevSibling?.node?.elementType == ArendElementTypes.COMMA) {
+    if (prevSibling?.node?.elementType == COMMA) {
         prevSibling?.delete()
-    } else if (prevSibling?.node?.elementType == ArendElementTypes.LPAREN) {
-        if (nextSibling?.node?.elementType == ArendElementTypes.COMMA) {
+    } else if (prevSibling?.node?.elementType == LPAREN) {
+        if (nextSibling?.node?.elementType == COMMA) {
             nextSibling?.delete()
         }
     }
@@ -167,7 +166,7 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
         if (grandParent is ArendStatCmd) grandParent else null
     }
 
-    if (statCmd != null && statCmd.openKw != null && deleteEmptyCommands) { //Remove open command with null effect
+    if (statCmd?.openKw != null && deleteEmptyCommands) { //Remove open command with null effect
         val nsUsing = statCmd.nsUsing
         if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) {
             val statCmdStatement = statCmd.parent
@@ -190,7 +189,7 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
         val needsModification = element.longName != id
 
         when (element) {
-            is ArendIPNameImplMixin -> if (parent is ArendLiteral) {
+            is ArendIPName -> if (parent is ArendLiteral) {
                 if (!needsModification) return
                 val argumentStr = buildString {
                     if (id.size > 1) {
@@ -297,7 +296,7 @@ fun addStatCmd(factory: ArendPsiFactory,
 }
 
 fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: PsiLocatedReferable, instanceMode: Boolean = false): Boolean {
-    val enclosingDefinition = positionInFile.ancestor<ArendDefinition>()
+    val enclosingDefinition = positionInFile.ancestor<ArendDefinition<*>>()
     val scope = enclosingDefinition?.scope
     val shortName = openedName.last()
     if (scope != null && scope.resolveName(shortName) == elementReferable) return true
@@ -342,7 +341,7 @@ fun addIdToUsing(groupMember: PsiElement?,
         if (statCmd != null) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
             if (ref != null) {
-                val target = ref.reference?.resolve()
+                val target = ref.reference.resolve()
                 if (target == targetContainer)
                     return doAddIdToUsing(statCmd, renamings)
             }
@@ -424,8 +423,8 @@ fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
             if (ancestor is ArendDefClass)
                 doGetClassifyingField(ancestor, visitedClasses)?.let { return it }
 
-        classDef.fieldTeleList.firstOrNull { it.classifyingKw != null }?.fieldDefIdentifierList?.firstOrNull()?.let { return it }
-        classDef.fieldTeleList.firstOrNull { it.isExplicit }?.fieldDefIdentifierList?.firstOrNull()?.let{ return it }
+        classDef.fieldTeleList.firstOrNull { it.isClassifying }?.referableList?.firstOrNull()?.let { return it }
+        classDef.fieldTeleList.firstOrNull { it.isExplicit }?.referableList?.firstOrNull()?.let{ return it }
 
         return null
     }
@@ -452,18 +451,18 @@ fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass: ArendDefClass) {
     while (currentChild != null) {
         val nextSibling = currentChild.nextSibling
         if (pipePosition != null && nextSibling != null &&
-                (nextSibling.elementType == ArendElementTypes.RBRACE || nextSibling.elementType == ArendElementTypes.PIPE)) {
+                (nextSibling.elementType == RBRACE || nextSibling.elementType == PIPE)) {
             surroundWithClassStat(pipePosition, currentChild)
             pipePosition = null
         }
-        if (currentChild.elementType == ArendElementTypes.PIPE) pipePosition = currentChild
+        if (currentChild.elementType == PIPE) pipePosition = currentChild
 
         currentChild = nextSibling
     }
 }
 
 fun getAnchorInAssociatedModule(psiFactory: ArendPsiFactory, myTargetContainer: ArendGroup, headPosition: Boolean = false): PsiElement? {
-    if (myTargetContainer !is ArendDefModule && myTargetContainer !is ArendDefinition) return null
+    if (myTargetContainer !is ArendDefModule && myTargetContainer !is ArendDefinition<*>) return null
 
     val actualWhereImpl = getCompleteWhere(myTargetContainer, psiFactory)
 
@@ -476,7 +475,7 @@ fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory)
         val localAnchor = myTargetContainer.lastChild
         val insertedWhere =
             myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
-        val space = if (myTargetContainer is ArendFunctionalDefinition) "\n" else " "
+        val space = if (myTargetContainer is ArendFunctionDefinition<*>) "\n" else " "
         myTargetContainer.addAfter(psiFactory.createWhitespace(space), localAnchor)
         insertedWhere
     }
@@ -499,22 +498,14 @@ fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory)
  * @return a new let expression inserted psi tree
  */
 fun ArendLetExpr.addNewClause(clause: String): ArendLetExpr {
-    val letClauses = letClauseList
-    when (letClauses.size) {
-        0 -> error("There are no empty let expressions in Arend")
-        else -> {
-            val clauseTextList = letClauses.map { it?.text ?: "" } + listOf(clause)
-            val exprText = expr?.text ?: ""
-            @NlsSafe val newLetRepresentation =
-                "${getKw().text} ${clauseTextList.joinToString("") { "\n | $it" }} \n\\in $exprText"
-            val newLetPsi = ArendPsiFactory(project).createExpression(newLetRepresentation)
-            return this.replace(newLetPsi) as ArendLetExpr
-        }
-    }
+    val letClauses = letClauses
+    if (letClauses.isEmpty()) error("There are no empty let expressions in Arend")
+    val clauseTextList = letClauses.map { it.text ?: "" } + listOf(clause)
+    val exprText = expr?.text ?: ""
+    val newLetRepresentation = "${firstRelevantChild!!.text} ${clauseTextList.joinToString("") { "\n | $it" }} \n\\in $exprText"
+    val newLetPsi = ArendPsiFactory(project).createExpression(newLetRepresentation)
+    return this.replace(newLetPsi) as ArendLetExpr
 }
-
-private fun ArendLetExpr.getKw(): PsiElement =
-    letKw ?: haveKw ?: letsKw ?: havesKw ?: error("At least one of the keywords should be provided")
 
 @Suppress("UNCHECKED_CAST")
 fun <T : ArendCompositeElement> ArendGroup.addToWhere(elementToAdd: T): T {
@@ -526,7 +517,7 @@ fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcr
     val thisVarName = StringRenamer().generateFreshName(variable, getAllBindings(definition).map { VariableImpl(it) }.toList())
 
     val thisTele: PsiElement = when (definition) {
-        is ArendFunctionalDefinition -> {
+        is ArendFunctionDefinition<*> -> {
             psiFactory.createNameTele(thisVarName, typeExpr, false)
         }
         is ArendDefData -> {
@@ -571,7 +562,7 @@ fun getFirstExplicitParameter(ref: Referable?, defaultName: String): String {
     if (definition is Abstract.ParametersHolder) {
         val firstParameter = definition.parameters.firstOrNull { it.isExplicit }
         val firstReferable = firstParameter?.referableList?.firstOrNull()
-        if (firstReferable is ArendDefIdentifier) return firstReferable.name ?: defaultName
+        if (firstReferable is ArendDefIdentifier) return firstReferable.name
     }
     return defaultName
 }
@@ -592,9 +583,8 @@ fun addImplicitArgAfter(psiFactory: ArendPsiFactory, anchor: PsiElement, argumen
 
 fun getTele(tele: PsiElement): List<ArendCompositeElement>? = when (tele) {
     is ArendNameTele -> tele.identifierOrUnknownList
-    is ArendLamTele -> tele.identifierOrUnknownList
     is ArendTypeTele -> tele.typedExpr?.identifierOrUnknownList
-    is ArendFieldTele -> tele.fieldDefIdentifierList
+    is ArendFieldTele -> tele.referableList
     else -> null
 }
 
@@ -621,10 +611,7 @@ fun surroundingTupleExpr(baseExpr: ArendExpr): ArendTupleExpr? =
                 newExpr.parent as? ArendTupleExpr else null
         }
 
-fun unwrapParens(tuple: ArendTuple): ArendExpr? {
-    val tupleExpr = tuple.tupleExprList.singleOrNull() ?: return null
-    return if (tupleExpr.colon == null) tupleExpr.exprList.singleOrNull() else null
-}
+fun unwrapParens(tuple: ArendTuple): ArendExpr? = tuple.tupleExprList.singleOrNull()?.exprIfSingle
 
 fun transformPostfixToPrefix1(argumentOrFieldsAcc: PsiElement,
                               ipName: ArendIPName,
@@ -711,7 +698,7 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
 }
 
 fun getPrec(psiElement: PsiElement?): ArendPrec? = when (psiElement) {
-    is ArendFunctionalDefinition -> psiElement.getPrec()
+    is ArendFunctionDefinition<*> -> psiElement.prec
     is ArendDefData -> psiElement.prec
     is ArendDefClass -> psiElement.prec
     is ArendConstructor -> psiElement.prec
@@ -720,24 +707,24 @@ fun getPrec(psiElement: PsiElement?): ArendPrec? = when (psiElement) {
     else -> null
 }
 
-fun isInfix(prec: ArendPrec): Boolean = prec.infixLeftKw != null || prec.infixNonKw != null || prec.infixRightKw != null
+fun isInfix(prec: ArendPrec?): Boolean = ReferableBase.calcPrecedence(prec).isInfix
 
 fun calculateOccupiedNames(occupiedNames: Collection<Variable>, parameterName: String?, nRecursiveBindings: Int) =
-        if (nRecursiveBindings > 1 && parameterName != null && parameterName.isNotEmpty() && !Character.isDigit(parameterName.last()))
+        if (nRecursiveBindings > 1 && !parameterName.isNullOrEmpty() && !Character.isDigit(parameterName.last()))
             occupiedNames.plus(VariableImpl(parameterName)) else occupiedNames
 
 fun collectDefinedVariables(startElement: ArendCompositeElement): List<Variable> {
     val elementScope = startElement.scope
 
     val excluded: Set<Referable> = if (startElement is ArendCaseExpr) {
-        startElement.caseArgList.mapNotNullTo(HashSet()) { caseArg ->
-            caseArg.caseArgExprAs.takeIf { it.elimKw != null }?.refIdentifier?.let { ExpressionResolveNameVisitor.resolve(it.referent, elementScope) }
+        startElement.caseArguments.mapNotNullTo(HashSet()) { caseArg ->
+            caseArg.takeIf { it.elimKw != null }?.eliminatedReference?.let { ExpressionResolveNameVisitor.resolve(it.referent, elementScope) }
         }
     } else emptySet()
 
-    val added: List<Referable> = if ((startElement as? FunctionDefinitionAdapter)?.functionBody?.elim?.elimKw != null) {
+    val added: List<Referable?> = if ((startElement as? ArendDefFunction)?.body?.elim?.elimKw != null) {
         val eliminated = startElement.eliminatedExpressions.mapTo(HashSet()) { it.referenceName }
-        startElement.parameters.flatMap { it.referableList }.filter { !eliminated.contains(it.refName) }
+        startElement.parameters.flatMap { it.referableList }.filter { it != null && !eliminated.contains(it.refName) }
     } else emptyList()
 
     val scope = when {

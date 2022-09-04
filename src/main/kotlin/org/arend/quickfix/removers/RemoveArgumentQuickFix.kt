@@ -5,10 +5,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.psi.ArendArgument
-import org.arend.psi.deleteWithNotification
 import org.arend.psi.deleteWithWhitespaces
-import org.arend.util.ArendBundle
+import org.arend.psi.ext.ArendArgument
 
 class RemoveArgumentQuickFix(private val message: String, private val argument: SmartPsiElementPointer<ArendArgument>) : IntentionAction {
     override fun startInWriteAction() = true

@@ -4,8 +4,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.usages.UsageTarget
 import com.intellij.usages.impl.rules.UsageType
 import com.intellij.usages.impl.rules.UsageTypeProviderEx
-import org.arend.psi.*
-import org.arend.psi.parser.api.ArendPattern
+import org.arend.psi.ext.*
+import org.arend.psi.rightSibling
 import org.arend.term.concrete.Concrete
 import org.arend.resolving.util.parseBinOp
 
@@ -39,14 +39,14 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
 
         while (true) {
             val atomFieldsAcc = (expr.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
-            if (atomFieldsAcc?.fieldAccList?.isNotEmpty() == true) {
+            if (atomFieldsAcc?.numberList?.isNotEmpty() == true) {
                 return leftUsage
             }
 
             val atomParent = atomFieldsAcc?.parent
             val ppParent = (atomParent as? ArendArgumentAppExpr ?: (atomParent as? ArendAtomArgument)?.parent as? ArendArgumentAppExpr)?.parent
             val newExpr = ppParent as? ArendNewExpr ?: expr as? ArendNewExpr
-            val appExpr = newExpr?.argumentAppExpr ?: (ppParent as? ArendNewArg)?.argumentAppExpr ?: return defaultUsage
+            val appExpr = newExpr?.argumentAppExpr ?: (ppParent as? ArendNewExpr)?.argumentAppExpr ?: return defaultUsage
 
             val argList = appExpr.argumentList
             val cExpr =
@@ -59,14 +59,14 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             if (topRef != null && topRef != parent) {
                 return defaultUsage
             }
-            if (ppParent is ArendNewArg) {
+            if (ppParent is ArendNewExpr) {
                 return newInstances
             }
             if (newExpr == null) {
                 return defaultUsage
             }
 
-            if (newExpr.appPrefix?.newKw != null) {
+            if (newExpr.appPrefix?.isNew == true) {
                 return newInstances
             }
             if (newExpr.localCoClauseList.isNotEmpty()) {
@@ -74,7 +74,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             }
 
             val tupleExpr = newExpr.parent as? ArendTupleExpr
-            if (tupleExpr != null && tupleExpr.exprList.firstOrNull() == newExpr) {
+            if (tupleExpr != null && tupleExpr.expr == newExpr) {
                 val tuple = tupleExpr.parent as? ArendTuple ?: return defaultUsage
                 if (tuple.tupleExprList.size != 1) {
                     return defaultUsage
@@ -94,7 +94,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             }
 
             val exprPP = exprParent.parent
-            return if (exprPP is ArendDefInstance || (exprPP as? ArendDefFunction)?.functionBody?.cowithKw != null) newInstances else resultTypes
+            return if (exprPP is ArendDefInstance || (exprPP as? ArendDefFunction)?.body?.cowithKw != null) newInstances else resultTypes
         }
 
         return defaultUsage

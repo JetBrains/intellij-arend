@@ -7,7 +7,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.util.containers.headTailOrNull
-import org.arend.psi.ArendImplicitArgument
+import org.arend.psi.ext.ArendImplicitArgument
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle

@@ -10,9 +10,9 @@ import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
-import org.arend.psi.ArendNsId
-import org.arend.psi.ArendNsUsing
-import org.arend.psi.ArendStatCmd
+import org.arend.psi.ext.ArendNsId
+import org.arend.psi.ext.ArendNsUsing
+import org.arend.psi.ext.ArendStatCmd
 import org.arend.refactoring.doAddIdToUsing
 import org.arend.refactoring.doRemoveRefFromStatCmd
 import org.arend.util.ArendBundle

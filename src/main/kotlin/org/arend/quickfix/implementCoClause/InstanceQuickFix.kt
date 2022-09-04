@@ -7,12 +7,8 @@ import org.arend.highlight.BasePass.Companion.isEmptyGoal
 import org.arend.naming.reference.*
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendDefInstance
 import org.arend.psi.ClassReferenceHolder
-import org.arend.psi.CoClauseBase
-import org.arend.psi.ext.ArendNewExprImplMixin
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.*
 
 enum class InstanceQuickFixAnnotation {
     IMPLEMENT_FIELDS_ERROR,
@@ -29,7 +25,7 @@ private fun findImplementedCoClauses(coClauseList: List<CoClauseBase>,
         if (referable is ClassReferable) {
             val subClauses = if (coClause.fatArrow != null) {
                 val superClassFields = superClassesFields[referable]
-                if (superClassFields != null && superClassFields.isNotEmpty()) {
+                if (!superClassFields.isNullOrEmpty()) {
                     fields.removeAll(superClassFields)
                     continue
                 }
@@ -144,14 +140,14 @@ fun makeFieldList(fields: Collection<ArendRef>, classRef: ClassReferable): List<
 
 fun doAnnotate(element: PsiElement?) {
     when (element) {
-        is ArendNewExprImplMixin -> element.argumentAppExpr?.let {
-            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, it),*/ element.localCoClauseList, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.newKw == null)
+        is ArendNewExpr -> element.argumentAppExpr?.let {
+            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, it),*/ element.localCoClauseList, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.isNew != true)
         }
-        is ArendDefInstance -> if (element.returnExpr != null && element.classReference?.isRecord == false && element.instanceBody.let { it == null || it.fatArrow == null && it.elim == null })
-            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.instanceBody?.coClauseList
+        is ArendDefInstance -> if (element.returnExpr != null && element.classReference?.isRecord == false && element.body.let { it == null || it.fatArrow == null && it.elim == null })
+            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.body?.coClauseList
                     ?: emptyList())
-        is ArendDefFunction -> if (element.functionBody?.cowithKw != null)
-            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.functionBody?.coClauseList
+        is ArendDefFunction -> if (element.body?.cowithKw != null)
+            doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.body?.coClauseList
                     ?: emptyList())
         is CoClauseBase -> if (element.fatArrow == null)
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.localCoClauseList, InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)

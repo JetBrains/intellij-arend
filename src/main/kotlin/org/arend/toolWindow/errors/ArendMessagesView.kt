@@ -26,7 +26,7 @@ import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendGoal
+import org.arend.psi.ext.ArendGoal
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
@@ -96,7 +96,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         actionGroup.add(ArendShowErrorsPanelAction())
 
         val toolbar = ActionManager.getInstance().createActionToolbar("ArendMessagesView.toolbar", actionGroup, false)
-        toolbar.setTargetComponent(treePanel)
+        toolbar.targetComponent = treePanel
         treePanel.toolbar = toolbar.component
         treePanel.setContent(ScrollPaneFactory.createScrollPane(tree, true))
 

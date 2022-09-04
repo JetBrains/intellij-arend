@@ -18,11 +18,11 @@ import org.arend.core.expr.ReferenceExpression
 import org.arend.core.expr.type.TypeExpression
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.extImpl.UncheckedExpressionImpl
-import org.arend.psi.ArendArgumentAppExpr
-import org.arend.psi.ArendAtomFieldsAcc
-import org.arend.psi.ArendGoal
+import org.arend.psi.ext.ArendArgumentAppExpr
+import org.arend.psi.ext.ArendAtomFieldsAcc
+import org.arend.psi.ext.ArendGoal
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.ext.ArendFunctionDefinition
 import org.arend.refactoring.tryCorrespondedSubExpr
 import org.arend.term.concrete.BaseConcreteExpressionVisitor
 import org.arend.term.concrete.Concrete
@@ -85,7 +85,7 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
             if (typechecked == null) {
                 customArguments.add(TypedSingleDependentLink(isExplicit, "_", TypeExpression(expectedType, null)))
             } else {
-                val contextElement = goal.parentOfType<ArendFunctionalDefinition>() ?: goal
+                val contextElement = goal.parentOfType<ArendFunctionDefinition<*>>() ?: goal
                 val newBinding = TypedBinding(suggestParameterName(forbiddenNames, contextElement, expectedType), expectedType)
                 customArguments.add(TypedSingleDependentLink(isExplicit, newBinding.name, TypeExpression(expectedType, null)))
                 reverseSubstitution[typechecked] = newBinding

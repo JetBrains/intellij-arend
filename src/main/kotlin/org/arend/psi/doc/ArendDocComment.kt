@@ -10,8 +10,8 @@ import org.arend.naming.scope.Scope
 import org.arend.naming.scope.local.TelescopeScope
 import org.arend.parser.ParserMixin
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.ArendStatement
+import org.arend.psi.ext.ArendGroup
+import org.arend.psi.ext.ArendStatement
 import org.arend.term.abs.Abstract
 
 class ArendDocComment(text: CharSequence?) : LazyParseablePsiElement(ParserMixin.DOC_COMMENT, text), PsiDocCommentBase {

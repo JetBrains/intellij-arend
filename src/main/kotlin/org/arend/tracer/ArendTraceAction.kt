@@ -20,8 +20,7 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.*
-import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.*
 import org.arend.refactoring.collectArendExprs
 import org.arend.refactoring.selectedExpr
 import org.arend.resolving.PsiConcreteProvider
@@ -112,27 +111,27 @@ class ArendTraceAction : ArendPopupAction() {
             val def = file.findElementAt(editor.caretModel.currentCaret.offset)?.ancestor<TCDefinition>() ?: return null
             val ref = def.tcReferable ?: return null
             val head = when (def) {
-                is ArendFunctionalDefinition -> {
+                is ArendFunctionDefinition<*> -> {
                     val body = def.body ?: return null
                     val expr = body.expr
                     if (expr != null) expr else {
                         val clauses = body.clauseList
-                        if (clauses.isNotEmpty()) clauses[0].expr else body.coClauseList.firstOrNull()?.expr
+                        if (clauses.isNotEmpty()) clauses[0].expression else body.coClauseList.firstOrNull()?.expr
                     }
                 }
                 is ArendDefData -> {
                     val body = def.dataBody ?: return null
                     val constructors = body.constructorList
                     val constructor = constructors.firstOrNull()
-                        ?: body.constructorClauseList.find { it.constructorList.isNotEmpty() }?.constructorList?.firstOrNull()
-                    constructor?.typeTeleList?.firstOrNull()?.typedExpr?.expr
+                        ?: body.constructorClauseList.find { it.constructors.isNotEmpty() }?.constructors?.firstOrNull()
+                    constructor?.parameters?.firstOrNull()?.typedExpr?.type
                 }
                 is ArendDefClass -> {
                     val classStat = def.classStatList.firstOrNull() ?: return null
-                    classStat.classField?.returnExpr?.exprList?.firstOrNull()
+                    classStat.classField?.returnExpr?.type
                         ?: classStat.classImplement?.expr
                         ?: classStat.coClause?.expr
-                        ?: classStat.overriddenField?.returnExpr?.exprList?.firstOrNull()
+                        ?: classStat.overriddenField?.returnExpr?.type
                 }
                 else -> return null
             } ?: return null

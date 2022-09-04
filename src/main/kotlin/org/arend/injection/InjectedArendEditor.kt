@@ -38,7 +38,7 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.impl.MetaAdapter
+import org.arend.psi.ext.ArendDefMeta
 import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
@@ -292,7 +292,7 @@ abstract class InjectedArendEditor(
         }
 
         fun causeIsMetaExpression(cause: ConcreteSourceNode?, resolve: Referable?) =
-            (resolve as? MetaAdapter)?.metaRef?.definition != null &&
+            (resolve as? ArendDefMeta)?.metaRef?.definition != null &&
                     (cause as? Concrete.ReferenceExpression)?.referent != resolve
     }
 }

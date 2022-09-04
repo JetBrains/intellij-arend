@@ -7,7 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
-import org.arend.psi.ArendDefClass
+import org.arend.psi.ext.ArendDefClass
 import org.arend.search.ClassDescendantsSearch
 import org.arend.settings.ArendProjectSettings
 

@@ -15,7 +15,6 @@ import org.arend.core.elimtree.ElimBody
 import org.arend.core.elimtree.IntervalElim
 import org.arend.core.expr.*
 import org.arend.term.prettyprint.ToAbstractVisitor
-import org.arend.psi.parser.api.ArendPattern
 import org.arend.core.pattern.BindingPattern
 import org.arend.core.pattern.ConstructorExpressionPattern
 import org.arend.core.pattern.ExpressionPattern
@@ -110,13 +109,13 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             if (ownerParent is ArendFunctionClauses)
                 clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
-            else if (ownerParent is ArendCoClauseBody) {
+            else if (ownerParent is ArendFunctionBody) {
                 coClauseName = ownerParent.ancestor<ArendCoClause>()?.longName?.referenceName
                 clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
             }
 
-            if (body is ArendFunctionBody && func is ArendFunctionalDefinition) {
-                definition = func as? TCDefinition
+            if (body is ArendFunctionBody && func is ArendFunctionDefinition<*>) {
+                definition = func
             }
         }
         if (patternOwner is ArendConstructorClause && ownerParent is ArendDataBody) {
@@ -149,7 +148,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val isElim = elimVars.isNotEmpty()
                 val elimVarPatterns: List<ExpressionPattern> = if (isElim) elimVars.map { reference ->
                     if (reference is ArendRefIdentifier) {
-                        val parameterIndex = (reference.reference?.resolve() as? Referable)?.let { parameters.indexOf(it) }
+                        val parameterIndex = (reference.reference.resolve() as? Referable)?.let { parameters.indexOf(it) }
                                 ?: -1
                         if (parameterIndex < corePatterns.size && parameterIndex != -1) corePatterns[parameterIndex] else throw IllegalStateException()
                     } else throw IllegalStateException()
@@ -343,7 +342,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val factory = ArendPsiFactory(project)
             if (splitPatternEntries.isEmpty()) {
                 doReplacePattern(factory, element, "()", false)
-                localClause.expr?.deleteWithNotification()
+                localClause.expression?.deleteWithNotification()
                 localClause.fatArrow?.delete()
             } else {
                 var first = true
@@ -352,7 +351,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val sampleClause = factory.createClause("()")
                     currAnchor = localClause.addAfter(sampleClause.fatArrow!!, currAnchor)
                     localClause.addBefore(factory.createWhitespace(" "), currAnchor)
-                    localClause.addAfterWithNotification(sampleClause.expr!!, currAnchor)
+                    localClause.addAfterWithNotification(sampleClause.expression!!, currAnchor)
                     localClause.addAfter(factory.createWhitespace(" "), currAnchor)
                 }
 
@@ -432,11 +431,11 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             for (pattern in patterns) doFindVariablePatterns(result, pattern, excludedPsi)
             result.remove(excludedPsi?.singleReferable?.refName)
 
-            val function = excludedPsi?.parentOfType<ArendFunctionalDefinition>() ?: return result
+            val function = excludedPsi?.parentOfType<ArendFunctionDefinition<*>>() ?: return result
             val elim = function.body?.elim ?: return result
             if (elim.elimKw != null) {
-                val allParams = function.nameTeleList.flatMap { it.referableList.map(Referable::getRefName) }
-                val eliminatedParams = elim.refIdentifierList.mapNotNullTo(HashSet()) { it.referenceName }
+                val allParams = function.parameters.flatMap { it.referableList.mapNotNull { it?.refName } }
+                val eliminatedParams = elim.refIdentifierList.mapTo(HashSet()) { it.referenceName }
                 result.addAll((allParams - eliminatedParams))
             }
 
@@ -518,19 +517,15 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return null
         }
 
-        fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: ArendPattern, patternLine: String, mayRequireParentheses: Boolean, asExpression: String = "", insertedReferable: GlobalReferable? = null): ArendPattern? {
+        fun doReplacePattern(factory: ArendPsiFactory, elementToReplace: ArendPattern, patternLine: String, mayRequireParentheses: Boolean, asExpression: String = "", insertedReferable: GlobalReferable? = null): ArendPattern {
             val pLine = if (asExpression.isNotEmpty()) "$patternLine \\as $asExpression" else patternLine
-            val replacementPattern: ArendPattern? = factory.createPattern(
+            val replacementPattern: ArendPattern = factory.createPattern(
                     if (!elementToReplace.isExplicit) "{$pLine}"
                     else if (needParentheses(elementToReplace, mayRequireParentheses, asExpression, patternLine, insertedReferable)) "($pLine)"
                     else pLine
             )
 
-            if (replacementPattern != null) {
-                return elementToReplace.replaceWithNotification(replacementPattern)
-            }
-
-            return null
+            return elementToReplace.replaceWithNotification(replacementPattern)
         }
 
         private fun needParentheses(elementToReplace: ArendPattern, mayRequireParentheses: Boolean, asExpression: String, patternLine: String, referable: GlobalReferable?) : Boolean {
@@ -574,7 +569,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        fun doSubstituteUsages(project: Project, elementToReplace: ArendReferenceElement?, element: PsiElement, expressionLine: String, resolver: (ArendRefIdentifier) -> PsiElement? = { it.reference?.resolve() }) {
+        fun doSubstituteUsages(project: Project, elementToReplace: ArendReferenceElement?, element: PsiElement, expressionLine: String, resolver: (ArendRefIdentifier) -> PsiElement? = { it.reference.resolve() }) {
             if (elementToReplace == null || element is ArendWhere) return
             if (element is ArendRefIdentifier && resolver(element) == elementToReplace) {
                 val longName = element.parent as? ArendLongName
@@ -594,7 +589,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val substitutedAtom = if (needParentheses(element, element.textRange, substitutedExpression, null))
                         factory.createExpression("($expressionToInsert)").childOfType() else substitutedExpression.childOfType<ArendAtom>()
 
-                    if (arendNewExpr != null && atomFieldsAcc.fieldAccList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
+                    if (arendNewExpr != null && atomFieldsAcc.numberList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
                             arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {
                         arendNewExpr.replaceWithNotification(substitutedExpression)
                     } else if (substitutedAtom is PsiElement) {

@@ -4,9 +4,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
-import org.arend.psi.ArendCoClause
-import org.arend.psi.ArendExpr
-import org.arend.psi.CoClauseBase
+import org.arend.psi.ext.ArendCoClause
+import org.arend.psi.ext.ArendExpr
+import org.arend.psi.ext.CoClauseBase
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
 import org.arend.util.ArendBundle
@@ -14,7 +14,7 @@ import org.arend.util.ArendBundle
 open class ImplementFieldsInCoClauseIntention : SelfTargetingIntention<CoClauseBase>(CoClauseBase::class.java, ArendBundle.message("arend.coClause.implementMissing")) {
     override fun isApplicableTo(element: CoClauseBase, caretOffset: Int, editor: Editor): Boolean {
         val data = element.getUserData(CoClausesKey)
-        if (data != null && data.isNotEmpty()) {
+        if (!data.isNullOrEmpty()) {
             text = ArendBundle.message("arend.coClause.implementParentFields", element.longName?.text ?: "")
             return element.fatArrow == null
         }

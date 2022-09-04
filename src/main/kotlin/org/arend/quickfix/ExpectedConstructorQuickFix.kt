@@ -42,10 +42,7 @@ import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.parser.api.ArendPattern
+import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.PsiLocatedRenamer
 import org.arend.resolving.ArendReferableConverter
@@ -176,7 +173,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val definition = thisError.definition as DataLocatedReferable
             private val definitionPsi = definition.data?.element
             val constructorPsi = cause.element?.ancestor<ArendConstructor>()
-            val bodyPsi = (definitionPsi as? ArendFunctionalDefinition)?.body
+            val bodyPsi = (definitionPsi as? ArendFunctionDefinition<*>)?.body
             val dataBodyPsi = (definitionPsi as? ArendDefData)?.dataBody
             val clauseToEntryMap = HashMap<Abstract.Clause, AbstractExpectedConstructorErrorEntry>()
 
@@ -307,8 +304,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                         // STEP 8: Perform actual substitutions (at this point all keys of substEntry should be simple NamePatterns...)
                         val clauseExpressionList : List<PsiElement?> = when (currentClause) {
-                            is ArendClause -> singletonList(currentClause.expr)
-                            is ArendConstructorClause -> currentClause.constructorList
+                            is ArendClause -> singletonList(currentClause.expression)
+                            is ArendConstructorClause -> currentClause.constructors
                             else -> emptyList()
                         }
                         val variablePatterns = SplitAtomPatternIntention.findAllVariablePatterns(emptyList(), null)
@@ -337,16 +334,16 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             var printData = computePrintData()
                             val namePatternToReplace = substEntry.key as ArendPattern
 
-                            val idOrUnderscore = namePatternToReplace.childOfType<ArendRefIdentifier>() ?: namePatternToReplace.getUnderscore()
+                            val idOrUnderscore = namePatternToReplace.childOfType<ArendRefIdentifier>() ?: namePatternToReplace.underscore
                             val asPiece = namePatternToReplace.parent.childOfType<ArendAsPattern>()
-                            val asDefIdentifier = asPiece?.defIdentifier
+                            val asDefIdentifier = asPiece?.referable
 
                             if (idOrUnderscore is ArendRefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
 
                             val target = asDefIdentifier ?: if (idOrUnderscore is ArendRefIdentifier) idOrUnderscore else null
                             val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = {
                                 val name = it.name
-                                if (name != null) it.scope.resolveName(name).castSafelyTo<DataContainer>()?.data.castSafelyTo<PsiElement>() else null
+                                it.scope.resolveName(name).castSafelyTo<DataContainer>()?.data.castSafelyTo<PsiElement>()
                             }
 
                             val noOfUsages = if (target != null) {
@@ -368,10 +365,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             if (!useAsPattern && asPiece == null && idOrUnderscore is ArendRefIdentifier) {
                                 varsNoLongerUsed.add(idOrUnderscore)
                                 newVariables.clear()
-                                printData = computePrintData() //Recompute print data, this time allowing the variable being substituted to be reused in the subtituted pattern (as one of its NamePatterns)
+                                printData = computePrintData() //Recompute print data, this time allowing the variable being substituted to be reused in the substituted pattern (as one of its NamePatterns)
                             }
 
-                            val existingAsName = asPiece?.defIdentifier
+                            val existingAsName = asPiece?.referable
                             for (clauseExpression in clauseExpressionList) if (clauseExpression != null) {
                                 if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendRefIdentifier)
                                     SplitAtomPatternIntention.doSubstituteUsages(project, idOrUnderscore, clauseExpression, printData.patternString, nonCachedResolver)
@@ -379,7 +376,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                             if (idOrUnderscore != null) {
                                 var asName: String = if (!useAsPattern) "" else {
-                                    val n = (if (existingAsName != null) existingAsName.name else (idOrUnderscore as? ArendRefIdentifier)?.name)
+                                    val n = existingAsName?.name ?: (idOrUnderscore as? ArendRefIdentifier)?.name
                                     if (n != null) n else {
                                         val freshName = Renamer().generateFreshName(VariableImpl("_x"), (variablePatterns.map{ VariableImpl(it) } + newVariables.map { VariableImpl(it) }).toList())
                                         newVariables.add(freshName)
@@ -391,7 +388,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                 }
 
                                 val actualPatternToReplace = if (namePatternToReplace.parent.castSafelyTo<ArendPattern>()?.asPatterns?.isNotEmpty() == true) namePatternToReplace.parent as ArendPattern else namePatternToReplace
-                                var result = doReplacePattern(psiFactory, actualPatternToReplace, printData.patternString, printData.requiresParentheses, asName)
+                                var result: ArendPattern? = doReplacePattern(psiFactory, actualPatternToReplace, printData.patternString, printData.requiresParentheses, asName)
                                 var number = result?.integer
                                 if (number != null) {
                                     var needsReplace = false
@@ -421,7 +418,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     return false
                 }
 
-                val constructor = pattern.sequence[0].singleReferable?.resolve(pattern.ancestor<ArendDefinition>()?.scope ?: return false, null) as? ArendConstructor
+                val constructor = pattern.sequence[0].singleReferable?.resolve(pattern.ancestor<ArendDefinition<*>>()?.scope ?: return false, null) as? ArendConstructor
                         ?: return false
                 return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT ||
                        constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.FIN
@@ -459,7 +456,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 }
                 ecEntry.caseMatchData = Pair(matchResult, matchResults)
 
-                if (ecEntry.error.caseExpressions != null) for (triple in DependentLink.Helper.toList(thisError.clauseParameters).zip(ecEntry.error.caseExpressions.zip(caseExprPsi.caseArgList))) {
+                if (ecEntry.error.caseExpressions != null) for (triple in DependentLink.Helper.toList(thisError.clauseParameters).zip(ecEntry.error.caseExpressions.zip(caseExprPsi.caseArguments))) {
                     parameterToCaseArgMap[triple.first] = triple.second.second
                     parameterToCaseExprMap.add(triple.first, triple.second.first)
                 }
@@ -541,7 +538,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
             override fun doEliminateAndInitializePrimers(expectedConstructorErrorEntries: List<CaseErrorEntry>, clausesListPsi: List<Abstract.Clause>?, definitionParameters: List<DependentLink>, elimParams: List<DependentLink>) {
                 val bindingToCaseArgMap = HashMap<Binding, ArendCaseArg>()
-                val oldCaseArgs = caseExprPsi.caseArgList
+                val oldCaseArgs = caseExprPsi.caseArguments
 
                 doInitOccupiedLocalNames(caseExprPsi, caseOccupiedLocalNames)
 
@@ -554,7 +551,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 }
 
                 val toInsertedBindingsSubstitution = ExprSubstitution()
-                for (e in bindingToCaseArgMap) toInsertedBindingsSubstitution.add(e.key, ReferenceExpression(UntypedDependentLink(e.value.caseArgExprAs.defIdentifier!!.name))) // all caseArgExprAs in this map actually have "as"-part, so this is safe to write
+                for (e in bindingToCaseArgMap) toInsertedBindingsSubstitution.add(e.key, ReferenceExpression(UntypedDependentLink(e.value.referable!!.name))) // all caseArgExprAs in this map actually have "as"-part, so this is safe to write
 
                 for (ctq in caseTypeQualifications) doWriteTypeQualification(psiFactory, ctq.value.subst(toInsertedBindingsSubstitution), ctq.key)
 
@@ -629,8 +626,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
             override fun computeClauses(): List<Abstract.Clause>? = when {
                 bodyPsi is ArendFunctionBody -> bodyPsi.functionClauses?.clauseList
-                bodyPsi is ArendInstanceBody -> bodyPsi.functionClauses?.clauseList
-                constructorPsi != null -> constructorPsi.clauseList
+                constructorPsi != null -> constructorPsi.clauses
                 dataBodyPsi != null -> dataBodyPsi.constructorClauseList
                 else -> null
             }
@@ -705,7 +701,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                 parameter = if (parameterIterator.hasNext()) parameterIterator.next() else null
                             if (parameter != null && pattern.isExplicit == parameter.isExplicit) {
                                 patternMatchedParameters.add(parameter)
-                                ecEntry.patternPrimers[parameter] = pattern as ArendPattern
+                                ecEntry.patternPrimers[parameter] = pattern
                             }
                         }
 
@@ -869,7 +865,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         }
 
         fun prepareExplicitnessMask(sampleParameters: List<DependentLink>, elimParams: List<DependentLink>?): List<Boolean> =
-                if (elimParams != null && elimParams.isNotEmpty()) sampleParameters.map { elimParams.contains(it) } else sampleParameters.map { it.isExplicit }
+                if (!elimParams.isNullOrEmpty()) sampleParameters.map { elimParams.contains(it) } else sampleParameters.map { it.isExplicit }
 
 
         fun insertPrimers(psiFactory: ArendPsiFactory, insertData: HashMap<Pair<PsiElement, PsiElement?>, MutableList<Pair<Int, Variable>>>, callback: (Variable, ArendPattern) -> Unit) {
@@ -964,8 +960,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         }
 
         fun doInitOccupiedLocalNames(caseExprPsi: ArendCaseExpr, caseOccupiedLocalNames: HashSet<String>) {
-            caseOccupiedLocalNames.addAll(caseExprPsi.scope.elements.filterIsInstance<ArendDefIdentifier>().mapNotNull { it.name })
-            caseOccupiedLocalNames.addAll(caseExprPsi.caseArgList.mapNotNull { it.caseArgExprAs.defIdentifier?.name })
+            caseOccupiedLocalNames.addAll(caseExprPsi.scope.elements.filterIsInstance<ArendDefIdentifier>().map { it.name })
+            caseOccupiedLocalNames.addAll(caseExprPsi.caseArguments.mapNotNull { it.referable?.name })
         }
 
         fun doInsertCaseArgs(psiFactory: ArendPsiFactory, caseExprPsi: ArendCaseExpr, oldCaseArgs: List<ArendCaseArg>,
@@ -977,20 +973,18 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val freshName = if (expression is ReferenceExpression) expression.binding.name else renamer.generateFreshName(TypedBinding(null, binding.typeExpr), caseOccupiedLocalNames.map{ VariableImpl(it) })
             caseOccupiedLocalNames.add(freshName)
 
-            for (ce in caseExpressions.zip(caseExprPsi.caseArgList)) if (expression == ce.first) {
-                val asExpr = ce.second.caseArgExprAs
+            for (ce in caseExpressions.zip(caseExprPsi.caseArguments)) if (expression == ce.first) {
                 bindingToCaseArgMap[binding] = ce.second
-                if (asExpr.defIdentifier == null) {
-                    val existingCaseArgExprAs = ce.second.caseArgExprAs
-                    val newCaseArgExprAs = psiFactory.createCaseArg("${existingCaseArgExprAs.expr?.text} \\as $freshName")?.childOfType<ArendCaseArgExprAs>()
-                    if (newCaseArgExprAs is PsiElement) existingCaseArgExprAs.replaceWithNotification(newCaseArgExprAs)
+                if (ce.second.referable == null) {
+                    val newCaseArgExprAs = psiFactory.createCaseArg("0 \\as $freshName")
+                    if (newCaseArgExprAs != null) ce.second.addRangeAfterWithNotification(newCaseArgExprAs, newCaseArgExprAs.firstChild.nextSibling, newCaseArgExprAs.lastChild)
                 }
 
                 if (expectedConstructorErrorEntries != null) {
                     val index = oldCaseArgs.indexOf(ce.second)
                     if (index != -1) for (ecEntry in expectedConstructorErrorEntries) {
                         val clausePsi = ecEntry.clause.data as ArendClause
-                        ecEntry.patternPrimers[binding] = clausePsi.patterns[index] as ArendPattern
+                        ecEntry.patternPrimers[binding] = clausePsi.patterns[index]
                     }
                 }
 
@@ -1007,13 +1001,12 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         fun doWriteTypeQualification(psiFactory: ArendPsiFactory, expression: Expression, caseArg: ArendCaseArg) {
             val ppConfig = object : PrettyPrinterConfig { override fun getDefinitionRenamer(): DefinitionRenamer = PsiLocatedRenamer(caseArg) }
             val typeExpr = psiFactory.createExpression(ToAbstractVisitor.convert(expression, ppConfig).toString())
-            val caseArgExpr = caseArg.expr
+            val caseArgExpr = caseArg.type
             if (caseArgExpr != null) {
                 caseArgExpr.replaceWithNotification(typeExpr)
             } else {
-                val colon = psiFactory.createCaseArg("dummy : Nat")!!.colon!!
-                val insertedColon = caseArg.addAfterWithNotification(colon, caseArg.caseArgExprAs)
-                caseArg.addAfterWithNotification(typeExpr, insertedColon)
+                caseArg.add(psiFactory.createColon())
+                caseArg.addWithNotification(typeExpr)
             }
         }
 
@@ -1026,13 +1019,13 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 val ecEntry = if (clauseToEntryMap != null) clauseToEntryMap[clause] else null
 
                 var anchor: PsiElement? = null
-                for (actualCaseArg in caseExprPsi.caseArgList) {
+                for (actualCaseArg in caseExprPsi.caseArguments) {
                     anchor = if (oldCaseArgs.contains(actualCaseArg)) {
                         anchorMap[actualCaseArg] as? PsiElement
                     } else {
                         doInsertPattern(psiFactory, anchor, caseArgToBindingMap[actualCaseArg]!!, clause as PsiElement, ecEntry?.patternPrimers) { binding ->
                             val matchingCaseArg = bindingToCaseArgMap[binding]
-                            matchingCaseArg?.caseArgExprAs?.defIdentifier?.name ?: binding.name
+                            matchingCaseArg?.referable?.name ?: binding.name
                         }
                     }
                 }

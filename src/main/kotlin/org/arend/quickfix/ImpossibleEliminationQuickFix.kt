@@ -18,9 +18,10 @@ import org.arend.core.subst.ExprSubstitution
 import org.arend.core.subst.SubstVisitor
 import org.arend.ext.core.level.LevelSubstitution
 import org.arend.ext.variable.Variable
-import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ancestor
+import org.arend.psi.ancestors
+import org.arend.psi.ext.*
 import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doInitOccupiedLocalNames
 import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doInsertCaseArgs
 import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doInsertPatternPrimers
@@ -53,7 +54,7 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
             else -> definition.typechecked.parameters
         } ?: return
 
-        val bodyPsi = (definitionPsi as? ArendFunctionalDefinition)?.body
+        val bodyPsi = (definitionPsi as? ArendFunctionDefinition<*>)?.body
         val dataBodyPsi = (definitionPsi as? ArendDefData)?.dataBody
         val elimPsi = when {
             bodyPsi != null -> bodyPsi.elim
@@ -82,13 +83,13 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
                 val exprsToEliminate = stuckParameterType.defCallArguments.zip(toList(dataDefinition.parameters)).filter { ddEliminatedParameters.contains(it.second) }.toList()
                 val sampleDataCall = DataCallExpression(dataDefinition, error.dataCall.levels, toList(dataDefinition.parameters).map { it.makeReference() })
                 val toActualParametersSubstitution = ExprSubstitution(); for (entry in stuckParameterType.defCallArguments.zip(toList(dataDefinition.parameters))) toActualParametersSubstitution.add(entry.second, entry.first)
-                val oldCaseArgs = caseExprPsi.caseArgList
+                val oldCaseArgs = caseExprPsi.caseArguments
                 val parameterToCaseArgMap = HashMap<DependentLink, ArendCaseArg>()
                 val parameterToCaseExprMap = ExprSubstitution()
                 val caseOccupiedLocalNames = HashSet<String>(); doInitOccupiedLocalNames(caseExprPsi, caseOccupiedLocalNames)
                 val bindingToCaseArgMap = HashMap<Binding, ArendCaseArg>()
 
-                if (error.myCaseExpressions != null) for (triple in toList(error.clauseParameters).zip(error.myCaseExpressions.zip(caseExprPsi.caseArgList))) {
+                if (error.myCaseExpressions != null) for (triple in toList(error.clauseParameters).zip(error.myCaseExpressions.zip(caseExprPsi.caseArguments))) {
                     parameterToCaseArgMap[triple.first] = triple.second.second
                     parameterToCaseExprMap.add(triple.first, triple.second.first)
                 }
@@ -101,7 +102,7 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
                     doInsertCaseArgs(psiFactory, caseExprPsi, oldCaseArgs, expression.second, exprSubst, dependentCaseArg, error.myCaseExpressions, caseOccupiedLocalNames, bindingToCaseArgMap,null)
                 }
 
-                val toInsertedBindingsSubstitution = ExprSubstitution(); for (e in bindingToCaseArgMap) toInsertedBindingsSubstitution.add(e.key, ReferenceExpression(UntypedDependentLink(e.value.caseArgExprAs.defIdentifier!!.name)))
+                val toInsertedBindingsSubstitution = ExprSubstitution(); for (e in bindingToCaseArgMap) toInsertedBindingsSubstitution.add(e.key, ReferenceExpression(UntypedDependentLink(e.value.referable!!.name)))
 
                 val typeQualification = sampleDataCall.accept(SubstVisitor(toInsertedBindingsSubstitution, LevelSubstitution.EMPTY), null).accept(SubstVisitor(toActualParametersSubstitution, LevelSubstitution.EMPTY), null)
                 doWriteTypeQualification(psiFactory, typeQualification, dependentCaseArg)
@@ -112,8 +113,7 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
             if (elimParams != null && elimPsi != null) { // elim
                 val clausesListPsi = when {
                     bodyPsi is ArendFunctionBody -> bodyPsi.functionClauses?.clauseList
-                    bodyPsi is ArendInstanceBody -> bodyPsi.functionClauses?.clauseList
-                    constructorPsi != null -> constructorPsi.clauseList
+                    constructorPsi != null -> constructorPsi.clauses
                     dataBodyPsi != null -> dataBodyPsi.constructorClauseList
                     else -> null
                 }
@@ -130,7 +130,7 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
                 for (expr in exprsToEliminate) if (expr is ReferenceExpression) (clauseToDefinitionMap[expr.binding]
                     ?: expr.binding).let { definitionParametersToEliminate.add(it) }
 
-                definitionParametersToEliminate.removeAll(elimParams)
+                definitionParametersToEliminate.removeAll(elimParams.toSet())
 
                 val paramsMap = HashMap<DependentLink, ArendRefIdentifier>()
                 for (e in elimParams.zip(elimPsi.refIdentifierList)) paramsMap[e.first] = e.second

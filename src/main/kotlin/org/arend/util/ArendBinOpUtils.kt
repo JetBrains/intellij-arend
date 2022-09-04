@@ -10,9 +10,9 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendExpr
-import org.arend.psi.ArendIPName
-import org.arend.psi.ArendImplicitArgument
+import org.arend.psi.ext.ArendExpr
+import org.arend.psi.ext.ArendIPName
+import org.arend.psi.ext.ArendImplicitArgument
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.psi.ext.ArendSourceNode
 import org.arend.resolving.util.parseBinOp
@@ -72,8 +72,8 @@ fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, rangesMap: H
     return result
 }
 
-fun concreteDataToSourceNode(data: Any?): ArendSourceNode? = if (data is ArendIPName) (data.infix
-        ?: data.postfix)?.parentOfType() else data as? ArendSourceNode
+fun concreteDataToSourceNode(data: Any?): ArendSourceNode? =
+    if (data is ArendIPName) data.parentOfType() else data as? ArendSourceNode
 
 /*fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
     val checkConcreteExprDataIsArendNode = { cData: ArendSourceNode?, aNode: ArendSourceNode -> // Rewrite in a less ad-hoc way
@@ -101,7 +101,7 @@ fun checkConcreteExprIsArendExpr(aExpr: Abstract.SourceNode, cExpr: Concrete.Exp
         return false
     }
     if (aExpr is ArendImplicitArgument) {
-        val expr = aExpr.tupleExprList.firstOrNull()?.exprList?.lastOrNull() ?: return false
+        val expr = aExpr.tupleExprList.firstOrNull()?.let { it.type ?: it.expr } ?: return false
         return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), expr)
     }
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)

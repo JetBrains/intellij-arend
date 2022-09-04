@@ -5,10 +5,12 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import com.intellij.util.castSafelyTo
-import org.arend.psi.*
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.deleteWithNotification
+import org.arend.psi.ext.*
+import org.arend.psi.parentOfType
+import org.arend.psi.replaceWithNotification
 import org.arend.util.ArendBundle
-import org.arend.psi.parser.api.ArendPattern as ArendPattern
 
 class MakePatternExplicitQuickFix(private val patternRef: SmartPsiElementPointer<ArendPattern>,
                                   private val single: Boolean) : IntentionAction {
@@ -44,7 +46,7 @@ class MakePatternExplicitQuickFix(private val patternRef: SmartPsiElementPointer
                     if (patternComponent == pattern) {
                         ok = true
                     }
-                    makeExplicit(patternComponent as ArendPattern)
+                    makeExplicit(patternComponent)
                 }
             }
         }

@@ -12,8 +12,8 @@ import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.ArendLanguage
 import org.arend.naming.reference.TCDefReferable
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendDefinition
+import org.arend.psi.ext.ArendDefIdentifier
+import org.arend.psi.ext.ArendDefinition
 import javax.swing.JPanel
 
 @Suppress("UnstableApiUsage")
@@ -44,7 +44,7 @@ class ArendAxiomsInlayProvider : InlayHintsProvider<NoSettings> {
         return object : FactoryInlayHintsCollector(editor) {
             override fun collect(element: PsiElement, editor: Editor, sink: InlayHintsSink): Boolean {
                 if (element !is ArendDefIdentifier) return true
-                val arendDef = element.parent as? ArendDefinition ?: return true
+                val arendDef = element.parent as? ArendDefinition<*> ?: return true
                 val def = (arendDef.tcReferable as? TCDefReferable)?.typechecked ?: return true
                 val axioms = def.axioms
                 if (axioms.isEmpty() || axioms.size == 1 && axioms.contains(def)) return true

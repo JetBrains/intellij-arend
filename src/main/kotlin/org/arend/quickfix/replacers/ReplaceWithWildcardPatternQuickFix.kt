@@ -8,9 +8,9 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.util.castSafelyTo
 import org.arend.psi.*
+import org.arend.psi.ext.ArendPattern
 import org.arend.term.abs.Abstract
 import org.arend.util.ArendBundle
-import org.arend.psi.parser.api.ArendPattern
 
 class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElementPointer<PsiElement>): IntentionAction {
     override fun startInWriteAction(): Boolean = true

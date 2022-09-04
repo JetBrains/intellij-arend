@@ -8,10 +8,12 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.LBRACE
 import org.arend.psi.ArendElementTypes.RBRACE
+import org.arend.psi.ext.*
 
 class ArendFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
@@ -38,28 +40,15 @@ class ArendFoldingBuilder : FoldingBuilderEx(), DumbAware {
 
     private class FoldingVisitor(
             private val descriptors: MutableList<FoldingDescriptor>
-    ) : ArendVisitor() {
+    ) : PsiElementVisitor() {
 
-        override fun visitWithBody(o: ArendWithBody) = foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitFunctionBody(o: ArendFunctionBody) = fold(o)
-
-        override fun visitCoClauseBody(o: ArendCoClauseBody) = foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitDataBody(o: ArendDataBody) = fold(o)
-
-        override fun visitConstructor(o: ArendConstructor) = foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitConstructorClause(o: ArendConstructorClause) = foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitDefClass(o: ArendDefClass) =
-            foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitNewExpr(o: ArendNewExpr) = foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitNewArg(o: ArendNewArg) = foldBetween(o, o.lbrace, o.rbrace)
-
-        override fun visitWhere(o: ArendWhere) = foldBetween(o, o.lbrace, o.rbrace)
+        override fun visitElement(element: PsiElement) {
+            super.visitElement(element)
+            when (element) {
+                is ArendWithBody, is ArendConstructor, is ArendConstructorClause, is ArendDefClass, is ArendNewExpr, is ArendWhere -> foldBraces(element)
+                is ArendFunctionBody, is ArendDataBody -> fold(element)
+            }
+        }
 
         override fun visitComment(comment: PsiComment) {
             if (comment.tokenType == ArendElementTypes.BLOCK_COMMENT) fold(comment)
@@ -72,9 +61,10 @@ class ArendFoldingBuilder : FoldingBuilderEx(), DumbAware {
             }
         }
 
-        private fun foldBetween(element: PsiElement, left: PsiElement?, right: PsiElement?) {
+        private fun foldBraces(element: PsiElement) {
+            val left = element.getChildOfType(LBRACE)
             if (left != null) {
-                val range = TextRange(left.textOffset, right?.textOffset?.let { it + 1 } ?: element.textRange.endOffset)
+                val range = TextRange(left.textOffset, element.getChildOfType(RBRACE)?.textOffset?.let { it + 1 } ?: element.textRange.endOffset)
                 if (!range.isEmpty) {
                     descriptors += FoldingDescriptor(element.node, range)
                 }

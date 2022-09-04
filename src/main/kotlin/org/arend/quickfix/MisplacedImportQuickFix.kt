@@ -6,7 +6,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.module.ModulePath
-import org.arend.psi.*
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.deleteWithNotification
+import org.arend.psi.ext.*
 import org.arend.refactoring.addStatCmd
 import org.arend.refactoring.findPlaceForNsCmd
 import org.arend.util.ArendBundle

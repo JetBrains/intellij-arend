@@ -6,7 +6,7 @@ import com.intellij.psi.PsiElement
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.intention.binOp.BinOpSeqProcessor
 import org.arend.intention.binOp.CaretHelper
-import org.arend.psi.ArendArgumentAppExpr
+import org.arend.psi.ext.ArendArgumentAppExpr
 import org.arend.psi.parentOfType
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle

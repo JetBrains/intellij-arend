@@ -11,7 +11,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parents
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
-import org.arend.psi.ArendExpr
+import org.arend.psi.ext.ArendExpr
 import org.arend.psi.ArendFile
 import org.arend.resolving.util.parseBinOp
 import org.arend.term.concrete.Concrete

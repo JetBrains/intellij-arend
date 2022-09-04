@@ -10,9 +10,8 @@ import com.intellij.pom.Navigatable
 import com.intellij.psi.NavigatablePsiElement
 import org.arend.naming.reference.FieldReferable
 import org.arend.navigation.getPresentationForStructure
-import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.*
 import org.arend.term.group.Group
 
 class ArendStructureViewModel(editor: Editor?, file: ArendFile)

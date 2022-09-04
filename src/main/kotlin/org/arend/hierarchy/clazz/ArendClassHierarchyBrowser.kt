@@ -20,7 +20,7 @@ import com.intellij.ui.tree.StructureTreeModel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
-import org.arend.psi.ArendDefClass
+import org.arend.psi.ext.ArendDefClass
 import org.arend.settings.ArendProjectSettings
 import java.util.*
 import javax.swing.JPanel
@@ -141,7 +141,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         tree.model = AsyncTreeModel(myModel, false, myProject)
     }
 
-    inner class ArendShowImplFieldsAction : ToggleAction("Show implemented fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
+    inner class ArendShowImplFieldsAction : ToggleAction("Show Implemented Fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
 
         override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showImplFields
 
@@ -151,7 +151,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         }
     }
 
-    inner class ArendShowNonImplFieldsAction : ToggleAction("Show non-implemented fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
+    inner class ArendShowNonImplFieldsAction : ToggleAction("Show Non-Implemented Fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
         override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showNonImplFields
 

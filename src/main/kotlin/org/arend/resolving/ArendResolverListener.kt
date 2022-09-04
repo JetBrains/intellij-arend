@@ -1,8 +1,5 @@
 package org.arend.resolving
 
-import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPsiElementPointer
-import org.arend.psi.parser.api.ArendPattern
 import com.intellij.util.castSafelyTo
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.ErrorReference
@@ -10,9 +7,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.scope.Scope
-import org.arend.psi.*
-import org.arend.psi.ext.ArendIPNameImplMixin
-import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.*
 import org.arend.term.NameRenaming
 import org.arend.term.NamespaceCommand
 import org.arend.term.concrete.Concrete
@@ -38,13 +33,13 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
     private fun resolveReference(data: Any?, referent: Referable, resolvedRefs: List<Referable?>) {
         val list = when (data) {
             is ArendLongName -> data.refIdentifierList
-            is ArendIPNameImplMixin -> {
+            is ArendIPName -> {
                 val last: List<ArendReferenceElement> = listOf(data)
                 data.parentLongName?.let { it.refIdentifierList + last } ?: last
             }
             is ArendReferenceElement -> listOf(data)
             is ArendPattern -> {
-                data.sequence.mapNotNull { it.getReferenceElement()?.takeIf { it.referenceName == resolvedRefs.singleOrNull()?.refName }?.referenceNameElement?.castSafelyTo<ArendReferenceElement>() }
+                data.sequence.mapNotNull { it.referenceElement?.takeIf { it.referenceName == resolvedRefs.singleOrNull()?.refName }?.referenceNameElement?.castSafelyTo<ArendReferenceElement>() }
             }
             is ArendAtomLevelExpr -> data.refIdentifier?.let { listOf(it) } ?: return
             else -> return
@@ -85,7 +80,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
     }
 
     override fun overriddenFieldResolved(overriddenField: Concrete.OverriddenField, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
-        (overriddenField.data as? ArendOverriddenField)?.longName?.let {
+        (overriddenField.data as? ArendOverriddenField)?.overriddenField?.let {
             resolveReference(it, referable, resolvedRefs)
         }
     }

@@ -15,9 +15,10 @@ import com.intellij.psi.tree.TokenSet
 import com.intellij.psi.util.siblings
 import org.arend.parser.ParserMixin.DOC_COMMENT
 import org.arend.parser.ParserMixin.DOC_TEXT
-import org.arend.psi.*
-import org.arend.psi.parser.api.ArendPattern
+import org.arend.psi.AREND_COMMENTS
+import org.arend.psi.ext.*
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ArendFile
 import org.arend.util.mapFirstNotNull
 import java.util.*
 
@@ -53,7 +54,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
         if (isCoClauseOrLocalCoClause(nodePsi) && needsCrlfInCoClausesBlock(child1, child2)) return oneCrlf
 
-        if (myNode.psi is ArendFunctionClauses || myNode.psi is ArendCoClauseBody) {
+        if (myNode.psi is ArendFunctionClauses || (myNode.psi as? ArendFunctionBody)?.kind == ArendFunctionBody.Kind.COCLAUSE) {
             if ((child1 is AbstractArendBlock && child1.node.elementType == LBRACE) xor
                     (child2 is AbstractArendBlock && child2.node.elementType == RBRACE))
                 return oneCrlf
@@ -91,7 +92,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 if (c1et == COMMA && c2et == CASE_ARG) return oneSpaceWrap
             }
             if (myNode.psi is ArendCaseArg) {
-                if (c1et == CASE_ARG_EXPR_AS && c2et == COLON) return oneSpaceWrap
+                if ((c1et == EXPR || c1et == DEF_IDENTIFIER) && c2et == COLON) return oneSpaceWrap
                 if (c1et == COLON && psi2 is ArendExpr) return oneSpaceWrap
             }
 
@@ -105,13 +106,13 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (myNode.psi is ArendClause && (c1et == FAT_ARROW || c2et == FAT_ARROW || c1et == COMMA && c2et == PATTERN)) return oneSpaceWrap
 
-            if (myNode.psi is ArendCoClauseDef && (psi1 is ArendNameTele || psi1 is ArendReturnExpr) && psi2 is ArendCoClauseBody) return oneSpaceWrap
+            if (myNode.psi is ArendCoClauseDef && (psi1 is ArendNameTele || psi1 is ArendReturnExpr) && (psi2 as? ArendFunctionBody)?.kind == ArendFunctionBody.Kind.COCLAUSE) return oneSpaceWrap
 
             if (myNode.psi is ArendPattern && (c1et == DEF_IDENTIFIER || c1et == PATTERN) && c2et == PATTERN) return oneSpaceWrap
 
             if ((nodePsi is ArendNameTele || nodePsi is ArendTypeTele || nodePsi is ArendSigmaTypeTele || nodePsi is ArendFieldTele) && (c1et == LBRACE || c2et == RBRACE || c1et == LPAREN || c2et == RPAREN)) return noWhitespace
 
-            if ((myNode.psi is ArendDefinition || myNode.psi is ArendClassStat) && (psi2 is ArendPrec || psi2 is ArendDefIdentifier)) return oneSpaceNoWrap
+            if ((myNode.psi is ArendDefinition<*> || myNode.psi is ArendClassStat) && (psi2 is ArendPrec || psi2 is ArendDefIdentifier)) return oneSpaceNoWrap
 
             if (nodePsi is ArendPrec && (c1et in listOf(INFIX_LEFT_KW, INFIX_NON_KW, INFIX_RIGHT_KW) && c2et == NUMBER)) return oneSpaceNoWrap
 
@@ -147,7 +148,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
     private fun shouldWrapLetExpression(c1et: IElementType, psi2: PsiElement): Boolean {
         val let = if (c1et == LPAREN && psi2 is ArendTupleExpr) {
-            psi2.exprList.singleOrNull() as? ArendLetExpr
+            psi2.exprIfSingle as? ArendLetExpr
         } else if (c1et == FAT_ARROW && psi2 is ArendLetExpr) {
             psi2
         } else {
@@ -180,7 +181,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             }
 
             // Definitions
-            if ((nodePsi is ArendDefinition || nodePsi is ArendClassField ||
+            if ((nodePsi is ArendDefinition<*> || nodePsi is ArendClassField ||
                             nodePsi is ArendPiExpr || nodePsi is ArendLamExpr || nodePsi is ArendSigmaExpr)
                     && newChildIndex <= subBlocks.size) {
                 when (if (prevET == ERROR_ELEMENT) prev2ET else prevET) {
@@ -197,7 +198,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 }
             }
 
-            if ((nodePsi is ArendDefinition || nodePsi is ArendDefModule) && prevET == WHERE)
+            if ((nodePsi is ArendDefinition<*> || nodePsi is ArendDefModule) && prevET == WHERE)
                 return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
             if (nodePsi is ArendDefClass) when (prevET) {
@@ -218,7 +219,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             if (nodePsi is ArendDefInstance) {
                 when (prevChild.node.psi) {
                     is ArendReturnExpr -> return ChildAttributes(Indent.getNormalIndent(), null)
-                    is ArendInstanceBody -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
+                    is ArendFunctionBody -> return ChildAttributes.DELEGATE_TO_PREV_CHILD
                     is ArendWhere -> return ChildAttributes(Indent.getNoneIndent(), null)
                 }
             }
@@ -328,7 +329,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                         if (AREND_COMMENTS.contains(childET)) alignment
                         else when (childET) {
                             HAVE_KW, HAVES_KW, LET_KW, LETS_KW, IN_KW -> alignment2
-                            LET_CLAUSE -> if ((nodePsi as? ArendLetExpr)?.letClauseList?.size?.let{it > 1} == true) alignment else null
+                            LET_CLAUSE -> if ((nodePsi as? ArendLetExpr)?.letClauses?.size?.let{it > 1} == true) alignment else null
                             else -> null
                         }
                     IMPLICIT_ARGUMENT -> when (childET) {

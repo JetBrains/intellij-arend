@@ -7,11 +7,9 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.PsiTreeChangeEventImpl
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.util.castSafelyTo
-import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.PsiConcreteReferable
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.AREND_COMMENTS
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.*
 import org.arend.resolving.ArendResolveCache
 
 
@@ -110,7 +108,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
         }
     }
 
-    private fun isDynamicDef(elem: PsiElement?) = elem is ArendClassStat && (elem.definition != null || elem.defModule != null)
+    private fun isDynamicDef(elem: PsiElement?) = elem is ArendClassStat && elem.group != null
 
     private fun processParent(event: PsiTreeChangeEvent, checkCommentStart: Boolean) {
         val file = event.file as? ArendFile ?: return
@@ -185,8 +183,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
             is ArendGroup -> invalidateChildren(element, file)
             is ArendStat -> {
                 element.statCmd?.let { invalidateChildren(file, file) }
-                element.definition?.let { invalidateChildren(it, file) }
-                element.defModule?.let { invalidateChildren(it, file) }
+                element.group?.let { invalidateChildren(it, file) }
             }
         }
     }

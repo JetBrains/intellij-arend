@@ -6,8 +6,7 @@ import com.intellij.refactoring.changeSignature.ChangeInfo
 import com.intellij.refactoring.changeSignature.ParameterInfo
 import org.arend.ArendLanguage
 import org.arend.psi.*
-import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.*
 import java.util.Collections.singletonList
 
 class ArendChangeInfo constructor(val parameterInfo : MutableList<ArendParameterInfo>, //TODO: Should the list be mutable???
@@ -40,11 +39,13 @@ class ArendChangeInfo constructor(val parameterInfo : MutableList<ArendParameter
         var lastWhitespace = " "
         when (locatedReferable) {
             is ArendDefFunction -> {
-                var buffer: String = ""
-                var currNode = locatedReferable.nameTeleList.firstOrNull()?.findPrevSibling()?.nextSibling
+                var buffer = ""
+                var currNode = locatedReferable.parameters.firstOrNull()?.findPrevSibling()?.nextSibling
                 while (currNode != null) {
                     if (currNode is ArendNameTele) {
-                        lastWhitespace = buffer; whitespaceList.add(buffer); buffer = "";
+                        lastWhitespace = buffer
+                        whitespaceList.add(buffer)
+                        buffer = ""
                     } else {
                         buffer += currNode.text
                     }
@@ -83,11 +84,11 @@ class ArendChangeInfo constructor(val parameterInfo : MutableList<ArendParameter
 
     companion object {
         fun getParameterInfo(locatedReferable: PsiLocatedReferable): MutableList<ArendParameterInfo> {
-            var index = 0;
+            var index = 0
             val result = ArrayList<ArendParameterInfo>()
             for (t in getTeles(locatedReferable)) when (t) {
                 is ArendNameTele -> for (parameter in t.identifierOrUnknownList) {
-                    result.add(ArendParameterInfo(parameter.defIdentifier?.name ?: "_", t.expr?.text, index, t.isExplicit))
+                    result.add(ArendParameterInfo(parameter.defIdentifier?.name ?: "_", t.type?.text, index, t.isExplicit))
                     index++
                 }
                 is ArendTypeTele -> {
@@ -102,11 +103,11 @@ class ArendChangeInfo constructor(val parameterInfo : MutableList<ArendParameter
             return result
         }
         fun getTeles(locatedReferable: PsiLocatedReferable): List<PsiElement> = when (locatedReferable) {
-            is ArendFunctionalDefinition -> locatedReferable.nameTeleList
-            is ArendDefData -> locatedReferable.typeTeleList
+            is ArendFunctionDefinition<*> -> locatedReferable.parameters
+            is ArendDefData -> locatedReferable.parameters
             is ArendDefClass -> locatedReferable.fieldTeleList
-            is ArendDefMeta -> locatedReferable.nameTeleUntypedList
-            is ArendConstructor -> locatedReferable.typeTeleList
+            is ArendDefMeta -> locatedReferable.parameters
+            is ArendConstructor -> locatedReferable.parameters
             else -> throw IllegalStateException()
         }
 

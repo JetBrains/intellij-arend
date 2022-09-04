@@ -2,7 +2,9 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.elementType
 import org.arend.psi.*
+import org.arend.psi.ArendElementTypes.*
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 
@@ -26,24 +28,30 @@ private fun <P : Any?, R : Any?> acceptTruncated(data: ArendCompositeElement, tr
 }
 
 
-abstract class ArendSetUniverseAppExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendSetUniverseAppExpr {
+class ArendSetUniverseAppExpr(node: ASTNode) : ArendAppExpr(node) {
+    val maybeAtomLevelExpr: ArendMaybeAtomLevelExpr?
+        get() = getChildOfType()
+
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        acceptSet(this, set, maybeAtomLevelExpr?.atomLevelExpr, visitor, params)
+        acceptSet(this, notNullChild(firstRelevantChild), maybeAtomLevelExpr?.atomLevelExpr, visitor, params)
 }
 
-abstract class ArendTruncatedUniverseAppExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendTruncatedUniverseAppExpr {
+class ArendTruncatedUniverseAppExpr(node: ASTNode) : ArendAppExpr(node) {
+    val maybeAtomLevelExpr: ArendMaybeAtomLevelExpr?
+        get() = getChildOfType()
+
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
-        acceptTruncated(this, truncatedUniverse, maybeAtomLevelExpr?.atomLevelExpr, visitor, params)
+        acceptTruncated(this, notNullChild(firstRelevantChild), maybeAtomLevelExpr?.atomLevelExpr, visitor, params)
 }
 
-abstract class ArendUniverseAppExprImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendUniverseAppExpr {
-    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        val list = maybeAtomLevelExprList
-        return acceptUniverse(this, universe, list.getOrNull(0)?.atomLevelExpr, list.getOrNull(1)?.atomLevelExpr, visitor, params)
-    }
+class ArendUniverseAppExpr(node: ASTNode) : ArendAppExpr(node) {
+    fun getMaybeAtomLevelExpr(index: Int): ArendMaybeAtomLevelExpr? = getChildOfType(index)
+
+    override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
+        acceptUniverse(this, notNullChild(firstRelevantChild), getMaybeAtomLevelExpr(0)?.atomLevelExpr, getMaybeAtomLevelExpr(1)?.atomLevelExpr, visitor, params)
 }
 
-abstract class ArendUniverseAtomImplMixin(node: ASTNode) : ArendExprImplMixin(node), ArendUniverseAtom {
+class ArendUniverseAtom(node: ASTNode) : ArendExpr(node), ArendArgument {
     override fun isExplicit(): Boolean = true
 
     override fun isVariable() = false
@@ -51,9 +59,12 @@ abstract class ArendUniverseAtomImplMixin(node: ASTNode) : ArendExprImplMixin(no
     override fun getExpression(): ArendExpr = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
-        set?.let { return acceptSet(this, it, null, visitor, params) }
-        universe?.let { return acceptUniverse(this, it, null, null, visitor, params) }
-        truncatedUniverse?.let { return acceptTruncated(this, it, null, visitor, params) }
-        error("Incorrect expression: universe")
+        val child = firstRelevantChild
+        return when (child.elementType) {
+            SET -> acceptSet(this, child!!, null, visitor, params)
+            UNIVERSE -> acceptUniverse(this, child!!, null, null, visitor, params)
+            TRUNCATED_UNIVERSE -> acceptTruncated(this, child!!, null, visitor, params)
+            else -> error("Incorrect expression: universe")
+        }
     }
 }

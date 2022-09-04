@@ -3,9 +3,9 @@ package org.arend.intention.binOp
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
-import org.arend.psi.ArendArgumentAppExpr
-import org.arend.psi.ArendIPName
-import org.arend.psi.ArendLongName
+import org.arend.psi.ext.ArendArgumentAppExpr
+import org.arend.psi.ext.ArendIPName
+import org.arend.psi.ext.ArendLongName
 import org.arend.psi.ext.ArendReferenceContainer
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.term.concrete.Concrete

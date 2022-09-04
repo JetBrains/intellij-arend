@@ -16,9 +16,9 @@ import org.arend.naming.reference.*
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiDefReferable
-import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.MetaAdapter
-import org.arend.psi.ext.impl.fillAdditionalNames
+import org.arend.psi.ext.ArendGroup
+import org.arend.psi.ext.ArendDefMeta
+import org.arend.psi.ext.fillAdditionalNames
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
@@ -217,7 +217,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
                 val name = subgroup.referable.refName
                 val meta = scope.resolveName(name)
                 if (meta is MetaReferable) {
-                    (subgroup as? MetaAdapter)?.let { module ->
+                    (subgroup as? ArendDefMeta)?.let { module ->
                         module.metaRef = meta
                         meta.underlyingReferable = Supplier { module }
                     }

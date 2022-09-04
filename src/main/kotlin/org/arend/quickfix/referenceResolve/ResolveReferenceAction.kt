@@ -6,7 +6,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.ArendGroup
 import org.arend.refactoring.*
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,

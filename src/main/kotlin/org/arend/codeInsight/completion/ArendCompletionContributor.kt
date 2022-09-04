@@ -13,11 +13,8 @@ import com.intellij.psi.util.elementType
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.ProcessingContext
 import org.arend.psi.*
-import org.arend.psi.parser.api.ArendPattern
 import org.arend.psi.ArendElementTypes.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendFunctionalDefinition
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.*
 import org.arend.repl.CommandHandler
 import org.arend.search.ArendWordScanner
 import org.arend.term.abs.Abstract
@@ -32,7 +29,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(PlatformPatterns.psiElement(REPL_COMMAND), CommandHandler.INSTANCE.commandMap.keys)
 
-        basic(after(and(ofType(LEVEL_KW), elementPattern { o -> (o.parent as? ArendDefFunction)?.functionKw?.useKw != null })), FIXITY_KWS)
+        basic(after(and(ofType(LEVEL_KW), elementPattern { o -> (o.parent as? ArendDefFunction)?.functionKind?.isUse == true })), FIXITY_KWS)
 
         basic(and(withGrandParent(ArendNsId::class.java), withParents(ArendRefIdentifier::class.java, PsiErrorElement::class.java), not(afterLeaves(LPAREN, COMMA))), AS_KW_LIST)
         { parameters -> (parameters.position.parent.parent as ArendNsId).asKw == null }
@@ -90,7 +87,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         if (ancestor.lbrace != null) foundLbrace = true
                         result2 = if (allowData) foundWhere else !foundWhere && foundLbrace
                         break
-                    } else if (ancestor is ArendDefinition && foundWhere) {
+                    } else if (ancestor is ArendDefinition<*> && foundWhere) {
                         result2 = false
                         break
                     }
@@ -223,12 +220,12 @@ class ArendCompletionContributor : CompletionContributor() {
             pairingWordCondition({ position: PsiElement? ->
                 if (position is ArendCaseArg) {
                     val pp = position.parent as? ArendCaseExpr
-                    pp != null && pp.caseArgList.lastOrNull() == position && pp.returnKw == null
+                    pp != null && pp.caseArguments.lastOrNull() == position && pp.returnKw == null
                 } else false
             }, o)
         }
 
-        val asCondition1 = { position: PsiElement? -> position is ArendCaseArg && position.caseArgExprAs.asKw == null }
+        val asCondition1 = { position: PsiElement? -> position is ArendCaseArg && position.asKw == null }
 
         val asCondition2 = { position: PsiElement? ->
             //Alternative condition needed to ensure that as is added before semicolon
@@ -247,7 +244,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         val caseContext = and(
                 or(EXPRESSION_CONTEXT,
-                        withAncestors(PsiErrorElement::class.java, ArendCaseArgExprAs::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java)),
+                        withAncestors(PsiErrorElement::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java)),
                 not(afterLeaves(WITH_KW, CASE_KW, SCASE_KW, COLON)))
 
         basic(and(caseContext, pairingWithPattern), KeywordCompletionProvider(WITH_KW_LIST, completionBehavior = KeywordCompletionBehavior.ADD_BRACES))
@@ -271,10 +268,10 @@ class ArendCompletionContributor : CompletionContributor() {
                     }
 
                     if ((pos2 is ArendDefFunction)) {
-                        val fBody = pos2.functionBody
+                        val fBody = pos2.body
                         exprFound = fBody == null || fBody.fatArrow == null && fBody.elim?.elimKw == null
                         exprFound = exprFound &&
-                                if (!coWithMode) !emptyTeleList(pos2.nameTeleList)  // No point of writing elim keyword if there are no arguments
+                                if (!coWithMode) !emptyTeleList(pos2.parameters)  // No point of writing elim keyword if there are no arguments
                                 else {
                                     val returnExpr = pos2.returnExpr
                                     returnExpr != null && returnExpr.levelKw == null
@@ -285,12 +282,12 @@ class ArendCompletionContributor : CompletionContributor() {
                     if ((pos2 is ArendDefData) && !coWithMode) {
                         val dBody = pos2.dataBody
                         exprFound = dBody == null || (dBody.elim?.elimKw == null && dBody.constructorList.isEmpty() && dBody.constructorClauseList.isEmpty())
-                        exprFound = exprFound && !emptyTeleList(pos2.typeTeleList)
+                        exprFound = exprFound && !emptyTeleList(pos2.parameters)
                         break
                     }
 
                     if (pos2 is ArendConstructor && pos2.elim == null && !coWithMode) {
-                        exprFound = !emptyTeleList(pos2.typeTeleList)
+                        exprFound = !emptyTeleList(pos2.parameters)
                         break
                     }
 
@@ -313,7 +310,7 @@ class ArendCompletionContributor : CompletionContributor() {
                     }
 
                     if (pos3 is ArendCoClauseDef) {
-                        exprFound = !coWithMode && pos3.nameTeleList.isNotEmpty() || coWithMode && pos3.returnExpr != null
+                        exprFound = !coWithMode && pos3.parameters.isNotEmpty() || coWithMode && pos3.returnExpr != null
                         break
                     }
 
@@ -323,10 +320,10 @@ class ArendCompletionContributor : CompletionContributor() {
             }
         }
 
-        fun condition_or (a : (CompletionParameters)-> Boolean, b : (CompletionParameters)-> Boolean): (CompletionParameters) -> Boolean = {cp -> a.invoke(cp) || b.invoke(cp)}
+        fun conditionOr (a : (CompletionParameters)-> Boolean, b : (CompletionParameters)-> Boolean): (CompletionParameters) -> Boolean = { cp -> a.invoke(cp) || b.invoke(cp)}
 
-        basic(ELIM_CONTEXT, ELIM_KW_LIST, condition_or(elimOrCoWithCondition.invoke(false), coClauseDefCondition.invoke(false)))
-        basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, condition_or(elimOrCoWithCondition.invoke(true), coClauseDefCondition.invoke(true)), completionBehavior = KeywordCompletionBehavior.DEFAULT))
+        basic(ELIM_CONTEXT, ELIM_KW_LIST, conditionOr(elimOrCoWithCondition.invoke(false), coClauseDefCondition.invoke(false)))
+        basic(ELIM_CONTEXT, ConditionalProvider(COWITH_KW_LIST, conditionOr(elimOrCoWithCondition.invoke(true), coClauseDefCondition.invoke(true)), completionBehavior = KeywordCompletionBehavior.DEFAULT))
 
         basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, elimOrCoWithCondition.invoke(false), completionBehavior = KeywordCompletionBehavior.DEFAULT))
         basic(ELIM_CONTEXT, ConditionalProvider(WITH_KW_LIST, coClauseDefCondition.invoke(false), completionBehavior = KeywordCompletionBehavior.ADD_BRACES))
@@ -334,7 +331,7 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(and(
                 afterLeaves(COMMA, CASE_KW),
                 or(withAncestors(PsiErrorElement::class.java, ArendCaseExpr::class.java),
-                        withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendCaseArgExprAs::class.java, ArendCaseArg::class.java, ArendCaseExpr::class.java))))), ELIM_KW_LIST)
+                        withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendCaseArg::class.java, ArendCaseExpr::class.java))))), ELIM_KW_LIST)
 
         val isLiteralApp = { argumentAppExpr: ArendArgumentAppExpr ->
             argumentAppExpr.longNameExpr != null ||
@@ -360,11 +357,15 @@ class ArendCompletionContributor : CompletionContributor() {
                 }
 
                 if (argumentAppExpr != null && anchor != null && isLiteralApp(argumentAppExpr)) {
-                    var counter = argumentAppExpr.longNameExpr?.atomOnlyLevelExprList?.size ?: 0
+                    val longNameExpr = argumentAppExpr.longNameExpr
+                    var counter = 0
+                    if (longNameExpr?.pLevelExpr != null) counter++
+                    if (longNameExpr?.hLevelExpr != null) counter++
                     var forbidden = false
                     val levelsExpr = argumentAppExpr.longNameExpr?.levelsExpr
                     if (levelsExpr != null) {
-                        counter += levelsExpr.maybeAtomLevelExprsList.size
+                        if (levelsExpr.pLevelExprs != null) counter++
+                        if (levelsExpr.hLevelExprs != null) counter++
                         if (forbidLevelExprs) forbidden = true
                     }
                     for (ch in argumentAppExpr.children) {
@@ -417,7 +418,7 @@ class ArendCompletionContributor : CompletionContributor() {
         basic(and(afterLeaf(ID), after(and(withParent(ArendDefIdentifier::class.java), withGrandParents(ArendDefData::class.java, ArendDefInstance::class.java,
                 ArendDefFunction::class.java, ArendDefClass::class.java)))), PH_LEVELS_KW_LIST)
 
-        val levelParamsPattern = or(withAncestors(ArendPLevelIdentifier::class.java, ArendPLevelParamsSeq::class.java), withAncestors(ArendHLevelIdentifier::class.java, ArendHLevelParamsSeq::class.java))
+        val levelParamsPattern = withAncestors(ArendLevelIdentifier::class.java, ArendLevelParamsSeq::class.java)
 
         basic(or(afterLeaf(PLEVELS_KW), after(levelParamsPattern)), HLEVELS_KW_LIST) { cP: CompletionParameters ->
             val jointData = ArendCompletionParameters(cP)
@@ -498,7 +499,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val INSIDE_RETURN_EXPR_CONTEXT = or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendReturnExpr::class.java))
 
         private val WHERE_CONTEXT = and(
-                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX), withAncestors(ArendPLevelIdentifier::class.java, ArendPLevelParamsSeq::class.java), withAncestors(ArendHLevelIdentifier::class.java, ArendHLevelParamsSeq::class.java)),
+                or(STATEMENT_END_CONTEXT, withAncestors(*DEF_IDENTIFIER_PREFIX), withAncestors(ArendLevelIdentifier::class.java, ArendLevelParamsSeq::class.java)),
                 not(PREC_CONTEXT),
                 not(INSIDE_RETURN_EXPR_CONTEXT),
                 not(afterLeaves(COLON, TRUNCATED_KW, FAT_ARROW, WITH_KW, ARROW, IN_KW, INSTANCE_KW, EXTENDS_KW, DOT, NEW_KW, EVAL_KW, PEVAL_KW, CASE_KW, SCASE_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WHERE_KW, USE_KW, PIPE, LEVEL_KW, COERCE_KW)),
@@ -507,7 +508,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         private val DATA_CONTEXT = withAncestors(PsiErrorElement::class.java, ArendDefData::class.java, ArendStat::class.java)
 
-        private val TELE_CONTAINERS = arrayOf<Class<out PsiElement>>(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java, ArendFunctionalDefinition::class.java, ArendCoClauseDef::class.java)
+        private val TELE_CONTAINERS = arrayOf<Class<out PsiElement>>(ArendClassField::class.java, ArendConstructor::class.java, ArendDefData::class.java, ArendPiExpr::class.java, ArendSigmaExpr::class.java, ArendFunctionDefinition::class.java, ArendCoClauseDef::class.java)
         private val TELE_CONTEXT = or(
                 and(withParent(PsiErrorElement::class.java), withGrandParents(ArendTypeTele::class.java, ArendNameTele::class.java, ArendSigmaTypeTele::class.java), withGreatGrandParents(*TELE_CONTAINERS)),
                 and(withParents(ArendTypeTele::class.java, ArendNameTele::class.java, ArendSigmaTypeTele::class.java), withGrandParents(*TELE_CONTAINERS)),
@@ -524,7 +525,7 @@ class ArendCompletionContributor : CompletionContributor() {
                         and(afterLeaf(COLON), withAncestors(PsiErrorElement::class.java, ArendDefFunction::class.java)),
                         and(afterLeaf(COLON), withParent(ArendDefClass::class.java)),
                         or(withParent(ArendClassStat::class.java), withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java)),
-                        and(ofType(INVALID_KW), withAncestors(ArendInstanceBody::class.java, ArendDefInstance::class.java)),
+                        and(ofType(INVALID_KW), withAncestors(ArendFunctionBody::class.java, ArendDefInstance::class.java)),
                         and(not(afterLeaf(LPAREN)), not(afterLeaf(ID)), withAncestors(PsiErrorElement::class.java, ArendFieldTele::class.java)),
                         withAncestors(ArendNameTele::class.java, ArendDefFunction::class.java),
                         withAncestors(ArendTypeTele::class.java, ArendDefData::class.java),
@@ -621,7 +622,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         private val expressionPattern = { allowInBareSigmaOrPiExpressions: Boolean, allowInArgumentExpressionContext: Boolean ->
-            not(or(after(withAncestors(ArendFieldAcc::class.java, ArendAtomFieldsAcc::class.java)), //No keyword completion after field
+            not(or(after(withAncestors(ArendAtomFieldsAcc::class.java)), //No keyword completion after field
                 and(or(withAncestors(*RETURN_EXPR_PREFIX), withAncestors(*(NEW_EXPR_PREFIX + arrayOf(ArendReturnExpr::class.java)))), not(allowedInReturnPattern)),
                 after(and(ofType(RBRACE), withParent(ArendWithBody::class.java))), //No keyword completion after \with or } in case expr
                 after(ofType(LAM_KW, HAVE_KW, LET_KW, HAVES_KW, LETS_KW, WITH_KW)), //No keyword completion after \lam or \let
@@ -792,7 +793,7 @@ class ArendCompletionContributor : CompletionContributor() {
             leftStatement = ancestorsPE.lastOrNull()
             rightStatement = ancestorsNE.lastOrNull()
             isBeforeClassFields = rightStatement is ArendClassStat && rightStatement.definition == null
-            betweenStatementsOk = leftStatement != null && rightStatement != null && ancestorsNE.intersect(ancestorsPE).isEmpty()
+            betweenStatementsOk = leftStatement != null && rightStatement != null && ancestorsNE.intersect(ancestorsPE.toSet()).isEmpty()
         }
 
         companion object {

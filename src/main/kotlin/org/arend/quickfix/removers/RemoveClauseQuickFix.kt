@@ -6,7 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.psi.ArendClause
+import org.arend.psi.ext.ArendClause
 import org.arend.psi.ArendElementTypes.PIPE
 import org.arend.psi.deleteChildRangeWithNotification
 import org.arend.psi.deleteWithNotification

@@ -7,10 +7,7 @@ import org.arend.ArendLanguage
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.impl.CoClauseDefAdapter
-import org.arend.psi.ext.impl.ReferableAdapter
-import org.arend.psi.impl.*
+import org.arend.psi.ext.*
 
 class ArendFileStub(file: ArendFile?, override val name: String?) : PsiFileStubImpl<ArendFile>(file), ArendNamedStub {
     constructor (file: ArendFile?) : this(file, file?.name)
@@ -66,7 +63,7 @@ class ArendDefClassStub(parent: StubElement<*>?, elementType: IStubElementType<*
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendDefClassStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendDefClassStub) = ArendDefClassImpl(stub, this)
+        override fun createPsi(stub: ArendDefClassStub) = ArendDefClass(stub, this)
 
         override fun indexStub(stub: ArendDefClassStub, sink: IndexSink) = sink.indexClass(stub)
     }
@@ -79,7 +76,7 @@ class ArendClassFieldStub(parent: StubElement<*>?, elementType: IStubElementType
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendClassFieldStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendClassFieldStub) = ArendClassFieldImpl(stub, this)
+        override fun createPsi(stub: ArendClassFieldStub) = ArendClassField(stub, this)
 
         override fun indexStub(stub: ArendClassFieldStub, sink: IndexSink) = sink.indexClassField(stub)
     }
@@ -92,7 +89,7 @@ class ArendClassFieldParamStub(parent: StubElement<*>?, elementType: IStubElemen
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendClassFieldParamStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendClassFieldParamStub) = ArendFieldDefIdentifierImpl(stub, this)
+        override fun createPsi(stub: ArendClassFieldParamStub) = ArendFieldDefIdentifier(stub, this)
 
         override fun indexStub(stub: ArendClassFieldParamStub, sink: IndexSink) = sink.indexClassFieldParam(stub)
     }
@@ -105,7 +102,7 @@ class ArendClassImplementStub(parent: StubElement<*>?, elementType: IStubElement
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendClassImplementStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendClassImplementStub) = ArendClassImplementImpl(stub, this)
+        override fun createPsi(stub: ArendClassImplementStub) = ArendClassImplement(stub, this)
 
         override fun indexStub(stub: ArendClassImplementStub, sink: IndexSink) = sink.indexClassImplement(stub)
     }
@@ -119,9 +116,9 @@ class ArendCoClauseDefStub(parent: StubElement<*>?, elementType: IStubElementTyp
             ArendCoClauseDefStub(parentStub, this, name, prec, aliasName)
 
         override fun createStub(psi: ArendCoClauseDef, parentStub: StubElement<*>?) =
-            createStub(parentStub, psi.name, (psi as? CoClauseDefAdapter)?.parentCoClause?.prec?.let { ReferableAdapter.calcPrecedence(it) }, (psi as? GlobalReferable)?.aliasName)
+            createStub(parentStub, psi.name, (psi as? ArendCoClauseDef)?.parentCoClause?.prec?.let { ReferableBase.calcPrecedence(it) }, (psi as? GlobalReferable)?.aliasName)
 
-        override fun createPsi(stub: ArendCoClauseDefStub) = ArendCoClauseDefImpl(stub, this)
+        override fun createPsi(stub: ArendCoClauseDefStub) = ArendCoClauseDef(stub, this)
 
         override fun indexStub(stub: ArendCoClauseDefStub, sink: IndexSink) = sink.indexCoClauseDef(stub)
     }
@@ -134,7 +131,7 @@ class ArendDefInstanceStub(parent: StubElement<*>?, elementType: IStubElementTyp
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendDefInstanceStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendDefInstanceStub) = ArendDefInstanceImpl(stub, this)
+        override fun createPsi(stub: ArendDefInstanceStub) = ArendDefInstance(stub, this)
 
         override fun indexStub(stub: ArendDefInstanceStub, sink: IndexSink) = sink.indexClassInstance(stub)
     }
@@ -147,7 +144,7 @@ class ArendConstructorStub(parent: StubElement<*>?, elementType: IStubElementTyp
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendConstructorStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendConstructorStub) = ArendConstructorImpl(stub, this)
+        override fun createPsi(stub: ArendConstructorStub) = ArendConstructor(stub, this)
 
         override fun indexStub(stub: ArendConstructorStub, sink: IndexSink) = sink.indexConstructor(stub)
     }
@@ -161,7 +158,7 @@ class ArendDefDataStub(parent: StubElement<*>?, elementType: IStubElementType<*,
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendDefDataStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendDefDataStub) = ArendDefDataImpl(stub, this)
+        override fun createPsi(stub: ArendDefDataStub) = ArendDefData(stub, this)
 
         override fun indexStub(stub: ArendDefDataStub, sink: IndexSink) = sink.indexData(stub)
     }
@@ -174,7 +171,7 @@ class ArendDefFunctionStub(parent: StubElement<*>?, elementType: IStubElementTyp
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendDefFunctionStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendDefFunctionStub) = ArendDefFunctionImpl(stub, this)
+        override fun createPsi(stub: ArendDefFunctionStub) = ArendDefFunction(stub, this)
 
         override fun indexStub(stub: ArendDefFunctionStub, sink: IndexSink) = sink.indexFunction(stub)
     }
@@ -187,7 +184,7 @@ class ArendDefMetaStub(parent: StubElement<*>?, elementType: IStubElementType<*,
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendDefMetaStub(parentStub, this, name, prec, aliasName)
 
-        override fun createPsi(stub: ArendDefMetaStub) = ArendDefMetaImpl(stub, this)
+        override fun createPsi(stub: ArendDefMetaStub) = ArendDefMeta(stub, this)
 
         override fun indexStub(stub: ArendDefMetaStub, sink: IndexSink) = sink.indexMeta(stub)
     }
@@ -211,7 +208,7 @@ class ArendDefModuleStub(parent: StubElement<*>?, elementType: IStubElementType<
         override fun createStub(parentStub: StubElement<*>?, name: String?, prec: Precedence?, aliasName: String?) =
             ArendDefModuleStub(parentStub, this, name, aliasName)
 
-        override fun createPsi(stub: ArendDefModuleStub) = ArendDefModuleImpl(stub, this)
+        override fun createPsi(stub: ArendDefModuleStub) = ArendDefModule(stub, this)
 
         override fun indexStub(stub: ArendDefModuleStub, sink: IndexSink) = sink.indexModule(stub)
     }

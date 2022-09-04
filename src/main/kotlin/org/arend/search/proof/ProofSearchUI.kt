@@ -56,13 +56,13 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.ui.*
 import net.miginfocom.swing.MigLayout
 import org.arend.ArendIcons
-import org.arend.psi.ArendDefinition
+import org.arend.psi.ext.ArendDefinition
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.ArendGroup
+import org.arend.psi.ext.ReferableBase
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.navigate
 import org.arend.psi.stubs.index.ArendDefinitionIndex
@@ -209,7 +209,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         get() = myEditorTextField
 
     private inner class MyEditorTextField :
-        TextFieldWithAutoCompletion<ReferableAdapter<*>>(project, ProofSearchTextCompletionProvider(project), false, "") {
+        TextFieldWithAutoCompletion<ReferableBase<*>>(project, ProofSearchTextCompletionProvider(project), false, "") {
 
         init {
             val empty: Border = JBUI.Borders.empty(-1, -1, -1, -1)
@@ -238,18 +238,18 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
     }
 
     private class ProofSearchTextCompletionProvider(private val project: Project) :
-        TextFieldWithAutoCompletionListProvider<ReferableAdapter<*>>(listOf()) {
+        TextFieldWithAutoCompletionListProvider<ReferableBase<*>>(listOf()) {
 
         override fun createPrefixMatcher(prefix: String): PrefixMatcher {
             val qualifiers = prefix.split('.')
             return CamelHumpMatcher(qualifiers.lastOrNull() ?: "", true, true)
         }
 
-        override fun getIcon(item: ReferableAdapter<*>): Icon? {
+        override fun getIcon(item: ReferableBase<*>): Icon? {
             return item.getIcon(0)
         }
 
-        override fun getTailText(item: ReferableAdapter<*>): String {
+        override fun getTailText(item: ReferableBase<*>): String {
             return getCompleteModuleLocation(item)?.let {" of $it" } ?: ""
         }
 
@@ -257,7 +257,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
             prefix: String?,
             cached: Boolean,
             parameters: CompletionParameters?
-        ): Collection<ReferableAdapter<*>> {
+        ): Collection<ReferableBase<*>> {
             if (prefix == null || prefix.isEmpty() || prefix == "_" || prefix == "->") {
                 return emptyList()
             }
@@ -266,15 +266,15 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
             val matcher = CamelHumpMatcher(qualifiers.last(), true, true)
 
             return runReadAction {
-                val container = ArrayList<ReferableAdapter<*>>()
+                val container = ArrayList<ReferableBase<*>>()
                 if (modules.isNotEmpty()) {
                     val groups = StubIndex.getElements(ArendDefinitionIndex.KEY, modules.last(), project, GlobalSearchScope.allScope(project), PsiReferable::class.java).filterIsInstance<ArendGroup>()
                         .filter { it.hasSuffixGroupStructure(modules.subList(0, modules.size - 1)) }
-                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { it.group?.castSafelyTo<ReferableAdapter<*>>()?.takeIf { ref -> ref is ArendDefinition && matcher.prefixMatches(ref.refName) } } })
+                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { it.group?.castSafelyTo<ReferableBase<*>>()?.takeIf { ref -> ref is ArendDefinition && matcher.prefixMatches(ref.refName) } } })
                 } else {
                     StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
                         StubIndex.getInstance().processElements(ArendDefinitionIndex.KEY, name, project, null, PsiReferable::class.java) {
-                            if (it is ReferableAdapter<*> && matcher.prefixMatches(name)) {
+                            if (it is ReferableBase<*> && matcher.prefixMatches(name)) {
                                 container.add(it)
                             }
                             true
@@ -286,7 +286,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
             }
         }
 
-        override fun getLookupString(item: ReferableAdapter<*>): String = item.refName
+        override fun getLookupString(item: ReferableBase<*>): String = item.refName
 
     }
 
@@ -486,7 +486,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
     }
 
     @RequiresReadLock
-    private fun getInsertableRepresentation(definition: ReferableAdapter<*>, resultName: List<String>) : PsiElement? {
+    private fun getInsertableRepresentation(definition: ReferableBase<*>, resultName: List<String>) : PsiElement? {
         val factory = ArendPsiFactory(definition.project)
         val explicitArguments = when(definition) {
             is Abstract.ParametersHolder -> definition.parameters.count { it.isExplicit }

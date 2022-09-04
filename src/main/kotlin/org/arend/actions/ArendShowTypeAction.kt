@@ -15,8 +15,8 @@ import org.arend.core.elimtree.ElimBody
 import org.arend.core.expr.Expression
 import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.core.ops.NormalizationMode
-import org.arend.psi.ArendDefFunction
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendDefFunction
 import org.arend.refactoring.*
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
@@ -74,7 +74,7 @@ class ArendShowTypeAction : ArendPopupAction() {
             val coreBody = (coreDef as? Function)?.body as? ElimBody
                 ?: (coreDef as? CoreFunctionDefinition)?.actualBody as? ElimBody
                 ?: throw e
-            val psiBody = tc.functionBody ?: throw e
+            val psiBody = tc.body ?: throw e
             val bind = binding(psiBody, selected) ?: throw e
             val ref = FindBinding.visitClauses(bind, body.clauses, coreBody.clauses) ?: throw e
             select(bind.textRange)

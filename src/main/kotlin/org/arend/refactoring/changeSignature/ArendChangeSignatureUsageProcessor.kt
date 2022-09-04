@@ -11,7 +11,7 @@ import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.containers.MultiMap
-import org.arend.psi.ArendDefFunction
+import org.arend.psi.ext.ArendDefFunction
 
 class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
     override fun findUsages(info: ChangeInfo?): Array<UsageInfo> {

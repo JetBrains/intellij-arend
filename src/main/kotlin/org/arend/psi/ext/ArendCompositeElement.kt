@@ -8,8 +8,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import com.intellij.psi.tree.IElementType
-import com.intellij.psi.util.PsiTreeUtil
 import org.arend.ext.error.SourceInfo
 import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
@@ -19,7 +17,6 @@ import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocReference
-import org.arend.psi.parser.api.ArendPattern
 import org.arend.resolving.ArendReference
 import org.arend.resolving.util.ModifiedClassFieldImplScope
 import org.arend.term.abs.Abstract
@@ -94,15 +91,13 @@ fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode
         current = when {
             parent is ArendLiteral -> parent
             parent is ArendAtom -> parent
-            parent is ArendTuple && parent.tupleExprList.size == 1 && parent.tupleExprList[0].exprList.size == 1 -> parent
+            parent is ArendTuple && parent.tupleExprList.let { it.size == 1 && it[0].type == null } -> parent
             parent is ArendNewExpr && parent.appPrefix == null && parent.lbrace == null && parent.argumentList.isEmpty() -> parent
-            parent is ArendAtomFieldsAcc && parent.fieldAccList.isEmpty() -> parent
+            parent is ArendAtomFieldsAcc && parent.numberList.isEmpty() -> parent
             parent is ArendArgumentAppExpr && parent.argumentList.isEmpty() -> parent
             parent is ArendLongName && parent.refIdentifierList.size == 1 -> parent
-            parent is ArendLevelExpr && parent.sucKw == null && parent.maxKw == null -> parent
             parent is ArendAtomLevelExpr && parent.lparen != null -> parent
-            parent is ArendOnlyLevelExpr && parent.sucKw == null && parent.maxKw == null -> parent
-            parent is ArendAtomOnlyLevelExpr && parent.lparen != null -> parent
+            parent is ArendOnlyLevelExpr && current is ArendOnlyLevelExpr -> parent
             //parent is ArendIPName -> parent
             else -> return current
         }
@@ -112,7 +107,7 @@ fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode
 fun getParentSourceNode(sourceNode: ArendSourceNode) =
     sourceNode.topmostEquivalentSourceNode.parent?.ancestor<ArendSourceNode>()
 
-abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), ArendCompositeElement  {
+open class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), ArendCompositeElement {
     override val scope
         get() = getArendScope(this)
 
@@ -125,8 +120,6 @@ abstract class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(n
 
 abstract class ArendSourceNodeImpl(node: ASTNode) : ArendCompositeElementImpl(node), ArendSourceNode {
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)
-
-    protected fun hasChildOfType(elementType: IElementType) : Boolean = findChildByType<PsiElement>(elementType) != null
 
     override fun getParentSourceNode() = getParentSourceNode(this)
 }

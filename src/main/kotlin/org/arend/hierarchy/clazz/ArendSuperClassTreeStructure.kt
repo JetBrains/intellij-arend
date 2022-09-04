@@ -9,7 +9,7 @@ import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendDefClass
+import org.arend.psi.ext.ArendDefClass
 import org.arend.settings.ArendProjectSettings
 
 class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, private val browser: ArendClassHierarchyBrowser) :
@@ -22,17 +22,17 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             classElement.superClassReferences.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as ArendDefClass, false) }
             val settings = project.service<ArendProjectSettings>().data
             if (settings.showImplFields) {
-                classElement.implementedFields.mapTo(result) { ArendFieldHNodeDescriptor(project, descriptor, it as PsiElement, false, true) }
+                classElement.implementedFields.mapTo(result) { ArendFieldHNodeDescriptor(project, descriptor, it as PsiElement, isBase = false, isImplemented = true) }
             }
             if (settings.showNonImplFields) {
                 if (descriptor.parentDescriptor == null) {
-                    ClassReferable.Helper.getNotImplementedFields(classElement).mapTo(result) { ArendFieldHNodeDescriptor(project, descriptor, it as PsiElement, false, false) }
+                    ClassReferable.Helper.getNotImplementedFields(classElement).mapTo(result) { ArendFieldHNodeDescriptor(project, descriptor, it as PsiElement, isBase = false, isImplemented = false) }
                 } else {
                     val implFields = HashSet<Referable>()
                     implInAncestors(descriptor, implFields)
                     classElement.fieldReferables.mapNotNullTo(result) {
                         if (it is PsiElement && !implFields.contains(it))
-                            ArendFieldHNodeDescriptor(project, descriptor, it, false, false)
+                            ArendFieldHNodeDescriptor(project, descriptor, it, isBase = false, isImplemented = false)
                         else null
                     }
                 }

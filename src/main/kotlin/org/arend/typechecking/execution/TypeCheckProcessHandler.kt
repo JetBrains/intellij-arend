@@ -27,9 +27,9 @@ import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendStat
+import org.arend.psi.ext.ArendStat
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
@@ -254,7 +254,7 @@ class TypeCheckProcessHandler(
                         }
                     }
                 }
-                is ArendStat -> child.definition?.let { reportParserErrors(it, module, typecheckingErrorReporter) }
+                is ArendStat -> child.group?.let { reportParserErrors(it, module, typecheckingErrorReporter) }
             }
         }
     }

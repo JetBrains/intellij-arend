@@ -36,9 +36,9 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
+import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
-import org.arend.psi.ext.impl.ReferableAdapter
-import org.arend.psi.parser.api.ArendPattern
+import org.arend.psi.ext.ReferableBase
 import org.arend.quickfix.*
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
@@ -123,7 +123,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         if (error is NotInScopeError) {
             val ref: ArendReferenceElement? = when (cause) {
-                is ArendIPNameImplMixin -> cause.parentLongName?.refIdentifierList?.getOrNull(error.index) ?: cause
+                is ArendIPName -> cause.parentLongName?.refIdentifierList?.getOrNull(error.index) ?: cause
                 is ArendLongName -> cause.refIdentifierList.getOrNull(error.index)
                 is ArendReferenceElement -> cause
                 else -> null
@@ -144,9 +144,10 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             return
         }
         if (error is CannotFindConstructorError && cause is ArendPattern) {
+            val refElement = cause.referenceElement
             val references = when {
-                cause.getReferenceElement() != null -> listOfNotNull(cause.getReferenceElement()?.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>())
-                cause.sequence.isNotEmpty() -> cause.sequence.mapNotNull { it.getReferenceElement()?.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>() }
+                refElement != null -> listOfNotNull(refElement.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>())
+                cause.sequence.isNotEmpty() -> cause.sequence.mapNotNull { subpattern -> subpattern.referenceElement?.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>() }
                 else -> listOf()
             }
             var fixRegistered = false
@@ -288,7 +289,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     if (classRef is ClassReferable) {
                         registerFix(info, ImplementFieldsQuickFix(SmartPointerManager.createPointer(cause), false, makeFieldList(error.fields, classRef)))
                     }
-                    if (cause is ArendNewExprImplMixin) {
+                    if (cause is ArendNewExpr) {
                         cause.putUserData(CoClausesKey, null)
                     }
                 }
@@ -409,22 +410,22 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             val result = when (error) {
                 is NotInScopeError -> (element as? ArendStatCmd)?.longName
                 is ParsingError -> when (error.kind) {
-                    MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.useKw
-                    MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.functionKw?.coerceKw
+                    MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.firstRelevantChild
+                    MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.functionKw?.firstRelevantChild?.findNextSibling()
                     ParsingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     CLASSIFYING_FIELD_IN_RECORD -> when (element) {
                         is ArendFieldDefIdentifier -> element.parent?.let { (it as? ArendFieldTele)?.classifyingKw ?: it }
-                        is ArendDefClass -> element.noClassifyingKw ?: element.fieldTeleList.mapNotNull { it.classifyingKw }.firstOrNull()
+                        is ArendDefClass -> element.noClassifyingKw ?: element.fieldTeleList.firstNotNullOfOrNull { it.classifyingKw }
                         else -> element
                     }
-                    INVALID_PRIORITY -> (element as? ReferableAdapter<*>)?.getPrec()?.number
+                    INVALID_PRIORITY -> (element as? ReferableBase<*>)?.prec?.number
                     MISPLACED_IMPORT -> (element as? ArendStatCmd)?.importKw
                     else -> null
                 }
                 is CertainTypecheckingError -> when (error.kind) {
                     CertainTypecheckingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     TRUNCATED_WITHOUT_UNIVERSE -> (element as? ArendDefData)?.truncatedKw
-                    CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseOpt
+                    CASE_RESULT_TYPE -> (element as? ArendCaseExpr)?.caseKw
                     COULD_BE_LEMMA, AXIOM_WITH_BODY -> (element as? ArendDefFunction)?.functionKw
                     else -> null
                 }
@@ -455,7 +456,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
         fun getImprovedTextRange(error: GeneralError?, element: PsiElement): TextRange {
             val improvedElement = getImprovedErrorElement(error, element) ?: element
 
-            ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition)?.let {
+            ((improvedElement as? ArendDefIdentifier)?.parent as? ArendDefinition<*>)?.let {
                 return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
             }
 
@@ -486,7 +487,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
             if (improvedElement is ArendClause) {
                 val prev = improvedElement.extendLeft.prevSibling
-                val startElement = if (prev is LeafPsiElement && prev.elementType == ArendElementTypes.PIPE) prev else improvedElement
+                val startElement = if (prev is LeafPsiElement && prev.elementType == PIPE) prev else improvedElement
                 val endOffset =
                         if (error is ConditionsError) (improvedElement.patterns.lastOrNull().castSafelyTo<PsiElement>()
                                 ?: improvedElement as PsiElement).textRange.endOffset
@@ -498,7 +499,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 var endElement: ArendPattern = improvedElement
                 while (true) {
                     var next = endElement.extendRight.nextSibling
-                    if (next is LeafPsiElement && next.elementType == ArendElementTypes.COMMA) {
+                    if (next is LeafPsiElement && next.elementType == COMMA) {
                         next = next.extendRight.nextSibling
                     }
                     if (next is ArendPattern) {
@@ -543,8 +544,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
         fun isIncomplete(element: PsiElement) =
                 element is ArendLetExpr && element.expr == null ||
-                element is ArendLamExpr && element.expr == null ||
-                element is LeafPsiElement && element.elementType.let { it == ArendElementTypes.COMMA || it == ArendElementTypes.LBRACE }
+                element is ArendLamExpr && element.body == null ||
+                element is LeafPsiElement && element.elementType.let { it == COMMA || it == LBRACE }
 
         private val GOAL_IN_COPATTERN_PREFIX: Array<Class<out PsiElement>> =
                 arrayOf(ArendLiteral::class.java, ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java)

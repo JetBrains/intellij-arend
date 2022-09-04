@@ -13,7 +13,7 @@ import org.arend.ArendIcons
 import org.arend.core.expr.*
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.injection.InjectedArendEditor
-import org.arend.psi.ArendDefFunction
+import org.arend.psi.ext.ArendDefFunction
 import org.arend.util.ArendBundle
 
 class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceContextView) : XSuspendContext() {
@@ -111,7 +111,7 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
     companion object {
         private fun getSourcePositionElement(traceEntry: ArendTraceEntry): PsiElement? {
             val psiElement = traceEntry.psiElement
-            return if (psiElement is ArendDefFunction && psiElement.isCowith) psiElement.functionBody else psiElement
+            return if (psiElement is ArendDefFunction && psiElement.isCowith) psiElement.body else psiElement
         }
     }
 }

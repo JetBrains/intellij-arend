@@ -1,8 +1,8 @@
 package org.arend.tracer
 
 import com.intellij.util.castSafelyTo
-import org.arend.psi.ArendDefFunction
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.ArendDefFunction
 
 class ArendTraceEntriesTest : ArendTraceTestBase() {
     companion object {
@@ -49,7 +49,7 @@ class ArendTraceEntriesTest : ArendTraceTestBase() {
         )
         assertEquals("pmap suc (pmap suc p)", getFirstEntry(tracingData)?.psiElement?.text)
         val funcKw = myFixture.file.castSafelyTo<ArendFile>()!!.statements[1]
-            .definition!!.castSafelyTo<ArendDefFunction>()!!.functionKw
+            .group!!.castSafelyTo<ArendDefFunction>()!!.functionKw
         assertEquals(-1, tracingData.trace.indexOfEntry(funcKw))
     }
 }

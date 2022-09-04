@@ -6,15 +6,15 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.CommonProcessors
-import org.arend.psi.*
-import org.arend.psi.ext.PsiConcreteReferable
-import org.arend.psi.ext.impl.InstanceAdapter
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
+import org.arend.psi.parentOfType
 import java.util.concurrent.ConcurrentHashMap
 
 class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListener {
-    private val cache = ConcurrentHashMap<ArendDefinition, List<ArendDefinition>>()
+    private val cache = ConcurrentHashMap<ArendDefinition<*>, List<ArendDefinition<*>>>()
 
     var FIND_SUBCLASSES = true
         set(value) {
@@ -36,7 +36,7 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
         project.service<ArendPsiChangeService>().addListener(this)
     }
 
-    fun search(clazz: ArendDefClass): List<ArendDefinition> {
+    fun search(clazz: ArendDefClass): List<ArendDefinition<*>> {
         if (!FIND_INSTANCES && !FIND_SUBCLASSES) {
             return emptyList()
         }
@@ -50,7 +50,7 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
         val finder = DefaultFindUsagesHandlerFactory().createFindUsagesHandler(clazz, false)
         val processor = CommonProcessors.CollectProcessor<UsageInfo>()
         val options = FindUsagesOptions(project)
-        val descendants = HashSet<ArendDefinition>()
+        val descendants = HashSet<ArendDefinition<*>>()
         options.isUsages = true
         options.isSearchForTextOccurrences = false
 
@@ -81,12 +81,12 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
         return cache.putIfAbsent(clazz, res) ?: res
     }
 
-    fun getAllDescendants(clazz: ArendDefClass): List<ArendDefinition> {
-        val visited = mutableSetOf<ArendDefinition>()
-        val toBeVisited: MutableSet<ArendDefinition> = mutableSetOf(clazz)
+    fun getAllDescendants(clazz: ArendDefClass): List<ArendDefinition<*>> {
+        val visited = mutableSetOf<ArendDefinition<*>>()
+        val toBeVisited: MutableSet<ArendDefinition<*>> = mutableSetOf(clazz)
 
         while (toBeVisited.isNotEmpty()) {
-            val newToBeVisited = mutableSetOf<ArendDefinition>()
+            val newToBeVisited = mutableSetOf<ArendDefinition<*>>()
             for (cur in toBeVisited) {
                 if (!visited.contains(cur)) {
                     if (cur is ArendDefClass) {

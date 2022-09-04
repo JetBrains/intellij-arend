@@ -12,10 +12,8 @@ import org.arend.ext.error.GeneralError
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
-import org.arend.psi.ext.ArendReferenceContainer
-import org.arend.psi.ext.ArendSourceNode
-import org.arend.psi.ext.impl.ClassFieldAdapter
-import org.arend.psi.ext.impl.FunctionDefinitionAdapter
+import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.ext.*
 import org.arend.psi.parentOfType
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
@@ -144,7 +142,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             if (def is Abstract.ParametersHolder) {
                 params.addAll(def.parameters)
                 var resType: ArendExpr? = when(def) {
-                    is ClassFieldAdapter ->
+                    is ArendClassField ->
                     {
                         val defClass = def.parent?.parent as? ArendDefClass
                         val className = defClass?.name
@@ -153,7 +151,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                         }
                         def.resultType
                     }
-                    is FunctionDefinitionAdapter -> {
+                    is ArendDefFunction -> {
                         val defClass = def.ancestor<ArendDefClass>()
                         val className = defClass?.name
                         if (className != null) {
@@ -166,7 +164,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 if (def is ArendConstructor && needImplicitConstructorParameters) {
                     val defData = def.parent?.parent as? ArendDefData
                     if (defData != null) {
-                        for (tele in defData.typeTeleList.reversed()) {
+                        for (tele in defData.parameters.reversed()) {
                             val type = exprToString(tele.type)
                             for (p in tele.referableList.reversed()) {
                                 params.add(0, psiFactory.createNameTele(p?.textRepresentation() ?: "_", type, false))
@@ -194,7 +192,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                                     }
 
                                     elim.elimKw != null -> {
-                                        val dataArgs = data.typeTeleList.map { it.referableList }.flatten().filterIsInstance<ArendDefIdentifier>()
+                                        val dataArgs = data.parameters.map { it.referableList }.flatten().filterIsInstance<ArendDefIdentifier>()
                                         val eliminatedArgs = elim.refIdentifierList.map { it.resolve }.filterIsInstance<ArendDefIdentifier>()
                                         if (eliminatedArgs.size == clausePatterns?.size) {
                                             dataArgs.map { it ->
@@ -213,24 +211,14 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 while (resType != null) {
                     resType = when(resType) {
                         is ArendArrExpr -> {
-                            params.add(psiFactory.createNameTele(null,
-                                exprToString(resType.exprList.first()), true))
-                            resType.exprList[1]
+                            params.add(psiFactory.createNameTele(null, exprToString(resType.domain), true))
+                            resType.codomain
                         }
                         is ArendPiExpr -> {
-                            params.addAll(resType.typeTeleList)
-                            resType.expr
+                            params.addAll(resType.parameters)
+                            resType.codomain
                         }
-                        is ArendAtomFieldsAcc -> {
-                            var res: ArendExpr? = null
-                            if (resType.atom.tuple != null) {
-                                val exprList = (resType.atom.tuple as ArendTuple).tupleExprList.firstOrNull()?.exprList
-                                if (exprList?.size == 1) {
-                                    res = exprList[0]
-                                }
-                            }
-                            res
-                        }
+                        is ArendAtomFieldsAcc -> resType.atom.tuple?.tupleExprList?.firstOrNull()?.exprIfSingle
                         else -> null
                     }
                 }
@@ -242,8 +230,8 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             if (expr != null) ConcreteBuilder.convertExpression(expr).toString() else null
 
         private fun isClosingElement(element: PsiElement?) =
-            when (element?.elementType) {
-                null, ArendElementTypes.RPAREN, ArendElementTypes.RBRACE, ArendElementTypes.COMMA -> true
+            when (element.elementType) {
+                null, RPAREN, RBRACE, COMMA -> true
                 else -> false
             }
 
@@ -337,24 +325,14 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?) = true
             }, null)
 
-        private fun isBinOp(def: Referable?, ref: ArendReferenceContainer): Boolean {
-            return ref is ArendIPName && ref.infix != null ||
-                    def is ArendDefFunction && (def.getPrec()?.infixLeftKw != null || def.getPrec()?.infixNonKw != null || def.getPrec()?.infixRightKw != null)
-        }
+        private fun isBinOp(def: Referable?, ref: ArendReferenceContainer): Boolean =
+            ref is ArendIPName && ref.infix != null || def is ArendDefFunction && ReferableBase.calcPrecedence(def.prec).isInfix
 
-        private fun ascendLongName(node: Abstract.SourceNode): Abstract.SourceNode? {
-            if (node.parentSourceNode is ArendLongName) {
-                return node.parentSourceNode
-            }
-            return node
-        }
+        private fun ascendLongName(node: Abstract.SourceNode): Abstract.SourceNode =
+            node.parentSourceNode as? ArendLongName ?: node
 
-        private fun ascendToLiteral(node: Abstract.SourceNode): Abstract.SourceNode {
-            if (node.parentSourceNode is ArendLiteral) {
-                return node.parentSourceNode ?: node
-            }
-            return node
-        }
+        private fun ascendToLiteral(node: Abstract.SourceNode): Abstract.SourceNode =
+            node.parentSourceNode as? ArendLiteral ?: node
 
         private fun ascendLambda(node: Abstract.SourceNode): Abstract.SourceNode? {
             if (node is ArendLamExpr) {
@@ -367,7 +345,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 (node.parentSourceNode as? ArendLamExpr)?.let {
                     return it
                 }
-                ((node.parentSourceNode as? ArendLamTele)?.parentSourceNode as? ArendLamExpr)?.let {
+                ((node.parentSourceNode as? ArendNameTele)?.parentSourceNode as? ArendLamExpr)?.let {
                     return it
                 }
             }
@@ -450,7 +428,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         }
 
         private fun ascendTillAppExpr(node: Abstract.SourceNode, isNewArgPos: Boolean): Pair<Int, ArendReferenceContainer>? {
-            val absNode = ascendLongName(node) ?: return null
+            val absNode = ascendLongName(node)
             val res = tryToLocateAtTheCurrentLevel(absNode, isNewArgPos, true)
 
             if (res != null) {

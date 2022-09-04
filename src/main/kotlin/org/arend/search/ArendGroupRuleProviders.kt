@@ -9,9 +9,8 @@ import com.intellij.usages.impl.FileStructureGroupRuleProvider
 import com.intellij.usages.rules.PsiElementUsage
 import com.intellij.usages.rules.SingleParentUsageGroupingRule
 import com.intellij.usages.rules.UsageGroupingRule
-import org.arend.psi.*
-import org.arend.psi.ext.PsiConcreteReferable
-import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ext.*
+import org.arend.psi.parentOfType
 
 class ArendDefClassGroupingRuleProvider : FileStructureGroupRuleProvider {
     override fun getUsageGroupingRule(project: Project) = createGroupingRule<ArendDefClass>()

@@ -20,12 +20,7 @@ import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
 import org.arend.psi.AREND_KEYWORDS
-import org.arend.psi.ArendDefClass
-import org.arend.psi.ArendDefData
-import org.arend.psi.ArendExpr
-import org.arend.psi.ext.PsiConcreteReferable
-import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.impl.*
+import org.arend.psi.ext.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.resolving.DataLocatedReferable
@@ -36,7 +31,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 import org.arend.util.caching
 
-data class ProofSearchEntry(val def: ReferableAdapter<*>, val signature: RenderingInfo)
+data class ProofSearchEntry(val def: ReferableBase<*>, val signature: RenderingInfo)
 
 /**
  * @return null as an element of the sequence, if the search couldn't find any matching result for a long time.
@@ -80,7 +75,7 @@ fun generateProofSearchResults(
                 PsiReferable::class.java
             ) { def ->
                 if (!settings.checkAllowed(def)) return@processElements true
-                if (def !is ReferableAdapter<*>) return@processElements true
+                if (def !is ReferableBase<*>) return@processElements true
                 val (parameters, codomain, info) = getSignature(concreteProvider, def, query.shouldConsiderParameters())
                     ?: return@processElements true
                 val (parameterResults, codomainResults) = matcher.match(parameters, codomain, def.scope) ?: return@processElements true
@@ -133,7 +128,7 @@ private fun getSignature(
     referable: PsiReferable,
     shouldConsiderParameters: Boolean
 ): SignatureWithHighlighting? {
-    if (referable is ClassFieldAdapter) {
+    if (referable is ArendClassField) {
         val concrete = referable
             .parentOfType<ArendDefClass>()
             ?.let(provider::getConcrete)
@@ -150,7 +145,7 @@ private fun getSignature(
                 RenderingInfo(parameters.map(::gatherHighlightingData), gatherHighlightingData(concrete.resultType))
             })
     }
-    if (referable is ConstructorAdapter) {
+    if (referable is ArendConstructor) {
         val relatedDefinition = referable
             .parentOfType<ArendDefData>()
         val concrete = relatedDefinition
@@ -172,7 +167,7 @@ private fun getSignature(
             })
     }
     if (referable !is PsiConcreteReferable) return null
-    if (referable !is CoClauseDefAdapter && referable !is FunctionDefinitionAdapter) return null
+    if (referable !is ArendCoClauseDef && referable !is ArendDefFunction) return null
     return when (val concrete = provider.getConcrete(referable)) {
         is Concrete.FunctionDefinition -> {
             val resultType = concrete.resultType ?: return null
@@ -261,7 +256,7 @@ class ProofSearchUISettings(private val project: Project) {
     fun shouldLimitSearch() : Boolean = truncateResults
 }
 
-fun getCompleteModuleLocation(def: ReferableAdapter<*>): String? {
+fun getCompleteModuleLocation(def: ReferableBase<*>): String? {
     val file = def.location?.toString() ?: return null
     val module = def.parentsOfType<ArendGroup>(false).toList().reversed().drop(1).map { it.name }
     return (listOf(file) + module).joinToString(".")

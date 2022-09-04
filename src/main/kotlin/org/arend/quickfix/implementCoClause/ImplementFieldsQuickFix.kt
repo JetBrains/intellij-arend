@@ -10,7 +10,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
-import org.arend.psi.*
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.addAfterWithNotification
+import org.arend.psi.addBeforeWithNotification
+import org.arend.psi.ext.*
+import org.arend.psi.findPrevSibling
 import org.arend.refactoring.moveCaretToEndOffset
 import org.arend.util.ArendBundle
 

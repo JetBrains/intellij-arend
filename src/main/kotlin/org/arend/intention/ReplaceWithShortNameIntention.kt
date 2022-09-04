@@ -3,8 +3,8 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.util.descendantsOfType
-import org.arend.psi.ArendLongName
-import org.arend.psi.ArendRefIdentifier
+import org.arend.psi.ext.ArendLongName
+import org.arend.psi.ext.ArendRefIdentifier
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.RenameReferenceAction
 import org.arend.util.ArendBundle

@@ -6,7 +6,7 @@ import com.intellij.util.IconUtil
 import org.arend.core.definition.*
 import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.error.GeneralError
-import org.arend.psi.ArendGoal
+import org.arend.psi.ext.ArendGoal
 import javax.swing.Icon
 
 object ArendIcons {

@@ -10,11 +10,7 @@ import com.intellij.util.castSafelyTo
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
-import org.arend.psi.ext.ArendIPNameImplMixin
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.TCDefinition
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.resolving.ArendReferableConverter
@@ -30,7 +26,6 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
-import org.arend.psi.parser.api.ArendPattern as ArendPattern
 
 class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
@@ -90,7 +85,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
                 if (index > 0) {
                     val last = list[index]
-                    val textRange = if (last is ArendIPNameImplMixin) {
+                    val textRange = if (last is ArendIPName) {
                         last.parentLiteral?.let { literal ->
                             literal.longName?.let { longName ->
                                 TextRange(longName.textRange.startOffset, (literal.dot ?: longName).textRange.endOffset)
@@ -114,8 +109,8 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 super.patternResolved(originalRef, pattern, resolvedRefs)
                 val dataPattern = pattern.data.castSafelyTo<ArendPattern>() ?: return
                 val constructors =
-                        dataPattern.sequence.takeIf { it.isNotEmpty() }?.mapNotNull { it.getReferenceElement()?.referenceNameElement?.takeIf { it.text == pattern.constructor.refName } }
-                        ?: dataPattern.takeIf { it.singleReferable != null }?.let { listOfNotNull(it.getReferenceElement()!!.referenceNameElement) }
+                        dataPattern.sequence.takeIf { it.isNotEmpty() }?.mapNotNull { it.referenceElement?.referenceNameElement?.takeIf { el -> el.text == pattern.constructor.refName } }
+                        ?: dataPattern.takeIf { it.singleReferable != null }?.let { listOfNotNull(it.referenceElement?.referenceNameElement) }
                         ?: return
                 for (psi in constructors) {
                     addHighlightInfo(psi.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
@@ -125,13 +120,13 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             private fun highlightParameters(definition: Concrete.GeneralDefinition) {
                 for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
                     if (((parameter.type?.underlyingReferable as? GlobalReferable)?.underlyingReferable as? ArendDefClass)?.isRecord == false) {
-                        val list = when (val param = parameter.data) {
-                            is ArendFieldTele -> param.fieldDefIdentifierList
+                        val list: List<ArendCompositeElement>? = when (val param = parameter.data) {
+                            is ArendFieldTele -> param.referableList
                             is ArendNameTele -> param.identifierOrUnknownList
                             is ArendTypeTele -> param.typedExpr?.identifierOrUnknownList
                             else -> null
                         }
-                        for (id in list ?: emptyList()) {
+                        if (list != null) for (id in list) {
                             addHighlightInfo(id.textRange, ArendHighlightingColors.CLASS_PARAMETER)
                         }
                     }
@@ -152,7 +147,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                         ref.nameIdentifier?.let {
                             addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
                         }
-                        (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.let {
+                        (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.let {
                             addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
                         }
                     }

@@ -1,18 +1,13 @@
 package org.arend.hierarchy
 
-import com.intellij.icons.AllIcons
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
 import com.intellij.psi.PsiElement
-import com.intellij.ui.RowIcon
 import org.arend.naming.reference.FieldReferable
-import org.arend.psi.ArendClassImplement
-import org.arend.psi.ArendDefClass
+import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.parentOfType
 import org.arend.util.FullName
-import javax.swing.Icon
 
 open class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescriptor?,
                                         element: PsiElement, isBase: Boolean) : HierarchyNodeDescriptor(project, parent, element, isBase) {

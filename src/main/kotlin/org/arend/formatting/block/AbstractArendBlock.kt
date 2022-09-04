@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
 import com.intellij.psi.formatter.common.AbstractBlock
-import org.arend.psi.ArendArgumentAppExpr
+import org.arend.psi.ext.ArendArgumentAppExpr
 
 abstract class AbstractArendBlock(node: ASTNode, val settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, private val myIndent: Indent?,
                                   private val parentBlock: AbstractArendBlock?) : AbstractBlock(node, wrap, alignment) {

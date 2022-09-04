@@ -5,13 +5,7 @@ import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendDefFunction
-import org.arend.psi.ArendDefMeta
-import org.arend.psi.ArendExpr
-import org.arend.psi.ArendLongName
-import org.arend.psi.CoClauseBase
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ext.*
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
@@ -41,7 +35,7 @@ class ReferableExtractVisitor(private val requiredAdditionalInfo: Boolean = fals
             }
 
             val term = when (ref) {
-                is ArendDefFunction -> ref.functionBody?.expr
+                is ArendDefFunction -> ref.body?.expr
                 is ArendDefMeta -> ref.expr
                 else -> null
             } ?: return null

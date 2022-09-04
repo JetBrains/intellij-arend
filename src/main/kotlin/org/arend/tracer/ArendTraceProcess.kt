@@ -29,7 +29,7 @@ import com.intellij.xdebugger.impl.actions.*
 import com.intellij.xdebugger.impl.actions.handlers.XDebuggerActionHandler
 import com.intellij.xdebugger.ui.XDebugTabLayouter
 import org.arend.ArendFileType
-import org.arend.psi.ArendExpr
+import org.arend.psi.ext.ArendExpr
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.util.ArendBundle

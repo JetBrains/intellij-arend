@@ -4,8 +4,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.intention.binOp.BinOpIntentionUtil
-import org.arend.psi.ArendArgumentAppExpr
-import org.arend.psi.ArendExpr
+import org.arend.psi.ext.ArendArgumentAppExpr
+import org.arend.psi.ext.ArendExpr
 import org.arend.psi.parentOfType
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.term.concrete.Concrete

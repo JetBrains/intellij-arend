@@ -5,10 +5,7 @@ import com.intellij.lang.cacheBuilder.WordsScanner
 import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.psi.PsiElement
 import org.arend.naming.reference.FieldReferable
-import org.arend.psi.*
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.fullName
+import org.arend.psi.ext.*
 
 class ArendFindUsagesProvider : FindUsagesProvider {
 

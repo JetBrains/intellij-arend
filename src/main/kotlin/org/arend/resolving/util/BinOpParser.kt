@@ -6,7 +6,7 @@ import org.arend.naming.binOp.ExpressionBinOpEngine
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendIPNameImplMixin
+import org.arend.psi.ext.ArendIPName
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
@@ -16,7 +16,7 @@ import org.arend.term.concrete.Concrete
 fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?) =
         if (data is ArendCompositeElement) {
             val refExpr = Concrete.FixityReferenceExpression.make(data, referent, fixity, null, null)
-            val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPNameImplMixin)?.parentLiteral ?: data).scope, false, null)
+            val arg = ExpressionResolveNameVisitor.resolve(refExpr, ((data as? ArendIPName)?.parentLiteral ?: data).scope, false, null)
             if (arg == null) refExpr else Concrete.AppExpression.make(data, refExpr, arg, false)
         } else {
             null

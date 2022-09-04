@@ -3,13 +3,13 @@ package org.arend.quickfix.removers
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.psi.*
-import org.arend.util.ArendBundle
+import org.arend.psi.ext.ArendArgument
+import org.arend.psi.ext.ArendTuple
+import org.arend.psi.ext.ArendTupleExpr
 
 class RemoveTupleExprQuickFix(private val message: String, private val tupleExpr: SmartPsiElementPointer<ArendTupleExpr>, private val removeArgument: Boolean) : IntentionAction {
     override fun startInWriteAction() = true

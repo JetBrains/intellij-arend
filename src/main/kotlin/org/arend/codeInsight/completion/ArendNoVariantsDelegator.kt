@@ -13,10 +13,11 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.Consumer
 import org.arend.module.ModuleLocation
 import org.arend.naming.scope.ScopeFactory.isGlobalScopeVisible
-import org.arend.psi.*
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.PsiReferable
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendFileScope
+import org.arend.psi.ancestors
+import org.arend.psi.ext.*
+import org.arend.psi.libraryConfig
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendGotoClassIndex
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction

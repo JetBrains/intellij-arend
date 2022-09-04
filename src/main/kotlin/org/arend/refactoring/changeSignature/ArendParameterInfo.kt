@@ -1,11 +1,6 @@
 package org.arend.refactoring.changeSignature
 
-import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterInfo
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendIdentifierOrUnknown
-import org.arend.psi.ArendNameTele
-import org.arend.psi.ArendNameTeleUntyped
 
 class ArendParameterInfo constructor(
     private var name: String?,

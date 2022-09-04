@@ -4,7 +4,6 @@ import com.intellij.openapi.application.runReadAction
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCReferable
-import org.arend.psi.ArendDefIdentifier
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
 import org.arend.resolving.DataLocatedReferable

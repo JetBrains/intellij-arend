@@ -9,6 +9,7 @@ import org.arend.intention.binOp.CaretHelper
 import org.arend.naming.binOp.MetaBinOpParser
 import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
+import org.arend.psi.ext.*
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.surroundingTupleExpr
 import org.arend.refactoring.unwrapParens
@@ -49,7 +50,7 @@ private fun getParentBinOpSkippingParens(binOp: Concrete.AppExpression): Concret
 
 private fun parentParensExpression(appExpr: ArendArgumentAppExpr): ArendTuple? =
         surroundingTupleExpr(appExpr)
-                ?.let { if (it.colon == null && it.exprList.size == 1) it.parent as? ArendTuple else null }
+                ?.let { if (it.colon == null) it.parent as? ArendTuple else null }
                 ?.takeIf { it.tupleExprList.size == 1 }
 
 private fun parentArgumentAppExpr(tuple: ArendTuple): ArendArgumentAppExpr? =

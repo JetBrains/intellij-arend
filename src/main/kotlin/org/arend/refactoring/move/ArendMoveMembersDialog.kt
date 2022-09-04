@@ -26,10 +26,10 @@ import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import org.arend.ext.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
-import org.arend.psi.ArendClassStat
-import org.arend.psi.ArendDefClass
-import org.arend.psi.ArendDefFunction
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.ArendClassStat
+import org.arend.psi.ext.ArendDefClass
+import org.arend.psi.ext.ArendDefFunction
+import org.arend.psi.ext.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.util.FullName
 import org.arend.util.aligned
@@ -201,7 +201,7 @@ class ArendMoveMembersDialog(project: Project,
         private const val targetEqualsSource = "Target module cannot coincide with the source module"
         private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
 
-        fun isMovable(a: ArendGroup) = (a !is ArendDefFunction || a.functionKw.useKw == null)
+        fun isMovable(a: ArendGroup) = !(a is ArendDefFunction && a.functionKind.isUse)
 
         fun determineClassPart(elements: List<ArendGroup>): Boolean? {
             var isDynamic = true

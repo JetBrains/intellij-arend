@@ -7,9 +7,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.Referable
-import org.arend.psi.ArendNsId
-import org.arend.psi.ArendNsUsing
-import org.arend.psi.ArendStatCmd
+import org.arend.psi.ext.ArendNsId
+import org.arend.psi.ext.ArendNsUsing
+import org.arend.psi.ext.ArendStatCmd
 import org.arend.refactoring.doAddIdToHiding
 import org.arend.refactoring.doRemoveRefFromStatCmd
 import org.arend.util.ArendBundle

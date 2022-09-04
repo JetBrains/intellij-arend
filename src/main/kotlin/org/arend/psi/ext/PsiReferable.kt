@@ -5,6 +5,7 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.*
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import com.intellij.psi.util.elementType
 import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.TypedReferable
@@ -21,7 +22,8 @@ interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, Navigata
     val documentation: ArendDocComment?
         get() {
             val stat = parent
-            if (!(stat is ArendClassStat || stat is ArendStat)) {
+            val type = stat.elementType
+            if (!(type == ArendElementTypes.CLASS_STAT || type == ArendElementTypes.STAT)) {
                 return null
             }
             var sibling = stat.prevSibling

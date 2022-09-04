@@ -5,9 +5,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.psi.ArendAsPattern
 import org.arend.psi.deleteWithNotification
-import org.arend.psi.parser.api.ArendPattern
+import org.arend.psi.ext.ArendAsPattern
+import org.arend.psi.ext.ArendPattern
 import org.arend.psi.replaceWithNotification
 import org.arend.refactoring.deleteSuperfluousPatternParentheses
 import org.arend.util.ArendBundle

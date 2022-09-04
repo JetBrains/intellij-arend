@@ -8,7 +8,7 @@ import com.intellij.psi.PsiReference
 import com.intellij.refactoring.move.MoveHandlerDelegate
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import org.arend.psi.*
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.ArendGroup
 import java.util.Collections.singletonList
 
 class ArendMoveHandlerDelegate: MoveHandlerDelegate() {

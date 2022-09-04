@@ -4,7 +4,7 @@ import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
-import org.arend.psi.ArendGoal
+import org.arend.psi.ext.ArendGoal
 import org.arend.refactoring.replaceExprSmart
 import org.arend.util.ArendBundle
 

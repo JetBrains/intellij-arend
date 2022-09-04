@@ -12,13 +12,15 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
+import com.intellij.util.SmartList
 import com.intellij.util.castSafelyTo
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes.*
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.typechecking.error.ErrorService
 
@@ -90,6 +92,68 @@ inline fun <reified T : PsiElement> PsiElement.childOfType(
         strict: Boolean = true
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 
+fun <T : PsiElement> PsiElement.getChildOfType(clazz: Class<T>, index: Int): T? {
+    var i = 0
+    var child = firstChild
+    while (child != null) {
+        if (clazz.isInstance(child) && i++ == index) {
+            return clazz.cast(child)
+        }
+        child = child.nextSibling
+    }
+    return null
+}
+
+inline fun <reified T : PsiElement> PsiElement.getChildOfType(index: Int): T? = getChildOfType(T::class.java, index)
+
+inline fun <reified T : PsiElement> PsiElement.getChildOfType(): T? = PsiTreeUtil.getChildOfType(this, T::class.java)
+
+inline fun <reified T : PsiElement> PsiElement.getChildOfTypeStrict(): T = PsiTreeUtil.getChildOfType(this, T::class.java)!!
+
+inline fun <reified T : PsiElement> PsiElement.getChildrenOfType(): List<T> = PsiTreeUtil.getChildrenOfTypeAsList(this, T::class.java)
+
+fun PsiElement.getChildOfType(type: IElementType): PsiElement? = node.findChildByType(type)?.psi
+
+fun PsiElement.getChildOfTypeStrict(type: IElementType): PsiElement = node.findChildByType(type)!!.psi
+
+fun PsiElement?.hasChildOfType(type: IElementType): Boolean = this?.node?.findChildByType(type)?.psi != null
+
+fun PsiElement.getChildrenOfType(type: IElementType): List<PsiElement> {
+    var result: MutableList<PsiElement>? = null
+    var child = firstChild
+    while (child != null) {
+        if (child.elementType == type) {
+            if (result == null) result = SmartList()
+            result.add(child)
+        }
+        child = child.nextSibling
+    }
+    return result ?: emptyList()
+}
+
+fun <T : PsiElement> PsiElement.getChild(clazz: Class<T>, pred : (T) -> Boolean): T? {
+    var child = firstChild
+    while (child != null) {
+        if (clazz.isInstance(child)) {
+            val c = clazz.cast(child)
+            if (pred(c)) return c
+        }
+        child = child.nextSibling
+    }
+    return null
+}
+
+inline fun <reified T : PsiElement> PsiElement.getChild(noinline pred : (T) -> Boolean): T? = getChild(T::class.java, pred)
+
+val PsiElement.firstRelevantChild: PsiElement?
+    get() {
+        var child = firstChild
+        while (child is PsiWhiteSpace || child is PsiComment) {
+            child = child.nextSibling
+        }
+        return child
+    }
+
 fun ArendGroup.findGroupByFullName(fullName: List<String>): ArendGroup? =
         if (fullName.isEmpty()) this else (statements.find { it.group?.referable?.refName == fullName[0] }?.group
                 ?: dynamicSubgroups.find { it.referable.refName == fullName[0] })?.findGroupByFullName(fullName.drop(1))
@@ -111,7 +175,7 @@ fun PsiElement?.findNextSibling(pred: (PsiElement) -> Boolean): PsiElement? {
         }
         next = next.nextSibling
     }
-    return next
+    return null
 }
 
 fun PsiElement.findPrevSibling(): PsiElement? = findPrevSibling(null)
@@ -131,7 +195,7 @@ fun PsiElement?.findPrevSibling(pred: (PsiElement) -> Boolean): PsiElement? {
         }
         prev = prev.prevSibling
     }
-    return prev
+    return null
 }
 
 /** Returns the last irrelevant element (i.e., whitespace or comment) to the right of the given element
@@ -310,8 +374,8 @@ fun PsiElement.addRangeAfterWithNotification(firstElement: PsiElement, lastEleme
     return result
 }
 
-fun PsiElement.addRangeBeforeWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
-    val result = this.addRangeBefore(firstElement, lastElement, anchor)
+fun PsiElement.addRangeBeforeWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement?): PsiElement {
+    val result = if (anchor == null) addRange(firstElement, lastElement) else addRangeBefore(firstElement, lastElement, anchor)
     notify(this, null, null, parent, true)
     return result
 }
@@ -335,22 +399,17 @@ fun getArendNameText(element: PsiElement?): String? = when (element) {
         else -> null
     }
     is ArendRefIdentifier -> getArendNameText(element.id)
-    is ArendIPName -> when {
-        (element.infix != null) -> getArendNameText(element.infix)
-        (element.postfix != null) -> getArendNameText(element.postfix)
-        else -> null
-    }
+    is ArendIPName -> getArendNameText(element.firstRelevantChild)
     is ArendDefIdentifier -> getArendNameText(element.id)
     is ArendFieldDefIdentifier -> getArendNameText(element.defIdentifier)
     else -> element?.text //fallback
 }
 
 fun getTeleType(tele: PsiElement?): ArendExpr? = when (tele) {
-    is ArendNameTele -> tele.expr
-    is ArendLamTele -> tele.expr
-    is ArendTypedExpr -> tele.expr
-    is ArendTypeTele -> tele.typedExpr?.expr
-    is ArendFieldTele -> tele.expr
+    is ArendNameTele -> tele.type
+    is ArendTypedExpr -> tele.type
+    is ArendTypeTele -> tele.typedExpr?.type
+    is ArendFieldTele -> tele.type
     else -> null
 }
 

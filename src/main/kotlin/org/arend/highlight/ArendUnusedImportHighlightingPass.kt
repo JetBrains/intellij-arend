@@ -20,8 +20,8 @@ import org.arend.codeInsight.processRedundantImportedDefinitions
 import org.arend.inspection.ArendUnusedImportInspection
 import org.arend.intention.ArendOptimizeImportsQuickFix
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendNsId
-import org.arend.psi.ArendStat
+import org.arend.psi.ext.ArendNsId
+import org.arend.psi.ext.ArendStat
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 

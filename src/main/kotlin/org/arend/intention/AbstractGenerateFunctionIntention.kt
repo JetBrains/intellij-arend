@@ -31,11 +31,11 @@ import org.arend.naming.renamer.ReferableRenamer
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendDefFunction
+import org.arend.psi.ext.ArendDefFunction
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.TCDefinition
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.ArendGroup
 import org.arend.refactoring.addToWhere
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
@@ -259,7 +259,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val startOffset = replaceablePsi.startOffset
         val newCallRepresentation = newCall.toString()
         val newFunction =
-            ArendPsiFactory(replaceablePsi.project).createFromText("\\func $newFunctionDefinition")!!.statements[0].definition as ArendDefFunction
+            ArendPsiFactory(replaceablePsi.project).createFromText("\\func $newFunctionDefinition")!!.statements[0].group as ArendDefFunction
         val oldFunction = replaceablePsi.parentOfType<ArendGroup>()!!
         val newDefinition = oldFunction.addToWhere(newFunction)
         val newDefPointer = SmartPointerManager.createPointer(newDefinition)

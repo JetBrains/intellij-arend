@@ -25,7 +25,7 @@ import org.arend.intention.AbstractGenerateFunctionIntention
 import org.arend.intention.BaseArendIntention
 import org.arend.intention.ExtractExpressionToFunctionIntention
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.*
 import org.arend.refactoring.addNewClause
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.refactoring.replaceExprSmart
@@ -143,7 +143,7 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
                         it is ArendLamExpr ||
                         it is ArendPiExpr ||
                         it is ArendSigmaExpr ||
-                        it is ArendTupleExpr ||
+                        it is ArendTuple ||
                         (it is ArendNewExpr && it.firstChild.castSafelyTo<ArendAppPrefix>() != null)
             }
 
@@ -151,7 +151,8 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         val rangeMap : MutableMap<TextRange, Pair<ArendExpr, TextRange?>> = mutableMapOf()
         for (expression in acceptableParents(rootPsi)) {
             val letExpr = expression.parentOfType<ArendLetExpr>()?.takeIf { it.expr?.textRange == expression.textRange }
-            val letRange = if (letExpr?.inKw != null) TextRange(letExpr.startOffset, letExpr.inKw!!.endOffset) else null
+            val inKw = letExpr?.inKw
+            val letRange = if (inKw != null) TextRange(letExpr.startOffset, inKw.endOffset) else null
             val subRanges = collectInterestingSubranges(rootPsi, expression, rangeOfReplacement)
             for ((i, subExprRange) in subRanges.withIndex()) {
                 if (i == subRanges.lastIndex) {
@@ -192,7 +193,6 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         return ranges
     }
 
-    @Suppress("RemoveExplicitTypeArguments", "MoveLambdaOutsideParentheses")
     private fun runDocumentChanges(wrappableOption: WrappableOption, editor: Editor, selection: SelectionResult, freeVariables: List<Pair<Binding, ParameterExplicitnessState>>) {
         val elementToWrap = wrappableOption.psi.element ?: return
         val project = elementToWrap.project
@@ -241,7 +241,7 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         val pointerToLet = SmartPointerManager.createPointer(newLetExpr)
         CodeStyleManager.getInstance(project).reformatText(newLetExpr.containingFile, newLetExpr.startOffset, newLetExpr.inKw!!.endOffset)
         val reparsedLet = pointerToLet.element ?: return null
-        val identifierInClause = reparsedLet.letClauseList.lastOrNull()?.defIdentifier?.startOffset ?: -1
+        val identifierInClause = reparsedLet.letClauses.lastOrNull()?.referable?.startOffset ?: -1
 
         val expressionStart = reparsedLet.expr?.startOffset ?: return null
         return identifierInClause to (expressionStart + globalOffsetOfInvocation - rangeOfWrapped.startOffset)

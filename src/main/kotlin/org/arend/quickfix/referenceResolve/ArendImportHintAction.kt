@@ -22,17 +22,15 @@ import com.intellij.psi.util.parentOfType
 import com.intellij.util.SlowOperations
 import org.arend.settings.ArendSettings
 import org.arend.naming.scope.ScopeFactory
-import org.arend.psi.*
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.ArendSourceNode
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendFileScope
+import org.arend.psi.ext.*
+import org.arend.psi.libraryConfig
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendFileIndex
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.ArendBundle
 import org.arend.util.FileUtils
-import org.arend.psi.parser.api.ArendPattern
 
 enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
 

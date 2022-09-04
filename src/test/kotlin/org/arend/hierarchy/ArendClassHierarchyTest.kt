@@ -2,7 +2,7 @@ package org.arend.hierarchy
 
 import com.intellij.openapi.components.service
 import org.arend.ArendTestBase
-import org.arend.psi.ArendDefClass
+import org.arend.psi.ext.ArendDefClass
 import org.arend.search.ClassDescendantsSearch
 import org.junit.Assert
 

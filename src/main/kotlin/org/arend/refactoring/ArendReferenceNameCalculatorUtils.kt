@@ -10,11 +10,9 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
-import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ext.*
 import org.arend.term.NamespaceCommand
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
@@ -254,10 +252,10 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
     private fun calculateShorterNames(statCmd: ArendStatCmd): List<List<String>> {
         val lastRef = statCmd.longName?.refIdentifierList?.lastOrNull()
         if (lastRef != null) {
-            val openedGroup = lastRef.reference?.resolve()
+            val openedGroup = lastRef.reference.resolve()
             if (openedGroup is PsiLocatedReferable) {
                 val remainder = calculateRemainder(openedGroup)
-                if (remainder != null && remainder.isNotEmpty()) {
+                if (!remainder.isNullOrEmpty()) {
                     val currName = remainder[0]
                     val tail = remainder.drop(1).toList()
                     return getImportedNames(statCmd, currName).map { singletonList(it.first) + tail }

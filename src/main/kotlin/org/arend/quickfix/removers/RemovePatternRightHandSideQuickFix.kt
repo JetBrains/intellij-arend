@@ -5,7 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.psi.ArendClause
+import org.arend.psi.ext.ArendClause
 import org.arend.psi.deleteChildRangeWithNotification
 import org.arend.util.ArendBundle
 
@@ -21,7 +21,7 @@ class RemovePatternRightHandSideQuickFix (private val clauseRef: SmartPsiElement
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val clause = clauseRef.element ?: return
         val fatArrow = clause.fatArrow
-        val expr = clause.expr
+        val expr = clause.expression
         if (fatArrow != null && expr != null) clause.deleteChildRangeWithNotification(fatArrow, expr)
     }
 }

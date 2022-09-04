@@ -11,12 +11,16 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.highlight.ArendHighlightingColors
-import org.arend.psi.*
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.ArendIPName
+import org.arend.psi.ext.ArendLiteral
+import org.arend.psi.ext.ArendLongName
+import org.arend.psi.ext.ReferableBase
 import java.util.ArrayList
 
 class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val editor: Editor)
@@ -28,7 +32,7 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
         val manager = InjectedLanguageManager.getInstance(file.project)
         val files = (file.firstChild as? PsiInjectionText)?.let { manager.getInjectedPsiFiles(it) } ?: return
         for (pair in files) {
-            val visitor = object : ArendVisitor() {
+            val visitor = object : PsiElementVisitor() {
                 private fun toHostTextRange(range: TextRange) = manager.injectedToHost(pair.first, range)
 
                 private fun addHighlightInfo(range: TextRange, colors: ArendHighlightingColors) {
@@ -38,26 +42,28 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
                     }
                 }
 
-                override fun visitIPName(o: ArendIPName) {
-                    addHighlightInfo(o.textRange, ArendHighlightingColors.OPERATORS)
-                }
-
-                override fun visitLongName(o: ArendLongName) {
-                    val dot = (o.parent as? ArendLiteral)?.dot
-                    val last = if (dot != null) dot else {
-                        val refs = o.refIdentifierList
-                        val ref = refs.lastOrNull()
-                        val resolved = ref?.reference?.let { runReadAction { it.resolve() } } as? ReferableAdapter<*>
-                        if (resolved != null) {
-                            val alias = resolved.getAlias()
-                            if (ReferableAdapter.calcPrecedence(alias?.prec).isInfix || alias == null && ReferableAdapter.calcPrecedence(resolved.getPrec()).isInfix) {
-                                addHighlightInfo(ref.textRange, ArendHighlightingColors.OPERATORS)
+                override fun visitElement(element: PsiElement) {
+                    super.visitElement(element)
+                    when (element) {
+                        is ArendIPName -> addHighlightInfo(element.textRange, ArendHighlightingColors.OPERATORS)
+                        is ArendLongName -> {
+                            val dot = (element.parent as? ArendLiteral)?.dot
+                            val last = if (dot != null) dot else {
+                                val refs = element.refIdentifierList
+                                val ref = refs.lastOrNull()
+                                val resolved = ref?.reference?.let { runReadAction { it.resolve() } } as? ReferableBase<*>
+                                if (resolved != null) {
+                                    val alias = resolved.alias
+                                    if (ReferableBase.calcPrecedence(alias?.prec).isInfix || alias == null && ReferableBase.calcPrecedence(resolved.prec).isInfix) {
+                                        addHighlightInfo(ref.textRange, ArendHighlightingColors.OPERATORS)
+                                    }
+                                }
+                                if (refs.size > 1) ref?.prevSibling else null
+                            }
+                            if (last != null) {
+                                addHighlightInfo(TextRange(element.startOffset, last.endOffset), ArendHighlightingColors.LONG_NAME)
                             }
                         }
-                        if (refs.size > 1) ref?.prevSibling else null
-                    }
-                    if (last != null) {
-                        addHighlightInfo(TextRange(o.startOffset, last.endOffset), ArendHighlightingColors.LONG_NAME)
                     }
                 }
             }

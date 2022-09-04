@@ -3,9 +3,9 @@ package org.arend.intention
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import org.arend.psi.ArendExpr
+import org.arend.psi.ext.ArendExpr
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendLiteral
+import org.arend.psi.ext.ArendLiteral
 import org.arend.util.ArendBundle
 
 class WrapInGoalIntention : SelectionIntention<ArendExpr>(ArendExpr::class.java, ArendBundle.message("arend.expression.wrapInGoal")) {

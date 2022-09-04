@@ -17,6 +17,7 @@ import com.intellij.psi.util.parentsOfType
 import com.intellij.util.castSafelyTo
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.arend.core.expr.FunCallExpression
+import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
@@ -25,17 +26,12 @@ import org.arend.naming.scope.NamespaceCommandNamespace
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendReferenceContainer
-import org.arend.psi.ext.ArendReferenceElement
-import org.arend.psi.ext.PsiStubbedReferableImpl
-import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.ArendStatement
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.getCompleteWhere
 import org.arend.settings.ArendCustomCodeStyleSettings
 import org.arend.settings.ArendCustomCodeStyleSettings.OptimizeImportsPolicy
+import org.arend.term.NamespaceCommand
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.visitor.SearchVisitor
 import org.arend.util.ArendBundle
@@ -125,7 +121,7 @@ class ArendImportOptimizer : ImportOptimizer {
                 singularWhere?.delete()
             }
             val factory = ArendPsiFactory(file.project)
-            val allImports = file.statements.filter { it.statCmd?.importKw != null }.map {
+            val allImports = file.statements.filter { it.statCmd?.kind == NamespaceCommand.Kind.IMPORT }.map {
                 val text = it.text
                 it.delete()
                 factory.createFromText(text)!!.statements[0]
@@ -140,7 +136,7 @@ class ArendImportOptimizer : ImportOptimizer {
 }
 
 internal fun processRedundantImportedDefinitions(file : ArendFile, fileImports: Map<FilePath, Set<ImportedName>>, moduleStructure: OptimalModuleStructure, action: (ArendCompositeElement) -> Unit) {
-    checkStatements(action, file.statements.filter { it.statCmd?.importKw != null }, fileImports, EMPTY_STRUCTURE)
+    checkStatements(action, file.statements.filter { it.statCmd?.kind == NamespaceCommand.Kind.IMPORT }, fileImports, EMPTY_STRUCTURE)
     visitModuleInconsistencies(action, file, moduleStructure, moduleStructure.usages, emptyMap())
 }
 
@@ -198,7 +194,7 @@ private fun visitModuleInconsistencies(action : (ArendCompositeElement) -> Unit,
     for ((modulePath, set) in importedOnTopLevel) {
         filteredPattern[modulePath] = filteredPattern[modulePath]?.let { it - set }
     }
-    val deepStatements = checkStatements(action, group.statements.filter { it.namespaceCommand?.openKw != null }, filteredPattern, moduleStructure ?: EMPTY_STRUCTURE)
+    val deepStatements = checkStatements(action, group.statements.filter { it.namespaceCommand?.kind == NamespaceCommand.Kind.OPEN }, filteredPattern, moduleStructure ?: EMPTY_STRUCTURE)
     for (subgroup in group.statements.mapNotNull { it.group } + group.dynamicSubgroups) {
         val substructure = moduleStructure?.subgroups?.find { it.name == subgroup.name }
         visitModuleInconsistencies(action, subgroup, substructure, treeUsages + (substructure?.usages ?: emptyMap()), importedOnTopLevel + deepStatements)
@@ -219,9 +215,9 @@ private fun addFileImports(
 
 @RequiresWriteLock
 private fun addModuleOpens(
-    group: ArendGroup,
-    rootStructure: OptimalModuleStructure?,
-    alreadyImported: HashMap<String, Referable>
+        group: ArendGroup,
+        rootStructure: OptimalModuleStructure?,
+        alreadyImported: HashMap<String, Referable>
 ) {
     if (group !is PsiFile) {
         eraseNamespaceCommands(group)
@@ -237,10 +233,10 @@ private fun addModuleOpens(
 }
 
 private fun doAddNamespaceCommands(
-    group: ArendGroup,
-    importMap: Map<ModulePath, Set<ImportedName>>,
-    alreadyImported: MutableMap<String, Referable>,
-    prefix: String = "\\open"
+        group: ArendGroup,
+        importMap: Map<ModulePath, Set<ImportedName>>,
+        alreadyImported: MutableMap<String, Referable>,
+        prefix: String = "\\open"
 ) {
     val importStatements = mutableListOf<String>()
     val settings = CodeStyle.getCustomSettings(group.containingFile, ArendCustomCodeStyleSettings::class.java)
@@ -369,7 +365,7 @@ private class ImportStructureCollector(
 
     override fun visitElement(element: PsiElement) {
         progressIndicator?.checkCanceled()
-        if (element is ArendDefinition) {
+        if (element is ArendDefinition<*>) {
             currentFrame.definitions.add((element as Referable).refName)
             registerCoClauses(element)
             addCoreGlobalInstances(element)
@@ -396,7 +392,7 @@ private class ImportStructureCollector(
         element.fieldReferables.filterIsInstance<ArendClassField>().forEach { currentFrame.definitions.add(it.refName) }
     }
 
-    private fun addCoreGlobalInstances(element: ArendDefinition) {
+    private fun addCoreGlobalInstances(element: ArendDefinition<*>) {
         val tcReferable = element.tcReferable?.castSafelyTo<TCDefReferable>()?.typechecked
         allDefinitionsTypechecked = allDefinitionsTypechecked && (tcReferable != null)
         if (!allDefinitionsTypechecked) return
@@ -425,7 +421,7 @@ private class ImportStructureCollector(
         }
     }
 
-    private fun ArendDefInstance.isDefinitelyInstance(): Boolean = this.instanceOrCons.instanceKw != null
+    private fun ArendDefInstance.isDefinitelyInstance(): Boolean = functionKind == FunctionKind.INSTANCE
 
     override fun elementFinished(element: PsiElement?) {
         if (element is ArendGroup && element !is ArendFile) {
@@ -461,7 +457,7 @@ private class ImportStructureCollector(
         resolved: PsiStubbedReferableImpl<*>
     ) : String? {
         return element.referenceName.takeIf {
-            it != resolved.refName && it != resolved.castSafelyTo<ReferableAdapter<*>>()?.aliasName
+            it != resolved.refName && it != resolved.castSafelyTo<ReferableBase<*>>()?.aliasName
         }
     }
 

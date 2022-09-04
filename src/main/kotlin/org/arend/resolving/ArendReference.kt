@@ -20,8 +20,8 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.psi.ext.impl.MetaAdapter
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.ArendDefMeta
+import org.arend.psi.ext.ReferableBase
 import org.arend.refactoring.ArendNamesValidator
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -67,11 +67,11 @@ object ArendIdReferableConverter : ReferableConverter {
         null -> null
         is TCReferable -> referable
         is FieldReferable -> FieldReferableImpl(referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCDefReferable.NULL_REFERABLE)
-        is MetaAdapter -> referable.metaRef ?: referable.makeTCReferable(TCDefReferable.NULL_REFERABLE)
+        is ArendDefMeta -> referable.metaRef ?: referable.makeTCReferable(TCDefReferable.NULL_REFERABLE)
         else -> TemporaryLocatedReferable(referable)
     }
 
-    override fun convert(referable: Referable?) = (referable as? MetaAdapter)?.metaRef ?: referable
+    override fun convert(referable: Referable?) = (referable as? ArendDefMeta)?.metaRef ?: referable
 }
 
 open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val beforeImportDot: Boolean = false, private val refKind: RefKind = RefKind.EXPR) : PsiReferenceBase<T>(element, element.rangeInElement), ArendReference {
@@ -94,7 +94,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             val atomFieldsAcc = ((pParent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
             val argParent = when {
                 atomFieldsAcc == null -> (pParent as? ArendLongNameExpr)?.parent
-                atomFieldsAcc.fieldAccList.isNotEmpty() -> null
+                atomFieldsAcc.numberList.isNotEmpty() -> null
                 else -> atomFieldsAcc.parent
             }
             val newExprParent = ((argParent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr)?.parent
@@ -108,7 +108,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
             }
         }
 
-        val expr = if (element is ArendIPName && element.longName.size > 1 || parent is ArendLongName && pParent !is ArendLocalCoClause && pParent !is ArendCoClause && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null || element is ArendRefIdentifier && parent is ArendAtomLevelExpr) {
+        val expr = if (element is ArendIPName && element.longName.size > 1 || parent is ArendLongName && pParent !is ArendLocalCoClause && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null || element is ArendRefIdentifier && parent is ArendAtomLevelExpr) {
             element.ancestor<ArendExpr>()
         } else null
         val def = expr?.ancestor<PsiConcreteReferable>()
@@ -199,11 +199,11 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
                 return null
             }
             val ref = origElement.underlyingReferable
-            return if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.recordKw != null)) {
+            return if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.isRecord == true)) {
                 null
             } else when (ref) {
                 is PsiNamedElement -> {
-                    val alias = (ref as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier?.id?.text
+                    val alias = (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.id?.text
                     val aliasString = if (alias == null) "" else " $alias"
                     val elementName = origElement.refName
                     val lookupString = lookup ?: (elementName + aliasString)

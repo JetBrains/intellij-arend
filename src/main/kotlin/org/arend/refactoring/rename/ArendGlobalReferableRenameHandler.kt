@@ -19,11 +19,10 @@ import com.intellij.refactoring.rename.inplace.VariableInplaceRenamer
 import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
-import org.arend.psi.ArendAlias
-import org.arend.psi.ArendAliasIdentifier
+import org.arend.psi.ext.ArendAlias
 import org.arend.psi.ArendElementTypes.ID
-import org.arend.psi.ext.ArendAliasIdentifierImplMixin
-import org.arend.psi.ext.impl.ReferableAdapter
+import org.arend.psi.ext.ArendAliasIdentifier
+import org.arend.psi.ext.ReferableBase
 import org.arend.psi.getArendNameText
 
 class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
@@ -82,10 +81,10 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
     companion object {
         private fun customPerformDialogRename(elementToRename: PsiElement, editor: Editor) {
             val project = editor.project
-            if (project != null && elementToRename is ReferableAdapter<*>) {
+            if (project != null && elementToRename is ReferableBase<*>) {
                 val context = getContext(project, elementToRename, editor)
                 if (context != null) {
-                    val dialog = object: RenameDialog(project, elementToRename, if (context.isAlias) elementToRename.getAlias() else elementToRename, editor) {
+                    val dialog = object: RenameDialog(project, elementToRename, if (context.isAlias) elementToRename.alias else elementToRename, editor) {
                         override fun createRenameProcessor(newName: String): RenameProcessor =
                                 ArendRenameProcessor(project, elementToRename, newName, context.name, context.isAlias, null)
                     }
@@ -137,8 +136,8 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
     override fun collectRefs(referencesSearchScope: SearchScope?): MutableCollection<PsiReference> {
         val collection = super.collectRefs(referencesSearchScope)
         val element = myElementToRename
-        if (aliasUnderCaret && element is ReferableAdapter<*>) {
-            val alias = element.getAlias()
+        if (aliasUnderCaret && element is ReferableBase<*>) {
+            val alias = element.alias
             val aliasIdentifier = alias?.aliasIdentifier
             if (aliasIdentifier != null) collection.add(object: PsiReferenceBase<ArendAlias>(alias, aliasIdentifier.textRangeInParent) {
                 override fun resolve() = element
@@ -159,18 +158,15 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
     }
 
     override fun startsOnTheSameElement(handler: RefactoringActionHandler?, element: PsiElement?): Boolean {
-        variable.let { v -> if (v is ReferableAdapter<*> && v.getAlias()?.aliasIdentifier == element && element != null) return true }
+        variable.let { v -> if (v is ReferableBase<*> && v.alias?.aliasIdentifier == element && element != null) return true }
         return super.startsOnTheSameElement(handler, element)
     }
 
-    override fun acceptReference(reference: PsiReference?): Boolean {
-        if (reference != null) {
-            val element = reference.element
-            val textRange = getRangeToRename(reference)
-            val referenceText = element.text.substring(textRange.startOffset, textRange.endOffset)
-            return Comparing.strEqual(referenceText, myOldName)
-        }
-        return super.acceptReference(reference)
+    override fun acceptReference(reference: PsiReference): Boolean {
+        val element = reference.element
+        val textRange = getRangeToRename(reference)
+        val referenceText = element.text.substring(textRange.startOffset, textRange.endOffset)
+        return Comparing.strEqual(referenceText, myOldName)
     }
 
     override fun createRenameProcessor(element: PsiElement, newName: String): RenameProcessor =
@@ -193,7 +189,7 @@ class ArendRenameProcessor(project: Project, val element: PsiElement, newName: S
         super.performRefactoring(usages)
         if (isAlias) {
             if (oldRefName != null) (element as? PsiNamedElement)?.setName(oldRefName) // restore old refName
-            ((element as? ReferableAdapter<*>)?.getAlias()?.aliasIdentifier as? ArendAliasIdentifierImplMixin)?.setName(newName)
+            (element as? ReferableBase<*>)?.alias?.aliasIdentifier?.setName(newName)
         }
         restoreCaretCallBack?.run()
     }

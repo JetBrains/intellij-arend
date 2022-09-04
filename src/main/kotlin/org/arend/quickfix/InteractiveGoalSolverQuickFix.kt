@@ -5,13 +5,12 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.components.service
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.arend.ext.typechecking.InteractiveGoalSolver
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
-import org.arend.psi.ArendExpr
+import org.arend.psi.ext.ArendExpr
 import org.arend.refactoring.PsiLocatedRenamer
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.DefinitionRenamerConcreteVisitor

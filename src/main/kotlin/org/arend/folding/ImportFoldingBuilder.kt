@@ -8,7 +8,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.ArendGroup
 
 
 class ImportFoldingBuilder : FoldingBuilderEx(), DumbAware {

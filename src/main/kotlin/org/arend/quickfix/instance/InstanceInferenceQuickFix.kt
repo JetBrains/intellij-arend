@@ -19,8 +19,12 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.definition.FunctionDefinition
-import org.arend.psi.*
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ArendFile
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ancestor
+import org.arend.psi.ext.ArendDefinition
+import org.arend.psi.ext.ArendGroup
+import org.arend.psi.ext.ArendLongName
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.*
 import org.arend.resolving.ArendReferenceImpl
@@ -82,7 +86,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
     companion object {
         fun doAddImplicitArg(project: Project, longName: ArendLongName, chosenElement: List<FunctionDefinition>) {
             WriteCommandAction.runWriteCommandAction(project, "Import Instance", null, {
-                val enclosingDefinition = longName.ancestor<ArendDefinition>()
+                val enclosingDefinition = longName.ancestor<ArendDefinition<*>>()
                 val mySourceContainer = enclosingDefinition?.parentGroup
                 if (mySourceContainer != null) {
                     val psiFactory = ArendPsiFactory(project)
@@ -106,7 +110,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                     tcService.updateDefinition(enclosingDefinition, file, true)
                     for ((error,element) in project.service<ErrorService>().getTypecheckingErrors(file)) {
                         if (error is InstanceInferenceError) {
-                            element.ancestor<ArendDefinition>()?.let {
+                            element.ancestor<ArendDefinition<*>>()?.let {
                                 tcService.updateDefinition(it, file, true)
                             }
                         }

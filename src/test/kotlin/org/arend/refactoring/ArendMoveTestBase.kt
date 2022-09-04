@@ -4,7 +4,7 @@ import com.intellij.openapi.components.service
 import org.arend.ArendTestBase
 import org.arend.fileTreeFromText
 import org.arend.psi.ancestor
-import org.arend.psi.ext.impl.ArendGroup
+import org.arend.psi.ext.ArendGroup
 import org.arend.refactoring.move.ArendMoveHandlerDelegate
 import org.arend.refactoring.move.ArendMoveMembersDialog
 import org.arend.refactoring.move.ArendMoveMembersDialog.Companion.determineClassPart

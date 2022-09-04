@@ -74,26 +74,26 @@ data class SubExprResult(
         val subConcrete: Concrete.Expression,
         val subPsi: ArendExpr
 ) {
-    fun findBinding(selected: TextRange) = if (subPsi is ArendLetExprImplMixin
+    fun findBinding(selected: TextRange) = if (subPsi is ArendLetExpr
             && subConcrete is Concrete.LetExpression
             && subCore is LetExpression) binding(subPsi, selected)?.let {
         it to FindBinding.visitLet(it, subConcrete, subCore)
     } else findTeleBinding(selected)?.let { (id, link) -> id to link?.typeExpr }
 
     @Suppress("MemberVisibilityCanBePrivate")
-    fun findTeleBinding(selected: TextRange) = if (subPsi is ArendLamExprImplMixin
+    fun findTeleBinding(selected: TextRange) = if (subPsi is ArendLamExpr
             && subConcrete is Concrete.LamExpression
             && subCore is LamExpression) binding(subPsi, selected)?.let {
         it to FindBinding.visitLam(it, subConcrete, subCore)
-    } else if (subPsi is ArendPiExprImplMixin
+    } else if (subPsi is ArendPiExpr
             && subConcrete is Concrete.PiExpression
             && subCore is PiExpression) binding(subPsi, selected)?.let {
         it to FindBinding.visitPi(it, subConcrete, subCore)
-    } else if (subPsi is ArendSigmaExprImplMixin
+    } else if (subPsi is ArendSigmaExpr
             && subConcrete is Concrete.SigmaExpression
             && subCore is SigmaExpression) binding(subPsi, selected)?.let {
         it to FindBinding.visitSigma(it, subConcrete, subCore)
-    } else if (subPsi is ArendCaseExprImplMixin
+    } else if (subPsi is ArendCaseExpr
             && subConcrete is Concrete.CaseExpression
             && subCore is CaseExpression) refBinding(subPsi, selected)?.let {
         it to FindBinding.visitCase(it, subConcrete, subCore)
@@ -147,7 +147,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             else -> InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(injectionContext)?.indexOfFirst { it.first == file }
         }
         val injectedExpr = if (index != null) injectionHost.injectedExpressions[index] else null
-        val cExpr = (psiDef as? ArendDefFunction)?.functionBody?.expr?.let { ConcreteBuilder.convertExpression(it) }
+        val cExpr = (psiDef as? ArendDefFunction)?.body?.expr?.let { ConcreteBuilder.convertExpression(it) }
         if (injectedExpr != null && cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
             val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(resolver?.result ?: subExpr)
@@ -263,9 +263,8 @@ fun collectArendExprs(
                 tail = tupleExprList.asSequence().drop(1)
             }
             is ArendTupleExpr -> {
-                val exprList = firstExpr.exprList
-                head = exprList.firstOrNull() ?: return null
-                tail = exprList.asSequence().drop(1)
+                head = firstExpr.expr
+                tail = firstExpr.type?.let { sequenceOf(it) } ?: emptySequence()
             }
             null -> return null
             else -> return firstExpr to emptyList()

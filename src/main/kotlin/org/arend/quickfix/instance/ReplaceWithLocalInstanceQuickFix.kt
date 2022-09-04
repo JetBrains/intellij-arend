@@ -8,9 +8,13 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.ReferenceExpression
 import org.arend.ext.error.LocalError
-import org.arend.psi.*
-import org.arend.psi.ext.ArendFunctionalDefinition
+import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ext.ArendDefData
+import org.arend.psi.ext.ArendFunctionDefinition
+import org.arend.psi.ext.ArendLongName
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.getTeleType
+import org.arend.psi.replaceWithNotification
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.splitTele
 import org.arend.resolving.DataLocatedReferable
@@ -32,8 +36,8 @@ class ReplaceWithLocalInstanceQuickFix(val error: InstanceInferenceError, val ca
         val ambientDefinition = (error.definition as DataLocatedReferable).data?.element
         val missingClassInstance = (error.classRef.data as? SmartPsiElementPointer<*>)?.element
         val l  = when (ambientDefinition) {
-            is ArendFunctionalDefinition -> ambientDefinition.nameTeleList.map { tele -> Pair(tele, tele.identifierOrUnknownList.size) }
-            is ArendDefData -> ambientDefinition.typeTeleList.map { tele -> Pair(tele, tele.typedExpr?.identifierOrUnknownList?.size ?: 1) }
+            is ArendFunctionDefinition<*> -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.identifierOrUnknownList.size) }
+            is ArendDefData -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.typedExpr?.identifierOrUnknownList?.size ?: 1) }
             else -> null
         }
 

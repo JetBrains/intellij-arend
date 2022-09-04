@@ -2,12 +2,10 @@ package org.arend.highlight
 
 import com.intellij.codeInsight.TargetElementEvaluatorEx2
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parents
 import com.intellij.refactoring.suggested.startOffset
-import org.arend.psi.ArendDefIdentifier
-import org.arend.psi.ArendDefinition
-import org.arend.psi.ArendRefIdentifier
+import org.arend.psi.ext.ArendDefIdentifier
+import org.arend.psi.ext.ArendRefIdentifier
 import org.arend.psi.ext.PsiReferable
 
 class ArendTargetElementEvaluator : TargetElementEvaluatorEx2() {

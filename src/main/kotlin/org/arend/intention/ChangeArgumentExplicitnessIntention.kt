@@ -30,6 +30,8 @@ import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
+import org.arend.psi.ArendElementTypes.PIPE
+import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
@@ -46,8 +48,6 @@ import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
 import org.arend.util.getBounds
 import java.util.Collections.singletonList
-import java.util.concurrent.ConcurrentHashMap
-import org.arend.psi.parser.api.ArendPattern as ArendPattern
 
 data class ProcessAppExprResult(val text: String, val strippedText: String?, val parenthesizedPrefixTest: String?, val isAtomic: Boolean, val referable: GlobalReferable?)
 data class ArgumentDescriptor(val text: String, val strippedText: String?, val parenthesizedPrefixText: String?, val isExplicit: Boolean, val isAtomic: Boolean, val spacingText: String?, val referable: GlobalReferable?) {
@@ -197,15 +197,15 @@ class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactor
                 spacingMap[block] = buffer
                 buffer = ""
             } else if (!localCoClause.children.contains(block) &&
-                block.elementType != ArendElementTypes.PIPE &&
-                block.prevSibling?.let{ it.elementType == ArendElementTypes.PIPE} != true) buffer += block.text
+                block.elementType != PIPE &&
+                block.prevSibling?.let{ it.elementType == PIPE} != true) buffer += block.text
         }
 
         for (arg in localCoClause.lamParamList) {
             val data = arg.data as PsiElement
             var data1: PsiElement? = data
             while (true) {
-                if (data1 is ArendLamTele && data1.identifierOrUnknownList.size == 1 && data1.expr == null) {
+                if (data1 is ArendNameTele && data1.identifierOrUnknownList.size == 1 && data1.type == null) {
                     data1 = data1.identifierOrUnknownList[0]; continue
                 }
                 break
@@ -213,7 +213,7 @@ class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactor
             val text = textGetter(data, refactoringContext.textReplacements)
             val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
             val isExplicit = when (data) {
-                is ArendLamTele -> data.isExplicit
+                is ArendNameTele -> data.isExplicit
                 is ArendPattern -> data.isExplicit
                 else -> data.text.trim().startsWith("{")
             }
@@ -387,22 +387,19 @@ fun getStrippedPsi(exprData2: PsiElement): Pair<PsiElement, Boolean> {
             is ArendAtomArgument -> {
                 exprData = exprData1.atomFieldsAcc; continue
             }
-            is ArendAtomFieldsAcc -> if (exprData1.fieldAccList.size == 0) {
+            is ArendAtomFieldsAcc -> if (exprData1.numberList.isEmpty()) {
                 exprData = exprData1.atom; continue
             }
             is ArendTuple -> if (exprData1.tupleExprList.size == 1) {
                 exprData = exprData1.tupleExprList[0]; continue
             }
-            is ArendTupleExpr -> if (exprData1.exprList.size == 1) {
-                exprData = exprData1.exprList[0]; continue
+            is ArendTupleExpr -> if (exprData1.type == null) {
+                exprData = exprData1.expr; continue
             }
             is ArendAtom -> {
-                val tuple = exprData1.tuple
-                val literal = exprData1.literal
-                if (tuple != null) {
-                    exprData = tuple; continue
-                } else if (literal != null) {
-                    exprData = literal; continue
+                val child = exprData1.firstRelevantChild
+                if (child is ArendTuple || child is ArendLiteral) {
+                    exprData = child; continue
                 }
             }
             is ArendNewExpr -> if (exprData1.appExpr?.let { it.textRange == exprData1.textRange } == true) {
@@ -501,7 +498,7 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
 
         return when (element) {
             is ArendNameTele, is ArendFieldTele, is ArendTypeTele ->
-                element.parent?.let{ it is ArendDefinition || it is ArendClassField || it is ArendConstructor } ?: false
+                element.parent?.let{ it is ArendDefinition<*> || it is ArendClassField || it is ArendConstructor } ?: false
             else -> false
         }
     }
@@ -519,9 +516,9 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
                 val fieldDefIdentifiers = ClassFieldImplScope(clazz, false).elements
                 val oldParameters = fieldDefIdentifiers.map { Parameter(if (it is ArendFieldDefIdentifier) it.isExplicitField else true, it) }
                 val switchedFieldIdentifiers: List<Referable> = if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
-                    (element as ArendFieldTele).fieldDefIdentifierList
+                    (element as ArendFieldTele).referableList
                 } else {
-                    singletonList((element as ArendFieldTele).fieldDefIdentifierList[switchedArgIndexInTele])
+                    singletonList((element as ArendFieldTele).referableList[switchedArgIndexInTele])
                 }
                 refactoringDescriptors.add(RefactoringDescriptor(clazz, oldParameters, oldParameters.map { NewParameter(if (switchedFieldIdentifiers.contains(it.referable)) !it.isExplicit else it.isExplicit, it) }))
             }
@@ -841,18 +838,18 @@ private fun createSwitchedTele(factory: ArendPsiFactory, tele: ArendCompositeEle
 
     return when (tele) {
         is ArendNameTele -> {
-            val type = tele.expr!!.text
+            val type = tele.type!!.text
             factory.createNameTele(params, type, !isExplicit)
         }
 
         is ArendFieldTele -> {
-            val type = tele.expr!!.text
+            val type = tele.type!!.text
             factory.createFieldTele(params, type, !isExplicit)
         }
 
         is ArendTypeTele -> {
             val typedExpr = tele.typedExpr!!
-            val expr = typedExpr.expr
+            val expr = typedExpr.type
             if (expr == null) {
                 factory.createTypeTele(null, typedExpr.text, !isExplicit)
             } else {

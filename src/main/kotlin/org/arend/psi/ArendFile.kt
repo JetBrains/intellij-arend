@@ -35,11 +35,7 @@ import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
-import org.arend.psi.ext.ArendSourceNode
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.TCDefinition
-import org.arend.psi.ext.impl.ArendGroup
-import org.arend.psi.ext.impl.ArendInternalReferable
+import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference

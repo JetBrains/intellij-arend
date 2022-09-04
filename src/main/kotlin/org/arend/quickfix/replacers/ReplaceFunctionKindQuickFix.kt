@@ -8,9 +8,10 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.ext.concrete.definition.FunctionKind.*
 import org.arend.psi.*
+import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
 
-class ReplaceFunctionKindQuickFix(private val kwRef: SmartPsiElementPointer<ArendFunctionKw>, private val kind: FunctionKind) : IntentionAction {
+class ReplaceFunctionKindQuickFix(private val kwRef: SmartPsiElementPointer<ArendCompositeElement>, private val kind: FunctionKind) : IntentionAction {
     init {
         if (kind.isCoclause) throw IllegalArgumentException()
     }
