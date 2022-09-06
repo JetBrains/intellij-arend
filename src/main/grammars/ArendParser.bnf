@@ -136,9 +136,16 @@ private ns_longName ::= longName {
 
 private ns_longName_recover ::= !(USING_KW | LPAREN | HIDING_KW) & statement_recover
 
-nsUsing ::= USING_KW? LPAREN <<comma_separated_sequence nsId>>? RPAREN {
+nsUsing ::= nsUsingUsing | nsUsingParams {
+  recoverWhile = nsUsing_recover
+}
+
+private nsUsingUsing ::= USING_KW nsUsingParams {
     pin = 1
-    recoverWhile = nsUsing_recover
+}
+
+private nsUsingParams ::= LPAREN <<comma_separated_sequence nsId>>? RPAREN {
+    pin = 1
 }
 
 private nsUsing_recover ::= !(LPAREN | HIDING_KW) & statement_recover
@@ -640,6 +647,7 @@ atomLevelExpr ::= LP_KW
     | refIdentifier
     | LPAREN levelExpr RPAREN {
     pin(".*") = 1
+    extends = levelExpr
 }
 
 universeAppExpr ::= UNIVERSE [maybeAtomLevelExpr maybeAtomLevelExpr?] {

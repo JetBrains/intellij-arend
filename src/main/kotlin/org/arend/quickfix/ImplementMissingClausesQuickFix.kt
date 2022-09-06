@@ -117,46 +117,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
         fun insertClauses(psiFactory: ArendPsiFactory, cause: ArendCompositeElement, clauses: List<ArendClause>) {
             var primerClause: ArendClause? = null// a "primer" clause which is needed only to simplify insertion of proper clauses
 
-            fun doInsertClauses(cause: ArendFunctionDefinition<*>, fBody: ArendFunctionBody?): PsiElement? {
-                val fClauses = if (fBody != null && fBody.kind != ArendFunctionBody.Kind.COCLAUSE) fBody.functionClauses else null
-
-                if (fBody != null) {
-                    val lastChild = fBody.lastChild
-                    return if (fClauses != null) {
-                        fClauses.clauseList.lastOrNull() ?: fClauses.lbrace ?: throw IllegalStateException()
-                    } else {
-                        val newClauses = psiFactory.createFunctionClauses()
-                        val insertedClauses = lastChild.parent?.addAfter(newClauses, lastChild) as ArendFunctionClauses
-                        lastChild.parent?.addAfter(psiFactory.createWhitespace(" "), lastChild)
-                        primerClause = insertedClauses.lastChild as? ArendClause
-                        primerClause
-                    }
-                } else {
-                    val newBody = psiFactory.createFunctionClauses().parent as ArendFunctionBody
-                    val lastChild = cause.returnExpr ?: cause.parameters.lastOrNull() ?: throw IllegalStateException()
-                    cause.addAfter(newBody, lastChild)
-                    cause.addAfter(psiFactory.createWhitespace(" "), lastChild)
-                    primerClause = cause.body?.functionClauses?.lastChild as? ArendClause
-                    return primerClause
-                }
-            }
-
             val anchor = when (cause) {
-                is ArendDefInstance -> {
-                    doInsertClauses(cause, cause.body)
-                }
-                is ArendDefFunction -> {
-                    doInsertClauses(cause, cause.body)
-                }
-                is ArendCaseExpr -> {
-                    val body = cause.withBody
-                    val caseExprAnchor = cause.returnExpr ?: cause.caseArguments.lastOrNull()
-                    body?.clauseList?.lastOrNull() ?: (body?.lbrace ?: (
-                            body?.let {
-                                insertPairOfBraces(psiFactory, it.withKw)
-                                body.lbrace
-                            } ?: (cause.addAfter(psiFactory.createWithBody(), caseExprAnchor) as ArendWithBody).lbrace))
-                }
                 is ArendCoClauseDef -> {
                     val coClauseBody = cause.body
                             ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendFunctionBody)
@@ -166,6 +127,39 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         insertPairOfBraces(psiFactory, elim)
 
                     coClauseBody.clauseList.lastOrNull() ?: coClauseBody.lbrace ?: cause.lastChild
+                }
+                is ArendFunctionDefinition<*> -> {
+                    val fBody = cause.body
+                    val fClauses = if (fBody != null && fBody.kind != ArendFunctionBody.Kind.COCLAUSE) fBody.functionClauses else null
+
+                    if (fBody != null) {
+                        val lastChild = fBody.lastChild
+                        if (fClauses != null) {
+                            fClauses.clauseList.lastOrNull() ?: fClauses.lbrace ?: throw IllegalStateException()
+                        } else {
+                            val newClauses = psiFactory.createFunctionClauses()
+                            val insertedClauses = lastChild.parent?.addAfter(newClauses, lastChild) as ArendFunctionClauses
+                            lastChild.parent?.addAfter(psiFactory.createWhitespace(" "), lastChild)
+                            primerClause = insertedClauses.lastChild as? ArendClause
+                            primerClause
+                        }
+                    } else {
+                        val newBody = psiFactory.createFunctionClauses().parent as ArendFunctionBody
+                        val lastChild = cause.returnExpr ?: cause.parameters.lastOrNull() ?: throw IllegalStateException()
+                        cause.addAfter(newBody, lastChild)
+                        cause.addAfter(psiFactory.createWhitespace(" "), lastChild)
+                        primerClause = cause.body?.functionClauses?.lastChild as? ArendClause
+                        primerClause
+                    }
+                }
+                is ArendCaseExpr -> {
+                    val body = cause.withBody
+                    val caseExprAnchor = cause.returnExpr ?: cause.caseArguments.lastOrNull()
+                    body?.clauseList?.lastOrNull() ?: (body?.lbrace ?: (
+                            body?.let {
+                                insertPairOfBraces(psiFactory, it.withKw)
+                                body.lbrace
+                            } ?: (cause.addAfter(psiFactory.createWithBody(), caseExprAnchor) as ArendWithBody).lbrace))
                 }
                 is ArendLongName -> {
                     val newExpr = ((cause.parent as? ArendLongNameExpr

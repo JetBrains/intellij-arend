@@ -103,13 +103,15 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
         var clauseIndex = -1
         if (patternOwner is ArendClause) {
-            val body = ownerParent.ancestor<ArendFunctionBody>()
+            val body = ownerParent.ancestor<ArendFunctionBody>()?.let {
+                if (it.kind == ArendFunctionBody.Kind.COCLAUSE) it.parent.ancestor() else it
+            }
             val func = body?.parent
             abstractPatterns = patternOwner.patterns
 
             if (ownerParent is ArendFunctionClauses)
                 clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
-            else if (ownerParent is ArendFunctionBody) {
+            else if (ownerParent is ArendFunctionBody && ownerParent.kind == ArendFunctionBody.Kind.COCLAUSE) {
                 coClauseName = ownerParent.ancestor<ArendCoClause>()?.longName?.referenceName
                 clauseIndex = ownerParent.clauseList.indexOf(patternOwner)
             }

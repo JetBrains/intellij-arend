@@ -11,7 +11,7 @@ import org.arend.term.abs.AbstractLevelExpressionVisitor
 import org.arend.term.abs.Abstract
 
 
-class ArendAtomLevelExpr(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.LevelExpression {
+class ArendAtomLevelExpr(node: ASTNode) : ArendLevelExpr(node), Abstract.LevelExpression {
     override fun getData() = this
 
     val levelExpr: ArendLevelExpr?

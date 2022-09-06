@@ -9,7 +9,7 @@ import org.arend.psi.getChildOfType
 import org.arend.term.abs.Abstract
 
 
-class ArendLevelExpr(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.LevelExpression {
+open class ArendLevelExpr(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.LevelExpression {
     override fun getData() = this
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractLevelExpressionVisitor<in P, out R>, params: P?): R = when (firstRelevantChild.elementType) {

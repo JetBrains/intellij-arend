@@ -13,7 +13,7 @@ class ArendFunctionBody(node: ASTNode, val kind: Kind) : ArendCompositeElementIm
         get() = getChildOfType()
 
     val clauseList: List<ArendClause>
-        get() = functionClauses?.clauseList ?: emptyList()
+        get() = if (kind == Kind.COCLAUSE) getChildrenOfType() else functionClauses?.clauseList ?: emptyList()
 
     val coClauseList: List<ArendCoClause>
         get() = getChildrenOfType()

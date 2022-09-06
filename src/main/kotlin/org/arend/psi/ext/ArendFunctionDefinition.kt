@@ -9,10 +9,7 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.scope.LazyScope
-import org.arend.psi.ArendElementTypes
-import org.arend.psi.getChild
-import org.arend.psi.getChildOfType
-import org.arend.psi.getChildrenOfType
+import org.arend.psi.*
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.abs.Abstract
@@ -68,5 +65,5 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     // The element before which parameters can be inserted
     open fun findParametersElement(): PsiElement? =
-        getChild { it.elementType == ArendElementTypes.COLON || it is ArendFunctionBody || it is ArendWhere }
+        getChild<PsiElement> { it.elementType == ArendElementTypes.COLON || it is ArendFunctionBody || it is ArendWhere }?.extendLeft
 }
