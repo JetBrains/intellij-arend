@@ -977,7 +977,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 bindingToCaseArgMap[binding] = ce.second
                 if (ce.second.referable == null) {
                     val newCaseArgExprAs = psiFactory.createCaseArg("0 \\as $freshName")
-                    if (newCaseArgExprAs != null) ce.second.addRangeAfterWithNotification(newCaseArgExprAs, newCaseArgExprAs.firstChild.nextSibling, newCaseArgExprAs.lastChild)
+                    if (newCaseArgExprAs != null) ce.second.addRangeAfterWithNotification(newCaseArgExprAs.firstChild.nextSibling, newCaseArgExprAs.lastChild, ce.second.expression)
                 }
 
                 if (expectedConstructorErrorEntries != null) {
@@ -1005,6 +1005,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             if (caseArgExpr != null) {
                 caseArgExpr.replaceWithNotification(typeExpr)
             } else {
+                caseArg.add(psiFactory.createWhitespace(" "))
                 caseArg.add(psiFactory.createColon())
                 caseArg.addWithNotification(typeExpr)
             }
