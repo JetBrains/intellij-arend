@@ -6,7 +6,8 @@ import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.getChildrenOfType
 
 class ArendWhere(node: ASTNode) : ArendCompositeElementImpl(node) {
-    val statList: List<ArendStat> = getChildrenOfType()
+    val statList: List<ArendStat>
+        get() = getChildrenOfType()
 
     val lbrace: PsiElement?
         get() = findChildByType(LBRACE)
