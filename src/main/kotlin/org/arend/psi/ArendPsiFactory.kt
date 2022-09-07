@@ -186,7 +186,7 @@ class ArendPsiFactory(
 
     fun createWhere(): ArendWhere = createFromText("\\module Test \\where { }")?.childOfType() ?: error("Failed to create '\\where'")
 
-    fun createCoClauseBody(): ArendFunctionBody = createFromText("\\func foo (n : Nat) : R \\cowith\n | f{-caret-} x \\with")?.childOfType() ?: error("Failed to create coClauseBody keyword")
+    fun createCoClauseBody(): ArendFunctionBody = createFromText("\\func foo (n : Nat) : R \\cowith\n | f{-caret-} x \\with")?.childOfType<ArendFunctionBody>()?.childOfType(true) ?: error("Failed to create coClauseBody keyword")
 
     fun createClassStat(): ArendClassStat = createFromText("\\class C { \\func bar => 101 }")?.childOfType() ?: error("Failed to create classStat")
 
