@@ -639,6 +639,18 @@ class ArendCompletionContributor : CompletionContributor() {
 
         // Contribution to LookupElementBuilder
         fun LookupElementBuilder.withPriority(priority: Double): LookupElement = PrioritizedLookupElement.withPriority(this, priority)
+
+        fun jointOfStatementsCondition(arendCompletionParameters: ArendCompletionParameters,
+                                       additionalCondition: (ArendCompletionParameters) -> Boolean = { true },
+                                       noCrlfRequired: Boolean = false,
+                                       allowInsideBraces: Boolean = true,
+                                       allowBeforeClassFields: Boolean = false): Boolean {
+            val leftSideOk = (arendCompletionParameters.leftStatement == null || arendCompletionParameters.leftBrace && allowInsideBraces)
+            val rightSideOk = (arendCompletionParameters.rightStatement == null || arendCompletionParameters.rightBrace && !arendCompletionParameters.leftBrace)
+            val correctStatements = rightSideOk || (leftSideOk || arendCompletionParameters.betweenStatementsOk) && (allowBeforeClassFields || !arendCompletionParameters.isBeforeClassFields)
+
+            return (arendCompletionParameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(arendCompletionParameters) && correctStatements
+        }
     }
 
     @Suppress("unused")
@@ -738,14 +750,7 @@ class ArendCompletionContributor : CompletionContributor() {
                                                  noCrlfRequired: Boolean = false,
                                                  allowInsideBraces: Boolean = true,
                                                  allowBeforeClassFields: Boolean = false) :
-            ConditionalProvider(keywords, { parameters ->
-                val arendCompletionParameters = ArendCompletionParameters(parameters)
-                val leftSideOk = (arendCompletionParameters.leftStatement == null || arendCompletionParameters.leftBrace && allowInsideBraces)
-                val rightSideOk = (arendCompletionParameters.rightStatement == null || arendCompletionParameters.rightBrace && !arendCompletionParameters.leftBrace)
-                val correctStatements = rightSideOk || (leftSideOk || arendCompletionParameters.betweenStatementsOk) && (allowBeforeClassFields || !arendCompletionParameters.isBeforeClassFields)
-
-                (arendCompletionParameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(arendCompletionParameters) && correctStatements
-            }, completionBehavior, disableAfter2Crlfs = false)
+            ConditionalProvider(keywords, { parameters -> jointOfStatementsCondition(ArendCompletionParameters(parameters), additionalCondition, noCrlfRequired, allowInsideBraces, allowBeforeClassFields)}, completionBehavior, disableAfter2Crlfs = false)
 
     class ArendCompletionParameters(caretOffset: Int, file: PsiFile) {
         val prevElement: PsiElement?
@@ -796,6 +801,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         companion object {
+
             fun textBeforeCaret(whiteSpace: PsiWhiteSpace, caretOffset: Int): String = when {
                 whiteSpace.textRange.contains(caretOffset) -> whiteSpace.text.substring(0, caretOffset - whiteSpace.textRange.startOffset)
                 caretOffset < whiteSpace.textRange.startOffset -> ""

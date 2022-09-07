@@ -5,7 +5,7 @@ import com.intellij.codeInsight.template.TemplateContextType
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import org.arend.codeInsight.completion.ArendCompletionContributor
-import org.arend.codeInsight.completion.STATEMENT_WT_KWS
+import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.jointOfStatementsCondition
 import org.arend.psi.ArendFile
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
@@ -19,13 +19,7 @@ abstract class ArendTemplateContextType(
     override fun isInContext(templateActionContext: TemplateActionContext): Boolean {
         val file = templateActionContext.file as? ArendFile ?: return false
         val element = file.findElementAt(templateActionContext.startOffset) ?: return false
-        
-        val arendCompletionParameters = ArendCompletionContributor.ArendCompletionParameters(templateActionContext.startOffset, templateActionContext.file.originalFile)
-        val leftSideOk = arendCompletionParameters.leftStatement == null || arendCompletionParameters.leftBrace
-        val rightSideOk = arendCompletionParameters.rightStatement == null || arendCompletionParameters.rightBrace && !arendCompletionParameters.leftBrace
-        val correctStatements = rightSideOk || (leftSideOk || arendCompletionParameters.betweenStatementsOk) && (!arendCompletionParameters.isBeforeClassFields)
-
-        return isInContext(element) && (contextId != "AREND_STATEMENT" || arendCompletionParameters.delimiterBeforeCaret && correctStatements)
+        return isInContext(element)
     }
 
     protected open fun isInContext(element: PsiElement): Boolean = element !is PsiComment
@@ -33,6 +27,11 @@ abstract class ArendTemplateContextType(
     class Everywhere : ArendTemplateContextType("AREND", "Arend", null)
 
     class Statement : ArendTemplateContextType("AREND_STATEMENT", "Statement", Everywhere::class.java) {
+        override fun isInContext(templateActionContext: TemplateActionContext): Boolean {
+            return super.isInContext(templateActionContext) &&
+                    jointOfStatementsCondition(ArendCompletionContributor.ArendCompletionParameters(templateActionContext.startOffset, templateActionContext.file.originalFile))
+        }
+
         override fun isInContext(element: PsiElement): Boolean =
             super.isInContext(element) && ArendCompletionContributor.STATEMENT_END_CONTEXT.accepts(element)
     }
