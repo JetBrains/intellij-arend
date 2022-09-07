@@ -747,7 +747,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 (arendCompletionParameters.delimiterBeforeCaret || noCrlfRequired) && additionalCondition.invoke(arendCompletionParameters) && correctStatements
             }, completionBehavior, disableAfter2Crlfs = false)
 
-    private class ArendCompletionParameters(completionParameters: CompletionParameters) {
+    class ArendCompletionParameters(caretOffset: Int, file: PsiFile) {
         val prevElement: PsiElement?
         val delimiterBeforeCaret: Boolean
         val nextElement: PsiElement?
@@ -760,10 +760,8 @@ class ArendCompletionContributor : CompletionContributor() {
         val isBeforeClassFields: Boolean
         val betweenStatementsOk: Boolean
 
+        constructor(completionParameters: CompletionParameters) : this(completionParameters.offset, completionParameters.originalFile)
         init {
-            val caretOffset = completionParameters.offset
-            val file = completionParameters.originalFile
-
             var ofs = 0
             var next: PsiElement?
 
