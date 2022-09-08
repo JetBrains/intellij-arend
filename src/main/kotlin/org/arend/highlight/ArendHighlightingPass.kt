@@ -71,10 +71,10 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 val lastReference = list.lastOrNull() ?: return
                 if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
                     when {
-                        (((referent as? RedirectingReferable)?.originalReferable ?: referent) as? MetaReferable)?.resolver != null ->
-                            addHighlightInfo(lastReference.textRange, ArendHighlightingColors.META_RESOLVER)
                         referent is GlobalReferable && referent.precedence.isInfix ->
                             addHighlightInfo(lastReference.textRange, ArendHighlightingColors.OPERATORS)
+                        (((referent as? RedirectingReferable)?.originalReferable ?: referent) as? MetaReferable)?.resolver != null ->
+                            addHighlightInfo(lastReference.textRange, ArendHighlightingColors.META_RESOLVER)
                     }
                 }
 
