@@ -1,13 +1,18 @@
 package org.arend.project
 
 import com.intellij.openapi.externalSystem.importing.AbstractOpenProjectProvider
+import com.intellij.openapi.externalSystem.model.ProjectSystemId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ui.configuration.ModulesProvider
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.projectImport.ProjectImportBuilder
 import org.arend.util.FileUtils
 
+@Suppress("UnstableApiUsage")
 object ArendOpenProjectProvider : AbstractOpenProjectProvider() {
+    override val systemId: ProjectSystemId
+        get() = ProjectSystemId("Arend")
+
     val builder: ArendProjectImportBuilder
         get() = ProjectImportBuilder.EXTENSIONS_POINT_NAME.findExtensionOrFail(ArendProjectImportBuilder::class.java)
 
