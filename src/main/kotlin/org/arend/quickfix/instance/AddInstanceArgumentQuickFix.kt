@@ -10,6 +10,7 @@ import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.expr.ClassCallExpression
+import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.variable.VariableImpl
@@ -20,12 +21,15 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.*
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.prettyprint.ToAbstractVisitor
-import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import org.arend.ext.error.InstanceInferenceError
+import org.arend.naming.reference.TCDefReferable
 import org.arend.util.ArendBundle
 import java.lang.Integer.max
 
-class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>):
-    IntentionAction {
+class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>) : IntentionAction {
+    private val classRef: TCDefReferable?
+        get() = error.classRef as? TCDefReferable
+
     override fun startInWriteAction(): Boolean = true
 
     override fun getText(): String = ArendBundle.message("arend.instance.addLocalInstance")
@@ -34,17 +38,17 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
         ((cause.element as? PsiElement)?.ancestor<ArendDefinition<*>>()?.let{ it is ArendFunctionDefinition || it is ArendDefData }?: false) &&
-                (error.classRef.data as? SmartPsiElementPointer<*>)?.element != null && ((error.classRef.typechecked as? ClassDefinition)?.classifyingField == null || error.classifyingExpression != null)
+                (classRef?.data as? SmartPsiElementPointer<*>)?.element != null && ((classRef?.typechecked as? ClassDefinition)?.classifyingField == null || error.classifyingExpression != null)
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val ambientDefinition = (cause.element as? PsiElement)?.ancestor<ArendDefinition<*>>()
-        val missingClassInstance = (error.classRef.data as? SmartPsiElementPointer<*>)?.element
-        val implementedClass = error.classRef.typechecked
+        val missingClassInstance = (classRef?.data as? SmartPsiElementPointer<*>)?.element
+        val implementedClass = classRef?.typechecked
         if (ambientDefinition is PsiConcreteReferable && missingClassInstance is ArendDefClass && implementedClass is ClassDefinition) {
             val psiFactory = ArendPsiFactory(project)
             val className = ResolveReferenceAction.getTargetName(missingClassInstance, ambientDefinition).let { if (it.isNullOrEmpty()) missingClassInstance.defIdentifier?.textRepresentation() else it }
             val ppConfig = object : PrettyPrinterConfig { override fun getDefinitionRenamer(): DefinitionRenamer = PsiLocatedRenamer(ambientDefinition) }
-            val classifyingTypeExpr = this.error.classifyingExpression?.let{ ToAbstractVisitor.convert(it, ppConfig) }
+            val classifyingTypeExpr = (error.classifyingExpression as? Expression)?.let{ ToAbstractVisitor.convert(it, ppConfig) }
             val classifyingField = implementedClass.classifyingField
             val fCallOk = classifyingField == null || implementedClass.fields.filter { it.referable.isExplicitField && !implementedClass.isImplemented(it) }.let{ it.isNotEmpty() && it[0] == classifyingField }
             val classCall = if (fCallOk) className + (classifyingTypeExpr?.let { if (argNeedsParentheses(it)) " ($it)" else " $it" } ?: "") else "$className { | ${classifyingField!!.name} => $classifyingTypeExpr }"
@@ -57,7 +61,7 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
             var anchor : PsiElement? = ambientDefinition.nameIdentifier
             if (ambientDefTypechecked != null && l != null) {
                 val parameters = DependentLink.Helper.toList(ambientDefTypechecked.parameters)
-                var parameterIndex = this.error.classifyingExpression?.findFreeBindings()?.map { parameters.indexOf(it) }?.fold(-1) { acc, p -> max(acc, p) } ?: -1
+                var parameterIndex = error.classifyingExpression?.findFreeBindings()?.map { parameters.indexOf(it) }?.fold(-1) { acc, p -> max(acc, p) } ?: -1
                 val iterator = l.iterator()
                 do {
                     if (parameterIndex >= 0) {
@@ -68,7 +72,7 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
                 } while (iterator.hasNext() && parameterIndex >= 0)
             }
 
-            val sampleVar = (error.classRef.typechecked as? ClassDefinition)?.let{ TypedBinding(null, ClassCallExpression(it, it.makeIdLevels())) } ?: VariableImpl("_")
+            val sampleVar = (classRef?.typechecked as? ClassDefinition)?.let{ TypedBinding(null, ClassCallExpression(it, it.makeIdLevels())) } ?: VariableImpl("_")
             addImplicitClassDependency(psiFactory, ambientDefinition, classCall, sampleVar, anchor = anchor)
         }
     }

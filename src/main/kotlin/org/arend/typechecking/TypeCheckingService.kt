@@ -243,8 +243,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
 
     // Returns the list of possible solutions. Each solution is a list of functions that are required for this instance to work.
-    fun findInstances(classRef: TCDefReferable, classifyingExpression: Expression?): List<List<FunctionDefinition>> {
-        val classDef = classRef.typechecked as? ClassDefinition ?: return emptyList()
+    fun findInstances(classRef: TCDefReferable?, classifyingExpression: Expression?): List<List<FunctionDefinition>> {
+        val classDef = classRef?.typechecked as? ClassDefinition ?: return emptyList()
         val result = ArrayList<List<FunctionDefinition>>()
         val functions = ArrayList(instances[classRef])
         while (functions.isNotEmpty()) {
@@ -256,8 +256,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         return result
     }
 
-    fun isInstanceAvailable(classRef: TCDefReferable): Boolean {
-        val classDef = classRef.typechecked as? ClassDefinition ?: return false
+    fun isInstanceAvailable(classRef: TCDefReferable?): Boolean {
+        val classDef = classRef?.typechecked as? ClassDefinition ?: return false
         return classDef.classifyingField == null && instances[classRef].isNotEmpty()
     }
 

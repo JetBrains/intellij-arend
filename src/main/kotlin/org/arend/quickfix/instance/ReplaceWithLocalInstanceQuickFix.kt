@@ -7,7 +7,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.ReferenceExpression
-import org.arend.ext.error.LocalError
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendDefData
 import org.arend.psi.ext.ArendFunctionDefinition
@@ -18,7 +17,8 @@ import org.arend.psi.replaceWithNotification
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.splitTele
 import org.arend.resolving.DataLocatedReferable
-import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import org.arend.ext.error.InstanceInferenceError
+import org.arend.naming.reference.TCDefReferable
 import org.arend.util.ArendBundle
 
 class ReplaceWithLocalInstanceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>): IntentionAction {
@@ -31,10 +31,10 @@ class ReplaceWithLocalInstanceQuickFix(val error: InstanceInferenceError, val ca
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = true
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val classifyingExpression = this.error.classifyingExpression as ReferenceExpression
-        var index = DependentLink.Helper.toList(((error as LocalError).definition as DataLocatedReferable).typechecked.parameters).indexOf(classifyingExpression.binding)
+        val classifyingExpression = error.classifyingExpression as ReferenceExpression
+        var index = DependentLink.Helper.toList((error.definition as DataLocatedReferable).typechecked.parameters).indexOf(classifyingExpression.binding)
         val ambientDefinition = (error.definition as DataLocatedReferable).data?.element
-        val missingClassInstance = (error.classRef.data as? SmartPsiElementPointer<*>)?.element
+        val missingClassInstance = ((error.classRef as? TCDefReferable)?.data as? SmartPsiElementPointer<*>)?.element
         val l  = when (ambientDefinition) {
             is ArendFunctionDefinition<*> -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.identifierOrUnknownList.size) }
             is ArendDefData -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.typedExpr?.identifierOrUnknownList?.size ?: 1) }

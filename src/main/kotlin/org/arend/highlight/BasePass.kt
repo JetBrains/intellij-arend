@@ -59,7 +59,7 @@ import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
-import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import org.arend.ext.error.InstanceInferenceError
 import org.arend.util.ArendBundle
 import java.util.*
 
@@ -353,7 +353,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
 
             is InstanceInferenceError -> if (cause is ArendLongName) {
                 val classifyingExpression = error.classifyingExpression
-                val isLocal = (classifyingExpression is ReferenceExpression) && DependentLink.Helper.toList(((error as LocalError).definition as DataLocatedReferable).typechecked.parameters).contains(classifyingExpression.binding)
+                val isLocal = (classifyingExpression is ReferenceExpression) && DependentLink.Helper.toList((error.definition as DataLocatedReferable).typechecked.parameters).contains(classifyingExpression.binding)
                 if (isLocal) registerFix(info, ReplaceWithLocalInstanceQuickFix(error, SmartPointerManager.createPointer(cause))) else registerFix(info, InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
                 registerFix(info, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
             }

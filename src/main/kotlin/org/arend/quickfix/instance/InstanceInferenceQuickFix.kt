@@ -19,6 +19,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.definition.FunctionDefinition
+import org.arend.core.expr.Expression
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ancestor
@@ -31,11 +32,14 @@ import org.arend.resolving.ArendReferenceImpl
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
-import org.arend.typechecking.error.local.inference.InstanceInferenceError
+import org.arend.ext.error.InstanceInferenceError
+import org.arend.naming.reference.TCDefReferable
 import org.arend.util.ArendBundle
 
-class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>):
-    IntentionAction {
+class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>) : IntentionAction {
+    private val classRef: TCDefReferable?
+        get() = error.classRef as? TCDefReferable
+
     override fun startInWriteAction(): Boolean = false
 
     override fun getText(): String = ArendBundle.message("arend.instance.importInstance")
@@ -43,7 +47,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
     override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
-        error.classifyingExpression != null || project.service<TypeCheckingService>().isInstanceAvailable(error.classRef)
+        error.classifyingExpression != null || project.service<TypeCheckingService>().isInstanceAvailable(classRef)
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         if (editor == null) return
@@ -51,7 +55,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
 
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Searching for instances", true) {
             override fun run(indicator: ProgressIndicator) {
-                instances = project.service<TypeCheckingService>().findInstances(error.classRef, error.classifyingExpression)
+                instances = project.service<TypeCheckingService>().findInstances(classRef, error.classifyingExpression as? Expression)
             }
 
             override fun onFinished() {
