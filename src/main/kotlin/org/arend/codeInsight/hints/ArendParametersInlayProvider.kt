@@ -86,14 +86,14 @@ class ArendParametersInlayProvider : InlayHintsProvider<ArendParametersInlayProv
                         val parameters = if (def is ClassDefinition) {
                             def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Concrete.TelescopeParameter(null, it.referable.isExplicitField, listOf(it.referable), ToAbstractVisitor.convert(it.resultType, PrettyPrinterConfig.DEFAULT)) }
                         } else {
-                            ToAbstractVisitor.convert(DependentLink.Helper.take(def.parameters, def.parametersOriginalDefinitions.size), PrettyPrinterConfig.DEFAULT)
+                            ToAbstractVisitor.convert(DependentLink.Helper.take(if (def.hasEnclosingClass()) def.parameters.next else def.parameters, def.parametersOriginalDefinitions.size), PrettyPrinterConfig.DEFAULT)
                         }
                         ppv.prettyPrintParameters(parameters)
                     } else {
                         val list = if (def is ClassDefinition) {
                             def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Pair(it.referable.isExplicitField, it.name) }
                         } else {
-                            DependentLink.Helper.toList(DependentLink.Helper.take(def.parameters, def.parametersOriginalDefinitions.size)).map { Pair(it.isExplicit, it.name) }
+                            DependentLink.Helper.toList(DependentLink.Helper.take(if (def.hasEnclosingClass()) def.parameters.next else def.parameters, def.parametersOriginalDefinitions.size)).map { Pair(it.isExplicit, it.name) }
                         }
                         builder.append(list.joinToString(" ") { if (it.first) it.second else "{${it.second}}" })
                     }
