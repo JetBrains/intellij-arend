@@ -412,7 +412,6 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is ParsingError -> when (error.kind) {
                     MISPLACED_USE -> (element as? ArendDefFunction)?.functionKw?.firstRelevantChild
                     MISPLACED_COERCE, COERCE_WITHOUT_PARAMETERS -> (element as? ArendDefFunction)?.functionKw?.firstRelevantChild?.findNextSibling()
-                    ParsingError.Kind.LEVEL_IGNORED -> element.ancestor<ArendReturnExpr>()?.levelKw
                     CLASSIFYING_FIELD_IN_RECORD -> when (element) {
                         is ArendFieldDefIdentifier -> element.parent?.let { (it as? ArendFieldTele)?.classifyingKw ?: it }
                         is ArendDefClass -> element.noClassifyingKw ?: element.fieldTeleList.firstNotNullOfOrNull { it.classifyingKw }
