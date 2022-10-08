@@ -36,6 +36,7 @@ class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract
         return when (child.elementType) {
             LEMMA_KW -> FunctionKind.LEMMA
             SFUNC_KW -> FunctionKind.SFUNC
+            EFUNC_KW -> FunctionKind.EFUNC
             TYPE_KW -> FunctionKind.TYPE
             AXIOM_KW -> FunctionKind.AXIOM
             USE_KW -> when (child?.findNextSibling().elementType) {

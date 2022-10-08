@@ -22,24 +22,11 @@ class ReplaceFunctionKindQuickFix(private val kwRef: SmartPsiElementPointer<Aren
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = kwRef.element != null
 
-    override fun getText(): String = ArendBundle.message("arend.replace.function.kind", kindDescription)
+    override fun getText(): String = ArendBundle.message("arend.replace.function.kind", kind.text)
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val kw = kwRef.element ?: return
         val factory = ArendPsiFactory(project)
-        kw.replaceWithNotification(if (kind == INSTANCE || kind == CONS) factory.createInstanceKeyword(kindDescription) else factory.createFunctionKeyword(kindDescription))
-    }
-
-    private val kindDescription = when (kind) {
-        COERCE -> "\\use \\coerce"
-        LEVEL -> "\\use \\level"
-        SFUNC -> "\\sfunc"
-        LEMMA -> "\\lemma"
-        TYPE -> "\\type"
-        FUNC -> "\\func"
-        CONS -> "\\cons"
-        INSTANCE -> "\\instance"
-        AXIOM -> "\\axiom"
-        FUNC_COCLAUSE, CLASS_COCLAUSE -> throw IllegalStateException()
+        kw.replaceWithNotification(if (kind == INSTANCE || kind == CONS) factory.createInstanceKeyword(kind.text) else factory.createFunctionKeyword(kind.text))
     }
 }
