@@ -74,6 +74,7 @@
         SCASE_KW            = '\scase'
         EVAL_KW             = '\eval'
         PEVAL_KW            = '\peval'
+        BOX_KW              = '\box'
         RETURN_KW           = '\return'
         DATA_KW             = '\data'
         CONS_KW             = '\cons'
@@ -467,7 +468,7 @@ withBody ::= WITH_KW clausesWithBraces {
     pin = 1
 }
 
-appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW {
+appPrefix ::= NEW_KW EVAL_KW? | EVAL_KW | PEVAL_KW | BOX_KW {
     pin(".*") = 1
 }
 
@@ -731,7 +732,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW | LET_KW | LETS_KW | HAVE_KW | HAVES_KW | STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | BOX_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW | LET_KW | LETS_KW | HAVE_KW | HAVES_KW | STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc
 

@@ -149,6 +149,7 @@ OCT_DIGIT           = [0-8]
     "\\scase"               { return SCASE_KW; }
     "\\eval"                { return EVAL_KW; }
     "\\peval"               { return PEVAL_KW; }
+    "\\box"                 { return BOX_KW; }
     "\\return"              { return RETURN_KW; }
     "\\data"                { return DATA_KW; }
     "\\cons"                { return CONS_KW; }

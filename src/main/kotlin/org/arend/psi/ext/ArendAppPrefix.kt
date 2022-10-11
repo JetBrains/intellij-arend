@@ -12,9 +12,10 @@ class ArendAppPrefix(node: ASTNode) : ArendCompositeElementImpl(node) {
         get() = firstRelevantChild.elementType == NEW_KW
 
     val evalKind: Abstract.EvalKind?
-        get() = when {
-            hasChildOfType(EVAL_KW) -> Abstract.EvalKind.EVAL
-            hasChildOfType(PEVAL_KW) -> Abstract.EvalKind.PEVAL
-            else -> null
-        }
+        get() = if (hasChildOfType(EVAL_KW)) Abstract.EvalKind.EVAL else
+            when (firstRelevantChild.elementType) {
+                PEVAL_KW -> Abstract.EvalKind.PEVAL
+                BOX_KW -> Abstract.EvalKind.BOX
+                else -> null
+            }
 }

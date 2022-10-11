@@ -168,6 +168,13 @@ open class ArendInspectionConcreteVisitor : VoidConcreteVisitor<Void>() {
         return null
     }
 
+    override fun visitBox(expr: Concrete.BoxExpression?, params: Void?): Void? {
+        parents.push(expr)
+        super.visitBox(expr, params)
+        parents.pop()
+        return null
+    }
+
     override fun visitProj(expr: Concrete.ProjExpression?, params: Void?): Void? {
         parents.push(expr)
         super.visitProj(expr, params)

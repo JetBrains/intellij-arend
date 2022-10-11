@@ -14,7 +14,7 @@ val LPH_KW_LIST = listOf(LP_KW, LH_KW, OO_KW).map { it.toString() }
 val PH_LEVELS_KW_LIST = listOf(PLEVELS_KW, HLEVELS_KW).map { it.toString() }
 val ELIM_WITH_KW_LIST = listOf(ELIM_KW, WITH_KW).map { it.toString() }
 val COERCE_LEVEL_KWS = listOf(COERCE_KW, LEVEL_KW).map { it.toString() }
-val NEW_KW_LIST = listOf(NEW_KW.toString(), EVAL_KW.toString(), PEVAL_KW.toString())
+val NEW_KW_LIST = listOf(NEW_KW.toString(), EVAL_KW.toString(), PEVAL_KW.toString(), BOX_KW.toString())
 val TRUNCATED_DATA_KW = "$TRUNCATED_KW $DATA_KW"
 
 val AS_KW_LIST = listOf(AS_KW.toString())
