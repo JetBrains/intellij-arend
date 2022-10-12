@@ -223,6 +223,15 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                 \func d => A.a.b.c
             """)
 
+    fun `test reference fixing in namespace commands`() = simpleImportFixTest(fileA +
+            """
+               -- ! B.ard
+               \open b{-caret-}
+            """, """
+               \import A
+               \open a.b
+            """)
+
     fun `test that using keyword has effect when clashing names are analyzed`() = simpleImportFixTest(fileE +
             """
                 -- ! A.ard
