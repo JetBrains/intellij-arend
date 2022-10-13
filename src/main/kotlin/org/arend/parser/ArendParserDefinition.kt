@@ -123,7 +123,6 @@ class ArendParserDefinition : ParserDefinition {
         RETURN_EXPR -> ArendReturnExpr(node)
         SET_UNIVERSE_APP_EXPR -> ArendSetUniverseAppExpr(node)
         SIGMA_EXPR -> ArendSigmaExpr(node)
-        SIGMA_TYPE_TELE -> ArendSigmaTypeTele(node)
         STAT -> ArendStat(node)
         STAT_CMD -> ArendStatCmd(node)
         SUPER_CLASS -> ArendSuperClass(node)

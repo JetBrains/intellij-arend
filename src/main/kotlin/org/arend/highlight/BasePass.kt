@@ -341,8 +341,12 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                     val propKw = (cause.parent as? ArendClassStat)?.propertyKw
                     if (propKw != null) registerFix(info, ReplaceFieldKindQuickFix(SmartPointerManager.createPointer(propKw)))
                 }
-                is ArendSigmaTypeTele -> {
-                    val propKw = cause.propertyKw
+                is ArendTypeTele, is ArendNameTele -> {
+                    val propKw = when (cause) {
+                        is ArendTypeTele -> cause.propertyKw
+                        is ArendNameTele -> cause.propertyKw
+                        else -> null
+                    }
                     if (propKw != null) registerFix(info, ReplaceSigmaFieldKindQuickFix(SmartPointerManager.createPointer(propKw)))
                 }
                 else -> {}
@@ -432,7 +436,8 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 is LevelMismatchError -> when (element) {
                     is ArendDefFunction -> element.functionKw.firstChild
                     is ArendClassField -> (element.parent as? ArendClassStat)?.propertyKw
-                    is ArendSigmaTypeTele -> element.propertyKw
+                    is ArendTypeTele -> element.propertyKw
+                    is ArendNameTele -> element.propertyKw
                     else -> null
                 }
                 is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild

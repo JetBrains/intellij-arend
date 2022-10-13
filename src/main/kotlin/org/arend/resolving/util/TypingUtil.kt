@@ -15,6 +15,8 @@ open class ParameterImpl(private val isExplicit: Boolean, private val referables
     override fun getType() = type
 
     override fun isStrict() = false
+
+    override fun isProperty() = false
 }
 
 class ReferenceImpl(private val referable: Referable) : Abstract.SourceNodeImpl(), Abstract.Expression {

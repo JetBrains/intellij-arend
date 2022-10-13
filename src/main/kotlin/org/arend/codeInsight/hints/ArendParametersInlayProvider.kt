@@ -84,7 +84,7 @@ class ArendParametersInlayProvider : InlayHintsProvider<ArendParametersInlayProv
                     if (settings.showTypes) {
                         val ppv = PrettyPrintVisitor(builder, 0)
                         val parameters = if (def is ClassDefinition) {
-                            def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Concrete.TelescopeParameter(null, it.referable.isExplicitField, listOf(it.referable), ToAbstractVisitor.convert(it.resultType, PrettyPrinterConfig.DEFAULT)) }
+                            def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Concrete.TelescopeParameter(null, it.referable.isExplicitField, listOf(it.referable), ToAbstractVisitor.convert(it.resultType, PrettyPrinterConfig.DEFAULT), it.isProperty) }
                         } else {
                             ToAbstractVisitor.convert(DependentLink.Helper.take(if (def.hasEnclosingClass()) def.parameters.next else def.parameters, def.parametersOriginalDefinitions.size), PrettyPrinterConfig.DEFAULT)
                         }

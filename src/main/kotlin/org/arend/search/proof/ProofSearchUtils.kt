@@ -176,7 +176,7 @@ private fun getSignature(
                 deconstructPi(
                     Concrete.PiExpression(
                         null,
-                        parameters.map { Concrete.TypeParameter(true, it) },
+                        parameters.map { Concrete.TypeParameter(true, it, false) },
                         resultType
                     )
                 )

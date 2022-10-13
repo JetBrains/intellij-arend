@@ -3,7 +3,7 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
-import org.arend.ext.concrete.expr.SigmaFieldKind
+import org.arend.ext.concrete.definition.ClassFieldKind
 import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
@@ -12,6 +12,9 @@ import org.arend.term.abs.Abstract.FieldParameter
 
 
 class ArendNameTele(node: ASTNode): ArendLamParam(node), Abstract.Parameter {
+    val propertyKw: PsiElement?
+        get() = findChildByType(PROPERTY_KW)
+
     val identifierOrUnknownList: List<ArendIdentifierOrUnknown>
         get() = getChildrenOfType()
 
@@ -24,6 +27,8 @@ class ArendNameTele(node: ASTNode): ArendLamParam(node), Abstract.Parameter {
     override fun getType(): ArendExpr? = getChildOfType()
 
     override fun isStrict() = hasChildOfType(STRICT_KW)
+
+    override fun isProperty() = propertyKw != null
 }
 
 class ArendNameTeleUntyped(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Parameter {
@@ -39,6 +44,8 @@ class ArendNameTeleUntyped(node: ASTNode): ArendSourceNodeImpl(node), Abstract.P
     override fun getType(): ArendExpr? = null
 
     override fun isStrict() = false
+
+    override fun isProperty() = false
 }
 
 class ArendTypeTele(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Parameter {
@@ -51,6 +58,9 @@ class ArendTypeTele(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Paramete
     val lbrace: PsiElement?
         get() = findChildByType(LBRACE)
 
+    val propertyKw: PsiElement?
+        get() = findChildByType(PROPERTY_KW)
+
     override fun getData() = this
 
     override fun isExplicit() = firstRelevantChild.elementType != LBRACE
@@ -61,28 +71,8 @@ class ArendTypeTele(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Paramete
     override fun getType() = typedExpr?.type ?: firstRelevantChild as? ArendExpr
 
     override fun isStrict() = hasChildOfType(STRICT_KW)
-}
 
-class ArendSigmaTypeTele(node: ASTNode): ArendSourceNodeImpl(node), Abstract.SigmaParameter {
-    val typedExpr: ArendTypedExpr?
-        get() = getChildOfType()
-
-    val propertyKw: PsiElement?
-        get() = findChildByType(PROPERTY_KW)
-
-    override fun getData() = this
-
-    override fun isExplicit() = false
-
-    override fun getReferableList(): List<Referable?> =
-        typedExpr?.identifierOrUnknownList?.map { it.defIdentifier }?.ifEmpty { listOf(null) } ?: listOf(null)
-
-    override fun getType(): ArendExpr? = typedExpr?.type ?: firstRelevantChild as? ArendExpr
-
-    override fun isStrict() = false
-
-    override fun getFieldKind(): SigmaFieldKind =
-        if (propertyKw != null) SigmaFieldKind.PROPERTY else SigmaFieldKind.ANY
+    override fun isProperty() = propertyKw != null
 }
 
 class ArendFieldTele(node: ASTNode): ArendSourceNodeImpl(node), FieldParameter {
@@ -101,6 +91,12 @@ class ArendFieldTele(node: ASTNode): ArendSourceNodeImpl(node), FieldParameter {
     override fun getType(): ArendExpr? = getChildOfType()
 
     override fun isStrict() = false
+
+    override fun getClassFieldKind() = when {
+        hasChildOfType(PROPERTY_KW) -> ClassFieldKind.PROPERTY
+        hasChildOfType(FIELD_KW) -> ClassFieldKind.FIELD
+        else -> ClassFieldKind.ANY
+    }
 
     override fun isClassifying() = classifyingKw != null
 

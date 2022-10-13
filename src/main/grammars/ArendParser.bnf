@@ -536,7 +536,7 @@ piExprWOB ::= PI_KW typeTele+ ARROW exprWOB {
     elementType = piExpr
 }
 
-sigmaExpr ::= SIGMA_KW sigmaTypeTele* {
+sigmaExpr ::= SIGMA_KW typeTele* {
     pin = 1
 }
 
@@ -786,11 +786,13 @@ nameTeleUntyped ::= defIdentifier {
     recoverWhile = nameTeleUntyped_recover
 }
 
+private paramAttr ::= STRICT_KW | PROPERTY_KW
+
 private nameTeleUntyped_recover ::= !(ID | FAT_ARROW) & statement_recover
 
-private nameTeleExplicit ::= LPAREN STRICT_KW? identifierOrUnknown+ COLON expr RPAREN { pin = 1 }
+private nameTeleExplicit ::= LPAREN paramAttr? identifierOrUnknown+ COLON expr RPAREN { pin = 1 }
 
-private nameTeleImplicit ::= LBRACE (STRICT_KW identifierOrUnknown+ COLON expr | identifierOrUnknown [identifierOrUnknown* COLON expr]) RBRACE { pin = 1 }
+private nameTeleImplicit ::= LBRACE (paramAttr identifierOrUnknown+ COLON expr | identifierOrUnknown [identifierOrUnknown* COLON expr]) RBRACE { pin = 1 }
 
 private nameTele_first ::= !(ID | UNDERSCORE | LPAREN | LBRACE)
 
@@ -798,22 +800,15 @@ private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN) & expr_recover
 
 fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery
 
-private fieldTeleExplicit ::= LPAREN [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
+private fieldTeleExplicit ::= LPAREN [PROPERTY_KW | FIELD_KW] [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
-private fieldTeleImplicit ::= LBRACE [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 3 }
+private fieldTeleImplicit ::= LBRACE [PROPERTY_KW | FIELD_KW] [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 4 }
 
 private fieldTeleRecovery ::= fieldTele_recover {
     recoverWhile = fieldTele_recover
 }
 
 private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN | PIPE) & statement_recover
-
-sigmaTypeTele ::= literal
-    | universeAtom
-    | typedSigmaTele {
-        name = "sigma parameters"
-        recoverWhile = typeTele_recover
-    }
 
 typeTele ::= literal
     | universeAtom
@@ -823,11 +818,9 @@ typeTele ::= literal
         recoverWhile = typeTele_recover
     }
 
-private typedTeleExplicit ::= LPAREN STRICT_KW? typedExpr RPAREN { pin = 1 }
+private typedTeleExplicit ::= LPAREN paramAttr? typedExpr RPAREN { pin = 1 }
 
-private typedSigmaTele ::= LPAREN PROPERTY_KW? typedExpr RPAREN { pin = 1 }
-
-private typedTeleImplicit ::= LBRACE STRICT_KW? typedExpr RBRACE { pin = 1 }
+private typedTeleImplicit ::= LBRACE paramAttr? typedExpr RBRACE { pin = 1 }
 
 private typeTele_recover ::= !(LPAREN | LBRACE | ID | ALIAS_KW | COLON | WITH_KW | ELIM_KW | FAT_ARROW | RPAREN | RBRACE | PIPE | ARROW | COMMA | IN_KW | SET | UNIVERSE | TRUNCATED_UNIVERSE | PROP_KW | UNDERSCORE | APPLY_HOLE | TGOAL | LGOAL | LEVEL_KW | RETURN_KW) & statement_recover
 

@@ -17,6 +17,8 @@ open class ArendExpr(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Expres
 
     override fun isStrict() = false
 
+    override fun isProperty() = false
+
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         throw IllegalStateException()
     }

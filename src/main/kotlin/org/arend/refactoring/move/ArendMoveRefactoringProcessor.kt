@@ -523,9 +523,6 @@ class ArendMoveRefactoringProcessor(project: Project,
                     val greatGreatGrandParent = greatGrandParent.parent
                     if (greatGreatGrandParent is ArendArgumentAppExpr) doAddImplicitFirstArgument(greatGrandParent)
                 }
-            } else if (parent is ArendSigmaTypeTele) {
-                val newTypeTele = psiFactory.createExpression("\\Sigma (${literal.text} {$argument})").childOfType<ArendSigmaTypeTele>()
-                if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
             } else if (parent is ArendTypeTele) {
                 val newTypeTele = psiFactory.createExpression("\\Pi (${literal.text} {$argument}) -> \\Set").childOfType<ArendTypeTele>()
                 if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
@@ -627,7 +624,7 @@ class ArendMoveRefactoringProcessor(project: Project,
 
     private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int,
                                   fixMap: HashMap<LocationDescriptor, TargetReference>) {
-        if (element is ArendReferenceElement && element !is ArendDefIdentifier && element !is ArendLongName) {
+        if (element is ArendReferenceElement && element !is ArendDefIdentifier) {
             val descriptor = LocationDescriptor(groupIndex, prefix)
             val correctTarget = fixMap[descriptor]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {

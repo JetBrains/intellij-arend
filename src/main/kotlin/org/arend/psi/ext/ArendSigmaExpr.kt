@@ -9,5 +9,5 @@ class ArendSigmaExpr(node: ASTNode) : ArendExpr(node), Abstract.ParametersHolder
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         visitor.visitSigma(this, parameters, params)
 
-    override fun getParameters(): List<ArendSigmaTypeTele> = getChildrenOfType()
+    override fun getParameters(): List<ArendTypeTele> = getChildrenOfType()
 }
