@@ -146,6 +146,9 @@ class ArendCompletionContributor : CompletionContributor() {
 
         basic(BASIC_EXPRESSION_KW_PATTERN, BASIC_EXPRESSION_KW)
         basic(and(or(EXPRESSION_CONTEXT, TELE_CONTEXT), expressionPattern.invoke(false, true)), NEW_KW_LIST)
+        basic(or(withAncestors(ArendTypeTele::class.java, ArendSigmaExpr::class.java),
+                 withAncestors(*(NEW_EXPR_PREFIX + listOf(ArendTypedExpr::class.java, ArendTypeTele::class.java, ArendSigmaExpr::class.java)))), SIGMA_TELE_START_KWS)
+
         val truncatedTypeInsertHandler = InsertHandler<LookupElement> { insertContext, _ ->
             val document = insertContext.document
             document.insertString(insertContext.tailOffset, " ") // add tail whitespace
@@ -476,7 +479,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW, COERCE_KW, CLASSIFYING_KW),
-                        withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java)), //class field
+                        withGrandParents(ArendClassField::class.java, ArendClassStat::class.java, ArendDefClass::class.java, ArendFieldDefIdentifier::class.java)), //class field
                 and(afterLeaf(COERCE_KW), or(withAncestors(ArendDefData::class.java), withAncestors(PsiErrorElement::class.java, ArendDefData::class.java),
                                 withAncestors(ArendDefIdentifier::class.java, ArendConstructor::class.java, ArendDataBody::class.java, ArendDefData::class.java))),
                 and(afterLeaf(PIPE), or(withGrandParents(ArendConstructor::class.java, ArendDataBody::class.java),
@@ -565,6 +568,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(ArendClassStat::class.java, ArendDefClass::class.java),
                 withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java, ArendDefClass::class.java),
                 withAncestors(PsiErrorElement::class.java, ArendClassStat::class.java, ArendDefClass::class.java),
+                withAncestors(ArendDefIdentifier::class.java, ArendFieldDefIdentifier::class.java, ArendFieldTele::class.java),
                 withAncestors(ArendDefIdentifier::class.java, ArendClassField::class.java,  ArendClassStat::class.java, ArendDefClass::class.java),
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendDefClass::class.java),
                 withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java, ArendClassStat::class.java, ArendDefClass::class.java))))
