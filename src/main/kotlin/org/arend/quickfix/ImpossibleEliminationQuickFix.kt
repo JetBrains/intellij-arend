@@ -81,7 +81,7 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
             val clausesListPsi = caseExprPsi?.withBody?.clauseList
             if (caseExprPsi != null && stuckParameterType is DataCallExpression && clausesListPsi != null) {
                 val exprsToEliminate = stuckParameterType.defCallArguments.zip(toList(dataDefinition.parameters)).filter { ddEliminatedParameters.contains(it.second) }.toList()
-                val sampleDataCall = DataCallExpression(dataDefinition, error.dataCall.levels, toList(dataDefinition.parameters).map { it.makeReference() })
+                val sampleDataCall = DataCallExpression.make(dataDefinition, error.dataCall.levels, toList(dataDefinition.parameters).map { it.makeReference() })
                 val toActualParametersSubstitution = ExprSubstitution(); for (entry in stuckParameterType.defCallArguments.zip(toList(dataDefinition.parameters))) toActualParametersSubstitution.add(entry.second, entry.first)
                 val oldCaseArgs = caseExprPsi.caseArguments
                 val parameterToCaseArgMap = HashMap<DependentLink, ArendCaseArg>()
