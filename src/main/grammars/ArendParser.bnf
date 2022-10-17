@@ -800,9 +800,9 @@ private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN) & expr_recover
 
 fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery
 
-private fieldTeleExplicit ::= LPAREN [PROPERTY_KW | FIELD_KW] [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
+private fieldTeleExplicit ::= LPAREN [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
-private fieldTeleImplicit ::= LBRACE [PROPERTY_KW | FIELD_KW] [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 4 }
+private fieldTeleImplicit ::= LBRACE [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 4 }
 
 private fieldTeleRecovery ::= fieldTele_recover {
     recoverWhile = fieldTele_recover
