@@ -26,7 +26,7 @@ class ArendLongNameExpr(node: ASTNode) : ArendExpr(node) {
             val pLevelExprs = levels.pLevelExprs
             val hLevelExprs = levels.hLevelExprs
             if (pLevelExprs != null && hLevelExprs != null) {
-                return visitor.visitReference(name, name.referent, null, pLevelExprs.maybeAtomLevelExpr?.atomLevelExpr?.let { listOf(it) } ?: pLevelExprs.levelExprList, hLevelExprs.maybeAtomLevelExpr?.atomLevelExpr?.let { listOf(it) } ?: hLevelExprs.levelExprList, params)
+                return visitor.visitReference(name, name.referent, null, pLevelExprs.levelExprList, hLevelExprs.levelExprList, params)
             }
         }
         return visitor.visitReference(name, name.referent, null, pLevelExpr?.let { listOf(it) }, hLevelExpr?.let { listOf(it) }, params)

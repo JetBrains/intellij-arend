@@ -6,8 +6,8 @@ import org.arend.psi.getChildrenOfType
 
 class ArendMaybeAtomLevelExprs(node: ASTNode) : ArendCompositeElementImpl(node), ArendTopLevelLevelExpr {
     val levelExprList: List<ArendLevelExpr>
-        get() = getChildrenOfType()
+        get() = maybeAtomLevelExpr?.atomLevelExpr?.let { listOf(it) } ?: getChildrenOfType()
 
-    val maybeAtomLevelExpr: ArendMaybeAtomLevelExpr?
+    private val maybeAtomLevelExpr: ArendMaybeAtomLevelExpr?
         get() = getChildOfType()
 }
