@@ -59,9 +59,6 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
             if (topRef != null && topRef != parent) {
                 return defaultUsage
             }
-            if (ppParent is ArendNewExpr) {
-                return newInstances
-            }
             if (newExpr == null) {
                 return defaultUsage
             }
