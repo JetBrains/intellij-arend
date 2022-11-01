@@ -22,17 +22,21 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 
-fun appExprToConcrete(appExpr: Abstract.Expression): Concrete.Expression? = appExprToConcrete(appExpr, false)
+fun appExprToConcrete(appExpr: ArendExpr): Concrete.Expression? = appExprToConcrete(appExpr, false)
 
-fun appExprToConcrete(appExpr: Abstract.Expression, setData: Boolean, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE): Concrete.Expression? =
-        appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
-            override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Concrete.Expression =
-                    parseBinOp(if (setData) data else null, left, sequence, errorReporter)
-            override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) =
-                    resolveReference(data, referent, null)
-            override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) =
-                    resolveReference(data, referent, fixity)
-        }, null)
+fun appExprToConcrete(appExpr: ArendExpr, setData: Boolean, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE): Concrete.Expression? {
+    // val scope = CachingScope.make(appExpr.scope)
+    return appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
+        override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Concrete.Expression =
+                parseBinOp(if (setData) data else null, left, sequence, errorReporter)
+
+        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) =
+                resolveReference(data, referent, null)
+
+        override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) =
+                resolveReference(data, referent, fixity)
+    }, null)
+}
 
 fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, rangesMap: HashMap<Concrete.Expression, TextRange>? = null): TextRange? {
     val cExprData = cExpr.data

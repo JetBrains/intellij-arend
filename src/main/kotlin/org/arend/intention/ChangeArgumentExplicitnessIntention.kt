@@ -39,7 +39,6 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.*
 import org.arend.resolving.ArendReferableConverter
 import org.arend.search.ClassDescendantsSearch
-import org.arend.term.abs.Abstract
 import org.arend.term.abs.Abstract.Pattern
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -798,7 +797,7 @@ class NameFieldApplier(project: Project) : ChangeArgumentExplicitnessApplier(pro
                     sb.toString().let { str -> if (it.isExplicit) str else "{${str}}" }
                 }
             }
-            is Abstract.Expression -> {
+            is ArendExpr -> {
                 val concrete = appExprToConcrete(call) as? Concrete.AppExpression
                 concrete?.arguments?.map { if (it.isExplicit) it.toString() else "{$it}" } ?: emptyList()
             }

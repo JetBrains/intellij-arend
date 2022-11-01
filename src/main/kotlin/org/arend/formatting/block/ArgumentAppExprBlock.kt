@@ -9,7 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
-import org.arend.term.abs.Abstract
+import org.arend.psi.ext.ArendExpr
 import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
 import org.arend.util.getBounds
@@ -19,7 +19,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
     override fun buildChildren(): MutableList<Block> {
         val cExpr = runReadAction {
             val psi = node.psi
-            if (psi is Abstract.Expression && !DumbService.isDumb(psi.project)) appExprToConcrete(psi) else null
+            if (psi is ArendExpr && !DumbService.isDumb(psi.project)) appExprToConcrete(psi) else null
         }
         val children = myNode.getChildren(null).filter { it.elementType != TokenType.WHITE_SPACE }.toList()
 
@@ -61,7 +61,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
 
             val isPrefix = sampleBlockList.isNotEmpty() && sampleBlockList.any { it.second == sampleBlockList.first().second && it.first }
             fun isFirst(argument: Concrete.Argument): Boolean =
-                sampleBlockList.size > 0 && (argument.expression.data as? PsiElement)?.node?.startOffset ?: -1 == sampleBlockList[0].second
+                sampleBlockList.size > 0 && ((argument.expression.data as? PsiElement)?.node?.startOffset ?: -1) == sampleBlockList[0].second
 
             var newAlign =  if (cExpr.arguments.size > 1) Alignment.createAlignment() else null
             val newIndent = if (isPrefix) Indent.getContinuationIndent() else Indent.getNoneIndent()
@@ -103,7 +103,7 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
                 for (lostBlock in lostBlocks) { // Remove BinOpParser blocks and replace them with containing lost blocks
                     val toRemove = ArrayList<Block>()
                     for (block in blocks) if (lostBlock.textRange.contains(block.textRange)) toRemove.add(block)
-                    blocks.removeAll(toRemove)
+                    blocks.removeAll(toRemove.toSet())
                 }
 
 
