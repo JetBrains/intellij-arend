@@ -3,6 +3,7 @@ package org.arend.resolving
 import com.intellij.util.castSafelyTo
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.ErrorReference
+import org.arend.naming.reference.LocalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.resolving.ResolverListener
@@ -15,6 +16,7 @@ import org.arend.term.concrete.Concrete
 open class ArendResolverListener(private val resolverCache: ArendResolveCache) : ResolverListener {
     private fun replaceCache(reference: ArendReferenceElement, resolvedRef: Referable?) {
         val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
+        if (newRef is LocalReferable) return
         val oldRef = resolverCache.replaceCache(newRef, reference)
         if (oldRef != null && oldRef != newRef && !(newRef == null && oldRef == TCDefReferable.NULL_REFERABLE)) {
             resetDefinition = true
