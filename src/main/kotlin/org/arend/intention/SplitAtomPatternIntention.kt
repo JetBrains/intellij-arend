@@ -158,7 +158,12 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
                 if (indexList.isNotEmpty()) {
                     val concreteClause = concreteClauseOwner.body.clauses[clauseIndex]
-                    val index = patternOwner.patterns.filterIsInstance<ArendPattern>().indexOfFirst { it.skipSingleTuples() == indexList[0] }
+                    val index = patternOwner
+                            .patterns
+                            .filterIsInstance<ArendPattern>()
+                            .indexOfFirst {
+                                it.skipSingleTuples() == indexList[0]
+                            }
                     val (typecheckedPattern, concrete) = (if (isElim) elimVarPatterns.getOrNull(index)?.let { it to  concreteClause.patterns.find { it.data == indexList[0] }!! }
                     else findMatchingPattern(concreteClause.patterns, typeCheckedDefinition.parameters, corePatterns, indexList[0])) ?: return null
                     val patternPart = findPattern(indexList.drop(1), typecheckedPattern, concrete) as? BindingPattern
