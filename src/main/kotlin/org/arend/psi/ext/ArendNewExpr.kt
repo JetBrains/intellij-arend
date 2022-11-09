@@ -51,7 +51,8 @@ class ArendNewExpr(node: ASTNode) : ArendExpr(node), ClassReferenceHolder, Arend
     }
 
     private fun getClassReference(onlyClassRef: Boolean, withAdditionalInfo: Boolean): ClassReferenceData? {
-        if (appPrefix?.evalKind == Abstract.EvalKind.PEVAL) {
+        val evalKind = appPrefix?.evalKind
+        if (evalKind != null && evalKind != Abstract.EvalKind.EVAL) {
             return null
         }
 
@@ -66,5 +67,5 @@ class ArendNewExpr(node: ASTNode) : ArendExpr(node), ClassReferenceHolder, Arend
 
     override fun getClassReferenceData(onlyClassRef: Boolean) = getClassReference(onlyClassRef, true)
 
-    override fun getCoClauseElements(): List<ArendLocalCoClause> = if (appPrefix?.evalKind == Abstract.EvalKind.PEVAL) emptyList() else localCoClauseList
+    override fun getCoClauseElements(): List<ArendLocalCoClause> = if (appPrefix?.evalKind.let { it  == Abstract.EvalKind.EVAL || it == null }) localCoClauseList else emptyList()
 }

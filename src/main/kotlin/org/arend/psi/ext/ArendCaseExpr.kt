@@ -29,6 +29,7 @@ class ArendCaseExpr(node: ASTNode) : ArendExpr(node), Abstract.CaseArgumentsHold
         val evalKind = when (child.elementType) {
             PEVAL_KW -> Abstract.EvalKind.PEVAL
             EVAL_KW -> Abstract.EvalKind.EVAL
+            BOX_KW -> Abstract.EvalKind.BOX
             else -> null
         }
         val returnExpr = returnExpr
