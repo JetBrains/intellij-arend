@@ -3,7 +3,6 @@ package org.arend.refactoring.changeSignature
 import com.intellij.psi.PsiCodeFragment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiTypeCodeFragment
-import com.intellij.psi.impl.source.PsiTypeCodeFragmentImpl
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
 import com.intellij.ui.BooleanTableCellEditor
@@ -13,29 +12,14 @@ import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 
 class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, defaultValueContext: PsiElement):
-    ParameterTableModelBase<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor), ArendTypeColumn(descriptor), ArendImplicitnessColumn()) {
-    override fun createRowItem(parameterInfo: ArendParameterInfo?): ParameterTableModelItemBase<ArendParameterInfo> {
+    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor), ArendTypeColumn(descriptor), ArendImplicitnessColumn()) {
+    override fun createRowItem(parameterInfo: ArendParameterInfo?): ArendChangeSignatureDialogParameterTableModelItem {
         val resultParameterInfo = if (parameterInfo == null) {
             val newParameter = ArendParameterInfo.createEmpty()
             newParameter
         } else parameterInfo
 
-        val typeCodeFragment = PsiTypeCodeFragmentImpl(
-            myTypeContext.project,
-            true,
-            "fragment.ard",
-            resultParameterInfo.typeText,
-            0,
-            myTypeContext
-        )
-
-        return object : ParameterTableModelItemBase<ArendParameterInfo>(
-            resultParameterInfo,
-            typeCodeFragment,
-            null
-        ) {
-            override fun isEllipsisType(): Boolean = false
-        }
+        return ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo, ArendChangeSignatureDialogCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "", myTypeContext, this, resultParameterInfo))
     }
 
     @Suppress("UnstableApiUsage")
@@ -63,12 +47,12 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, d
     }
 
     private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor) :
-        TypeColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(
+        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(
             descriptor.method.project,
             ArendFileType
         ) {
-        override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>?, value: PsiCodeFragment) {
-            val fragment = value as? PsiTypeCodeFragment ?: return
+        override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
+            val fragment = value as? ArendChangeSignatureDialogCodeFragment ?: return
             item?.parameter?.setType(fragment.text)
         }
     }

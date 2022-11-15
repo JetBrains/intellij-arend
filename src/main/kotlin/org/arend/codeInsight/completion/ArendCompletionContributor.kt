@@ -751,7 +751,7 @@ class ArendCompletionContributor : CompletionContributor() {
                                                  noCrlfRequired: Boolean = false,
                                                  allowInsideBraces: Boolean = true,
                                                  allowBeforeClassFields: Boolean = false) :
-            ConditionalProvider(keywords, { parameters -> jointOfStatementsCondition(ArendCompletionParameters(parameters), additionalCondition, noCrlfRequired, allowInsideBraces, allowBeforeClassFields)}, completionBehavior, disableAfter2Crlfs = false)
+            ConditionalProvider(keywords, { parameters -> parameters.originalFile !is PsiCodeFragment && jointOfStatementsCondition(ArendCompletionParameters(parameters), additionalCondition, noCrlfRequired, allowInsideBraces, allowBeforeClassFields)}, completionBehavior, disableAfter2Crlfs = false)
 
     class ArendCompletionParameters(caretOffset: Int, file: PsiFile) {
         val prevElement: PsiElement?

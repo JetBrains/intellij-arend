@@ -19,7 +19,7 @@ class ArendChangeSignatureDescriptor(private val psiReferable: PsiLocatedReferab
 
     override fun canChangeParameters() = true
 
-    override fun canChangeName() = false
+    override fun canChangeName() = false //TODO: Should be true
 
-    override fun canChangeReturnType(): MethodDescriptor.ReadWriteOption = MethodDescriptor.ReadWriteOption.None
+    override fun canChangeReturnType(): MethodDescriptor.ReadWriteOption = MethodDescriptor.ReadWriteOption.ReadWrite
 }

@@ -6,16 +6,23 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
+import com.intellij.psi.util.elementType
 import com.intellij.util.castSafelyTo
+import org.arend.IArendFile
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
+import org.arend.refactoring.changeSignature.ArendChangeSignatureDialogCodeFragment
+import org.arend.refactoring.changeSignature.ArendChangeSignatureDialogParameter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.typechecking.BackgroundTypechecker
@@ -27,7 +34,7 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
 
-class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     private val psiListenerService = myProject.service<ArendPsiChangeService>()
@@ -45,7 +52,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         if (myProject.service<TypeCheckingService>().isLoaded) {
-            setProgressLimit(numberOfDefinitions(file).toLong())
+            setProgressLimit(numberOfDefinitions(file as? Group).toLong())
             collectInfo(progress)
         }
     }
@@ -66,8 +73,12 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
     private fun collectInfo(progress: ProgressIndicator) {
         val definitions = ArrayList<Concrete.Definition>()
-        DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
+        val resolveListener = object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
+                val containingFile = (data as? PsiElement)?.containingFile
+                if (referent is ArendChangeSignatureDialogParameter && containingFile is ArendChangeSignatureDialogCodeFragment) {
+                    containingFile.addDependency(referent)
+                }
                 val lastReference = list.lastOrNull() ?: return
                 if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
                     when {
@@ -109,7 +120,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 super.patternResolved(originalRef, pattern, resolvedRefs)
                 val dataPattern = pattern.data.castSafelyTo<ArendPattern>() ?: return
                 val constructors =
-                        dataPattern.sequence.takeIf { it.isNotEmpty() }?.mapNotNull { it.referenceElement?.referenceNameElement?.takeIf { el -> el.text == pattern.constructor.refName } }
+                    dataPattern.sequence.takeIf { it.isNotEmpty() }?.mapNotNull { it.referenceElement?.referenceNameElement?.takeIf { el -> el.text == pattern.constructor.refName } }
                         ?: dataPattern.takeIf { it.singleReferable != null }?.let { listOfNotNull(it.referenceElement?.referenceNameElement) }
                         ?: return
                 for (psi in constructors) {
@@ -134,6 +145,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             }
 
             override fun definitionResolved(definition: Concrete.ResolvableDefinition) {
+                if (file !is ArendFile) return
                 progress.checkCanceled()
 
                 if (resetDefinition) {
@@ -169,13 +181,24 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
                 advanceProgress(1)
             }
-        }).resolveGroup(file, file.scope)
+        }
+        when (file) {
+            is ArendFile -> DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, resolveListener).resolveGroup(file, file.scope)
+            is ArendChangeSignatureDialogCodeFragment -> {
+                file.resetDependencies()
+                val firstChild = file.firstChild as ArendExpr
+                if (firstChild.elementType != ArendElementTypes.EXPR) {
+                    val concrete = ConcreteBuilder.convertExpression(firstChild)
+                    ExpressionResolveNameVisitor(ArendReferableConverter, file.scope, emptyList(), this, resolveListener).resolve(concrete)
+                }
+            }
+        }
 
         concreteProvider.resolve = true
 
         val dependencyListener = myProject.service<TypeCheckingService>().dependencyListener
         val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
-        val lastModified = file.lastModifiedDefinition?.let { concreteProvider.getConcrete(it) as? Concrete.Definition }
+        val lastModified = (file as? ArendFile)?.lastModifiedDefinition?.let { concreteProvider.getConcrete(it) as? Concrete.Definition }
         if (lastModified != null) {
             lastModifiedDefinition = lastModified.data
             ordering.order(lastModified)
@@ -190,8 +213,9 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
     override fun applyInformationWithProgress() {
         file.lastModification.updateAndGet { maxOf(it, lastModification) }
-        myProject.service<ErrorService>().clearNameResolverErrors(file)
+        if (file is ArendFile) myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
+        if (file !is ArendFile) return
 
         if (collector1.isEmpty && collector2.isEmpty) {
             return

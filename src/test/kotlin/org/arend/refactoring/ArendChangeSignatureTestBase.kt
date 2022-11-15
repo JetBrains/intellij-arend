@@ -36,7 +36,7 @@ abstract class ArendChangeSignatureTestBase: ArendTestBase() {
             else -> throw IllegalArgumentException()
         }.let { newParams.add(it) }
 
-        ArendChangeSignatureProcessor(project, ArendChangeInfo(newParams, sourceElement)).run()
+        ArendChangeSignatureProcessor(project, ArendChangeInfo(newParams, null, sourceElement)).run()
         myFixture.checkResult(resultingContent.trimIndent())
     }
 }

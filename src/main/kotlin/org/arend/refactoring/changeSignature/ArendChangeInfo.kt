@@ -9,23 +9,22 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import java.util.Collections.singletonList
 
-class ArendChangeInfo constructor(val parameterInfo : MutableList<ArendParameterInfo>, //TODO: Should the list be mutable???
-                                  val locatedReferable: PsiLocatedReferable) : ChangeInfo {
-    constructor(locatedReferable: PsiLocatedReferable): this(getParameterInfo(locatedReferable), locatedReferable)
-
+class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
+                       val returnType: String?,
+                       val locatedReferable: PsiLocatedReferable /* TODO: Use more persistent pointers */) : ChangeInfo {
     override fun getNewParameters(): Array<ParameterInfo> = parameterInfo.toTypedArray()
 
-    override fun isParameterSetOrOrderChanged(): Boolean = false
+    override fun isParameterSetOrOrderChanged(): Boolean = true //TODO: Implement me
 
-    override fun isParameterTypesChanged(): Boolean = false
+    override fun isParameterTypesChanged(): Boolean = true //TODO: Implement me
 
-    override fun isParameterNamesChanged(): Boolean = true
+    override fun isParameterNamesChanged(): Boolean = true //TODO: Implement me
 
     override fun isGenerateDelegate(): Boolean = false
 
     override fun getMethod(): PsiElement = locatedReferable
 
-    override fun isReturnTypeChanged(): Boolean = false
+    override fun isReturnTypeChanged(): Boolean = true //TODO: Implement me
 
     override fun isNameChanged(): Boolean = false
 
@@ -77,7 +76,7 @@ class ArendChangeInfo constructor(val parameterInfo : MutableList<ArendParameter
         }
 
         return when (locatedReferable) {
-            is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable.precedence as? PsiElement)?.text?.let{ " $it" } ?: ""}${locatedReferable.defIdentifier?.text?.let{ " $it"} ?: ""} $newTeles${locatedReferable.returnExpr?.let { " : ${it.text}" } ?: ""}"
+            is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable.precedence as? PsiElement)?.text?.let{ " $it" } ?: ""}${locatedReferable.defIdentifier?.text?.let{ " $it"} ?: ""} $newTeles${returnType?.let { " : $it" } ?: ""}"
             else -> throw IllegalStateException()
         }
     }
@@ -109,10 +108,6 @@ class ArendChangeInfo constructor(val parameterInfo : MutableList<ArendParameter
             is ArendDefMeta -> locatedReferable.parameters
             is ArendConstructor -> locatedReferable.parameters
             else -> throw IllegalStateException()
-        }
-
-        fun create(locatedReferable: PsiLocatedReferable): ArendChangeInfo {
-            return ArendChangeInfo(locatedReferable)
         }
     }
 }
