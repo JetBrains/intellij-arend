@@ -15,6 +15,7 @@ import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
+import org.arend.IArendFile
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.ReferenceExpression
@@ -62,7 +63,7 @@ import org.arend.ext.error.InstanceInferenceError
 import org.arend.util.ArendBundle
 import java.util.*
 
-abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+abstract class BasePass(open protected val file: IArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
     private val highlights = ArrayList<HighlightInfo>()

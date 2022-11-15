@@ -18,6 +18,7 @@ import com.intellij.psi.util.PsiModificationTracker
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
+import org.arend.IArendFile
 import org.arend.ext.module.LongName
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
@@ -46,7 +47,7 @@ import org.arend.util.mapFirstNotNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
-class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup {
+class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup, IArendFile {
     var generatedModuleLocation: ModuleLocation? = null
 
     /**
@@ -59,7 +60,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     val isRepl: Boolean
         get() = enforcedLibraryConfig != null
 
-    var lastModification: AtomicLong = AtomicLong(-1)
+    override var lastModification: AtomicLong = AtomicLong(-1)
     var lastDefinitionModification: AtomicLong = AtomicLong(-1)
 
     val isBackgroundTypecheckingFinished: Boolean
