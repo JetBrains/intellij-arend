@@ -75,9 +75,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         val resolveListener = object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val containingFile = (data as? PsiElement)?.containingFile
-                if (referent is ArendChangeSignatureDialogParameter && containingFile is ArendChangeSignatureDialogCodeFragment) {
-                    containingFile.addDependency(referent)
-                }
+                if (containingFile is ArendChangeSignatureDialogCodeFragment) for (ref in resolvedRefs) if (ref is ArendChangeSignatureDialogParameter) containingFile.addDependency(ref)
                 val lastReference = list.lastOrNull() ?: return
                 if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
                     when {
