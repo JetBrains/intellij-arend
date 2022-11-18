@@ -39,8 +39,7 @@ class ArendChangeSignatureDialogCodeFragment(project: Project, expression: Strin
 
     fun resetDependencies() {
         val item = parametersModel.items.firstOrNull { it.parameter == parameter }
-        if (item != null) item.dependencies.clear()
-
+        item?.dependencies?.clear()
     }
     fun addDependency(dependency: ArendChangeSignatureDialogParameter) {
         val item = parametersModel.items.firstOrNull { it.parameter == parameter }

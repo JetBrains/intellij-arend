@@ -186,7 +186,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
                 val firstChild = file.firstChild as ArendExpr
                 if (firstChild.elementType != ArendElementTypes.EXPR) {
                     val concrete = ConcreteBuilder.convertExpression(firstChild)
-                    ExpressionResolveNameVisitor(ArendReferableConverter, file.scope, emptyList(), this, resolveListener).resolve(concrete)
+                    ExpressionResolveNameVisitor(ArendReferableConverter, file.scope, ArrayList(), this, resolveListener).resolve(concrete)
                 }
             }
         }

@@ -2,7 +2,6 @@ package org.arend.refactoring.changeSignature
 
 import com.intellij.psi.PsiCodeFragment
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiTypeCodeFragment
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
 import com.intellij.ui.BooleanTableCellEditor
@@ -22,26 +21,15 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, d
         return ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo, ArendChangeSignatureDialogCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "", myTypeContext, this, resultParameterInfo))
     }
 
-    @Suppress("UnstableApiUsage")
     override fun removeRow(idx: Int) {
         super.removeRow(idx)
     }
 
-    private class ArendNameColumn(private val descriptor: ArendChangeSignatureDescriptor) :
-        NameColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(descriptor.method.project) {
-        override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>, value: String?) {
+    private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor) :
+        NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
+        override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
             value ?: return
-            val oldName = item.parameter.name
-
-            // update all types where current element appears
-            for (parameter in descriptor.parameters) {
-                val typeText = parameter.typeText ?: continue
-                // TODO: rewrite checking
-                if (typeText.contains(oldName) && oldName.isNotEmpty()) {
-                    parameter.setType(typeText.replace(oldName, value))
-                }
-            }
-
+            //TODO: Fixme
             super.setValue(item, value)
         }
     }
