@@ -2,6 +2,7 @@ package org.arend.refactoring.changeSignature
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
@@ -19,7 +20,11 @@ import javax.swing.JPanel
 
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
     ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context) {
+    val returnTypeFragmentLocation = object: FragmentLocation {
+        override fun getCodeFragment(): ArendChangeSignatureDialogCodeFragment = this@ArendChangeSignatureDialog.myReturnTypeCodeFragment as ArendChangeSignatureDialogCodeFragment
 
+        override fun getEditor(): Editor = this@ArendChangeSignatureDialog.myReturnTypeField.editor!!
+    }
     override fun getFileType() = ArendFileType
 
     override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
@@ -69,5 +74,15 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             }
         }
         return result
+    }
+
+    companion object {
+        class ParameterLocation(val item: ArendChangeSignatureDialogParameterTableModelItem): FragmentLocation {
+            override fun getCodeFragment(): ArendChangeSignatureDialogCodeFragment = item.typeCodeFragment
+
+            override fun getEditor(): Editor {
+                TODO("Not yet implemented")
+            }
+        }
     }
 }

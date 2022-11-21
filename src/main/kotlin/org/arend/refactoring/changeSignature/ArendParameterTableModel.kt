@@ -1,14 +1,22 @@
 package org.arend.refactoring.changeSignature
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
+import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.psi.PsiCodeFragment
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
+import com.intellij.refactoring.ui.CodeFragmentTableCellEditorBase
 import com.intellij.ui.BooleanTableCellEditor
 import com.intellij.ui.BooleanTableCellRenderer
+import com.intellij.ui.EditorTextField
 import org.arend.ArendFileType
+import java.util.*
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
+import kotlin.collections.HashSet
 
 class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, defaultValueContext: PsiElement):
     ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor), ArendTypeColumn(descriptor), ArendImplicitnessColumn()) {
@@ -25,11 +33,21 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, d
         super.removeRow(idx)
     }
 
-    private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor) :
+    private class ArendNameColumn(val descriptor: ArendChangeSignatureDescriptor) :
         NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
             value ?: return
-            //TODO: Fixme
+            val fragmentsToInvalidate = HashSet<ArendChangeSignatureDialogCodeFragment>()
+            val codeAnalyzer = DaemonCodeAnalyzer.getInstance(descriptor.method.project)
+
+            for (usage in item.usages)
+                (usage.containingFile as? ArendChangeSignatureDialogCodeFragment)?.let{
+                    fragmentsToInvalidate.add(it)
+                }
+
+            for (fragment in fragmentsToInvalidate)
+                codeAnalyzer.restart(fragment)
+
             super.setValue(item, value)
         }
     }
