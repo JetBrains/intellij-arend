@@ -3,6 +3,7 @@ package org.arend.refactoring.changeSignature
 import com.intellij.lang.ASTNode
 import com.intellij.lang.PsiBuilderFactory
 import com.intellij.lang.parser.GeneratedParserUtilBase
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.PsiCodeFragmentImpl
@@ -16,10 +17,19 @@ import org.arend.naming.scope.Scope
 import org.arend.parser.ArendParser
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendReferenceElement
 import org.arend.resolving.ArendReference
 import java.util.concurrent.atomic.AtomicLong
 
-class ArendChangeSignatureDialogCodeFragment(project: Project, expression: String, context: PsiElement?, val parametersModel: ArendParameterTableModel, val parameter: ArendParameterInfo? = null /* parameter == null means this fragment pertains to the return type */):
+interface FragmentLocation {
+    fun getCodeFragment(): ArendChangeSignatureDialogCodeFragment
+    fun getEditor(): Editor
+}
+public class ParameterFragmentLocation(val tableItem: ArendChangeSignatureDialogParameterTableModelItem): FragmentLocation {}
+
+class ArendChangeSignatureDialogCodeFragment(project: Project, expression: String, context: PsiElement?,
+                                             val parametersModel: ArendParameterTableModel,
+                                             val parameter: ArendParameterInfo? = null /* parameter == null means this fragment pertains to the return type */):
     PsiCodeFragmentImpl(project, ArendExpressionCodeFragmentElementType, true, "fragment.ard", expression, context), IArendFile {
     override var lastModification = AtomicLong(-1)
     override fun getReference(): ArendReference? = null
@@ -39,12 +49,26 @@ class ArendChangeSignatureDialogCodeFragment(project: Project, expression: Strin
 
     fun resetDependencies() {
         val item = parametersModel.items.firstOrNull { it.parameter == parameter }
-        item?.dependencies?.clear()
+        val dependencies = item?.dependencies
+        if (dependencies != null) {
+            for (dependency in dependencies) {
+                val usagesToRemove = HashSet<ArendReferenceElement>()
+                for (usage in dependency.usages)
+                    if (usage.containingFile == this)
+                        usagesToRemove.add(usage)
+                dependency.usages.removeAll(usagesToRemove)
+            }
+
+            dependencies.clear()
+        }
     }
-    fun addDependency(dependency: ArendChangeSignatureDialogParameter) {
+    fun addDependency(dependency: ArendChangeSignatureDialogParameter, refElement: ArendReferenceElement) {
         val item = parametersModel.items.firstOrNull { it.parameter == parameter }
         val dep = parametersModel.items.firstOrNull {it.associatedReferable == dependency }
-        if (item != null && dep != null) item.dependencies.add(dep)
+        if (item != null && dep != null) {
+            item.dependencies.add(dep)
+            dep.usages.add(refElement)
+        }
     }
 }
 
