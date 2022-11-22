@@ -10,7 +10,6 @@ import com.intellij.psi.impl.source.tree.ICodeFragmentElementType
 import org.arend.ArendLanguage
 import org.arend.IArendFile
 import org.arend.naming.scope.EmptyScope
-import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.MergeScope
 import org.arend.naming.scope.Scope
 import org.arend.parser.ArendParser
@@ -24,8 +23,7 @@ class ArendChangeSignatureDialogCodeFragment(project: Project, expression: Strin
     override var lastModification = AtomicLong(-1)
     override fun getReference(): ArendReference? = null
 
-    override val scope: Scope
-        get() {
+    override val scope: Scope get() {
         val baseScope = (context as? ArendCompositeElement)?.scope ?: EmptyScope.INSTANCE
         return MergeScope(complementScope.invoke() ?: EmptyScope.INSTANCE, baseScope)
     }

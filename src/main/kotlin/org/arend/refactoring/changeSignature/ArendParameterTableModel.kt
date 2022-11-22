@@ -1,29 +1,25 @@
 package org.arend.refactoring.changeSignature
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
-import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
-import com.intellij.openapi.util.Computable
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiCodeFragment
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
-import com.intellij.refactoring.ui.CodeFragmentTableCellEditorBase
 import com.intellij.ui.BooleanTableCellEditor
 import com.intellij.ui.BooleanTableCellRenderer
-import com.intellij.ui.EditorTextField
 import org.arend.ArendFileType
+import org.arend.ext.module.LongName
 import org.arend.naming.scope.Scope
-import java.util.*
+import org.arend.util.FileUtils.isCorrectDefinitionName
+import java.util.Collections.singletonList
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
-import kotlin.collections.HashSet
 
 class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
                                val scopeCalculator: (ArendChangeSignatureDialogParameterTableModelItem) -> () -> Scope,
                                defaultValueContext: PsiElement):
-    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor), ArendTypeColumn(descriptor), ArendImplicitnessColumn()) {
+    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor.method.project), ArendTypeColumn(descriptor.method.project), ArendImplicitnessColumn()) {
+
     override fun createRowItem(parameterInfo: ArendParameterInfo?): ArendChangeSignatureDialogParameterTableModelItem {
         val resultParameterInfo = if (parameterInfo == null) {
             val newParameter = ArendParameterInfo.createEmpty()
@@ -44,20 +40,22 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
         super.removeRow(idx)
     }
 
-    private class ArendNameColumn(val descriptor: ArendChangeSignatureDescriptor) :
-        NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
-        override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
-            value ?: return
-
-            super.setValue(item, value)
-        }
+    override fun addRow(item: ArendChangeSignatureDialogParameterTableModelItem?) {
+        super.addRow(item)
     }
 
-    private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor) :
-        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(
-            descriptor.method.project,
-            ArendFileType
-        ) {
+    private class ArendNameColumn(project: Project): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(project) {
+        override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
+            value ?: return
+            if (isCorrectDefinitionName(LongName(singletonList(value)))) {
+                super.setValue(item, value)
+            }
+        }
+
+    }
+
+    private class ArendTypeColumn(project: Project) :
+        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(project, ArendFileType) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
             val fragment = value as? ArendChangeSignatureDialogCodeFragment ?: return
             item?.parameter?.setType(fragment.text)

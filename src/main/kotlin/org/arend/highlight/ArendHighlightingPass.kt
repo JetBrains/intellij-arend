@@ -179,6 +179,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         when (file) {
             is ArendFile -> DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, resolveListener).resolveGroup(file, file.scope)
             is ArendChangeSignatureDialogCodeFragment -> {
+                println("Highlighting: ${file.text}")
                 val firstChild = file.firstChild as ArendExpr //TODO: Move this getter into code fragment implementation
                 if (firstChild.elementType != ArendElementTypes.EXPR) {
                     val concrete = ConcreteBuilder.convertExpression(firstChild)
