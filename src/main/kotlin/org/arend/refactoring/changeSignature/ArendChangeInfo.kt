@@ -32,7 +32,7 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
 
     override fun getLanguage(): Language = ArendLanguage.INSTANCE
 
-    fun signature(): String {
+    fun signature(): String { //TODO: This works poorly; fix me
         val teleEntries = ArrayList<Pair<Pair<String?, Boolean>, MutableList<String?>>>()
         val whitespaceList = ArrayList<String>()
         var lastWhitespace = " "

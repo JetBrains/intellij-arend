@@ -2,7 +2,6 @@ package org.arend.refactoring.changeSignature
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
@@ -14,21 +13,18 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
 import org.arend.ArendFileType
+import org.arend.naming.scope.ListScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.ext.*
 import java.util.Collections.singletonList
 import javax.swing.JPanel
 
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
     ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context) {
-    val returnTypeFragmentLocation = object: FragmentLocation {
-        override fun getCodeFragment(): ArendChangeSignatureDialogCodeFragment = this@ArendChangeSignatureDialog.myReturnTypeCodeFragment as ArendChangeSignatureDialogCodeFragment
-
-        override fun getEditor(): Editor = this@ArendChangeSignatureDialog.myReturnTypeField.editor!!
-    }
     override fun getFileType() = ArendFileType
 
     override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
-        ArendParameterTableModel(descriptor, myDefaultValueContext)
+        ArendParameterTableModel(descriptor, {item: ArendChangeSignatureDialogParameterTableModelItem -> getParametersScope(item)}, myDefaultValueContext)
 
     override fun createRefactoringProcessor(): BaseRefactoringProcessor =
         ArendChangeSignatureProcessor(project, evaluateChangeInfo(myParametersTableModel))
@@ -39,7 +35,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             is ArendDefFunction -> referable.returnExpr?.text ?: ""
             else -> ""
         }
-        return ArendChangeSignatureDialogCodeFragment(myProject, returnExpression, referable, myParametersTableModel, null)
+        return ArendChangeSignatureDialogCodeFragment(myProject, returnExpression, getParametersScope(null), referable)
     }
 
     override fun createCallerChooser(title: String?, treeToReuse: Tree?, callback: Consumer<in MutableSet<PsiElement>>?) = null
@@ -54,8 +50,14 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     override fun calculateSignature(): String =
         evaluateChangeInfo(myParametersTableModel).signature()
 
-
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
+
+    private fun getParametersScope(item: ArendChangeSignatureDialogParameterTableModelItem?): () -> Scope = { ->
+        val items = this.myParametersTableModel.items
+        val limit = items.indexOfFirst { it == item }.let { if (it == -1) items.size else it }
+        val params = items.take(limit).map { it.associatedReferable }
+        ListScope(params)
+    }
 
     override fun createParametersPanel(hasTabsInDialog: Boolean): JPanel {
         val result = super.createParametersPanel(hasTabsInDialog)
@@ -74,15 +76,5 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             }
         }
         return result
-    }
-
-    companion object {
-        class ParameterLocation(val item: ArendChangeSignatureDialogParameterTableModelItem): FragmentLocation {
-            override fun getCodeFragment(): ArendChangeSignatureDialogCodeFragment = item.typeCodeFragment
-
-            override fun getEditor(): Editor {
-                TODO("Not yet implemented")
-            }
-        }
     }
 }
