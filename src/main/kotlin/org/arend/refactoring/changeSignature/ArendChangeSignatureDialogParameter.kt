@@ -7,7 +7,7 @@ import org.arend.psi.ext.ArendExpr
 import org.arend.resolving.util.ReferableExtractVisitor
 
 class ArendChangeSignatureDialogParameter(val item: ArendChangeSignatureDialogParameterTableModelItem): TypedReferable {
-    override fun textRepresentation(): String = item.resultParameterInfo.name
+    override fun textRepresentation(): String = item.parameter.name
 
     override fun getTypeClassReference(): ClassReferable? {
         val type = item.typeCodeFragment.childOfType<ArendExpr>()

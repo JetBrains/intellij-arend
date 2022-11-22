@@ -17,7 +17,6 @@ import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.refactoring.changeSignature.ArendChangeSignatureDialogCodeFragment
-import org.arend.refactoring.changeSignature.ArendChangeSignatureDialogParameter
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
 import org.arend.resolving.PsiConcreteProvider
@@ -74,12 +73,6 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         val definitions = ArrayList<Concrete.Definition>()
         val resolveListener = object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
-                val containingFile = (data as? PsiElement)?.containingFile
-                if (containingFile is ArendChangeSignatureDialogCodeFragment)
-                    for ((referable, refElement) in resolvedRefs.zip(list))
-                        if (referable is ArendChangeSignatureDialogParameter)
-                            containingFile.addDependency(referable, refElement)
-
                 val lastReference = list.lastOrNull() ?: return
                 if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
                     when {
@@ -186,8 +179,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         when (file) {
             is ArendFile -> DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, resolveListener).resolveGroup(file, file.scope)
             is ArendChangeSignatureDialogCodeFragment -> {
-                file.resetDependencies()
-                val firstChild = file.firstChild as ArendExpr
+                val firstChild = file.firstChild as ArendExpr //TODO: Move this getter into code fragment implementation
                 if (firstChild.elementType != ArendElementTypes.EXPR) {
                     val concrete = ConcreteBuilder.convertExpression(firstChild)
                     ExpressionResolveNameVisitor(ArendReferableConverter, file.scope, ArrayList(), this, resolveListener).resolve(concrete)
