@@ -16,9 +16,10 @@ import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 
 class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
+                               dialog: ArendChangeSignatureDialog,
                                val scopeCalculator: (ArendChangeSignatureDialogParameterTableModelItem) -> () -> Scope,
                                defaultValueContext: PsiElement):
-    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor.method.project), ArendTypeColumn(descriptor.method.project), ArendImplicitnessColumn()) {
+    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor.method.project), ArendImplicitnessColumn()) {
 
     override fun createRowItem(parameterInfo: ArendParameterInfo?): ArendChangeSignatureDialogParameterTableModelItem {
         val resultParameterInfo = if (parameterInfo == null) {
@@ -44,10 +45,11 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
         super.addRow(item)
     }
 
-    private class ArendNameColumn(project: Project): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(project) {
+    private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
             value ?: return
             if (isCorrectDefinitionName(LongName(singletonList(value)))) {
+                dialog.refactorParameterNames(item, value)
                 super.setValue(item, value)
             }
         }

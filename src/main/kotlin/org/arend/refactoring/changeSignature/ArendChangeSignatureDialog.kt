@@ -2,6 +2,11 @@ package org.arend.refactoring.changeSignature
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.openapi.project.Project
@@ -13,6 +18,7 @@ import com.intellij.refactoring.ui.CodeFragmentTableCellEditorBase
 import com.intellij.refactoring.ui.ComboBoxVisibilityPanel
 import com.intellij.refactoring.ui.StringTableCellEditor
 import com.intellij.ui.EditorTextField
+import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.TableView
 import com.intellij.ui.treeStructure.Tree
@@ -21,6 +27,7 @@ import org.arend.ArendFileType
 import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ext.*
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendResolveCache
 import java.util.Collections.singletonList
 import javax.swing.DefaultListSelectionModel
@@ -42,7 +49,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     override fun getFileType() = ArendFileType
 
     override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
-        ArendParameterTableModel(descriptor, {item: ArendChangeSignatureDialogParameterTableModelItem -> getParametersScope(item)}, myDefaultValueContext)
+        ArendParameterTableModel( descriptor, this, {item: ArendChangeSignatureDialogParameterTableModelItem -> getParametersScope(item)}, myDefaultValueContext)
 
     override fun createRefactoringProcessor(): BaseRefactoringProcessor =
         ArendChangeSignatureProcessor(project, evaluateChangeInfo(myParametersTableModel))
@@ -89,14 +96,10 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
 
         this.myParametersTableModel.addTableModelListener { ev ->
             for (l in oldModelListeners) l.tableChanged(ev)
-            /* if (ev.type == TableModelEvent.UPDATE && ev.firstRow < ev.lastRow) {
-                println("Swapped rows!!!")
-            } */
             if (ev.type == TableModelEvent.DELETE) {
-                //project.service<ArendResolveCache>().clear()
-                for (j in ev.lastRow until this.myParametersTable.items.size)
-                    invokeTypeHighlighting(j)
-                //println("Delete rows!!! ${ev.firstRow} ${ev.lastRow}")
+                project.service<ArendPsiChangeService>().modificationTracker.incModificationCount()
+                for (j in ev.lastRow until this.myParametersTable.items.size) invokeTypeHighlighting(j)
+                invokeTypeHighlighting(-1)
             }
             updateToolbarButtons()
         }
@@ -114,16 +117,45 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
 
     private fun getTypeTextField(index: Int) = (this.myParametersTable.getCellEditor(index, 1) as? CodeFragmentTableCellEditorBase?)?.getTableCellEditorComponent(myParametersTable, myParametersTableModel.items[index].typeCodeFragment, false, 0, 0) as? EditorTextField
 
-    private fun getNameTextField(index: Int) = this.myParametersTable.getCellEditor(index, 0) as? StringTableCellEditor
+    //private fun getNameTextField(index: Int) = this.myParametersTable.getCellEditor(index, 0) as? StringTableCellEditor
+    fun refactorParameterNames(item: ArendChangeSignatureDialogParameterTableModelItem, newName: String) {
+        val index = myParametersTableModel.items.indexOf(item)
+        val resolveCache = project.service<ArendResolveCache>()
+        for (i in index+1 until myParametersTable.items.size) {
+            val codeFragment = myParametersTableModel.items[i].typeCodeFragment
+            val affectedRefs = codeFragment.descendantsOfType<ArendReferenceElement>().filter {
+                it.referenceName == item.associatedReferable.refName
+                //resolveCache.getCached(it) == item.associatedReferable
+            }.toList()
+            val docManager = PsiDocumentManager.getInstance(project)
+            ApplicationManager.getApplication().invokeLater({
+                executeCommand {
+                    runWriteAction {
+                        val textFile = docManager.getDocument(codeFragment)
+                        if (textFile != null) {
+                            for (ref in affectedRefs) {
+                                val range = ref.textRange
+                                textFile.replaceString(range.startOffset, range.endOffset, newName)
+                            }
+                            docManager.commitDocument(textFile)
+                        }
+                    }
+                }
+            }, ModalityState.current())
+
+            myParametersTable.updateUI()
+        }
+    }
+
     private fun invokeTypeHighlighting(index: Int) {
         val fragment = if (index == -1) this.myReturnTypeCodeFragment else myParametersTableModel.items[index].typeCodeFragment
-        val editorTextField = if (index == -1) this.myReturnTypeField else getTypeTextField(index)
+        //val editorTextField = if (index == -1) this.myReturnTypeField else getTypeTextField(index)
         val codeAnalyzer = DaemonCodeAnalyzer.getInstance(project) as? DaemonCodeAnalyzerImpl
-        val document = fragment?.let{ PsiDocumentManager.getInstance(project).getDocument(it) }
-        if (fragment != null && editorTextField != null && codeAnalyzer != null && document != null) {
-            editorTextField.addNotify()
-            val textEditor = editorTextField.editor?.let{ TextEditorProvider.getInstance().getTextEditor(it) }
-            codeAnalyzer.runPasses(fragment, document, singletonList(textEditor), IntArray(0), true, null)
+        //val document = fragment?.let{ PsiDocumentManager.getInstance(project).getDocument(it) }
+        if (fragment != null && codeAnalyzer != null /*&& editorTextField != null && document != null */) {
+            codeAnalyzer.restart(fragment)
+            //val textEditor = editorTextField.editor?.let{ TextEditorProvider.getInstance().getTextEditor(it) }
+            //codeAnalyzer.runPasses(fragment, document, singletonList(textEditor), IntArray(0), true, null)
         }
     }
 
