@@ -713,6 +713,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
             return
         }
 
+
         return runWriteAction {
             val docManager = PsiDocumentManager.getInstance(project)
 
