@@ -6,7 +6,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import com.intellij.util.castSafelyTo
 import org.arend.IArendFile
@@ -180,7 +179,6 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         when (file) {
             is ArendFile -> DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, resolveListener).resolveGroup(file, file.scope)
             is ArendChangeSignatureDialogCodeFragment -> {
-                println("Highlighting: ${file.text}")
                 val firstChild = file.firstChild as ArendExpr //TODO: Move this getter into code fragment implementation
                 if (firstChild.elementType != ArendElementTypes.EXPR) {
                     val concrete = ConcreteBuilder.convertExpression(firstChild)

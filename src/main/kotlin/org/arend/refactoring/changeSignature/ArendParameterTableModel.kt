@@ -19,7 +19,7 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
                                dialog: ArendChangeSignatureDialog,
                                val scopeCalculator: (ArendChangeSignatureDialogParameterTableModelItem) -> () -> Scope,
                                defaultValueContext: PsiElement):
-    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor.method.project), ArendImplicitnessColumn()) {
+    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor, dialog), ArendImplicitnessColumn()) {
 
     override fun createRowItem(parameterInfo: ArendParameterInfo?): ArendChangeSignatureDialogParameterTableModelItem {
         val resultParameterInfo = if (parameterInfo == null) {
@@ -56,11 +56,12 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
 
     }
 
-    private class ArendTypeColumn(project: Project) :
-        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(project, ArendFileType) {
+    private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog) :
+        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileType) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
             val fragment = value as? ArendChangeSignatureDialogCodeFragment ?: return
             item?.parameter?.setType(fragment.text)
+            if (item != null) dialog.highlightDependentItems(item)
         }
     }
 
