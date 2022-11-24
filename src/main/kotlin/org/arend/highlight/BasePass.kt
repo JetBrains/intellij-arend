@@ -60,6 +60,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
+import org.arend.refactoring.changeSignature.ArendChangeSignatureDialogCodeFragment
 import org.arend.util.ArendBundle
 import java.util.*
 
@@ -87,7 +88,7 @@ abstract class BasePass(open protected val file: IArendFile, editor: Editor, nam
             if (isValid) {
                 UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
             }
-        }, ModalityState.stateForComponent(editor.component))
+        }, if (file is ArendChangeSignatureDialogCodeFragment) ModalityState.defaultModalityState() else ModalityState.stateForComponent(editor.component))
     }
 
     protected fun addHighlightInfo(builder: HighlightInfo.Builder): HighlightInfo? {
