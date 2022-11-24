@@ -6,6 +6,8 @@ import com.intellij.openapi.application.*
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -15,6 +17,7 @@ import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.changeSignature.ChangeSignatureDialogBase
 import com.intellij.refactoring.ui.CodeFragmentTableCellEditorBase
 import com.intellij.refactoring.ui.ComboBoxVisibilityPanel
+import com.intellij.refactoring.ui.StringTableCellEditor
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.TableView
@@ -26,10 +29,14 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendResolveCache
+import java.awt.Component
 import java.util.Collections.singletonList
 import javax.swing.DefaultListSelectionModel
 import javax.swing.JPanel
+import javax.swing.ListSelectionModel
+import javax.swing.event.ChangeEvent
 import javax.swing.event.TableModelEvent
+import javax.swing.table.TableCellEditor
 
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
     ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context) {
@@ -75,8 +82,67 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
 
     override fun createParametersPanel(hasTabsInDialog: Boolean): JPanel {
-        val result = super.createParametersPanel(hasTabsInDialog)
-        parametersPanel = result
+        myParametersTable = object : TableView<ArendChangeSignatureDialogParameterTableModelItem?>(myParametersTableModel) {
+            override fun removeEditor() {
+                clearEditorListeners()
+                super.removeEditor()
+            }
+
+            override fun editingStopped(e: ChangeEvent) {
+                super.editingStopped(e)
+                repaint() // to update disabled cells background
+            }
+
+            private fun clearEditorListeners() {
+                val editor = getCellEditor()
+                if (editor is StringTableCellEditor) {
+                    editor.clearListeners()
+                } else if (editor is CodeFragmentTableCellEditorBase) {
+                    editor.clearListeners()
+                }
+            }
+
+            override fun prepareEditor(editor: TableCellEditor, row: Int, column: Int): Component {
+                val listener: DocumentListener = object : DocumentListener {
+                    override fun documentChanged(e: DocumentEvent) {
+                        val ed = myParametersTable.cellEditor
+                        if (ed != null) {
+                            var editorValue = ed.cellEditorValue
+                            if (column == 1 && editorValue !is PsiElement) { //TODO: Fixme
+                                val e = getTypeTextField(row)
+                                val psi = if (e != null) PsiDocumentManager.getInstance(project).getPsiFile(e.document) else null
+                                editorValue = psi
+                            }
+                            myParametersTableModel.setValueAtWithoutUpdate(editorValue, row, column)
+                            updateSignature()
+                        }
+                    }
+                }
+                if (editor is StringTableCellEditor) {
+                    editor.addDocumentListener(listener)
+                } else if (editor is CodeFragmentTableCellEditorBase) {
+                    editor.addDocumentListener(listener)
+                }
+                return super.prepareEditor(editor, row, column)
+            }
+        }
+
+        myParametersTable.setShowGrid(false)
+        myParametersTable.cellSelectionEnabled = true
+        myParametersTable.selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        myParametersTable.selectionModel.setSelectionInterval(0, 0)
+        myParametersTable.surrendersFocusOnKeystroke = true
+        //myPropagateParamChangesButton.setShortcut(CustomShortcutSet.fromString("alt G"))
+
+        val parametersPanel = ToolbarDecorator.createDecorator(tableComponent)
+            //.addExtraAction(myPropagateParamChangesButton)
+            .createPanel()
+        myPropagateParamChangesButton.isEnabled = false
+        myPropagateParamChangesButton.isVisible = false
+        myParametersTableModel.addTableModelListener(mySignatureUpdater)
+        customizeParametersTable(myParametersTable)
+        //.addExtraAction(myPropagateParamChangesButton)
+
         for (i in 0 until myParametersTable.items.size) invokeTypeHighlighting(i)
 
         val selectionModel = (this.myParametersTable.selectionModel as DefaultListSelectionModel)
@@ -98,7 +164,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             }
             updateToolbarButtons()
         }
-        return result
+        return parametersPanel
     }
 
     private fun getParametersScope(item: ArendChangeSignatureDialogParameterTableModelItem?): () -> Scope = { ->
@@ -149,7 +215,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             myParametersTable.updateUI()
             myReturnTypeField.updateUI()
             updateSignature()
-        }, ModalityState.stateForComponent(this.myParametersTable))
+        }, ModalityState.defaultModalityState())
     }
 
     fun highlightDependentItems(item: ArendChangeSignatureDialogParameterTableModelItem) {
@@ -168,7 +234,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             editorTextField.addNotify()
             codeAnalyzer.restart(fragment)
             val textEditor = editorTextField.editor?.let{ TextEditorProvider.getInstance().getTextEditor(it) }
-            codeAnalyzer.runPasses(fragment, document, singletonList(textEditor), IntArray(0), true, null)
+            if (textEditor != null) codeAnalyzer.runPasses(fragment, document, singletonList(textEditor), IntArray(0), true, null)
         }
     }
 
