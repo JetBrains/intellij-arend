@@ -2,16 +2,22 @@ package org.arend.refactoring.changeSignature
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
-import com.intellij.openapi.application.*
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.impl.DocumentImpl
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.*
+import com.intellij.psi.PsiCodeFragment
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.util.descendantsOfType
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.changeSignature.ChangeSignatureDialogBase
@@ -26,7 +32,8 @@ import com.intellij.util.Consumer
 import org.arend.ArendFileType
 import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.ext.*
+import org.arend.psi.ext.ArendDefFunction
+import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.ArendResolveCache
 import java.awt.Component
@@ -89,8 +96,13 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             }
 
             override fun editingStopped(e: ChangeEvent) {
-                super.editingStopped(e)
-                repaint() // to update disabled cells background
+                invokeTypeHighlighting(editingRow)
+                removeEditor()
+                ApplicationManager.getApplication().invokeLater {
+                    highlightDependentFields(editingRow + 1)
+                    updateToolbarButtons()
+                    updateUI()
+                }
             }
 
             private fun clearEditorListeners() {
@@ -105,19 +117,24 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             override fun prepareEditor(editor: TableCellEditor, row: Int, column: Int): Component {
                 val listener: DocumentListener = object : DocumentListener {
                     override fun documentChanged(e: DocumentEvent) {
+                        /*  TODO: There is a problem that this document listener is added multiple times to the list of document listeners
+                        *   TODO: (this happens in EditorTextField.installDocumentListener)
+                        *   TODO: This leads to updateSignature() invoked multiple times upon a single keystroke
+                        * */
                         val ed = myParametersTable.cellEditor
-                        if (ed != null) {
-                            var editorValue = ed.cellEditorValue
-                            if (column == 1 && editorValue !is PsiElement) { //TODO: Fixme
-                                val e = getTypeTextField(row)
-                                val psi = if (e != null) PsiDocumentManager.getInstance(project).getPsiFile(e.document) else null
-                                editorValue = psi
-                            }
+                        val editorValue = ed.cellEditorValue
+                        if (column == 0) {
                             myParametersTableModel.setValueAtWithoutUpdate(editorValue, row, column)
-                            updateSignature()
                         }
+                        if (column == 1) {
+                            val updatedText = e.document.text
+                            val updatedFragment = (myParametersTableModel.items.get(row).typeCodeFragment as ArendChangeSignatureDialogCodeFragment).updatedFragment(updatedText)
+                            myParametersTableModel.setValueAtWithoutUpdate(updatedFragment, row, column)
+                        }
+                        updateSignature()
                     }
                 }
+
                 if (editor is StringTableCellEditor) {
                     editor.addDocumentListener(listener)
                 } else if (editor is CodeFragmentTableCellEditorBase) {
@@ -132,16 +149,12 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         myParametersTable.selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
         myParametersTable.selectionModel.setSelectionInterval(0, 0)
         myParametersTable.surrendersFocusOnKeystroke = true
-        //myPropagateParamChangesButton.setShortcut(CustomShortcutSet.fromString("alt G"))
 
-        val parametersPanel = ToolbarDecorator.createDecorator(tableComponent)
-            //.addExtraAction(myPropagateParamChangesButton)
-            .createPanel()
+        parametersPanel = ToolbarDecorator.createDecorator(tableComponent).createPanel()
         myPropagateParamChangesButton.isEnabled = false
         myPropagateParamChangesButton.isVisible = false
         myParametersTableModel.addTableModelListener(mySignatureUpdater)
         customizeParametersTable(myParametersTable)
-        //.addExtraAction(myPropagateParamChangesButton)
 
         for (i in 0 until myParametersTable.items.size) invokeTypeHighlighting(i)
 
@@ -164,7 +177,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             }
             updateToolbarButtons()
         }
-        return parametersPanel
+        return parametersPanel!! //safe
     }
 
     private fun getParametersScope(item: ArendChangeSignatureDialogParameterTableModelItem?): () -> Scope = { ->
@@ -179,10 +192,10 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     fun refactorParameterNames(item: ArendChangeSignatureDialogParameterTableModelItem, newName: String) {
         val index = myParametersTableModel.items.indexOf(item)
         val docManager = PsiDocumentManager.getInstance(project)
-        val map = HashMap<Document, HashSet<TextRange>>()
+        val map = HashMap<Document, Pair<Int, HashSet<TextRange>>>()
         val resolveCache = project.service<ArendResolveCache>()
 
-        fun collectData(codeFragment: PsiCodeFragment) {
+        fun collectData(codeFragment: PsiCodeFragment, i: Int) {
             val affectedRefs = codeFragment.descendantsOfType<ArendReferenceElement>().filter {
                 resolveCache.getCached(it) == item.associatedReferable
             }.toList()
@@ -190,14 +203,14 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             val s = HashSet<TextRange>()
             if (textFile != null) {
                 for (ref in affectedRefs) s.add(ref.textRange)
-                map[textFile] = s
+                map[textFile] = Pair(i, s)
             }
         }
 
         runReadAction {
             for (i in index+1 until myParametersTable.items.size)
-                collectData(myParametersTableModel.items[i].typeCodeFragment)
-            myReturnTypeCodeFragment?.let{ collectData(it) }
+                collectData(myParametersTableModel.items[i].typeCodeFragment, i)
+            myReturnTypeCodeFragment?.let{ collectData(it, -1) }
         }
 
         ApplicationManager.getApplication().invokeLater({
@@ -205,8 +218,16 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 runWriteAction {
                     for (entry in map) {
                         val textFile = entry.key
-                        for (range in entry.value) textFile.replaceString(range.startOffset, range.endOffset, newName)
-                        docManager.commitDocument(textFile)
+                        val i = entry.value.first
+                        val changes = entry.value.second
+                        for (range in changes) textFile.replaceString(range.startOffset, range.endOffset, newName)
+                        if (changes.isNotEmpty()) {
+                            docManager.commitDocument(textFile)
+                            if (i != -1) {
+                                val updatedPsi = docManager.getPsiFile(textFile)
+                                myParametersTableModel.setValueAtWithoutUpdate(updatedPsi, i, 1)
+                            }
+                        }
                     }
                 }
             }
@@ -216,13 +237,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             myReturnTypeField.updateUI()
             updateSignature()
         }, ModalityState.defaultModalityState())
-    }
-
-    fun highlightDependentItems(item: ArendChangeSignatureDialogParameterTableModelItem) {
-        val index = myParametersTable.items.indexOf(item)
-        ApplicationManager.getApplication().invokeLater {
-            highlightDependentFields(index + 1)
-        }
     }
 
     private fun invokeTypeHighlighting(index: Int) {

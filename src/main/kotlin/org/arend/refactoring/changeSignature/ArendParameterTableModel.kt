@@ -1,6 +1,6 @@
 package org.arend.refactoring.changeSignature
 
-import com.intellij.openapi.project.Project
+import com.intellij.codeInsight.highlighting.BraceMatchingUtil
 import com.intellij.psi.PsiCodeFragment
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
@@ -28,7 +28,7 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
         } else parameterInfo
         
         var item: ArendChangeSignatureDialogParameterTableModelItem? = null
-        val scope = { -> item?.let { scopeCalculator.invoke(it).invoke() } }
+        val scope = { -> item!!.let { scopeCalculator.invoke(it).invoke() } }
 
         item = ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo,
             ArendChangeSignatureDialogCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "",
@@ -37,13 +37,7 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
         return item
     }
 
-    override fun removeRow(idx: Int) {
-        super.removeRow(idx)
-    }
 
-    override fun addRow(item: ArendChangeSignatureDialogParameterTableModelItem?) {
-        super.addRow(item)
-    }
 
     private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
@@ -61,7 +55,7 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
             val fragment = value as? ArendChangeSignatureDialogCodeFragment ?: return
             item?.parameter?.setType(fragment.text)
-            if (item != null) dialog.highlightDependentItems(item)
+            //if (item != null) dialog.highlightDependentItems(item)
         }
     }
 

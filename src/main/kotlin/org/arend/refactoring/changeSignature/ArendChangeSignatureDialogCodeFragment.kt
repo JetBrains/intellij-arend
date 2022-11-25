@@ -18,18 +18,19 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.resolving.ArendReference
 import java.util.concurrent.atomic.AtomicLong
 
-class ArendChangeSignatureDialogCodeFragment(project: Project, expression: String, val complementScope: () -> Scope?, context: PsiElement?):
+class ArendChangeSignatureDialogCodeFragment(project: Project, expression: String, val complementScope: (() -> Scope)?, context: PsiElement?):
     PsiCodeFragmentImpl(project, ArendExpressionCodeFragmentElementType, true, "fragment.ard", expression, context), IArendFile {
     override var lastModification = AtomicLong(-1)
     override fun getReference(): ArendReference? = null
 
     override val scope: Scope get() {
         val baseScope = (context as? ArendCompositeElement)?.scope ?: EmptyScope.INSTANCE
-        return MergeScope(complementScope.invoke() ?: EmptyScope.INSTANCE, baseScope)
+        return MergeScope(complementScope?.invoke() ?: EmptyScope.INSTANCE, baseScope)
     }
 
     override fun moduleTextRepresentation(): String  = name
     override fun positionTextRepresentation(): String? = null
+    fun updatedFragment(expression: String) = ArendChangeSignatureDialogCodeFragment(project, expression, complementScope, context)
 }
 
 object ArendExpressionCodeFragmentElementType: ICodeFragmentElementType("EXPR_TEXT", ArendLanguage.INSTANCE) {
