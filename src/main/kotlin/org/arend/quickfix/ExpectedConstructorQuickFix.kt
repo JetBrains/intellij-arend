@@ -825,7 +825,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 is Concrete.ConstructorPattern -> { //TODO: Code too similar to "matchConcreteWithWellTyped". Could we somehow isolate common pieces of code for these functions?
                     val existingConstructor = concretePattern.constructor
                     val substitutedConstructor = (pattern.constructor)?.referable
-                    if (pattern is ConstructorExpressionPattern && substitutedConstructor == existingConstructor) {
+                    if (pattern is ConstructorExpressionPattern && existingConstructor != null && substitutedConstructor == existingConstructor) {
                         val bindingsIterator = DependentLink.Helper.toList(substitutedConstructor.typechecked.parameters).iterator()
                         val constructorExpressionParameters = pattern.subPatterns.iterator()
                         val concreteSubPatternsIterator = concretePattern.patterns.iterator()

@@ -64,7 +64,8 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
     }
 
     override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
-        resolveReference(pattern.data, pattern.constructor, resolvedRefs)
+        val ref = pattern.constructor
+        if (ref != null) resolveReference(pattern.data, ref, resolvedRefs)
     }
 
     override fun patternResolved(pattern: Concrete.NamePattern) {
