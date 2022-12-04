@@ -3,7 +3,7 @@
     <vendor>JetBrains</vendor>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="221.3427.89"/>
+    <idea-version since-build="223.4884.69"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -191,66 +191,79 @@
                          implementationClass="org.arend.inspection.ArendUnusedImportInspection"/>
         <!-- Intention Actions -->
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.ImplementFieldsInCoClauseIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.GenerateFunctionFromGoalIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.ExtractExpressionToFunctionIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.generating.CreateLetBindingIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.SplitAtomPatternIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.ReplaceWithNormalFormIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.WrapInGoalIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.ReplaceMetaWithResultIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.ReplaceWithShortNameIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.SwapInfixOperatorArgumentsIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.ChangeArgumentExplicitnessIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.AddClarifyingParensIntention</className>
             <category>Arend</category>
         </intentionAction>
 
         <intentionAction>
+            <language>Arend</language>
             <className>org.arend.intention.RemoveClarifyingParensIntention</className>
             <category>Arend</category>
         </intentionAction>
@@ -316,7 +329,7 @@
         <stubIndex implementation="org.arend.psi.stubs.index.ArendGotoClassIndex"/>
         <stubIndex implementation="org.arend.psi.stubs.index.ArendFileIndex"/>
 
-        <stubElementTypeHolder class="org.arend.psi.ArendElementTypes"/>
+        <stubElementTypeHolder class="org.arend.psi.ArendElementTypes" externalIdPrefix="arend."/>
 
         <!-- Lookup Filters -->
 
@@ -396,9 +409,9 @@
         <!-- Live Templates -->
 
         <defaultLiveTemplates file="/liveTemplates/Arend.xml"/>
-        <liveTemplateContext implementation="org.arend.liveTemplates.ArendTemplateContextType$Everywhere"/>
-        <liveTemplateContext implementation="org.arend.liveTemplates.ArendTemplateContextType$Statement"/>
-        <liveTemplateContext implementation="org.arend.liveTemplates.ArendTemplateContextType$Expression"/>
+        <liveTemplateContext contextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Everywhere"/>
+        <liveTemplateContext contextId="AREND_STATEMENT" baseContextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Statement"/>
+        <liveTemplateContext contextId="AREND_EXPRESSION" baseContextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Expression"/>
     </extensions>
 
     <actions>

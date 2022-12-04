@@ -15,7 +15,6 @@ import com.intellij.psi.impl.source.resolve.FileContextUtil
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
-import com.intellij.util.castSafelyTo
 import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
@@ -100,7 +99,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
         fun cleanup(project: Project?) {
             val keysToRemove = this.filterValues {
-                val pointer = it.data.castSafelyTo<SmartPsiElementPointer<*>>(); pointer != null && pointer.element == null
+                val pointer = it.data as? SmartPsiElementPointer<*>
+                pointer != null && pointer.element == null
             }
             val typecheckingService = project?.service<TypeCheckingService>()
             for ((key, value) in keysToRemove) {

@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
-import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.AliasReferable
@@ -219,7 +218,7 @@ fun isBinOp(binOpReference: ArendReferenceContainer?) =
         else (resolve(binOpReference))?.precedence?.isInfix == true
 
 private fun resolve(reference: ArendReferenceContainer?): GlobalReferable? =
-        reference?.resolve?.castSafelyTo<GlobalReferable>()
+        (reference?.resolve as? GlobalReferable)
                 ?.let { if (it.hasAlias() && it.aliasName == reference.referenceName) AliasReferable(it) else it }
 
 /**

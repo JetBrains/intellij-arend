@@ -19,7 +19,6 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
-import com.intellij.util.castSafelyTo
 import org.arend.core.expr.*
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
@@ -238,7 +237,7 @@ fun psiOfConcrete(expr: Concrete.Expression): PsiElement? {
     if (range.isEmpty) {
         return null
     }
-    val file = expr.data?.castSafelyTo<PsiElement>()?.containingFile ?: return null
+    val file = (expr.data as? PsiElement)?.containingFile ?: return null
     val first = file.findElementAt(range.startOffset)
     val last = file.findElementAt(range.endOffset - 1)
     if (first == null || last == null || first.startOffset != range.startOffset || last.endOffset != range.endOffset) {

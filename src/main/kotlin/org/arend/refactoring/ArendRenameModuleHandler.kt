@@ -40,7 +40,7 @@ class ArendRenameModuleHandler: RenameModuleHandler() {
                     }
 
                     private fun renameModule(inputString: String): ModifiableModuleModel? {
-                        val modifiableModel = ModuleManager.getInstance(project).modifiableModel
+                        val modifiableModel = ModuleManager.getInstance(project).getModifiableModel()
                         try {
                             modifiableModel.renameModule(module, inputString)
                         } catch (moduleWithNameAlreadyExists: ModuleWithNameAlreadyExists) {

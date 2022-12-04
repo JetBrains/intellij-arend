@@ -17,7 +17,6 @@ import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.SmartList
-import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
 import org.arend.psi.AREND_KEYWORDS
 import org.arend.psi.ext.*
@@ -43,7 +42,7 @@ fun generateProofSearchResults(
     pattern: String,
 ): Sequence<ProofSearchEntry?> = sequence {
     val settings = ProofSearchUISettings(project)
-    val query = ProofSearchQuery.fromString(pattern).castSafelyTo<ParsingResult.OK<ProofSearchQuery>>()?.value
+    val query = (ProofSearchQuery.fromString(pattern) as? ParsingResult.OK<ProofSearchQuery>)?.value
         ?: return@sequence
     val matcher = ArendExpressionMatcher(query)
 
@@ -129,13 +128,13 @@ private fun getSignature(
     shouldConsiderParameters: Boolean
 ): SignatureWithHighlighting? {
     if (referable is ArendClassField) {
-        val concrete = referable
+        val concrete = (referable
             .parentOfType<ArendDefClass>()
             ?.let(provider::getConcrete)
-            ?.castSafelyTo<Concrete.ClassDefinition>()
+            as? Concrete.ClassDefinition)
             ?.elements
-            ?.find { it is Concrete.ClassField && it.data.castSafelyTo<DataLocatedReferable>()?.underlyingReferable == referable }
-            ?.castSafelyTo<Concrete.ClassField>()
+            ?.find { it is Concrete.ClassField && (it.data as? DataLocatedReferable)?.underlyingReferable == referable }
+            as? Concrete.ClassField
             ?: return null
         val parameters = concrete.parameters.mapNotNull { it.type }
         return SignatureWithHighlighting(
@@ -148,11 +147,11 @@ private fun getSignature(
     if (referable is ArendConstructor) {
         val relatedDefinition = referable
             .parentOfType<ArendDefData>()
-        val concrete = relatedDefinition
+        val concrete = (relatedDefinition
             ?.let(provider::getConcrete)
-            ?.castSafelyTo<Concrete.DataDefinition>()
+            as? Concrete.DataDefinition)
             ?.constructorClauses?.flatMap { it.constructors }
-            ?.find { it.data.castSafelyTo<DataLocatedReferable>()?.underlyingReferable == referable }
+            ?.find { (it.data as? DataLocatedReferable)?.underlyingReferable == referable }
             ?: return null
         val codomain = Concrete.ReferenceExpression(
             concrete.relatedDefinition.data,
@@ -196,7 +195,7 @@ private fun getSignature(
 }
 
 private fun gatherHighlightingData(expr: Concrete.Expression) : ProofSearchHighlightingData {
-    return expr.getPsi()?.castSafelyTo<ArendExpr>()?.let(::getHighlightingData) ?: basicHighlightingData(expr)
+    return (expr.getPsi() as? ArendExpr)?.let(::getHighlightingData) ?: basicHighlightingData(expr)
 }
 
 private fun basicHighlightingData(concrete: Concrete.Expression): ProofSearchHighlightingData =

@@ -38,10 +38,10 @@ abstract class ArendNavigationContributorBase<T> protected constructor(
         return items + getGeneratedItems(project).getOrDefault(name, emptyList())
     }
 
-    override fun getQualifiedName(item: NavigationItem?): String? =
+    override fun getQualifiedName(item: NavigationItem): String? =
             when (item) {
-                is Referable -> item.textRepresentation()
                 is PsiLocatedReferable -> item.fullName
+                is Referable -> item.refLongName?.toString() ?: item.refName
                 else -> null
             }
 

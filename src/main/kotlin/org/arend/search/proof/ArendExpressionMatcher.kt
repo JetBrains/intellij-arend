@@ -1,6 +1,5 @@
 package org.arend.search.proof
 
-import com.intellij.util.castSafelyTo
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.binOp.ExpressionBinOpEngine
 import org.arend.naming.reference.LocatedReferable
@@ -197,7 +196,7 @@ private fun doubleArgumentIterable(patternArguments : List<Concrete.Argument>, m
 private fun disambiguate(candidates: List<Referable>, path: List<String>): Referable? {
     var result: Referable? = null
     for (candidate in candidates) {
-        val location = candidate.castSafelyTo<LocatedReferable>()?.location?.modulePath?.toList() ?: emptyList()
+        val location = (candidate as? LocatedReferable)?.location?.modulePath?.toList() ?: emptyList()
         val longName = candidate.refLongName?.toList() ?: continue
         val actualLongName = location + longName
         if (actualLongName.last() != path.last()) {

@@ -19,7 +19,6 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.impl.SingleHeightTabs
-import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
@@ -211,8 +210,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     private fun getSelectedMessage(): ArendErrorTreeElement? =
-            tree.lastSelectedPathComponent.castSafelyTo<DefaultMutableTreeNode>()
-                    ?.userObject?.castSafelyTo<ArendErrorTreeElement>()
+        (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
 
     private fun isImplicitGoal(treeElement: ArendErrorTreeElement?): Boolean {
         val error = treeElement?.highestError?.error ?: return false

@@ -4,7 +4,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.suggested.startOffset
-import com.intellij.util.castSafelyTo
 import com.intellij.util.containers.tail
 import org.arend.ext.variable.Variable
 import org.arend.core.context.param.DependentLink
@@ -136,7 +135,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                   val classCallExpression = typeCheckedDefinition.resultType as? ClassCallExpression
                   val expr = classCallExpression?.implementations?.firstOrNull { it.key.name == coClauseName }?.value
                   typeCheckedDefinition = ((expr as? LamExpression)?.body as? FunCallExpression)?.definition ?: typeCheckedDefinition
-                  concreteClauseOwner = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcrete(typeCheckedDefinition.ref.underlyingReferable as GlobalReferable).castSafelyTo<Concrete.FunctionDefinition>() ?: concreteClauseOwner
+                  concreteClauseOwner = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcrete(typeCheckedDefinition.ref.underlyingReferable as GlobalReferable) as? Concrete.FunctionDefinition ?: concreteClauseOwner
                 }
 
                 val elimBody = (((typeCheckedDefinition as? FunctionDefinition)?.actualBody as? IntervalElim)?.otherwise
@@ -366,7 +365,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val pipe: PsiElement = factory.createClause("zero").findPrevSibling()!!
                 var currAnchor: PsiElement = localClause
 
-                val offsetOfReplaceablePsi = findReplaceablePsiElement(localIndexList.drop(1), topLevelPatterns.firstNotNullOfOrNull { findDeepInArguments(it, localIndexList[0]) })?.data?.castSafelyTo<PsiElement>()?.startOffset ?: return
+                val offsetOfReplaceablePsi = (findReplaceablePsiElement(localIndexList.drop(1), topLevelPatterns.firstNotNullOfOrNull { findDeepInArguments(it, localIndexList[0]) })?.data as? PsiElement)?.startOffset ?: return
                 val offsetOfCurrentAnchor = currAnchor.startOffset
                 val relativeOffsetOfReplaceablePsi = offsetOfReplaceablePsi - offsetOfCurrentAnchor
 
@@ -400,7 +399,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         }
 
                         if (!inserted) {
-                            val referable = splitPatternEntry.castSafelyTo<ConstructorSplitPatternEntry>()?.constructor?.referable
+                            val referable = (splitPatternEntry as? ConstructorSplitPatternEntry)?.constructor?.referable
                             doReplacePattern(factory, element, patternString, splitPatternEntry.requiresParentheses(), insertedReferable = referable)
                         }
                     } else {
@@ -415,7 +414,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
                             if (elementCopy != null) {
                                 doSubstituteUsages(project, elementCopy.childOfType(), currAnchor, expressionString)
-                                val referable = splitPatternEntry.castSafelyTo<ConstructorSplitPatternEntry>()?.constructor?.referable
+                                val referable = (splitPatternEntry as? ConstructorSplitPatternEntry)?.constructor?.referable
                                 doReplacePattern(factory, elementCopy, patternString, splitPatternEntry.requiresParentheses(), insertedReferable = referable)
                             }
                         }
@@ -428,7 +427,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
         fun isSucPattern(pattern: Concrete.Pattern): Boolean {
             if (pattern !is Concrete.ConstructorPattern) return false
-            val typechecked = pattern.constructor.castSafelyTo<TCDefReferable>()?.typechecked
+            val typechecked = (pattern.constructor as? TCDefReferable)?.typechecked
             return typechecked == Prelude.SUC || typechecked == Prelude.FIN_SUC
         }
 
@@ -536,7 +535,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
 
         private fun needParentheses(elementToReplace: ArendPattern, mayRequireParentheses: Boolean, asExpression: String, patternLine: String, referable: GlobalReferable?) : Boolean {
-            val enclosingPattern = elementToReplace.parent.castSafelyTo<ArendPattern>() ?: return false
+            val enclosingPattern = elementToReplace.parent as? ArendPattern ?: return false
             if (asExpression.isNotEmpty()) return true
             if (!mayRequireParentheses) return false
             if (enclosingPattern.isTuplePattern) return false
@@ -548,12 +547,12 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (correspondingConcrete !is Concrete.ConstructorPattern) {
                 return false
             }
-            if (parsedConcretePattern.patterns.firstOrNull()?.data.castSafelyTo<ArendPattern>()?.skipSingleTuples()?.startOffset != enclosingPattern.skipSingleTuples().startOffset) {
+            if ((parsedConcretePattern.patterns.firstOrNull()?.data as? ArendPattern)?.skipSingleTuples()?.startOffset != enclosingPattern.skipSingleTuples().startOffset) {
                 // infix pattern may be written in a prefix form
                 // this way we should wrap the call with parentheses
                 return true
             }
-            val enclosingPrecedence = correspondingConcrete.constructor.castSafelyTo<GlobalReferable>()?.precedence ?: return false
+            val enclosingPrecedence = (correspondingConcrete.constructor as? GlobalReferable)?.precedence ?: return false
             if (!enclosingPrecedence.isInfix) {
                 // non-fix, argument of a function call should be parenthesized
                 return true
@@ -567,8 +566,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (correspondingConcrete.constructor != referable) {
                 return true
             }
-            val addedLeft = correspondingConcrete.patterns.getOrNull(0)?.data?.castSafelyTo<ArendPattern>()?.skipSingleTuples() == elementToReplace
-            val addedRight = correspondingConcrete.patterns.getOrNull(1)?.data?.castSafelyTo<ArendPattern>()?.skipSingleTuples() == elementToReplace
+            val addedLeft = (correspondingConcrete.patterns.getOrNull(0)?.data as? ArendPattern)?.skipSingleTuples() == elementToReplace
+            val addedRight = (correspondingConcrete.patterns.getOrNull(1)?.data as? ArendPattern)?.skipSingleTuples() == elementToReplace
             return when (precedence.associativity) {
                 Precedence.Associativity.NON_ASSOC -> true
                 Precedence.Associativity.LEFT_ASSOC -> !addedLeft

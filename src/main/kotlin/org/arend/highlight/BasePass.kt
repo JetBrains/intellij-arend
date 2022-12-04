@@ -14,7 +14,6 @@ import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.util.castSafelyTo
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
@@ -494,7 +493,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
                 val prev = improvedElement.extendLeft.prevSibling
                 val startElement = if (prev is LeafPsiElement && prev.elementType == PIPE) prev else improvedElement
                 val endOffset =
-                        if (error is ConditionsError) (improvedElement.patterns.lastOrNull().castSafelyTo<PsiElement>()
+                        if (error is ConditionsError) (improvedElement.patterns.lastOrNull() as? PsiElement
                                 ?: improvedElement as PsiElement).textRange.endOffset
                         else improvedElement.textRange.endOffset
                 return TextRange(startElement.textRange.startOffset, endOffset)

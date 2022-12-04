@@ -7,7 +7,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import com.intellij.util.castSafelyTo
 import com.intellij.util.containers.tail
 import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.definition.Definition
@@ -304,7 +303,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     eliminatedBindings.add(sampleParameter)
                     val definition = pattern.constructor as? Definition
                     val referable = if (definition != null) PsiLocatedReferable.fromReferable(definition.referable) else null
-                    val infixMode = referable?.castSafelyTo<GlobalReferable>()?.precedence?.isInfix ?: false
+                    val infixMode = (referable as? GlobalReferable)?.precedence?.isInfix ?: false
                     val integralNumber = getIntegralNumber(pattern)
                     val patternMatchingOnIdp = if (missingClausesError.generateIdpPatterns) {
                         admitsPatternMatchingOnIdp(sampleParameter.typeExpr, if (cause is ArendCaseExpr) missingClausesError.parameters else null, eliminatedBindings)

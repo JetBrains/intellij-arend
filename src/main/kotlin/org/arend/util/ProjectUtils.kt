@@ -2,6 +2,7 @@ package org.arend.util
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.hints.InlayHintsPassFactory
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -61,7 +62,7 @@ fun Module.register() {
     runReadAction {
         service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
     }
-    service<ArendExtensionChangeListener>().initializeModule(config)
+    ApplicationManager.getApplication().getService(ArendExtensionChangeListener::class.java).initializeModule(config)
 }
 
 fun Editor.isDetailedViewEditor() : Boolean = getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null

@@ -6,7 +6,6 @@ import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.psi.*
 import com.intellij.psi.impl.PsiTreeChangeEventImpl
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.util.castSafelyTo
 import org.arend.psi.AREND_COMMENTS
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
@@ -80,7 +79,7 @@ class ArendPsiChangeService(project: Project) : PsiTreeChangeAdapter() {
             checkGroup(file, file)
         }
         modificationTracker.incModificationCount()
-        event.file.castSafelyTo<ArendFile>()?.cleanupTCRefMaps()
+        (event.file as? ArendFile)?.cleanupTCRefMaps()
     }
 
     override fun beforePropertyChange(event: PsiTreeChangeEvent) {

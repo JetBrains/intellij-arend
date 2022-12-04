@@ -1,6 +1,5 @@
 package org.arend.tracer
 
-import com.intellij.util.castSafelyTo
 import org.arend.ArendTestBase
 import org.arend.error.DummyErrorReporter
 import org.arend.resolving.PsiConcreteProvider
@@ -13,7 +12,7 @@ abstract class ArendTraceTestBase : ArendTestBase() {
         val (expression, definitionRef) =
             ArendTraceAction.getElementAtCursor(myFixture.file, myFixture.editor)!!
         val definition = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
-            .getConcrete(definitionRef).castSafelyTo<Concrete.Definition>()!!
+            .getConcrete(definitionRef) as Concrete.Definition
         return ArendTraceAction.runTracingTypechecker(project, definition, expression)
     }
 

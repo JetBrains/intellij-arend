@@ -14,7 +14,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
-import com.intellij.util.castSafelyTo
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.arend.core.expr.FunCallExpression
 import org.arend.ext.concrete.definition.FunctionKind
@@ -176,7 +175,7 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit,
  * Record fields may be referenced without actual qualifier for an enclosing record
  */
 private fun ArendStatCmd.getQualifiedReferenceFromOpen() : List<ModulePath> {
-    val group = openedReference?.castSafelyTo<ArendReferenceContainer>()?.resolve?.takeIf { it !is ArendFile }?.castSafelyTo<ArendGroup>()
+    val group = (openedReference as? ArendReferenceContainer)?.resolve?.takeIf { it !is ArendFile } as? ArendGroup
     val groupQualifiedName = group?.qualifiedName()
     val groupReducedQualifiedName = if (group is ArendDefClass) groupQualifiedName?.dropLast(1) else null
     return (listOfNotNull(groupQualifiedName, groupReducedQualifiedName).takeIf { it.isNotEmpty() }
@@ -393,14 +392,14 @@ private class ImportStructureCollector(
     }
 
     private fun addCoreGlobalInstances(element: ArendDefinition<*>) {
-        val tcReferable = element.tcReferable?.castSafelyTo<TCDefReferable>()?.typechecked
+        val tcReferable = (element.tcReferable as? TCDefReferable)?.typechecked
         allDefinitionsTypechecked = allDefinitionsTypechecked && (tcReferable != null)
         if (!allDefinitionsTypechecked) return
         tcReferable!!.accept(object : SearchVisitor<Unit>() { // not-null assertion implied by '&&' above
             override fun visitFunCall(expr: FunCallExpression?, params: Unit?): Boolean {
-                val pointerToDefinition = expr?.definition?.referable?.data?.castSafelyTo<SmartPsiElementPointer<*>>()
+                val pointerToDefinition = expr?.definition?.referable?.data as? SmartPsiElementPointer<*>
                 val globalInstance =
-                    pointerToDefinition?.element?.castSafelyTo<ArendDefInstance>()?.takeIf { it.isDefinitelyInstance() }
+                    (pointerToDefinition?.element as? ArendDefInstance)?.takeIf { it.isDefinitelyInstance() }
                 if (globalInstance != null) {
                     currentFrame.instancesFromCore.add(globalInstance)
                 }
@@ -434,7 +433,7 @@ private class ImportStructureCollector(
 
     private fun visitReferenceElement(element: ArendReferenceElement) {
         // todo stubs
-        val resolved = element.reference?.resolve().castSafelyTo<PsiStubbedReferableImpl<*>>() ?: return
+        val resolved = element.reference?.resolve() as? PsiStubbedReferableImpl<*> ?: return
         if (checkIfCanSkipImport(resolved, element)) return
         val (importedFilePath, groupPath) = collectQualifier(resolved)
         val importedAs = getImportedAs(element, resolved) // \import (a \as b)
@@ -457,7 +456,7 @@ private class ImportStructureCollector(
         resolved: PsiStubbedReferableImpl<*>
     ) : String? {
         return element.referenceName.takeIf {
-            it != resolved.refName && it != resolved.castSafelyTo<ReferableBase<*>>()?.aliasName
+            it != resolved.refName && it != (resolved as? ReferableBase<*>)?.aliasName
         }
     }
 

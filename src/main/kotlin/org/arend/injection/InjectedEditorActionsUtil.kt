@@ -1,6 +1,5 @@
 package org.arend.injection
 
-import com.intellij.util.castSafelyTo
 import org.arend.core.context.param.DependentLink
 import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.expr.ClassCallExpression
@@ -141,8 +140,8 @@ private class InterceptingPrettyPrintVisitor(
         val offsetAfter = sb.length
         if (actualRelativeOffset in offsetBefore..offsetAfter) {
             revealableResult = ConcreteRefExpr(expr)
-            val data = expr.data.castSafelyTo<Expression>()
-            if (data != null) {
+            val data = expr.data
+            if (data is Expression) {
                 lifetime = getImplicitArgumentsCount(data, expr)
                 hideLifetime = 0
             }
@@ -150,19 +149,19 @@ private class InterceptingPrettyPrintVisitor(
     }
 
     private fun getImplicitArgumentsCount(core: Expression, expr: Concrete.ReferenceExpression) : Int {
-        if (core.castSafelyTo<DefCallExpression>()?.defCallArguments?.singleOrNull()?.castSafelyTo<ReferenceExpression>()?.binding is ClassCallBinding) {
+        if (((core as? DefCallExpression)?.defCallArguments?.singleOrNull() as? ReferenceExpression)?.binding is ClassCallBinding) {
             return 0
         }
         if (core is FieldCallExpression) {
             val definition = core.definition.type.allParameters().flatMap { it.parameters.allBindings() }
-            val subtractee = expr.castSafelyTo<LongReferenceExpression>()?.qualifier?.referent?.takeIf { it !is ModuleReferable }?.let { 1 } ?: 0
+            val subtractee = (expr as? LongReferenceExpression)?.qualifier?.referent?.takeIf { it !is ModuleReferable }?.let { 1 } ?: 0
             return definition.count { !it.isExplicit } - subtractee
         }
         if (core is ClassCallExpression) {
             val implementations = core.implementations
             return core.definition.fields.take(implementations.size).count { !it.referable.isExplicitField }
         }
-        val parameterLink = core.castSafelyTo<DefCallExpression>()?.definition?.parameters
+        val parameterLink = (core as? DefCallExpression)?.definition?.parameters
         if (parameterLink != null) {
             return parameterLink.accumulate(0) { prev, link -> prev + (if (!link.isExplicit) 1 else 0) }
         }
@@ -207,7 +206,7 @@ private class InterceptingPrettyPrintVisitor(
         if (visitParent && resultAfter != resultBefore && resultAfter is ConcreteRefExpr && resultAfter.expr == expr.function) {
             visitParent = false
             val implicitArgumentsShown = expr.arguments.count { !it.isExplicit }
-            val implicitArgumentsOverall = resultAfter.expr.data?.castSafelyTo<Expression>()?.let { getImplicitArgumentsCount(it.function, resultAfter.expr)} ?: return null
+            val implicitArgumentsOverall = (resultAfter.expr.data as? Expression)?.let { getImplicitArgumentsCount(it.function, resultAfter.expr)} ?: return null
             lifetime = implicitArgumentsOverall - implicitArgumentsShown
             hideLifetime = implicitArgumentsShown
         }

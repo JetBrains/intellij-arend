@@ -22,7 +22,7 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
 
     override fun getRightMargin(): Int = 0
 
-    override fun createHighlighter(scheme: EditorColorsScheme?): EditorHighlighter? = null
+    override fun createHighlighter(scheme: EditorColorsScheme): EditorHighlighter? = null
 
     override fun getFileType(): FileType = ArendFileType
 

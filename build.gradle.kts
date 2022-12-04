@@ -11,8 +11,8 @@ version = "1.8.0.1"
 
 plugins {
     idea
-    kotlin("jvm") version "1.7.10"
-    id("org.jetbrains.intellij") version "1.9.0"
+    kotlin("jvm") version "1.7.21"
+    id("org.jetbrains.intellij") version "1.10.0"
     id("org.jetbrains.grammarkit") version "2021.2.2"
 }
 
@@ -27,9 +27,9 @@ dependencies {
 }
 
 java {
-    // toolchain.languageVersion.set(JavaLanguageVersion.of(11))
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    // toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 tasks["jar"].dependsOn(
@@ -63,11 +63,11 @@ tasks {
 }
 
 intellij {
-    version.set("2022.2.1")
+    version.set("2022.3")
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("yaml", "java", "IdeaVIM:1.11.1"))
+    plugins.set(listOf("yaml", "java", "IdeaVIM:2.0.0"))
 }
 
 tasks.named<JavaExec>("runIde") {
@@ -111,9 +111,9 @@ val generateArendDocLexer = tasks.register<GenerateLexerTask>("genArendDocLexer"
 
 tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions {
-        jvmTarget = "11"
-        languageVersion = "1.5"
-        apiVersion = "1.5"
+        jvmTarget = "17"
+        languageVersion = "1.7"
+        apiVersion = "1.7"
         freeCompilerArgs = listOf("-Xjvm-default=all")
     }
     dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)
@@ -137,7 +137,7 @@ tasks.register<Copy>("prelude") {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "7.1"
+    gradleVersion = "7.6"
 }
 
 // Utils

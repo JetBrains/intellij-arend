@@ -50,7 +50,6 @@ import com.intellij.ui.components.JBList
 import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
-import com.intellij.util.castSafelyTo
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.ui.*
@@ -192,9 +191,9 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         super.init()
         synchronized(this.treeLock) {
             for (it in components) {
-                val field = it.castSafelyTo<JPanel>()?.components?.find { it is ExtendableTextField }
-                if (field != null && it is JPanel) {
-                    it.castSafelyTo<JPanel>()?.remove(field)
+                val field = (it as? JPanel)?.components?.find { it is ExtendableTextField }
+                if (field != null) {
+                    (it as? JPanel)?.remove(field)
                     it.add(myEditorTextField, BorderLayout.SOUTH)
                 }
             }
@@ -212,7 +211,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         TextFieldWithAutoCompletion<ReferableBase<*>>(project, ProofSearchTextCompletionProvider(project), false, "") {
 
         init {
-            val empty: Border = JBUI.Borders.empty(-1, -1, -1, -1)
+            val empty: Border = JBUI.Borders.empty(-1)
             val topLine = JBUI.Borders.customLine(JBUI.CurrentTheme.BigPopup.searchFieldBorderColor(), 0, 0, 0, 0)
             border = JBUI.Borders.merge(empty, topLine, true)
             background = JBUI.CurrentTheme.BigPopup.searchFieldBackground()
@@ -270,7 +269,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
                 if (modules.isNotEmpty()) {
                     val groups = StubIndex.getElements(ArendDefinitionIndex.KEY, modules.last(), project, GlobalSearchScope.allScope(project), PsiReferable::class.java).filterIsInstance<ArendGroup>()
                         .filter { it.hasSuffixGroupStructure(modules.subList(0, modules.size - 1)) }
-                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { it.group?.castSafelyTo<ReferableBase<*>>()?.takeIf { ref -> ref is ArendDefinition && matcher.prefixMatches(ref.refName) } } })
+                    container.addAll(groups.flatMap { group -> group.statements.mapNotNull { (it.group as? ReferableBase<*>)?.takeIf { ref -> ref is ArendDefinition && matcher.prefixMatches(ref.refName) } } })
                 } else {
                     StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
                         StubIndex.getInstance().processElements(ArendDefinitionIndex.KEY, name, project, null, PsiReferable::class.java) {
@@ -338,8 +337,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
             tryHighlightKeyword(i, text, markupModel, "\\and")
             tryHighlightKeyword(i, text, markupModel, "->")
         }
-        val parsingResult =
-            ProofSearchQuery.fromString(text).castSafelyTo<ParsingResult.Error<ProofSearchQuery>>()
+        val parsingResult = ProofSearchQuery.fromString(text) as? ParsingResult.Error<ProofSearchQuery>
         hasErrors = parsingResult != null
         if (parsingResult == null) return true
         val (msg, range) = parsingResult
@@ -468,7 +466,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
             HintManager.getInstance().showErrorHint(mainEditor, "File is read-only")
             return
         }
-        val file = PsiDocumentManager.getInstance(definition.project).getPsiFile(mainDocument).castSafelyTo<ArendFile>() ?: return
+        val file = PsiDocumentManager.getInstance(definition.project).getPsiFile(mainDocument) as? ArendFile ?: return
         val elementUnderCaret = file.findElementAt(caret.offset)?.parentOfType<ArendCompositeElement>() ?: return
         val (action, representation) = runReadAction {
             val locationData = LocationData(definition)

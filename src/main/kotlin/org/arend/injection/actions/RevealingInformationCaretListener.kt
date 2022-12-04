@@ -5,7 +5,6 @@ import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
-import com.intellij.util.castSafelyTo
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.Expression
 import org.arend.injection.*
@@ -71,7 +70,7 @@ private fun InjectedArendEditor.getUndoAction(
             this,
             editor.document,
             verboseLevelParameterMap,
-            concreteResult.expr.data.castSafelyTo<DependentLink>() ?: return null,
+            concreteResult.expr.data as? DependentLink ?: return null,
             inverted,
             id
         )
@@ -80,7 +79,7 @@ private fun InjectedArendEditor.getUndoAction(
             this,
             editor.document,
             verboseLevelMap,
-            concreteResult.expr.data.castSafelyTo<Expression>() ?: return null,
+            concreteResult.expr.data as? Expression ?: return null,
             inverted,
             id
         )

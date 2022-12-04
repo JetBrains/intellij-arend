@@ -6,7 +6,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import com.intellij.util.castSafelyTo
 import org.arend.psi.*
 import org.arend.psi.ext.ArendPattern
 import org.arend.term.abs.Abstract
@@ -22,7 +21,7 @@ class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElement
     override fun getText(): String = ArendBundle.message("arend.pattern.remove")
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val pattern = patternRef.element?.castSafelyTo<Abstract.Pattern>() ?: return
+        val pattern = patternRef.element as? Abstract.Pattern ?: return
         val factory = ArendPsiFactory(project)
         val patternLine = if (pattern.isExplicit) "_" else "{_}"
         val wildcardPattern: PsiElement? = when (pattern) {
@@ -30,6 +29,6 @@ class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElement
             else -> null
         }
 
-        if (wildcardPattern != null) pattern.castSafelyTo<PsiElement>()?.replaceWithNotification(wildcardPattern)
+        if (wildcardPattern != null) (pattern as? PsiElement)?.replaceWithNotification(wildcardPattern)
     }
 }

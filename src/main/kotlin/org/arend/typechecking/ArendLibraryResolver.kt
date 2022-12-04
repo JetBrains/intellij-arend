@@ -20,7 +20,7 @@ class ArendLibraryResolver(private val project: Project): LibraryResolver {
             return null
         }
 
-        val depModule = ModuleManager.getInstance(project)?.findModuleByName(name)
+        val depModule = ModuleManager.getInstance(project).findModuleByName(name)
         if (depModule != null && ArendModuleType.has(depModule)) {
             return ArendModuleConfigService.getInstance(depModule)?.library
         }

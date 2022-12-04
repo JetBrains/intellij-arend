@@ -14,7 +14,6 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.intellij.util.SmartList
-import com.intellij.util.castSafelyTo
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
@@ -438,4 +437,4 @@ fun Editor.getSelectionWithoutErrors(): TextRange? =
     }
 
  fun parentArgumentAppExpr(atomFieldsAcc: ArendAtomFieldsAcc?): ArendArgumentAppExpr? =
-        atomFieldsAcc?.parent?.let { if (it is ArendAtomArgument) it.parent else it }?.castSafelyTo()
+        atomFieldsAcc?.parent?.let { if (it is ArendAtomArgument) it.parent else it } as? ArendArgumentAppExpr

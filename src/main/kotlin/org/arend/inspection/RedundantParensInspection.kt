@@ -9,7 +9,6 @@ import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
-import com.intellij.util.castSafelyTo
 import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
@@ -73,11 +72,11 @@ private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
 }
 
 private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendExpr): Boolean {
-    val parentNewExpr = getParentAtomFieldsAcc(tuple)
-        ?.parent.castSafelyTo<ArendArgumentAppExpr>()
+    val parentNewExpr = (getParentAtomFieldsAcc(tuple)
+        ?.parent as? ArendArgumentAppExpr)
         // Excludes cases like `(f a) b`
         ?.takeIf { it.argumentList.isEmpty() }
-        ?.parent.castSafelyTo<ArendNewExpr>()
+        ?.parent as? ArendNewExpr
     // Examples of the parent new expression: (f a), \new (f a), (f a) { x => 1 }
     val parent = parentNewExpr?.parent
     return isRedundantParensForAnyChild(parent) ||
@@ -85,8 +84,8 @@ private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendE
 }
 
 private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
-    tuple.parent.castSafelyTo<ArendAtom>()
-        ?.parent.castSafelyTo<ArendAtomFieldsAcc>()
+    ((tuple.parent as? ArendAtom)
+        ?.parent as? ArendAtomFieldsAcc)
         // Excludes cases like `(f a).1`
         ?.takeIf { it.numberList.isEmpty() }
 

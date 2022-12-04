@@ -18,7 +18,7 @@ class ArendErrorTreeAutoScrollToSource(private val project: Project, private val
         project.service<ArendProjectSettings>().data.autoScrollToSource = state
     }
 
-    override fun scrollToSource(component: Component?) {
+    override fun scrollToSource(component: Component) {
         tree.navigate(false)
     }
 }

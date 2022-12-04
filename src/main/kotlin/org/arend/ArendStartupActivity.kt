@@ -23,9 +23,11 @@ class ArendStartupActivity : StartupActivity.RequiredForSmartMode {
         val libraryManager = project.service<TypeCheckingService>().libraryManager
 
         project.messageBus.connect(project).subscribe(ProjectTopics.MODULES, object : ModuleListener {
-            override fun moduleAdded(project: Project, module: Module) {
-                if (ArendModuleType.has(module)) {
-                    module.register()
+            override fun modulesAdded(project: Project, modules: List<Module>) {
+                for (module in modules) {
+                    if (ArendModuleType.has(module)) {
+                        module.register()
+                    }
                 }
             }
 

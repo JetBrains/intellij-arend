@@ -1,6 +1,5 @@
 package org.arend.resolving
 
-import com.intellij.util.castSafelyTo
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.LocalReferable
@@ -41,7 +40,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
             }
             is ArendReferenceElement -> listOf(data)
             is ArendPattern -> {
-                data.sequence.mapNotNull { it.referenceElement?.takeIf { it.referenceName == resolvedRefs.singleOrNull()?.refName }?.referenceNameElement?.castSafelyTo<ArendReferenceElement>() }
+                data.sequence.mapNotNull { it.referenceElement?.takeIf { ref -> ref.referenceName == resolvedRefs.singleOrNull()?.refName }?.referenceNameElement as? ArendReferenceElement }
             }
             is ArendAtomLevelExpr -> data.refIdentifier?.let { listOf(it) } ?: return
             else -> return

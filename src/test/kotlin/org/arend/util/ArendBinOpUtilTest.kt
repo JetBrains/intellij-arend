@@ -1,7 +1,6 @@
 package org.arend.util
 
 import com.intellij.psi.PsiElement
-import com.intellij.util.castSafelyTo
 import org.arend.ArendTestBase
 import org.arend.psi.childOfType
 import org.arend.psi.ext.ArendArgumentAppExpr
@@ -15,9 +14,9 @@ class ArendBinOpUtilsTest : ArendTestBase() {
         val element = myFixture.findElementByText("test", PsiElement::class.java)
         val appExprPsi = element.parentOfType<ArendFunctionDefinition<*>>()?.body?.expr?.childOfType<ArendArgumentAppExpr>()!!
         val appExpr = appExprToConcrete(appExprPsi) as Concrete.AppExpression
-        val functionText = appExpr.function.data.castSafelyTo<PsiElement>()?.text!!
-        val firstArgText = appExpr.arguments[0].expression.data.castSafelyTo<PsiElement>()?.text!!
-        val secondArgText = appExpr.arguments[1].expression.data.castSafelyTo<PsiElement>()?.text!!
+        val functionText = (appExpr.function.data as PsiElement).text
+        val firstArgText = (appExpr.arguments[0].expression.data as PsiElement).text!!
+        val secondArgText = (appExpr.arguments[1].expression.data as PsiElement).text!!
         assertEquals(result, "$firstArgText $functionText $secondArgText")
     }
 

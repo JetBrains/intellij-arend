@@ -19,7 +19,6 @@ import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
-import com.intellij.util.castSafelyTo
 import org.arend.core.context.binding.Binding
 import org.arend.intention.AbstractGenerateFunctionIntention
 import org.arend.intention.BaseArendIntention
@@ -144,7 +143,7 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
                         it is ArendPiExpr ||
                         it is ArendSigmaExpr ||
                         it is ArendTuple ||
-                        (it is ArendNewExpr && it.firstChild.castSafelyTo<ArendAppPrefix>() != null)
+                        (it is ArendNewExpr && it.firstChild is ArendAppPrefix)
             }
 
     private fun collectWrappableOptions(rootPsi: ArendCompositeElement, rangeOfReplacement: TextRange): List<WrappableOption> {

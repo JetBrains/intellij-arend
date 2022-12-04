@@ -8,7 +8,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import com.intellij.util.castSafelyTo
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.param.DependentLink
@@ -343,7 +342,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             val target = asDefIdentifier ?: if (idOrUnderscore is ArendRefIdentifier) idOrUnderscore else null
                             val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = {
                                 val name = it.name
-                                it.scope.resolveName(name).castSafelyTo<DataContainer>()?.data.castSafelyTo<PsiElement>()
+                                (it.scope.resolveName(name) as? DataContainer)?.data as? PsiElement
                             }
 
                             val noOfUsages = if (target != null) {
@@ -387,7 +386,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                     if (asName.isNotEmpty()) asName += " : ${ResolveReferenceAction.getTargetName(it, currentClause as ArendCompositeElement)}"
                                 }
 
-                                val actualPatternToReplace = if (namePatternToReplace.parent.castSafelyTo<ArendPattern>()?.asPatterns?.isNotEmpty() == true) namePatternToReplace.parent as ArendPattern else namePatternToReplace
+                                val actualPatternToReplace = if ((namePatternToReplace.parent as? ArendPattern)?.asPatterns?.isNotEmpty() == true) namePatternToReplace.parent as ArendPattern else namePatternToReplace
                                 var result: ArendPattern? = doReplacePattern(psiFactory, actualPatternToReplace, printData.patternString, printData.requiresParentheses, asName)
                                 var number = result?.integer
                                 if (number != null) {
@@ -893,7 +892,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             val rightBrace = enclosingNode.lastChild
                             val first = enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), rightBrace)
                             enclosingNode.addBefore(psiFactory.createWhitespace(" "), first)
-                            rightBrace.findPrevSibling().castSafelyTo<ArendPattern>()?.let { callback.invoke(entry.second, it) }
+                            (rightBrace.findPrevSibling() as? ArendPattern)?.let { callback.invoke(entry.second, it) }
                         } else {
                             if (enclosingNode.sequence.isEmpty()) {
                                 enclosingNode = enclosingNode.replaceWithNotification(psiFactory.createPattern("${enclosingNode.text}$patternLine"))
@@ -907,7 +906,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         val actualPosition = absorbParenthesesUp(position)
                         enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), actualPosition)
                         enclosingNode.addBefore(psiFactory.createWhitespace(" "), actualPosition)
-                        actualPosition.findPrevSibling().castSafelyTo<ArendPattern>()?.let { callback.invoke(entry.second, it) }
+                        (actualPosition.findPrevSibling() as? ArendPattern)?.let { callback.invoke(entry.second, it) }
                     }
                     skippedParams = entry.first + 1
                 }
