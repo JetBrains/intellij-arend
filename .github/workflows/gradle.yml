@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        java: [11]
+        java: [17]
     runs-on: ${{ matrix.os }}
     env:
       NO_FS_ROOTS_ACCESS_CHECK: true
@@ -35,7 +35,7 @@ jobs:
         arguments: clean test --info --no-daemon --stacktrace
     - uses: eskatos/gradle-command-action@v1
       # Normally, macOS runs faster than the other two
-      if: matrix.os == 'macOS-latest' && matrix.java == '11'
+      if: matrix.os == 'macOS-latest' && matrix.java == '17'
       with:
         wrapper-cache-enabled: false
         cache-disabled: true
@@ -43,7 +43,7 @@ jobs:
         wrapper-directory: intellij-arend
         arguments: assemble --info --no-daemon --stacktrace
     - uses: actions/upload-artifact@master
-      if: matrix.os == 'macOS-latest' && matrix.java == '11'
+      if: matrix.os == 'macOS-latest' && matrix.java == '17'
       with:
         name: Plugin
         path: intellij-arend/build/distributions
