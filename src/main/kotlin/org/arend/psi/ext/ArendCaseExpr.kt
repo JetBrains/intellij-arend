@@ -33,6 +33,6 @@ class ArendCaseExpr(node: ASTNode) : ArendExpr(node), Abstract.CaseArgumentsHold
             else -> null
         }
         val returnExpr = returnExpr
-        return visitor.visitCase(this, child?.findNextSibling().elementType == SCASE_KW, evalKind, caseArguments, returnExpr?.type, returnExpr?.typeLevel, withBody?.clauseList ?: emptyList(), params)
+        return visitor.visitCase(this, caseKw?.elementType == SCASE_KW, evalKind, caseArguments, returnExpr?.type, returnExpr?.typeLevel, withBody?.clauseList ?: emptyList(), params)
     }
 }
