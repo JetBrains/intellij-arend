@@ -435,7 +435,7 @@ private class ImportStructureCollector(
         // todo stubs
         val resolved = element.reference?.resolve() as? PsiStubbedReferableImpl<*> ?: return
         if (checkIfCanSkipImport(resolved, element)) return
-        val (importedFilePath, groupPath) = collectQualifier(resolved)
+        val (importedFilePath, groupPath) = collectQualifier(resolved) ?: return
         val importedAs = getImportedAs(element, resolved) // \import (a \as b)
         val (openingPath, preCharacteristics) = subtract(
             groupPath.toList(),
@@ -561,7 +561,7 @@ private data class MutableFrame(
         val instanceSource =
             if (useTypecheckedInstances) instancesFromCore intersect instancesFromScope.toSet() else instancesFromScope
         for (instance in instanceSource) {
-            val (importedFile, qualifier) = collectQualifier(instance)
+            val (importedFile, qualifier) = collectQualifier(instance) ?: continue
             additionalFiles.computeIfAbsent(importedFile) { HashSet() }
                 .add(ImportedName(qualifier.firstName ?: instance.refName, null))
             usages[ImportedName(instance.refName, null)] =
@@ -607,7 +607,7 @@ private fun subtract(
 
 typealias FilePath = ModulePath
 
-private fun collectQualifier(element: ArendCompositeElement): Pair<FilePath, ModulePath> {
+private fun collectQualifier(element: ArendCompositeElement): Pair<FilePath, ModulePath>? {
     var currentGroup = element.parentOfType<ArendGroup>()
     if (element is ArendConstructor || element is ArendClassField) {
         @Suppress("RemoveExplicitTypeArguments")
@@ -616,7 +616,7 @@ private fun collectQualifier(element: ArendCompositeElement): Pair<FilePath, Mod
     val container = mutableListOf<String>()
     while (currentGroup != null) {
         if (currentGroup is ArendFile) {
-            val modulePath = currentGroup.moduleLocation?.modulePath?.toList()
+            val modulePath = currentGroup.moduleLocation?.modulePath?.toList() ?: return null
             container.reverse()
             return ModulePath(modulePath) to ModulePath(container)
         } else {
@@ -624,5 +624,5 @@ private fun collectQualifier(element: ArendCompositeElement): Pair<FilePath, Mod
         }
         currentGroup = currentGroup.parentGroup
     }
-    return ModulePath() to ModulePath()
+    return null
 }
