@@ -20,7 +20,7 @@ class ArendProjectImportBuilder : ProjectImportBuilder<String>() {
 
     override fun getIcon() = ArendIcons.AREND
 
-    override fun getName(): String = "Arend Project"
+    override fun getName(): String = "Arend project"
 
     override fun isOpenProjectSettingsAfter() = parameters.openProjectSettingsAfter
 
