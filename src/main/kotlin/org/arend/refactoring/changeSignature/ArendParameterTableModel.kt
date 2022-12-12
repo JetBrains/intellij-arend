@@ -42,7 +42,8 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
     private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
             value ?: return
-            if (isCorrectDefinitionName(LongName(singletonList(value)))) {
+            val items = dialog.getParameterTableItems().toHashSet(); items.remove(item)
+            if (!items.any { it.parameter.name == value } && isCorrectDefinitionName(LongName(singletonList(value)))) {
                 dialog.refactorParameterNames(item, value)
                 super.setValue(item, value)
             }
