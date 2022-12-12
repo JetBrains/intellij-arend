@@ -11,7 +11,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
-import com.intellij.openapi.editor.impl.DocumentImpl
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -180,15 +179,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         return parametersPanel!! //safe
     }
 
-    private fun getParametersScope(item: ArendChangeSignatureDialogParameterTableModelItem?): () -> Scope = { ->
-        val items = this.myParametersTableModel.items
-        val limit = items.indexOfFirst { it == item }.let { if (it == -1) items.size else it }
-        val params = items.take(limit).map { it.associatedReferable }
-        ListScope(params)
-    }
-
-    private fun getTypeTextField(index: Int) = (this.myParametersTable.getCellEditor(index, 1) as? CodeFragmentTableCellEditorBase?)?.getTableCellEditorComponent(myParametersTable, myParametersTableModel.items[index].typeCodeFragment, false, 0, 0) as? EditorTextField
-
     fun refactorParameterNames(item: ArendChangeSignatureDialogParameterTableModelItem, newName: String) {
         val index = myParametersTableModel.items.indexOf(item)
         val docManager = PsiDocumentManager.getInstance(project)
@@ -219,8 +209,10 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                     for (entry in map) {
                         val textFile = entry.key
                         val i = entry.value.first
-                        val changes = entry.value.second
-                        for (range in changes) textFile.replaceString(range.startOffset, range.endOffset, newName)
+                        val changes = entry.value.second.sortedBy { - it.startOffset }
+                        var text = textFile.text
+                        for (range in changes) text = text.replaceRange(IntRange(range.startOffset, range.endOffset - 1), newName)
+                        textFile.replaceString(0, textFile.text.length, text)
                         if (changes.isNotEmpty()) {
                             docManager.commitDocument(textFile)
                             if (i != -1) {
@@ -238,6 +230,17 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             updateSignature()
         }, ModalityState.defaultModalityState())
     }
+
+    fun getParameterTableItems() = myParametersTable.items
+
+    private fun getParametersScope(item: ArendChangeSignatureDialogParameterTableModelItem?): () -> Scope = { ->
+        val items = this.myParametersTableModel.items
+        val limit = items.indexOfFirst { it == item }.let { if (it == -1) items.size else it }
+        val params = items.take(limit).map { it.associatedReferable }
+        ListScope(params)
+    }
+
+    private fun getTypeTextField(index: Int) = (this.myParametersTable.getCellEditor(index, 1) as? CodeFragmentTableCellEditorBase?)?.getTableCellEditorComponent(myParametersTable, myParametersTableModel.items[index].typeCodeFragment, false, 0, 0) as? EditorTextField
 
     private fun invokeTypeHighlighting(index: Int) {
         val fragment = if (index == -1) this.myReturnTypeCodeFragment else myParametersTableModel.items[index].typeCodeFragment
