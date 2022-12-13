@@ -45,26 +45,27 @@ import javax.swing.event.TableModelEvent
 import javax.swing.table.TableCellEditor
 
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
-    ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context) {
+    ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context),
+    ArendExpressionFragmentResolveListener {
     private var parametersPanel: JPanel? = null
-    private lateinit var parameterToUsages: MutableMap<ArendChangeSignatureDialogParameterTableModelItem, MutableMap<ArendChangeSignatureDialogCodeFragment, MutableSet<TextRange>>>
-    private lateinit var parameterToDependencies: MutableMap<ArendChangeSignatureDialogCodeFragment, MutableSet<ArendChangeSignatureDialogParameterTableModelItem>>
+    private lateinit var parameterToUsages: MutableMap<ArendChangeSignatureDialogParameterTableModelItem, MutableMap<ArendExpressionCodeFragment, MutableSet<TextRange>>>
+    private lateinit var parameterToDependencies: MutableMap<ArendExpressionCodeFragment, MutableSet<ArendChangeSignatureDialogParameterTableModelItem>>
 
-    private fun clearParameter(fragment: ArendChangeSignatureDialogCodeFragment) {
+    private fun clearParameter(fragment: ArendExpressionCodeFragment) {
         for (usageEntry in parameterToUsages) usageEntry.value.remove(fragment)
         parameterToDependencies.remove(fragment)
     }
 
-    private fun typeCodeFragmentUpdated(updatedCodeFragment: ArendChangeSignatureDialogCodeFragment) {
+    override fun expressionFragmentResolved(codeFragment: ArendExpressionCodeFragment) {
         val resolveCache = project.service<ArendResolveCache>()
         val referableToItem = HashMap<ArendChangeSignatureDialogParameter, ArendChangeSignatureDialogParameterTableModelItem>()
         for (item in myParametersTable.items) referableToItem[item.associatedReferable] = item
 
-        clearParameter(updatedCodeFragment)
+        clearParameter(codeFragment)
 
         val newDependencies = HashSet<ArendChangeSignatureDialogParameterTableModelItem>()
-        parameterToDependencies[updatedCodeFragment] = newDependencies
-        val refs = updatedCodeFragment.descendantsOfType<ArendReferenceElement>().toList()
+        parameterToDependencies[codeFragment] = newDependencies
+        val refs = codeFragment.descendantsOfType<ArendReferenceElement>().toList()
 
         for (ref in refs) {
             val target = resolveCache.getCached(ref)
@@ -73,8 +74,8 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 newDependencies.add(item)
                 var p = parameterToUsages[item]
                 if (p == null) {p = HashMap(); parameterToUsages[item] = p }
-                var s = p[updatedCodeFragment]
-                if (s == null) {s = HashSet(); p[updatedCodeFragment] = s}
+                var s = p[codeFragment]
+                if (s == null) {s = HashSet(); p[codeFragment] = s}
                 s.add(ref.textRange)
             }
         }
@@ -104,7 +105,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             is ArendDefFunction -> referable.returnExpr?.text ?: ""
             else -> ""
         }
-        return ArendChangeSignatureDialogCodeFragment(myProject, returnExpression, getParametersScope(null), referable)
+        return ArendExpressionCodeFragment(myProject, returnExpression, getParametersScope(null), referable, this)
     }
 
     override fun createCallerChooser(title: String?, treeToReuse: Tree?, callback: Consumer<in MutableSet<PsiElement>>?) = null
@@ -161,7 +162,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                         }
                         if (column == 1) {
                             val updatedText = e.document.text
-                            val updatedFragment = (myParametersTableModel.items.get(row).typeCodeFragment as ArendChangeSignatureDialogCodeFragment).updatedFragment(updatedText)
+                            val updatedFragment = (myParametersTableModel.items[row].typeCodeFragment as ArendExpressionCodeFragment).updatedFragment(updatedText)
                             myParametersTableModel.setValueAtWithoutUpdate(updatedFragment, row, column)
                         }
                         updateSignature()
@@ -221,7 +222,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
          runReadAction {
              val usages = parameterToUsages[item]
              if (usages != null) {
-                 val usagesAmendments = HashMap<ArendChangeSignatureDialogCodeFragment, MutableSet<TextRange>>()
+                 val usagesAmendments = HashMap<ArendExpressionCodeFragment, MutableSet<TextRange>>()
 
                  for (entry in usages) {
                      val codeFragment = entry.key
@@ -286,17 +287,15 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         val editorTextField = if (index == -1) this.myReturnTypeField else getTypeTextField(index)
         val codeAnalyzer = DaemonCodeAnalyzer.getInstance(project) as? DaemonCodeAnalyzerImpl
         val document = fragment?.let{ PsiDocumentManager.getInstance(project).getDocument(it) }
-        if (fragment is ArendChangeSignatureDialogCodeFragment && codeAnalyzer != null && editorTextField != null && document != null) {
+        if (fragment is ArendExpressionCodeFragment && codeAnalyzer != null && editorTextField != null && document != null) {
             editorTextField.addNotify()
             codeAnalyzer.restart(fragment)
             val textEditor = editorTextField.editor?.let{ TextEditorProvider.getInstance().getTextEditor(it) }
             if (textEditor != null) codeAnalyzer.runPasses(fragment, document, singletonList(textEditor), IntArray(0), true, null)
-            typeCodeFragmentUpdated(fragment)
         }
     }
 
     private fun updateToolbarButtons() {
-        val resolveCache = project.service<ArendResolveCache>()
         val parametersPanel = parametersPanel ?: return
         val downButton = ToolbarDecorator.findDownButton(parametersPanel) ?: return
         val upButton = ToolbarDecorator.findUpButton(parametersPanel) ?: return
@@ -307,9 +306,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             val currentItem = this.myParametersTableModel.items[selectedIndex]
 
             val dependencyChecker = { pI: ArendChangeSignatureDialogParameterTableModelItem, cI: ArendChangeSignatureDialogParameterTableModelItem ->
-                cI.typeCodeFragment.descendantsOfType<ArendReferenceElement>().filter {
-                    resolveCache.getCached(it) == pI.associatedReferable
-                }.toList().isEmpty()
+                !(parameterToDependencies[cI.typeCodeFragment]?.contains(pI) ?: false)
             }
             if (selectedIndex > 0) {
                 val prevItem = this.myParametersTableModel.items[selectedIndex - 1]

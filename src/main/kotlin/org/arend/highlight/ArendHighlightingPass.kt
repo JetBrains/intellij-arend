@@ -6,7 +6,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.util.elementType
 import org.arend.IArendFile
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
@@ -15,7 +14,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
-import org.arend.refactoring.changeSignature.ArendChangeSignatureDialogCodeFragment
+import org.arend.refactoring.changeSignature.ArendExpressionCodeFragment
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
 import org.arend.resolving.PsiConcreteProvider
@@ -177,12 +176,11 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         }
         when (file) {
             is ArendFile -> DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, resolveListener).resolveGroup(file, file.scope)
-            is ArendChangeSignatureDialogCodeFragment -> {
-                //println("Highlighting pass: ${file.text}")
-                val firstChild = file.firstChild as ArendExpr //TODO: Move this getter into code fragment implementation
-                if (firstChild.elementType != ArendElementTypes.EXPR) {
-                    val concrete = ConcreteBuilder.convertExpression(firstChild)
+            is ArendExpressionCodeFragment -> {
+                file.getExpr()?.let{ expr ->
+                    val concrete = ConcreteBuilder.convertExpression(expr)
                     ExpressionResolveNameVisitor(ArendReferableConverter, file.scope, ArrayList(), this, resolveListener).resolve(concrete)
+                    file.notifyResolveListener()
                 }
             }
         }
