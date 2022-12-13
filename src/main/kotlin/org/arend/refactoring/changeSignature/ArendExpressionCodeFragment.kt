@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.PsiCodeFragmentImpl
 import com.intellij.psi.impl.source.tree.ICodeFragmentElementType
+import com.intellij.psi.util.elementType
 import org.arend.ArendLanguage
 import org.arend.IArendFile
 import org.arend.naming.scope.EmptyScope
@@ -15,10 +16,11 @@ import org.arend.naming.scope.Scope
 import org.arend.parser.ArendParser
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendExpr
 import org.arend.resolving.ArendReference
 import java.util.concurrent.atomic.AtomicLong
 
-class ArendChangeSignatureDialogCodeFragment(project: Project, expression: String, val complementScope: (() -> Scope)?, context: PsiElement?):
+class ArendExpressionCodeFragment(project: Project, expression: String, val complementScope: (() -> Scope)?, context: PsiElement?, private val fragmentResolveListener: ArendExpressionFragmentResolveListener?):
     PsiCodeFragmentImpl(project, ArendExpressionCodeFragmentElementType, true, "fragment.ard", expression, context), IArendFile {
     override var lastModification = AtomicLong(-1)
     override fun getReference(): ArendReference? = null
@@ -30,7 +32,14 @@ class ArendChangeSignatureDialogCodeFragment(project: Project, expression: Strin
 
     override fun moduleTextRepresentation(): String  = name
     override fun positionTextRepresentation(): String? = null
-    fun updatedFragment(expression: String) = ArendChangeSignatureDialogCodeFragment(project, expression, complementScope, context)
+
+    fun getExpr(): ArendExpr? {
+        val firstChild = firstChild
+        return if (firstChild is ArendExpr && firstChild.elementType != ArendElementTypes.EXPR) firstChild else null
+    }
+    fun updatedFragment(expression: String) = ArendExpressionCodeFragment(project, expression, complementScope, context, fragmentResolveListener)
+
+    fun notifyResolveListener() { fragmentResolveListener?.expressionFragmentResolved(this) }
 }
 
 object ArendExpressionCodeFragmentElementType: ICodeFragmentElementType("EXPR_TEXT", ArendLanguage.INSTANCE) {
@@ -44,4 +53,8 @@ object ArendExpressionCodeFragmentElementType: ICodeFragmentElementType("EXPR_TE
         GeneratedParserUtilBase.exit_section_(builder, 0, marker, ArendElementTypes.EXPR, success, true, GeneratedParserUtilBase.TRUE_CONDITION)
         return builder.treeBuilt
     }
+}
+
+interface ArendExpressionFragmentResolveListener {
+    fun expressionFragmentResolved(codeFragment: ArendExpressionCodeFragment)
 }

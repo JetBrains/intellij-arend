@@ -1,6 +1,5 @@
 package org.arend.refactoring.changeSignature
 
-import com.intellij.codeInsight.highlighting.BraceMatchingUtil
 import com.intellij.psi.PsiCodeFragment
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
@@ -16,7 +15,7 @@ import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 
 class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
-                               dialog: ArendChangeSignatureDialog,
+                               val dialog: ArendChangeSignatureDialog,
                                val scopeCalculator: (ArendChangeSignatureDialogParameterTableModelItem) -> () -> Scope,
                                defaultValueContext: PsiElement):
     ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor, dialog), ArendImplicitnessColumn()) {
@@ -31,13 +30,10 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
         val scope = { -> item!!.let { scopeCalculator.invoke(it).invoke() } }
 
         item = ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo,
-            ArendChangeSignatureDialogCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "",
-                scope, myTypeContext))
+            ArendExpressionCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "", scope, myTypeContext, dialog))
 
         return item
     }
-
-
 
     private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
@@ -54,9 +50,8 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
     private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog) :
         TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileType) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
-            val fragment = value as? ArendChangeSignatureDialogCodeFragment ?: return
+            val fragment = value as? ArendExpressionCodeFragment ?: return
             item?.parameter?.setType(fragment.text)
-            //if (item != null) dialog.highlightDependentItems(item)
         }
     }
 
