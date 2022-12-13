@@ -46,6 +46,41 @@ import javax.swing.table.TableCellEditor
 
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
     ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context) {
+    private var parametersPanel: JPanel? = null
+    private lateinit var parameterToUsages: MutableMap<ArendChangeSignatureDialogParameterTableModelItem, MutableMap<ArendChangeSignatureDialogCodeFragment, MutableSet<TextRange>>>
+    private lateinit var parameterToDependencies: MutableMap<ArendChangeSignatureDialogCodeFragment, MutableSet<ArendChangeSignatureDialogParameterTableModelItem>>
+
+    private fun clearParameter(fragment: ArendChangeSignatureDialogCodeFragment) {
+        for (usageEntry in parameterToUsages) usageEntry.value.remove(fragment)
+        parameterToDependencies.remove(fragment)
+    }
+
+    private fun typeCodeFragmentUpdated(updatedCodeFragment: ArendChangeSignatureDialogCodeFragment) {
+        val resolveCache = project.service<ArendResolveCache>()
+        val referableToItem = HashMap<ArendChangeSignatureDialogParameter, ArendChangeSignatureDialogParameterTableModelItem>()
+        for (item in myParametersTable.items) referableToItem[item.associatedReferable] = item
+
+        clearParameter(updatedCodeFragment)
+
+        val newDependencies = HashSet<ArendChangeSignatureDialogParameterTableModelItem>()
+        parameterToDependencies[updatedCodeFragment] = newDependencies
+        val refs = updatedCodeFragment.descendantsOfType<ArendReferenceElement>().toList()
+
+        for (ref in refs) {
+            val target = resolveCache.getCached(ref)
+            val item = referableToItem[target]
+            if (item != null) {
+                newDependencies.add(item)
+                var p = parameterToUsages[item]
+                if (p == null) {p = HashMap(); parameterToUsages[item] = p }
+                var s = p[updatedCodeFragment]
+                if (s == null) {s = HashSet(); p[updatedCodeFragment] = s}
+                s.add(ref.textRange)
+            }
+        }
+
+    }
+
     override fun updatePropagateButtons() {
         super.updatePropagateButtons()
         updateToolbarButtons()
@@ -55,7 +90,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         super.customizeParametersTable(table)
     }
 
-    private var parametersPanel: JPanel? = null
     override fun getFileType() = ArendFileType
 
     override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
@@ -155,6 +189,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         myParametersTableModel.addTableModelListener(mySignatureUpdater)
         customizeParametersTable(myParametersTable)
 
+        parameterToUsages = HashMap(); parameterToDependencies = HashMap()
         for (i in 0 until myParametersTable.items.size) invokeTypeHighlighting(i)
 
         val selectionModel = (this.myParametersTable.selectionModel as DefaultListSelectionModel)
@@ -180,51 +215,55 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     fun refactorParameterNames(item: ArendChangeSignatureDialogParameterTableModelItem, newName: String) {
-        val index = myParametersTableModel.items.indexOf(item)
         val docManager = PsiDocumentManager.getInstance(project)
-        val map = HashMap<Document, Pair<Int, HashSet<TextRange>>>()
-        val resolveCache = project.service<ArendResolveCache>()
+        val dataToWrite = HashMap<Document, Pair<Int, String>>()
 
-        fun collectData(codeFragment: PsiCodeFragment, i: Int) {
-            val affectedRefs = codeFragment.descendantsOfType<ArendReferenceElement>().filter {
-                resolveCache.getCached(it) == item.associatedReferable
-            }.toList()
-            val textFile = docManager.getDocument(codeFragment)
-            val s = HashSet<TextRange>()
-            if (textFile != null) {
-                for (ref in affectedRefs) s.add(ref.textRange)
-                map[textFile] = Pair(i, s)
-            }
+         runReadAction {
+             val usages = parameterToUsages[item]
+             if (usages != null) {
+                 val usagesAmendments = HashMap<ArendChangeSignatureDialogCodeFragment, MutableSet<TextRange>>()
+
+                 for (entry in usages) {
+                     val codeFragment = entry.key
+                     val itemToModify = myParametersTable.items.firstOrNull { it.typeCodeFragment == codeFragment }
+                     val itemIndex = itemToModify?.let { myParametersTable.items.indexOf(it) } ?: -1
+                     val changes = entry.value.sortedBy { it.startOffset }
+                     val updatedChanges = HashSet<TextRange>()
+                     val textFile = docManager.getDocument(codeFragment)
+                     if (textFile != null) {
+                         var text = textFile.text
+                         var delta = 0
+                         for (change in changes) {
+                             text = text.replaceRange(IntRange(change.startOffset + delta, change.endOffset - 1 + delta), newName)
+                             val epsilon = newName.length - change.length
+                             updatedChanges.add(TextRange(change.startOffset + delta, change.endOffset + delta + epsilon))
+                             delta += epsilon
+                         }
+                         dataToWrite[textFile] = Pair(itemIndex, text)
+                         usagesAmendments[codeFragment] = updatedChanges
+                     }
+                 }
+
+                 for (amendment in usagesAmendments)
+                     usages[amendment.key] = amendment.value
+             }
         }
 
-        runReadAction {
-            for (i in index+1 until myParametersTable.items.size)
-                collectData(myParametersTableModel.items[i].typeCodeFragment, i)
-            myReturnTypeCodeFragment?.let{ collectData(it, -1) }
-        }
-
-        ApplicationManager.getApplication().invokeLater({
+        ApplicationManager.getApplication().invokeAndWait({
             executeCommand {
                 runWriteAction {
-                    for (entry in map) {
-                        val textFile = entry.key
-                        val i = entry.value.first
-                        val changes = entry.value.second.sortedBy { - it.startOffset }
-                        var text = textFile.text
-                        for (range in changes) text = text.replaceRange(IntRange(range.startOffset, range.endOffset - 1), newName)
+                    for (e in dataToWrite) {
+                        val textFile = e.key
+                        val (itemIndex, text) = e.value
                         textFile.replaceString(0, textFile.text.length, text)
-                        if (changes.isNotEmpty()) {
-                            docManager.commitDocument(textFile)
-                            if (i != -1) {
-                                val updatedPsi = docManager.getPsiFile(textFile)
-                                myParametersTableModel.setValueAtWithoutUpdate(updatedPsi, i, 1)
-                            }
-                        }
+                        docManager.commitDocument(textFile)
+                        val updatedPsi = docManager.getPsiFile(textFile)
+                        if (itemIndex != -1 )
+                            myParametersTableModel.setValueAtWithoutUpdate(updatedPsi, itemIndex, 1)
                     }
                 }
             }
 
-            highlightDependentFields(index + 1)
             myParametersTable.updateUI()
             myReturnTypeField.updateUI()
             updateSignature()
@@ -247,11 +286,12 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         val editorTextField = if (index == -1) this.myReturnTypeField else getTypeTextField(index)
         val codeAnalyzer = DaemonCodeAnalyzer.getInstance(project) as? DaemonCodeAnalyzerImpl
         val document = fragment?.let{ PsiDocumentManager.getInstance(project).getDocument(it) }
-        if (fragment != null && codeAnalyzer != null && editorTextField != null && document != null) {
+        if (fragment is ArendChangeSignatureDialogCodeFragment && codeAnalyzer != null && editorTextField != null && document != null) {
             editorTextField.addNotify()
             codeAnalyzer.restart(fragment)
             val textEditor = editorTextField.editor?.let{ TextEditorProvider.getInstance().getTextEditor(it) }
             if (textEditor != null) codeAnalyzer.runPasses(fragment, document, singletonList(textEditor), IntArray(0), true, null)
+            typeCodeFragmentUpdated(fragment)
         }
     }
 
