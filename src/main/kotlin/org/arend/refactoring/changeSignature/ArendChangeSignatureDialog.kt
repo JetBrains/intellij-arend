@@ -50,6 +50,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     private var parametersPanel: JPanel? = null
     private lateinit var parameterToUsages: MutableMap<ArendChangeSignatureDialogParameterTableModelItem, MutableMap<ArendExpressionCodeFragment, MutableSet<TextRange>>>
     private lateinit var parameterToDependencies: MutableMap<ArendExpressionCodeFragment, MutableSet<ArendChangeSignatureDialogParameterTableModelItem>>
+    private val docManager = PsiDocumentManager.getInstance(project)
 
     private fun clearParameter(fragment: ArendExpressionCodeFragment) {
         for (usageEntry in parameterToUsages) usageEntry.value.remove(fragment)
@@ -79,7 +80,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 s.add(ref.textRange)
             }
         }
-
+        updateToolbarButtons()
     }
 
     override fun updatePropagateButtons() {
@@ -123,6 +124,26 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
 
     override fun createParametersPanel(hasTabsInDialog: Boolean): JPanel {
+        val commonTypeFragmentListener = object: DocumentListener {
+            var prevEvent: DocumentEvent? = null
+
+            override fun documentChanged(e: DocumentEvent) {
+                if (e == prevEvent) return; prevEvent = e // Needed to prevent multiple invocation of documentChanged()
+
+                val updatedText = e.document.text
+                val eventFragment = docManager.getPsiFile(e.document)
+                val rowIndex = myParametersTableModel.items.indexOfFirst { it.typeCodeFragment == eventFragment }
+                if (rowIndex == -1) return
+                val oldFragment = myParametersTableModel.items[rowIndex].typeCodeFragment as ArendExpressionCodeFragment
+                val updatedFragment = oldFragment.updatedFragment(updatedText)
+                myParametersTableModel.setValueAtWithoutUpdate(updatedFragment, rowIndex, 1)
+                docManager.commitAllDocuments()
+
+                ApplicationManager.getApplication().invokeLater { invokeNameResolverHighlighting(rowIndex) }
+                updateSignature()
+            }
+        }
+
         myParametersTable = object : TableView<ArendChangeSignatureDialogParameterTableModelItem?>(myParametersTableModel) {
             override fun removeEditor() {
                 clearEditorListeners()
@@ -130,13 +151,11 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             }
 
             override fun editingStopped(e: ChangeEvent) {
-                invokeTypeHighlighting(editingRow)
-                removeEditor()
-                ApplicationManager.getApplication().invokeLater {
-                    highlightDependentFields(editingRow + 1)
-                    updateToolbarButtons()
-                    updateUI()
-                }
+                super.editingStopped(e)
+                val fragment = ((e.source as? CodeFragmentTableCellEditorBase)?.cellEditorValue as? ArendExpressionCodeFragment)
+                val index = if (fragment == null) -1 else myParametersTable.items.indexOfFirst { it.typeCodeFragment == fragment }
+                if (index != -1) invokeNameResolverHighlighting(index)
+                repaint()
             }
 
             private fun clearEditorListeners() {
@@ -149,30 +168,15 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             }
 
             override fun prepareEditor(editor: TableCellEditor, row: Int, column: Int): Component {
-                val listener: DocumentListener = object : DocumentListener {
-                    override fun documentChanged(e: DocumentEvent) {
-                        /*  TODO: There is a problem that this document listener is added multiple times to the list of document listeners
-                        *   TODO: (this happens in EditorTextField.installDocumentListener)
-                        *   TODO: This leads to updateSignature() invoked multiple times upon a single keystroke
-                        * */
-                        val ed = myParametersTable.cellEditor
-                        val editorValue = ed.cellEditorValue
-                        if (column == 0) {
-                            myParametersTableModel.setValueAtWithoutUpdate(editorValue, row, column)
+                if (editor is StringTableCellEditor ) {
+                    editor.addDocumentListener(object: DocumentListener {
+                        override fun documentChanged(event: DocumentEvent) {
+                            myParametersTableModel.setValueAtWithoutUpdate(myParametersTable.cellEditor.cellEditorValue, row, column)
+                            updateSignature()
                         }
-                        if (column == 1) {
-                            val updatedText = e.document.text
-                            val updatedFragment = (myParametersTableModel.items[row].typeCodeFragment as ArendExpressionCodeFragment).updatedFragment(updatedText)
-                            myParametersTableModel.setValueAtWithoutUpdate(updatedFragment, row, column)
-                        }
-                        updateSignature()
-                    }
-                }
-
-                if (editor is StringTableCellEditor) {
-                    editor.addDocumentListener(listener)
+                    })
                 } else if (editor is CodeFragmentTableCellEditorBase) {
-                    editor.addDocumentListener(listener)
+                    editor.addDocumentListener(commonTypeFragmentListener)
                 }
                 return super.prepareEditor(editor, row, column)
             }
@@ -191,7 +195,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         customizeParametersTable(myParametersTable)
 
         parameterToUsages = HashMap(); parameterToDependencies = HashMap()
-        for (i in 0 until myParametersTable.items.size) invokeTypeHighlighting(i)
+        for (i in 0 until myParametersTable.items.size) invokeNameResolverHighlighting(i)
 
         val selectionModel = (this.myParametersTable.selectionModel as DefaultListSelectionModel)
         val oldSelectionListeners = selectionModel.listSelectionListeners
@@ -216,7 +220,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     fun refactorParameterNames(item: ArendChangeSignatureDialogParameterTableModelItem, newName: String) {
-        val docManager = PsiDocumentManager.getInstance(project)
         val dataToWrite = HashMap<Document, Pair<Int, String>>()
 
          runReadAction {
@@ -265,8 +268,8 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 }
             }
 
-            myParametersTable.updateUI()
-            myReturnTypeField.updateUI()
+            myParametersTable.repaint()
+            myReturnTypeField.repaint()
             updateSignature()
         }, ModalityState.defaultModalityState())
     }
@@ -282,7 +285,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
 
     private fun getTypeTextField(index: Int) = (this.myParametersTable.getCellEditor(index, 1) as? CodeFragmentTableCellEditorBase?)?.getTableCellEditorComponent(myParametersTable, myParametersTableModel.items[index].typeCodeFragment, false, 0, 0) as? EditorTextField
 
-    private fun invokeTypeHighlighting(index: Int) {
+    private fun invokeNameResolverHighlighting(index: Int) {
         val fragment = if (index == -1) this.myReturnTypeCodeFragment else myParametersTableModel.items[index].typeCodeFragment
         val editorTextField = if (index == -1) this.myReturnTypeField else getTypeTextField(index)
         val codeAnalyzer = DaemonCodeAnalyzer.getInstance(project) as? DaemonCodeAnalyzerImpl
@@ -317,11 +320,12 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 downButton.isEnabled = dependencyChecker.invoke(currentItem, nextItem)
             }
         }
+        myParametersTable?.repaint()
     }
 
-    private fun highlightDependentFields(index: Int) {
+    private fun highlightDependentFields(index: Int) { //TODO: Improve using calculated dependencies?
         project.service<ArendPsiChangeService>().modificationTracker.incModificationCount()
-        for (i in index until myParametersTable.items.size) invokeTypeHighlighting(i)
-        invokeTypeHighlighting(-1)
+        for (i in index until myParametersTable.items.size) invokeNameResolverHighlighting(i)
+        invokeNameResolverHighlighting(-1)
     }
 }
