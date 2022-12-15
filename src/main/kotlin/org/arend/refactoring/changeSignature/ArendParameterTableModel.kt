@@ -1,16 +1,20 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.psi.PsiCodeFragment
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
+import com.intellij.refactoring.ui.CodeFragmentTableCellEditorBase
 import com.intellij.ui.BooleanTableCellEditor
 import com.intellij.ui.BooleanTableCellRenderer
 import org.arend.ArendFileType
 import org.arend.ext.module.LongName
 import org.arend.naming.scope.Scope
 import org.arend.util.FileUtils.isCorrectDefinitionName
+import java.awt.Component
 import java.util.Collections.singletonList
+import javax.swing.JTable
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 
@@ -52,6 +56,18 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
             val fragment = value as? ArendExpressionCodeFragment ?: return
             item?.parameter?.setType(fragment.text)
+        }
+
+        override fun doCreateEditor(o: ArendChangeSignatureDialogParameterTableModelItem?): TableCellEditor {
+            return object: CodeFragmentTableCellEditorBase(myProject, ArendFileType) {
+                override fun getTableCellEditorComponent(table: JTable?, value: Any?, isSelected: Boolean, row: Int, column: Int): Component {
+                    clearListeners()
+                    val result = super.getTableCellEditorComponent(table, value, isSelected, row, column)
+                    val myDocument = PsiDocumentManager.getInstance(myProject).getDocument(myCodeFragment)
+                    if (myDocument != null) dialog.commonTypeFragmentListener.installDocumentListener(myDocument)
+                    return result
+                }
+            }
         }
     }
 
