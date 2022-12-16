@@ -44,10 +44,10 @@ import javax.swing.table.TableCellEditor
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
     ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context),
     ArendExpressionFragmentResolveListener {
-    private var parametersPanel: JPanel? = null
+    private val docManager = PsiDocumentManager.getInstance(project)
+    private lateinit var parametersPanel: JPanel
     private lateinit var parameterToUsages: MutableMap<ArendChangeSignatureDialogParameterTableModelItem, MutableMap<ArendExpressionCodeFragment, MutableSet<TextRange>>>
     private lateinit var parameterToDependencies: MutableMap<ArendExpressionCodeFragment, MutableSet<ArendChangeSignatureDialogParameterTableModelItem>>
-    private val docManager = PsiDocumentManager.getInstance(project)
     lateinit var commonTypeFragmentListener: ArendChangeSignatureCustomDocumentListener
 
     private fun clearParameter(fragment: ArendExpressionCodeFragment) {
@@ -204,40 +204,56 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             }
             updateToolbarButtons()
         }
-        return parametersPanel!! //safe
+        return parametersPanel
     }
 
+    private interface Task {
+        fun getStartOffset(): Int
+        fun execute()
+    }
     fun refactorParameterNames(item: ArendChangeSignatureDialogParameterTableModelItem, newName: String) {
         val dataToWrite = HashMap<Document, Pair<Int, String>>()
 
          runReadAction {
-             val usages = parameterToUsages[item]
-             if (usages != null) {
-                 val usagesAmendments = HashMap<ArendExpressionCodeFragment, MutableSet<TextRange>>()
+             val affectedFragments = parameterToUsages[item]?.keys
+             if (affectedFragments != null) {
+                 var text: String? = null
+                 var delta = 0
 
-                 for (entry in usages) {
-                     val codeFragment = entry.key
-                     val itemToModify = myParametersTable.items.firstOrNull { it.typeCodeFragment == codeFragment }
-                     val itemIndex = itemToModify?.let { myParametersTable.items.indexOf(it) } ?: -1
-                     val changes = entry.value.sortedBy { it.startOffset }
-                     val updatedChanges = HashSet<TextRange>()
-                     val textFile = docManager.getDocument(codeFragment)
-                     if (textFile != null) {
-                         var text = textFile.text
-                         var delta = 0
-                         for (change in changes) {
-                             text = text.replaceRange(IntRange(change.startOffset + delta, change.endOffset - 1 + delta), newName)
-                             val epsilon = newName.length - change.length
-                             updatedChanges.add(TextRange(change.startOffset + delta, change.endOffset + delta + epsilon))
-                             delta += epsilon
-                         }
-                         dataToWrite[textFile] = Pair(itemIndex, text)
-                         usagesAmendments[codeFragment] = updatedChanges
+                 open class UpdateTextRangeTask(val mapToUpdate: MutableSet<TextRange>, val range: TextRange): Task {
+                     override fun getStartOffset(): Int = range.startOffset
+                     override fun execute() {
+                         mapToUpdate.remove(range)
+                         mapToUpdate.add(TextRange(range.startOffset + delta, range.endOffset + delta))
+                     }
+                 }
+                 class UpdateNameTask(mapToUpdate: MutableSet<TextRange>, range: TextRange): UpdateTextRangeTask(mapToUpdate, range)  {
+                     override fun execute() {
+                         val epsilon = newName.length - range.length
+                         mapToUpdate.remove(range)
+                         mapToUpdate.add(TextRange(range.startOffset + delta, range.endOffset + delta + epsilon))
+                         text = text?.replaceRange(IntRange(range.startOffset + delta, range.endOffset - 1 + delta), newName)
+                         delta += epsilon
                      }
                  }
 
-                 for (amendment in usagesAmendments)
-                     usages[amendment.key] = amendment.value
+                 for (codeFragment in affectedFragments) {
+                     val textFile = docManager.getDocument(codeFragment)
+                     val rangesToRename = parameterToUsages[item]!![codeFragment] //safe
+                     val tasks = parameterToDependencies[codeFragment]?.map { parameterToUsages[it]?.get(codeFragment)?.let { m -> m.map { r ->
+                         if (rangesToRename?.contains(r) == true) UpdateNameTask(m, r) else UpdateTextRangeTask(m, r)
+                     } } ?: emptyList() }?.flatten()?: emptyList()
+
+                     val itemToModify = myParametersTable.items.firstOrNull { it.typeCodeFragment == codeFragment }
+                     val itemIndex = itemToModify?.let { myParametersTable.items.indexOf(it) } ?: -1
+
+                     if (textFile != null) {
+                         text = textFile.text
+                         delta = 0
+                         for (task in tasks.sortedBy { it.getStartOffset() }) task.execute()
+                         dataToWrite[textFile] = Pair(itemIndex, text!!)
+                     }
+                 }
              }
         }
 
@@ -287,7 +303,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     private fun updateToolbarButtons() {
-        val parametersPanel = parametersPanel ?: return
         val downButton = ToolbarDecorator.findDownButton(parametersPanel) ?: return
         val upButton = ToolbarDecorator.findUpButton(parametersPanel) ?: return
 
