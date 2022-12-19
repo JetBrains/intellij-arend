@@ -11,6 +11,7 @@ import java.util.Collections.singletonList
 
 class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
                        val returnType: String?,
+                       val name: String,
                        val locatedReferable: PsiLocatedReferable /* TODO: Use more persistent pointers */) : ChangeInfo {
     override fun getNewParameters(): Array<ParameterInfo> = parameterInfo.toTypedArray()
 
@@ -24,15 +25,15 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
 
     override fun getMethod(): PsiElement = locatedReferable
 
-    override fun isReturnTypeChanged(): Boolean = true //TODO: Implement me
+    override fun isReturnTypeChanged(): Boolean = returnType != (locatedReferable as? ArendDefFunction)?.returnExpr?.text
 
-    override fun isNameChanged(): Boolean = false
+    override fun isNameChanged(): Boolean = newName != locatedReferable.defIdentifier?.name
 
-    override fun getNewName(): String = ""
+    override fun getNewName(): String = name
 
     override fun getLanguage(): Language = ArendLanguage.INSTANCE
 
-    fun signature(): String { //TODO: This works poorly; fix me
+    fun signature(): String {
         val teleEntries = ArrayList<Pair<Pair<String?, Boolean>, MutableList<String?>>>()
         val whitespaceList = ArrayList<String>()
         var lastWhitespace = " "
@@ -76,7 +77,7 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
         }
 
         return when (locatedReferable) {
-            is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable.precedence as? PsiElement)?.text?.let{ " $it" } ?: ""}${locatedReferable.defIdentifier?.text?.let{ " $it"} ?: ""} $newTeles${returnType?.let { " : $it" } ?: ""}"
+            is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable.precedence as? PsiElement)?.text?.let{ " $it" } ?: ""} $name $newTeles${returnType?.let { " : $it" } ?: ""}"
             else -> throw IllegalStateException()
         }
     }

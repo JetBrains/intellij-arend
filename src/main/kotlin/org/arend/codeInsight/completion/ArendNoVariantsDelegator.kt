@@ -21,6 +21,7 @@ import org.arend.psi.libraryConfig
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendGotoClassIndex
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
+import org.arend.refactoring.changeSignature.ArendExpressionCodeFragment
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.typechecking.TypeCheckingService
 
@@ -64,13 +65,21 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                         val isInsideTest = (it.containingFile as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
                         if (!tracker.variants.contains(it) && (isTestFile || !isInsideTest)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
                             result.addElement(
-                                    run {
-                                        val oldHandler = it.insertHandler
+                                    run { val oldHandler = it.insertHandler
                                         it.withInsertHandler { context, item ->
                                             oldHandler?.handleInsert(context, item)
                                             val refIdentifier = context.file.findElementAt(context.tailOffset - 1)?.parent
                                             val locatedReferable = item.`object`
-                                            if (refIdentifier is ArendReferenceElement && locatedReferable is PsiLocatedReferable) ResolveReferenceAction.getProposedFix(locatedReferable, refIdentifier)?.execute(editor)
+                                            if (refIdentifier is ArendReferenceElement && locatedReferable is PsiLocatedReferable) {
+                                                println((locatedReferable as? PsiElement)?.text)
+                                                val fix = ResolveReferenceAction.getProposedFix(locatedReferable, refIdentifier)
+                                                val isFragment = refIdentifier.containingFile is ArendExpressionCodeFragment
+                                                if (isFragment) {
+                                                    //TODO: Implement proper behavior of NoVariantsDelegator for Fragments
+                                                } else {
+                                                    fix?.execute(editor)
+                                                }
+                                            }
                                         }
                                     })
                         }

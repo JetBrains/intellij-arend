@@ -20,7 +20,10 @@ import org.arend.psi.ext.ArendExpr
 import org.arend.resolving.ArendReference
 import java.util.concurrent.atomic.AtomicLong
 
-class ArendExpressionCodeFragment(project: Project, expression: String, val complementScope: (() -> Scope)?, context: PsiElement?, private val fragmentResolveListener: ArendExpressionFragmentResolveListener?):
+class ArendExpressionCodeFragment(project: Project, expression: String,
+                                  private val complementScope: (() -> Scope)?,
+                                  context: PsiElement?,
+                                  private val fragmentResolveListener: ArendExpressionFragmentResolveListener?):
     PsiCodeFragmentImpl(project, ArendExpressionCodeFragmentElementType, true, "fragment.ard", expression, context), IArendFile {
     override var lastModification = AtomicLong(-1)
     override fun getReference(): ArendReference? = null
@@ -37,9 +40,8 @@ class ArendExpressionCodeFragment(project: Project, expression: String, val comp
         val firstChild = firstChild
         return if (firstChild is ArendExpr && firstChild.elementType != ArendElementTypes.EXPR) firstChild else null
     }
-    fun updatedFragment(expression: String) = ArendExpressionCodeFragment(project, expression, complementScope, context, fragmentResolveListener)
 
-    fun notifyResolveListener() { fragmentResolveListener?.expressionFragmentResolved(this) }
+    fun notifyResolveListener() { fragmentResolveListener?.expressionFragmentResolved(this) } //TODO: Not perfecto (PSI is model, not controller)
 }
 
 object ArendExpressionCodeFragmentElementType: ICodeFragmentElementType("EXPR_TEXT", ArendLanguage.INSTANCE) {

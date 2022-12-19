@@ -68,7 +68,7 @@ abstract class BasePass(open protected val file: IArendFile, editor: Editor, nam
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
     private val highlights = ArrayList<HighlightInfo>()
-    private val errorList = ArrayList<GeneralError>()
+    protected val errorList = ArrayList<GeneralError>()
 
     override fun applyInformationWithProgress() {
         val errorService = myProject.service<ErrorService>()
