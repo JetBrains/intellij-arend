@@ -33,11 +33,14 @@ import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
 import org.arend.ArendFileType
 import org.arend.ext.module.LongName
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.ListScope
+import org.arend.naming.scope.MergeScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.listener.ArendPsiChangeService
+import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.resolving.ArendResolveCache
 import org.arend.util.FileUtils.isCorrectDefinitionName
 import java.awt.Component
@@ -50,11 +53,12 @@ import javax.swing.table.TableCellEditor
 
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
     ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context),
-    ArendExpressionFragmentResolveListener {
+    ArendCodeFragmentController {
     private lateinit var parametersPanel: JPanel
     private lateinit var parameterToUsages: MutableMap<ArendChangeSignatureDialogParameterTableModelItem, MutableMap<ArendExpressionCodeFragment, MutableSet<TextRange>>>
     private lateinit var parameterToDependencies: MutableMap<ArendExpressionCodeFragment, MutableSet<ArendChangeSignatureDialogParameterTableModelItem>>
     lateinit var commonTypeFragmentListener: ArendChangeSignatureCustomDocumentListener
+    private lateinit var deferredNsCmds : MutableList<NsCmdRefactoringAction>
 
     private fun clearParameter(fragment: ArendExpressionCodeFragment) {
         for (usageEntry in parameterToUsages) usageEntry.value.remove(fragment)
@@ -87,6 +91,18 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         updateToolbarButtons()
     }
 
+    override fun scopeModified(deferredNsCmd: NsCmdRefactoringAction) {
+        deferredNsCmds.add(deferredNsCmd)
+    }
+
+    override fun getFragmentScope(codeFragment: ArendExpressionCodeFragment): Scope {
+        val items = this.myParametersTableModel.items
+        val limit = items.indexOfFirst { it.typeCodeFragment == codeFragment }.let { if (it == -1) items.size else it }
+        val params = items.take(limit).map { it.associatedReferable }
+        val localScope = ListScope(params)
+        return if (deferredNsCmds.isEmpty()) localScope else MergeScope(singletonList(localScope) + deferredNsCmds.map { it.getAmendedScope() })
+    }
+
     override fun updatePropagateButtons() {
         super.updatePropagateButtons()
         updateToolbarButtons()
@@ -99,7 +115,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     override fun getFileType() = ArendFileType
 
     override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
-        ArendParameterTableModel( descriptor, this, {item: ArendChangeSignatureDialogParameterTableModelItem -> getParametersScope(item)}, myDefaultValueContext)
+        ArendParameterTableModel( descriptor, this, myDefaultValueContext)
 
     override fun createRefactoringProcessor(): BaseRefactoringProcessor =
         ArendChangeSignatureProcessor(project, evaluateChangeInfo(myParametersTableModel))
@@ -110,7 +126,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             is ArendDefFunction -> referable.returnExpr?.text ?: ""
             else -> ""
         }
-        return ArendExpressionCodeFragment(myProject, returnExpression, getParametersScope(null), referable, this)
+        return ArendExpressionCodeFragment(myProject, returnExpression, referable, this)
     }
 
     override fun createCallerChooser(title: String?, treeToReuse: Tree?, callback: Consumer<in MutableSet<PsiElement>>?) = null
@@ -119,10 +135,30 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         val builder = StringBuilder()
         val documentManager = PsiDocumentManager.getInstance(myProject)
         val rawErrors = ArrayList<HighlightInfo>()
-        var hasErrors = false
+
         val newNameCorrect = isCorrectDefinitionName(LongName(singletonList(this.methodName)))
         if (!newNameCorrect) return RefactoringBundle.message("text.identifier.invalid", this.methodName)
+        
+        val allPsiTargets = HashSet<LocatedReferable>()
 
+        fun processFragment(fragment: ArendExpressionCodeFragment) {
+            val refElements = fragment.descendantsOfType<ArendReferenceElement>()
+            for (ref in refElements) {
+                val t = ref.resolve
+                if (t is LocatedReferable)
+                    allPsiTargets.add(t)
+            }
+        }
+        (myReturnTypeCodeFragment as? ArendExpressionCodeFragment)?.let {processFragment(it) }
+        for (item in myParametersTable.items) (item.typeCodeFragment as? ArendExpressionCodeFragment)?.let{processFragment(it)}
+
+        /* Validate namespace commands to be invoked upon refactoring start; purge unused namespace commands */
+        val unusedNsCmds = HashSet<NsCmdRefactoringAction>()
+        for (nsCmd in this.deferredNsCmds) if (nsCmd.getAmendedScope().elements.intersect(allPsiTargets).isEmpty()) unusedNsCmds.add(nsCmd)
+        this.deferredNsCmds.removeAll(unusedNsCmds)        
+
+        /* Validate that code fragments for parameter types do not contain resolving errors */
+        var hasErrors = false
         fun checkFragment(fragment: ArendExpressionCodeFragment, locationDescription: String) {
             val document = documentManager.getDocument(fragment)!!
             DaemonCodeAnalyzerEx.processHighlights(document, myProject, HighlightSeverity.ERROR, 0, document.textLength) {
@@ -143,6 +179,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             Messages.getOkButton(),
             Messages.getCancelButton(),
             Messages.getWarningIcon())
+
         return if (result == Messages.OK) null else EXIT_SILENTLY
     }
 
@@ -157,6 +194,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
 
     override fun createParametersPanel(hasTabsInDialog: Boolean): JPanel {
         commonTypeFragmentListener = ArendChangeSignatureCustomDocumentListener(this)
+        deferredNsCmds = ArrayList()
         myParametersTable = object : TableView<ArendChangeSignatureDialogParameterTableModelItem?>(myParametersTableModel) {
             override fun removeEditor() {
                 clearEditorListeners()
@@ -247,7 +285,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                  var text: String? = null
                  var delta = 0
 
-                 open class UpdateTextRangeTask(val mapToUpdate: MutableSet<TextRange>, val range: TextRange): Task {
+                 open class UpdateTextRangeTask(val mapToUpdate: MutableSet<TextRange>, val range: TextRange): RefactoringTask {
                      override fun getStartOffset(): Int = range.startOffset
                      override fun execute() {
                          mapToUpdate.remove(range)
@@ -307,13 +345,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     fun getParameterTableItems(): MutableList<ArendChangeSignatureDialogParameterTableModelItem> = myParametersTable.items
-
-    private fun getParametersScope(item: ArendChangeSignatureDialogParameterTableModelItem?): () -> Scope = { ->
-        val items = this.myParametersTableModel.items
-        val limit = items.indexOfFirst { it == item }.let { if (it == -1) items.size else it }
-        val params = items.take(limit).map { it.associatedReferable }
-        ListScope(params)
-    }
 
     private fun getTypeTextField(index: Int) = (this.myParametersTable.getCellEditor(index, 1) as? CodeFragmentTableCellEditorBase?)?.getTableCellEditorComponent(myParametersTable, myParametersTableModel.items[index].typeCodeFragment, false, 0, 0) as? EditorTextField
 
@@ -375,7 +406,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         }
     }
 
-    private interface Task {
+    private interface RefactoringTask {
         fun getStartOffset(): Int
         fun execute()
     }

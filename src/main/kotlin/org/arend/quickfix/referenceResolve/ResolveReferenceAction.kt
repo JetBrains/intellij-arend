@@ -12,8 +12,8 @@ import org.arend.refactoring.changeSignature.ArendExpressionCodeFragment
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,
-                             private val statCmdFixAction: NsCmdRefactoringAction?,
-                             private val nameFixAction: RenameReferenceAction?) {
+                             val statCmdFixAction: NsCmdRefactoringAction?,
+                             val nameFixAction: RenameReferenceAction?) {
 
     override fun toString(): String {
         val prefix = LongName(targetFullName).toString()

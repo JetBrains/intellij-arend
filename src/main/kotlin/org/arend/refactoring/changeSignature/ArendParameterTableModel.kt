@@ -20,7 +20,6 @@ import javax.swing.table.TableCellRenderer
 
 class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
                                val dialog: ArendChangeSignatureDialog,
-                               val scopeCalculator: (ArendChangeSignatureDialogParameterTableModelItem) -> () -> Scope,
                                defaultValueContext: PsiElement):
     ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor, dialog), ArendImplicitnessColumn()) {
 
@@ -29,14 +28,8 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
             val newParameter = ArendParameterInfo.createEmpty()
             newParameter
         } else parameterInfo
-        
-        var item: ArendChangeSignatureDialogParameterTableModelItem? = null
-        val scope = { -> item!!.let { scopeCalculator.invoke(it).invoke() } }
 
-        item = ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo,
-            ArendExpressionCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "", scope, myTypeContext, dialog))
-
-        return item
+        return ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo, ArendExpressionCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "", myTypeContext, dialog))
     }
 
     private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
