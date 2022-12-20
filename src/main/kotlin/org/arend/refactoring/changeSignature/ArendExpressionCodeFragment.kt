@@ -17,23 +17,22 @@ import org.arend.parser.ArendParser
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendExpr
+import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.resolving.ArendReference
 import java.util.concurrent.atomic.AtomicLong
 
 class ArendExpressionCodeFragment(project: Project, expression: String,
-                                  private val complementScope: (() -> Scope)?,
                                   context: PsiElement?,
-                                  private val fragmentResolveListener: ArendExpressionFragmentResolveListener?):
+                                  private val fragmentController: ArendCodeFragmentController?):
     PsiCodeFragmentImpl(project, ArendExpressionCodeFragmentElementType, true, "fragment.ard", expression, context), IArendFile {
     override var lastModification = AtomicLong(-1)
+
     override fun getReference(): ArendReference? = null
 
-    override val scope: Scope get() {
-        val baseScope = (context as? ArendCompositeElement)?.scope ?: EmptyScope.INSTANCE
-        return MergeScope(complementScope?.invoke() ?: EmptyScope.INSTANCE, baseScope)
-    }
+    override val scope: Scope get() = MergeScope(fragmentController?.getFragmentScope(this) ?: EmptyScope.INSTANCE, (context as? ArendCompositeElement)?.scope ?: EmptyScope.INSTANCE)
 
     override fun moduleTextRepresentation(): String  = name
+
     override fun positionTextRepresentation(): String? = null
 
     fun getExpr(): ArendExpr? {
@@ -41,7 +40,9 @@ class ArendExpressionCodeFragment(project: Project, expression: String,
         return if (firstChild is ArendExpr && firstChild.elementType != ArendElementTypes.EXPR) firstChild else null
     }
 
-    fun notifyResolveListener() { fragmentResolveListener?.expressionFragmentResolved(this) } //TODO: Not perfecto (PSI is model, not controller)
+    fun fragmentResolved() { fragmentController?.expressionFragmentResolved(this) }
+
+    fun scopeModified(nsCmd: NsCmdRefactoringAction) { fragmentController?.scopeModified(nsCmd) }
 }
 
 object ArendExpressionCodeFragmentElementType: ICodeFragmentElementType("EXPR_TEXT", ArendLanguage.INSTANCE) {
@@ -57,6 +58,10 @@ object ArendExpressionCodeFragmentElementType: ICodeFragmentElementType("EXPR_TE
     }
 }
 
-interface ArendExpressionFragmentResolveListener {
+interface ArendCodeFragmentController {
     fun expressionFragmentResolved(codeFragment: ArendExpressionCodeFragment)
+
+    fun scopeModified(deferredNsCmd: NsCmdRefactoringAction)
+
+    fun getFragmentScope(codeFragment: ArendExpressionCodeFragment): Scope
 }

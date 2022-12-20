@@ -690,7 +690,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
     fun `test ImportFileAction on empty file`() = simpleActionTest(
             "{-caret-}", "\\import Main") { file ->
-        val action = ImportFileAction(file, file.moduleLocation!!.modulePath, null)
+        val action = ImportFileAction(file, file, null)
         WriteCommandAction.runWriteCommandAction(project, "", null, { action.execute() }, file) }
 
     fun `test RemoveFromHidingAction on namespace command with comments`() = simpleActionTest(

@@ -71,11 +71,11 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                                             val refIdentifier = context.file.findElementAt(context.tailOffset - 1)?.parent
                                             val locatedReferable = item.`object`
                                             if (refIdentifier is ArendReferenceElement && locatedReferable is PsiLocatedReferable) {
-                                                println((locatedReferable as? PsiElement)?.text)
                                                 val fix = ResolveReferenceAction.getProposedFix(locatedReferable, refIdentifier)
-                                                val isFragment = refIdentifier.containingFile is ArendExpressionCodeFragment
-                                                if (isFragment) {
-                                                    //TODO: Implement proper behavior of NoVariantsDelegator for Fragments
+                                                val f = refIdentifier.containingFile
+                                                if (f is ArendExpressionCodeFragment) {
+                                                    fix?.statCmdFixAction?.let { cmd -> f.scopeModified(cmd) }
+                                                    fix?.nameFixAction?.execute(editor)
                                                 } else {
                                                     fix?.execute(editor)
                                                 }

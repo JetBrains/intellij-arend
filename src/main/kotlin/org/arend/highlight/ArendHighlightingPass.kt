@@ -180,7 +180,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
                 file.getExpr()?.let{ expr ->
                     val concrete = ConcreteBuilder.convertExpression(expr)
                     ExpressionResolveNameVisitor(ArendReferableConverter, file.scope, ArrayList(), this, resolveListener).resolve(concrete)
-                    file.notifyResolveListener()
+                    file.fragmentResolved()
                 }
             }
         }
