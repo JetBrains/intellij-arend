@@ -11,8 +11,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiReference
-import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.elementType
 import com.intellij.refactoring.suggested.startOffset
@@ -56,7 +54,7 @@ data class ArgumentDescriptor(val text: String, val strippedText: String?, val p
 abstract class UsageEntry(val refactoringContext: RefactoringContext, val contextPsi: ArendCompositeElement) {
     abstract fun getArguments(): List<ArgumentDescriptor>
 
-    fun getTrailingParameters(): List<Parameter> {
+    private fun getTrailingParameters(): List<Parameter> {
         val result = ArrayList<Parameter>()
         val newParameters = getParameters().second
         for (newParam in newParameters.reversed()) if (newParam.isExplicit != newParam.oldParameter?.isExplicit) break else {
@@ -80,11 +78,11 @@ abstract class UsageEntry(val refactoringContext: RefactoringContext, val contex
 
 const val FUNCTION_INDEX = -1
 
-open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppExpr: ArendArgumentAppExpr, val functionName: String, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, argumentAppExpr) {
+open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppExpr: ArendArgumentAppExpr, private val functionName: String, refactoringContext: RefactoringContext): UsageEntry(refactoringContext, argumentAppExpr) {
     private val exprPsi: List<PsiElement>? = refactoringContext.rangeData[expr]?.let { range -> argumentAppExpr.childrenWithLeaves.toList().filter { range.contains(it.textRange) }}
     private val procArguments = ArrayList<ArgumentDescriptor>()
     val procFunction: String
-    val isDotExpression: Boolean
+    private val isDotExpression: Boolean
     val isInfixNotation: Boolean
     val blocks: ArrayList<Any>
 
@@ -142,7 +140,7 @@ open class AppExpressionEntry(val expr: Concrete.AppExpression, val argumentAppE
     override fun getDefName(): String = if (isDotExpression) procFunction else functionName //TODO: Fixme (we should remove backticks in certain situations)
 }
 
-class NoArgumentsEntry(refExpr: Concrete.ReferenceExpression, refactoringContext: RefactoringContext, val definitionName: String): UsageEntry(refactoringContext, refExpr.data as ArendCompositeElement) {
+class NoArgumentsEntry(refExpr: Concrete.ReferenceExpression, refactoringContext: RefactoringContext, private val definitionName: String): UsageEntry(refactoringContext, refExpr.data as ArendCompositeElement) {
     override fun getArguments(): List<ArgumentDescriptor> = emptyList()
 
     override fun getParameters(): Pair<List<Parameter>, List<NewParameter>> = Pair(refactoringContext.oldParameters, refactoringContext.newParameters)
@@ -150,7 +148,7 @@ class NoArgumentsEntry(refExpr: Concrete.ReferenceExpression, refactoringContext
     override fun getDefName(): String = definitionName
 }
 
-class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext, val definitionName: String): UsageEntry(refactoringContext, pattern) {
+class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext, private val definitionName: String): UsageEntry(refactoringContext, pattern) {
     private val procArguments = ArrayList<ArgumentDescriptor>()
     init {
         val spacingMap = HashMap<Pattern, String>()
@@ -169,10 +167,9 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
 
         for (arg in concrete.patterns) {
             val data = arg.data as PsiElement
-            val data1: PsiElement? = data
             val text = textGetter(data, refactoringContext.textReplacements)
-            val strippedText = if (data1 != null) textGetter(data1, refactoringContext.textReplacements) else null
-            val isAtomic = data1 is ArendDefIdentifier || data1 is ArendPattern && (data1.singleReferable != null || data1.isTuplePattern || data1.isUnnamed)
+            val strippedText = textGetter(data, refactoringContext.textReplacements)
+            val isAtomic = data is ArendDefIdentifier || data is ArendPattern && (data.singleReferable != null || data.isTuplePattern || data.isUnnamed)
             procArguments.add(ArgumentDescriptor(text, strippedText, null, arg.isExplicit, isAtomic, spacingMap[arg.data as Pattern], null))
         }
     }
@@ -186,7 +183,7 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
     override fun getDefName(): String = definitionName
 }
 
-class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactoringContext: RefactoringContext, val definitionName: String): UsageEntry(refactoringContext, localCoClause) {
+class LocalCoClauseEntry(private val localCoClause: ArendLocalCoClause, refactoringContext: RefactoringContext, private val definitionName: String): UsageEntry(refactoringContext, localCoClause) {
     private val procArguments = ArrayList<ArgumentDescriptor>()
     init {
         val spacingMap = HashMap<ArendLamParam, String>()
@@ -712,7 +709,6 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
             return
         }
 
-
         return runWriteAction {
             val docManager = PsiDocumentManager.getInstance(project)
 
@@ -876,14 +872,6 @@ private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement, includeConstruc
 
 private fun ArendPsiFactory.createArgumentAppExpr(expr: String): ArendArgumentAppExpr =
     createExpression(expr).childOfType() ?: error("Failed to create argument app expr: `$expr`")
-
-/**
- * Returns all references of `def` in `element`-scope
- */
-private fun searchRefsInPsiElement(def: PsiElement, element: PsiElement): List<PsiReference> {
-    val scope = LocalSearchScope(element)
-    return ReferencesSearch.search(def, scope).findAll().toList()
-}
 
 /**
  * Extract reference to function from long name.

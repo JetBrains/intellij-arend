@@ -61,4 +61,31 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
            } 
         """, listOf(-3, -2, -1))
 
+    fun testSwapAndRenaming() = changeSignature(
+        """
+           \module F \where {
+             \class Foo {
+               \func bar{-caret-} (a b : Nat) => a Nat.+ b
+             }
+           }
+
+           \module Bar \where {
+             \open F.Foo (bar \as b)
+  
+             \func zoo {f : F.Foo} => b {f} 1 2
+           }
+        """, """
+           \module F \where {
+             \class Foo {
+               \func bar123 (b a : Nat) => a Nat.+ b
+             }
+           }
+
+           \module Bar \where {
+             \open F.Foo (bar123 \as b)
+  
+             \func zoo {f : F.Foo} => b {f} 2 1
+           }
+        """, listOf(2, 1), emptyList(), "bar123")
+
 }

@@ -13,7 +13,8 @@ import org.arend.util.ArendBundle
 class ArendChangeSignatureHandler : ChangeSignatureHandler {
     override fun invoke(project: Project, elements: Array<out PsiElement>, dataContext: DataContext?) {
         val function = elements.singleOrNull() as? ArendDefFunction ?: return
-        showRefactoringDialog(project, function)
+        val descriptor = ArendChangeSignatureDescriptor(function)
+        ArendChangeSignatureDialog(project, descriptor).show()
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?, dataContext: DataContext?) {
@@ -23,9 +24,4 @@ class ArendChangeSignatureHandler : ChangeSignatureHandler {
     override fun findTargetMember(element: PsiElement) = element.ancestor<ArendDefFunction>()
 
     override fun getTargetNotFoundMessage() = ArendBundle.message("arend.error.wrongCaretPosition")
-
-    private fun showRefactoringDialog(project: Project, function: ArendDefFunction) {
-        val descriptor = ArendChangeSignatureDescriptor(function)
-        ArendChangeSignatureDialog(project, descriptor).show()
-    }
 }

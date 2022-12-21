@@ -7,12 +7,14 @@ import com.intellij.refactoring.changeSignature.ParameterInfo
 import org.arend.ArendLanguage
 import org.arend.psi.*
 import org.arend.psi.ext.*
+import org.arend.refactoring.NsCmdRefactoringAction
 import java.util.Collections.singletonList
 
 class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
                        val returnType: String?,
                        val name: String,
-                       val locatedReferable: PsiLocatedReferable /* TODO: Use more persistent pointers */) : ChangeInfo {
+                       val locatedReferable: PsiLocatedReferable /* TODO: Use more persistent pointers */,
+                       val nsCmds: List<NsCmdRefactoringAction> = emptyList()) : ChangeInfo {
     override fun getNewParameters(): Array<ParameterInfo> = parameterInfo.toTypedArray()
 
     override fun isParameterSetOrOrderChanged(): Boolean = true //TODO: Implement me
