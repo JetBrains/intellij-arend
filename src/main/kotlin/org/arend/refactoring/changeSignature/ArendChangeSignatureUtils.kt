@@ -8,14 +8,22 @@ import org.arend.intention.RefactoringDescriptor
 import org.arend.psi.*
 import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.ArendDefFunction
+import org.arend.refactoring.rename.ArendRenameProcessor
 import java.util.Collections.singletonList
 
 
 fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: ArendDefFunction) {
     val factory = ArendPsiFactory(project)
 
+    for (nsCmd in changeInfo.nsCmds) nsCmd.execute()
     renameParametersUsages(project, function, changeInfo.newParameters.toList().map { it as ArendParameterInfo })
-    changeParameters(factory, function, changeInfo)
+    modifyFunctionBody(factory, function, changeInfo)
+
+    if (changeInfo.isNameChanged) {
+        val renameProcessor = ArendRenameProcessor(project, function, changeInfo.newName, function.refName, false, null)
+        val usages = renameProcessor.findUsages()
+        renameProcessor.executeEx(usages)
+    }
 }
 
 private fun renameParametersUsages(project: Project, function: ArendDefFunction, newParams: List<ArendParameterInfo>) {
@@ -31,7 +39,7 @@ private fun renameParametersUsages(project: Project, function: ArendDefFunction,
     NameFieldApplier(project).applyTo(singletonList(RefactoringDescriptor(function, oldParameters, newParameters)).toSet())
 }
 
-private fun changeParameters(factory: ArendPsiFactory, function: ArendDefFunction, changeInfo: ArendChangeInfo) {
+private fun modifyFunctionBody(factory: ArendPsiFactory, function: ArendDefFunction, changeInfo: ArendChangeInfo) {
     val params = function.parameters
     if (params.isNotEmpty()) function.deleteChildRangeWithNotification(params.first(), params.last())
     val anchor = function.findParametersElement()

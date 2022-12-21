@@ -31,7 +31,7 @@ class ArendExpressionCodeFragment(project: Project, expression: String,
 
     override val scope: Scope get() = MergeScope(fragmentController?.getFragmentScope(this) ?: EmptyScope.INSTANCE, (context as? ArendCompositeElement)?.scope ?: EmptyScope.INSTANCE)
 
-    override fun moduleTextRepresentation(): String  = name
+    override fun moduleTextRepresentation(): String = name
 
     override fun positionTextRepresentation(): String? = null
 
