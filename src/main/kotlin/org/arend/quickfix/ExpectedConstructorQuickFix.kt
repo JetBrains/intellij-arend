@@ -884,27 +884,27 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     val templateList = atomPattern.sequence.takeIf { it.isNotEmpty() } ?: listOf(atomPattern)
                     if (position == null) {
                         enclosingNode = if (enclosingNode.parent is ArendPattern && enclosingNode.singleReferable != null && !enclosingNode.isTuplePattern) {
-                            enclosingNode.replaceWithNotification(psiFactory.createPattern("(${enclosingNode.text})"))
+                            enclosingNode.replace(psiFactory.createPattern("(${enclosingNode.text})")) as ArendPattern
                         } else {
                             enclosingNode
                         }
                         if (!enclosingNode.isExplicit || enclosingNode.isTuplePattern && enclosingNode.sequence.size == 1) {
                             val rightBrace = enclosingNode.lastChild
-                            val first = enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), rightBrace)
+                            val first = enclosingNode.addRangeBefore(templateList.first(), templateList.last(), rightBrace)
                             enclosingNode.addBefore(psiFactory.createWhitespace(" "), first)
                             (rightBrace.findPrevSibling() as? ArendPattern)?.let { callback.invoke(entry.second, it) }
                         } else {
                             if (enclosingNode.sequence.isEmpty()) {
-                                enclosingNode = enclosingNode.replaceWithNotification(psiFactory.createPattern("${enclosingNode.text}$patternLine"))
+                                enclosingNode = enclosingNode.replace(psiFactory.createPattern("${enclosingNode.text}$patternLine")) as ArendPattern
                             } else {
-                                val first = enclosingNode.addRangeAfterWithNotification(templateList.first(), templateList.last(), enclosingNode.sequence.last())
+                                val first = enclosingNode.addRangeAfter(templateList.first(), templateList.last(), enclosingNode.sequence.last())
                                 enclosingNode.addBefore(psiFactory.createWhitespace(" "), first)
                             }
                             enclosingNode.sequence.last().let { callback.invoke(entry.second, it) }
                         }
                     } else {
                         val actualPosition = absorbParenthesesUp(position)
-                        enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), actualPosition)
+                        enclosingNode.addRangeBefore(templateList.first(), templateList.last(), actualPosition)
                         enclosingNode.addBefore(psiFactory.createWhitespace(" "), actualPosition)
                         (actualPosition.findPrevSibling() as? ArendPattern)?.let { callback.invoke(entry.second, it) }
                     }
@@ -948,7 +948,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     anchor = elimPsi.addAfter(comma, anchor)
                     commaInserted = true
                 }
-                anchor = elimPsi.addAfterWithNotification(template, anchor ?: elimPsi.elimKw)
+                anchor = elimPsi.addAfter(template, anchor ?: elimPsi.elimKw)
                 elimPsi.addBefore(psiFactory.createWhitespace(" "), anchor)
                 if (!commaInserted) {
                     elimPsi.addAfter(comma, anchor)
@@ -976,7 +976,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 bindingToCaseArgMap[binding] = ce.second
                 if (ce.second.referable == null) {
                     val newCaseArgExprAs = psiFactory.createCaseArg("0 \\as $freshName")
-                    if (newCaseArgExprAs != null) ce.second.addRangeAfterWithNotification(newCaseArgExprAs.firstChild.nextSibling, newCaseArgExprAs.lastChild, ce.second.expression)
+                    if (newCaseArgExprAs != null) ce.second.addRangeAfter(newCaseArgExprAs.firstChild.nextSibling, newCaseArgExprAs.lastChild, ce.second.expression)
                 }
 
                 if (expectedConstructorErrorEntries != null) {
@@ -993,8 +993,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val abstractExpr = ToAbstractVisitor.convert(expression, ppConfig)
             val newCaseArg = psiFactory.createCaseArg("$abstractExpr \\as $freshName")!!
             val comma = newCaseArg.findNextSibling()!!
-            bindingToCaseArgMap[binding] = dependentCaseArg.parent.addBeforeWithNotification(newCaseArg, dependentCaseArg)
-            dependentCaseArg.parent.addBeforeWithNotification(comma, dependentCaseArg)
+            bindingToCaseArgMap[binding] = dependentCaseArg.parent.addBefore(newCaseArg, dependentCaseArg) as ArendCaseArg
+            dependentCaseArg.parent.addBefore(comma, dependentCaseArg)
         }
 
         fun doWriteTypeQualification(psiFactory: ArendPsiFactory, expression: Expression, caseArg: ArendCaseArg) {
@@ -1002,11 +1002,11 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val typeExpr = psiFactory.createExpression(ToAbstractVisitor.convert(expression, ppConfig).toString())
             val caseArgExpr = caseArg.type
             if (caseArgExpr != null) {
-                caseArgExpr.replaceWithNotification(typeExpr)
+                caseArgExpr.replace(typeExpr)
             } else {
                 caseArg.add(psiFactory.createWhitespace(" "))
                 caseArg.add(psiFactory.createColon())
-                caseArg.addWithNotification(typeExpr)
+                caseArg.add(typeExpr)
             }
         }
 
@@ -1042,14 +1042,14 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             if (anchor != null) {
                 insertedPsi = clause.addAfter(comma, anchor)
                 commaInserted = true
-                insertedPsi = clause.addAfterWithNotification(template, insertedPsi ?: clause.firstChild)
+                insertedPsi = clause.addAfter(template, insertedPsi ?: clause.firstChild)
                 clause.addBefore(psiFactory.createWhitespace(" "), insertedPsi)
             } else {
-                insertedPsi = clause.addBeforeWithNotification(template, clause.firstChild)
+                insertedPsi = clause.addBefore(template, clause.firstChild)
             }
             if (patternPrimers != null) patternPrimers[param] = insertedPsi as ArendPattern
             if (!commaInserted) clause.addAfter(comma, insertedPsi)
-            return insertedPsi
+            return insertedPsi!!
         }
 
         interface VariableLocationDescriptor

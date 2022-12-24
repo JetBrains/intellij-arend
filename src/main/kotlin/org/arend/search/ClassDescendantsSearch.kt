@@ -33,7 +33,7 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
         }
 
     init {
-        project.service<ArendPsiChangeService>().addListener(this)
+        service<ArendPsiChangeService>().addListener(this)
     }
 
     fun search(clazz: ArendDefClass): List<ArendDefinition<*>> {

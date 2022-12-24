@@ -563,10 +563,10 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
         val anchor = def.children[teleIndex - 1]
         val factory = ArendPsiFactory(tele.project)
         val newTele = createSwitchedTele(factory, tele) ?: return
-        def.children[teleIndex].deleteWithNotification()
-        val inserted = def.addAfterWithNotification(newTele, anchor)
+        def.children[teleIndex].delete()
+        val inserted = def.addAfter(newTele, anchor)
         val ws = factory.createWhitespace(" ")
-        def.addBeforeWithNotification(ws, inserted)
+        def.addBefore(ws, inserted)
     }
 }
 
@@ -744,7 +744,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
         val newTele = createSwitchedTele(factory, tele)
         newTele ?: return tele
 
-        return tele.replaceWithNotification(newTele)
+        return tele.replace(newTele)
     }
 
     /**

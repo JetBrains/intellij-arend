@@ -80,7 +80,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
         get() = null
 
     override fun setName(name: String): PsiElement? =
-            this.replaceWithNotification(ArendPsiFactory(project).createDefIdentifier(name))
+            this.replace(ArendPsiFactory(project).createDefIdentifier(name))
 
     override fun textRepresentation(): String = referenceName
 
@@ -200,7 +200,7 @@ class ArendRefIdentifier(node: ASTNode) : ArendIdentifierBase(node), ArendSource
         get() = referent
 
     override fun setName(name: String): PsiElement =
-        this.replaceWithNotification(ArendPsiFactory(project).createRefIdentifier(name))
+        this.replace(ArendPsiFactory(project).createRefIdentifier(name))
 
     override fun getData() = this
 
@@ -226,5 +226,5 @@ class ArendAliasIdentifier(node: ASTNode) : ArendCompositeElementImpl(node), Psi
     override fun getNameIdentifier(): PsiElement? = firstChild
 
     override fun setName(name: String): PsiElement =
-        replaceWithNotification(ArendPsiFactory(project).createAliasIdentifier(name))
+        replace(ArendPsiFactory(project).createAliasIdentifier(name))
 }

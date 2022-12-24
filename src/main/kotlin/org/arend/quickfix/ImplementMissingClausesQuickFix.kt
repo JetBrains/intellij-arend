@@ -119,9 +119,9 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
             val anchor = when (cause) {
                 is ArendCoClauseDef -> {
                     val coClauseBody = cause.body
-                            ?: (cause.addAfterWithNotification(psiFactory.createCoClauseBody(), cause.lastChild) as ArendFunctionBody)
+                            ?: (cause.addAfter(psiFactory.createCoClauseBody(), cause.lastChild) as ArendFunctionBody)
                     val elim = coClauseBody.elim
-                            ?: coClauseBody.addWithNotification(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
+                            ?: coClauseBody.add(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
                     if (coClauseBody.lbrace == null)
                         insertPairOfBraces(psiFactory, elim)
 
@@ -174,7 +174,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                 var currAnchor: PsiElement? = null
                 if (pipe != null) currAnchor = anchorParent.addAfter(pipe, anchor)
                 anchorParent.addBefore(psiFactory.createWhitespace("\n"), currAnchor)
-                currAnchor = anchorParent.addAfterWithNotification(clause, currAnchor)
+                currAnchor = anchorParent.addAfter(clause, currAnchor)
                 anchorParent.addBefore(psiFactory.createWhitespace(" "), currAnchor)
             }
 

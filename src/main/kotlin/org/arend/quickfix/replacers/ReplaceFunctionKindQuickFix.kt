@@ -27,7 +27,7 @@ class ReplaceFunctionKindQuickFix(private val kwRef: SmartPsiElementPointer<Aren
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val kw = kwRef.element ?: return
         val factory = ArendPsiFactory(project)
-        kw.replaceWithNotification(if (kind == INSTANCE || kind == CONS) factory.createInstanceKeyword(kindDescription) else factory.createFunctionKeyword(kindDescription))
+        kw.replace(if (kind == INSTANCE || kind == CONS) factory.createInstanceKeyword(kindDescription) else factory.createFunctionKeyword(kindDescription))
     }
 
     private val kindDescription = when (kind) {

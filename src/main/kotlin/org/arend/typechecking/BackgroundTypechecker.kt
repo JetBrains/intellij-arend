@@ -20,7 +20,7 @@ import org.arend.util.afterTypechecking
 
 class BackgroundTypechecker(private val project: Project, private val instanceProviderSet: PsiInstanceProviderSet, private val concreteProvider: ConcreteProvider, private val modificationCount: Long) {
     private val definitionBlackListService = service<DefinitionBlacklistService>()
-    private val modificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
+    private val modificationTracker = service<ArendPsiChangeService>().definitionModificationTracker
     private val errorService: ErrorService = project.service()
 
     fun runTypechecker(file: ArendFile, lastModified: TCDefReferable?, collector1: CollectingOrderingListener, collector2: CollectingOrderingListener, runAnalyzer: Boolean): Boolean {
@@ -57,13 +57,10 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
             }
         }
 
-        if (!settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true) {
-            file.lastModifiedDefinition = null
-            if (!collector2.isEmpty) {
-                for (element in collector2.elements) {
-                    if (!typecheckDefinition(typechecking, element)) {
-                        return false
-                    }
+        if (!collector2.isEmpty && !settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true) {
+            for (element in collector2.elements) {
+                if (!typecheckDefinition(typechecking, element)) {
+                    return false
                 }
             }
         }

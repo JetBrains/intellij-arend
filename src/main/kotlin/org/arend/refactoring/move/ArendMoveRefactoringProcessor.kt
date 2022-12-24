@@ -220,7 +220,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                             classStatContainer
                         }
 
-                        insertAnchor!!.parent!!.addAfterWithNotification(mCopyClassStat, insertAnchor)
+                        insertAnchor!!.parent!!.addAfter(mCopyClassStat, insertAnchor)
                     } else {
                         val mCopyStatement = if (mStatementOrClassStat is ArendClassStat) {
                             val statementContainer = psiFactory.createFromText("\\func foo => {?}")?.childOfType<ArendStat>()
@@ -228,8 +228,8 @@ class ArendMoveRefactoringProcessor(project: Project,
                             statementContainer
                         } else mStatementOrClassStat.copy()
 
-                        insertAnchor?.parent?.addAfterWithNotification(mCopyStatement, insertAnchor)
-                                ?: myTargetContainer.addWithNotification(mCopyStatement)
+                        insertAnchor?.parent?.addAfter(mCopyStatement, insertAnchor)
+                                ?: myTargetContainer.add(mCopyStatement)
                     }
 
             fun markGroupAsTheOneThatNeedsLeadingThisParameter(group: ArendGroup) {
@@ -322,7 +322,7 @@ class ArendMoveRefactoringProcessor(project: Project,
             }
 
             val where = mySourceContainer.where
-            if (where != null && where.statList.isEmpty() && (sourceContainerWhereBlockFreshlyCreated || where.lbrace == null))  where.deleteWithNotification()
+            if (where != null && where.statList.isEmpty() && (sourceContainerWhereBlockFreshlyCreated || where.lbrace == null))  where.delete()
         }
 
         //Fix usages of namespace commands
@@ -412,7 +412,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                     if (psi is ArendWhere) return
                     if (psi is ArendAtom && psi.thisKw != null) {
                         val literal = psiFactory.createExpression(thisVarName).childOfType<ArendAtom>()!!
-                        psi.replaceWithNotification(literal)
+                        psi.replace(literal)
                     } else for (c in psi.children) doSubstituteThisKwWithThisVar(c)
                 }
 
@@ -465,7 +465,7 @@ class ArendMoveRefactoringProcessor(project: Project,
 
                 if (needsBeingSurroundedByParentheses) {
                     val tupleExpr = psiFactory.createExpression("(${localLiteral.text})").childOfType<ArendTuple>()
-                    val replacedExpr = if (tupleExpr != null) localLiteral.replaceWithNotification(tupleExpr) else null
+                    val replacedExpr = if (tupleExpr != null) localLiteral.replace(tupleExpr) else null
                     if (replacedExpr != null)  {
                         val newArgumentAppExpr = replacedExpr.childOfType<ArendArgumentAppExpr>()
                         if (newArgumentAppExpr != null) localArgumentAppExpr = newArgumentAppExpr
@@ -483,11 +483,11 @@ class ArendMoveRefactoringProcessor(project: Project,
                     val literalCopy = localLiteral.copy()
                     val currentAtomFieldsAcc = localArgumentAppExpr.atomFieldsAcc
                     if (currentAtomFieldsAcc != null && newAppExpr != null) {
-                        val insertedAtomFieldsAcc = currentAtomFieldsAcc.replaceWithNotification(newAppExpr.atomFieldsAcc!!)
-                        val insertedImplicitArgument = localArgumentAppExpr.addAfterWithNotification(newAppExpr.argumentList.first(), insertedAtomFieldsAcc)
-                        localArgumentAppExpr.addAfterWithNotification(psiFactory.createWhitespace(" "), insertedAtomFieldsAcc)
+                        val insertedAtomFieldsAcc = currentAtomFieldsAcc.replace(newAppExpr.atomFieldsAcc!!)
+                        val insertedImplicitArgument = localArgumentAppExpr.addAfter(newAppExpr.argumentList.first(), insertedAtomFieldsAcc)
+                        localArgumentAppExpr.addAfter(psiFactory.createWhitespace(" "), insertedAtomFieldsAcc)
                         val goalLiteral = insertedImplicitArgument.childOfType<ArendGoal>()!!.parent as ArendLiteral
-                        localLiteral = goalLiteral.replaceWithNotification(literalCopy) as ArendLiteral
+                        localLiteral = goalLiteral.replace(literalCopy) as ArendLiteral
                         localArgumentOrFieldsAcc = localLiteral.parent.parent
                         localArgumentAppExpr = localArgumentOrFieldsAcc.parent as ArendArgumentAppExpr
                      }
@@ -525,7 +525,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                 }
             } else if (parent is ArendTypeTele) {
                 val newTypeTele = psiFactory.createExpression("\\Pi (${literal.text} {$argument}) -> \\Set").childOfType<ArendTypeTele>()
-                if (newTypeTele != null) parent.replaceWithNotification(newTypeTele)
+                if (newTypeTele != null) parent.replace(newTypeTele)
             }
         }
 
@@ -543,7 +543,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                         val suffixElements = suffix.map { it.resolve }
                         if (suffixElements.all { it is PsiLocatedReferable }) {
                             suffixTargets.addAll(suffixElements.filterIsInstance<PsiLocatedReferable>())
-                            longName.deleteChildRangeWithNotification(firstDynamicMember.value.nextSibling, suffix.last())
+                            longName.deleteChildRange(firstDynamicMember.value.nextSibling, suffix.last())
                         }
                     }
                 }

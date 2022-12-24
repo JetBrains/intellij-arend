@@ -119,7 +119,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                             }
                         }
                     }
-                    project.service<ArendPsiChangeService>().incModificationCount()
+                    service<ArendPsiChangeService>().incModificationCount()
                 }
             }, longName.containingFile)
         }

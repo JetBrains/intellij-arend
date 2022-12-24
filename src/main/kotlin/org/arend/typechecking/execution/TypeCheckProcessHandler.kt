@@ -143,7 +143,6 @@ class TypeCheckProcessHandler(
                             }
                             for (module in modules) {
                                 orderGroup(module, ordering)
-                                module.lastModifiedDefinition = null
                             }
                         } else {
                             val ref = modules.firstOrNull()?.findGroupByFullName(command.definitionFullName.split('.'))?.referable

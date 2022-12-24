@@ -39,6 +39,7 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.resolving.DataLocatedReferable
+import org.arend.term.concrete.Concrete
 import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.libraryName
@@ -63,7 +64,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     var lastDefinitionModification: AtomicLong = AtomicLong(-1)
 
     val isBackgroundTypecheckingFinished: Boolean
-        get() = lastDefinitionModification.get() >= project.service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
+        get() = lastDefinitionModification.get() >= service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
 
     val moduleLocation: ModuleLocation?
         get() = generatedModuleLocation ?: CachedValuesManager.getCachedValue(this) {
@@ -76,13 +77,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     val libraryName: String?
         get() = arendLibrary?.name ?: if (name == ArendPreludeLibrary.PRELUDE_FILE_NAME) Prelude.LIBRARY_NAME else null
 
-    var lastModifiedDefinition: TCDefinition? = null
-        get() {
-            if (field?.isValid == false) {
-                field = null
-            }
-            return field
-        }
+    val concreteDefinitions = HashMap<LongName, Concrete.Definition>()
 
     class LifetimeAwareDefinitionRegistry : ConcurrentHashMap<LongName, TCReferable>() {
         override fun get(key: LongName): TCReferable? {
@@ -97,15 +92,13 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             return tc
         }
 
-        fun cleanup(project: Project?) {
+        fun cleanup() {
             val keysToRemove = this.filterValues {
                 val pointer = it.data as? SmartPsiElementPointer<*>
                 pointer != null && pointer.element == null
             }
-            val typecheckingService = project?.service<TypeCheckingService>()
-            for ((key, value) in keysToRemove) {
+            for ((key, _) in keysToRemove) {
                 remove(key)
-                typecheckingService?.dependencyListener?.update(value)
             }
         }
     }
@@ -117,7 +110,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     fun cleanupTCRefMaps() {
         for (refKind in RefKind.values()) {
-            getTCRefMap(refKind).cleanup(project)
+            getTCRefMap(refKind).cleanup()
         }
     }
 

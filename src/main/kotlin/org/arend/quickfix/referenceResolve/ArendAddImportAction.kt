@@ -45,7 +45,7 @@ class ArendAddImportAction(private val project: Project,
         DumbService.getInstance(project).withAlternativeResolveEnabled {
             WriteCommandAction.runWriteCommandAction(project, QuickFixBundle.message("add.import"), null, { fixData.execute(if (onTheFly) null else editor) }, currentElement.containingFile)
         }
-        project.service<ArendPsiChangeService>().incModificationCount(true)
+        service<ArendPsiChangeService>().incModificationCount(true)
     }
 
     private fun chooseItemAndImport(){

@@ -11,13 +11,13 @@ import java.util.concurrent.LinkedBlockingQueue
 
 private class TypecheckingTask(val modificationCount: Long, val action: () -> Unit)
 
-class TypecheckingTaskQueue(project: Project) : ArendDefinitionChangeListener {
+class TypecheckingTaskQueue : ArendDefinitionChangeListener {
     private val queue = LinkedBlockingQueue<TypecheckingTask>()
-    private val tracker = project.service<ArendPsiChangeService>().definitionModificationTracker
+    private val tracker = service<ArendPsiChangeService>().definitionModificationTracker
     private var isThreadRunning = false
 
     init {
-        project.service<ArendPsiChangeService>().addListener(this)
+        service<ArendPsiChangeService>().addListener(this)
     }
 
     fun addTask(modificationCount: Long = tracker.modificationCount, action: () -> Unit) {

@@ -16,6 +16,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.ConcreteCompareVisitor
 import org.arend.term.group.Group
 import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.PsiInstanceProviderSet
@@ -29,7 +30,7 @@ import org.arend.typechecking.order.listener.CollectingOrderingListener
 class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
-    private val psiListenerService = myProject.service<ArendPsiChangeService>()
+    private val psiListenerService = service<ArendPsiChangeService>()
     private val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
     private val instanceProviderSet = PsiInstanceProviderSet()
     private val collector1 = CollectingOrderingListener()
@@ -172,9 +173,38 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
         concreteProvider.resolve = true
 
+        var modified: Concrete.Definition? = null
+        var numberOfModified = 0
+        file.traverseGroup { group ->
+            val ref = group.referable
+            val def = concreteProvider.getConcrete(ref)
+            if (def is Concrete.Definition) {
+                if (def.data.typechecked == null) {
+                    file.concreteDefinitions[ref.refLongName] = def
+                } else {
+                    val prev = file.concreteDefinitions.putIfAbsent(ref.refLongName, def)
+                    if (prev == null || !prev.accept(ConcreteCompareVisitor(), def)) {
+                        def.data.typechecked = null
+                        file.concreteDefinitions[ref.refLongName] = def
+                        if (prev != null) {
+                            modified = def
+                            numberOfModified++
+                            if (ref is PsiConcreteReferable) {
+                                psiListenerService.updateDefinition(ref, file, false)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (numberOfModified > 0) {
+            file.cleanupTCRefMaps()
+        }
+
         val dependencyListener = myProject.service<TypeCheckingService>().dependencyListener
         val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
-        val lastModified = file.lastModifiedDefinition?.let { concreteProvider.getConcrete(it) as? Concrete.Definition }
+        val lastModified = if (numberOfModified == 1) modified else null
         if (lastModified != null) {
             lastModifiedDefinition = lastModified.data
             ordering.order(lastModified)
@@ -202,7 +232,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             // DaemonCodeAnalyzer.restart does not work in tests
             typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, false)
         } else {
-            myProject.service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
+            service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
                 typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, true)
             }
         }

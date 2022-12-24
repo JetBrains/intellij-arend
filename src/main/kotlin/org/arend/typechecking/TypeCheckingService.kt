@@ -187,7 +187,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
 
             // Set the listener that updates typechecked definitions
-            project.service<ArendPsiChangeService>().addListener(this)
+            service<ArendPsiChangeService>().addListener(this)
 
             // Listen for YAML files changes
             YAMLFileListener(project).register()
@@ -343,7 +343,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 }
 
                 isLoaded = true
-                project.service<ArendPsiChangeService>().incModificationCount()
+                service<ArendPsiChangeService>().incModificationCount()
                 DaemonCodeAnalyzer.getInstance(project).restart()
             }
         })
@@ -351,8 +351,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private fun prepareReload(): ArendTypechecking {
         project.service<ErrorService>().clearAllErrors()
-        project.service<ArendPsiChangeService>().incModificationCount()
-        project.service<TypecheckingTaskQueue>().clearQueue()
+        service<ArendPsiChangeService>().incModificationCount()
+        service<TypecheckingTaskQueue>().clearQueue()
         return ArendTypechecking.create(project)
     }
 
@@ -417,20 +417,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         return tcTypecheckable
     }
 
-    enum class LastModifiedMode { SET, SET_NULL, DO_NOT_TOUCH }
-
-    private fun updateDefinition(referable: LocatedReferable, file: ArendFile, mode: LastModifiedMode, removeTCRef: Boolean) {
-        if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is TCDefinition) {
-            val isValid = referable.isValid
-            if (mode == LastModifiedMode.SET) {
-                file.lastModifiedDefinition = if (isValid) referable else null
-            } else {
-                if (file.lastModifiedDefinition != referable) {
-                    file.lastModifiedDefinition = null
-                }
-            }
-        }
-
+    private fun doUpdateDefinition(referable: LocatedReferable, file: ArendFile, removeTCRef: Boolean) {
         val tcReferable = removeDefinition(referable, removeTCRef) ?: return
         val dependencies = synchronized(project) {
             dependencyListener.update(tcReferable)
@@ -440,7 +427,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
 
         if ((referable as? ArendDefFunction)?.functionKind?.isUse == true) {
-            (referable.parentGroup as? TCDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH, removeTCRef) }
+            (referable.parentGroup as? TCDefinition)?.let { doUpdateDefinition(it, file, removeTCRef) }
         }
     }
 
@@ -448,7 +435,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (!isExternalUpdate) {
             def.checkTCReferableName()
         }
-        updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET, !isExternalUpdate)
+        doUpdateDefinition(def, file, !isExternalUpdate)
     }
 
     class LibraryManagerTestingOptions {

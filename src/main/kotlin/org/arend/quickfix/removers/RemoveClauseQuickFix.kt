@@ -8,8 +8,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ext.ArendClause
 import org.arend.psi.ArendElementTypes.PIPE
-import org.arend.psi.deleteChildRangeWithNotification
-import org.arend.psi.deleteWithNotification
 import org.arend.psi.findPrevSibling
 import org.arend.util.ArendBundle
 
@@ -30,8 +28,8 @@ class RemoveClauseQuickFix (private val clauseRef: SmartPsiElementPointer<ArendC
     companion object {
         fun doRemoveClause(clause: PsiElement) {
             val prevSibling = clause.findPrevSibling()
-            if (prevSibling != null && prevSibling.node.elementType == PIPE) clause.parent.deleteChildRangeWithNotification(prevSibling, clause) else
-                clause.deleteWithNotification()
+            if (prevSibling != null && prevSibling.node.elementType == PIPE) clause.parent.deleteChildRange(prevSibling, clause) else
+                clause.delete()
         }
     }
 }
