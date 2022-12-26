@@ -178,8 +178,8 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 if (def.data.typechecked == null) {
                     check = true
                 } else {
-                    val prev = file.concreteDefinitions[ref.refLongName]
-                    if (prev == null || !prev.accept(ConcreteCompareVisitor(), def)) {
+                    val prev = file.concreteDefinitions.putIfAbsent(ref.refLongName, def)
+                    if (prev != null && !prev.accept(ConcreteCompareVisitor(), def)) {
                         def.data.typechecked = null
                         check = true
                     }
