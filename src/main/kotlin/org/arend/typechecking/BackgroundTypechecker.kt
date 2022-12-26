@@ -42,10 +42,6 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
             return true
         }
 
-        if (file.lastDefinitionModification.get() >= modificationCount) {
-            return false
-        }
-
         val tcService = project.service<TypeCheckingService>()
         val typechecking = ArendTypechecking(tcService, instanceProviderSet, concreteProvider, errorService, tcService.dependencyListener, LibraryArendExtensionProvider(tcService.libraryManager))
 
@@ -69,7 +65,8 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
             project.afterTypechecking(listOf(file))
         }
 
-        file.lastDefinitionModification.updateAndGet { maxOf(it, modificationCount) }
+        modificationTracker.incModificationCount()
+        file.lastDefinitionModification.updateAndGet { maxOf(it, modificationTracker.modificationCount) }
         return true
     }
 

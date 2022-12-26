@@ -93,19 +93,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         } else false
     }
 
-    override fun checkTCReferableName() {
-        val tcRef = tcReferableCache ?: return
-        val refName = refName
-        if (tcRef.refName != refName) synchronized(this) {
-            val tcRef2 = tcReferableCache ?: return
-            if (tcRef2.refName != refName) {
-                dropTCRefCachesRecursively()
-                return
-            }
-        }
-        dropTCReferable()
-    }
-
     override fun dropTCReferable() {
         tcReferableCache = null
         if (this is ArendGroup) {

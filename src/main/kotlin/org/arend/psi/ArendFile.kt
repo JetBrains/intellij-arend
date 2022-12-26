@@ -5,7 +5,6 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileTypes.FileType
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.FileViewProvider
@@ -206,8 +205,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun dropTCReferable() {}
 
     override fun checkTCReferable() = true
-
-    override fun checkTCReferableName() {}
 
     override fun getLocation() = moduleLocation
 

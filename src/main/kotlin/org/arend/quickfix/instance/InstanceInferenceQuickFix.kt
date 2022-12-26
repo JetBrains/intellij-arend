@@ -26,7 +26,6 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendDefinition
 import org.arend.psi.ext.ArendGroup
 import org.arend.psi.ext.ArendLongName
-import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.*
 import org.arend.resolving.ArendReferenceImpl
 import org.arend.resolving.DataLocatedReferable
@@ -119,7 +118,6 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                             }
                         }
                     }
-                    service<ArendPsiChangeService>().incModificationCount()
                 }
             }, longName.containingFile)
         }

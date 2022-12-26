@@ -65,7 +65,6 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
     }
 
     private fun collectInfo(progress: ProgressIndicator) {
-        val definitions = ArrayList<Concrete.Definition>()
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
@@ -163,9 +162,6 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 }
 
                 definition.accept(IntentionBackEndVisitor(), null)
-                if (definition is Concrete.Definition) {
-                    definitions.add(definition)
-                }
 
                 advanceProgress(1)
             }
@@ -173,38 +169,38 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
         concreteProvider.resolve = true
 
-        var modified: Concrete.Definition? = null
-        var numberOfModified = 0
+        val definitions = ArrayList<Concrete.Definition>()
         file.traverseGroup { group ->
             val ref = group.referable
             val def = concreteProvider.getConcrete(ref)
             if (def is Concrete.Definition) {
+                var check = false
                 if (def.data.typechecked == null) {
-                    file.concreteDefinitions[ref.refLongName] = def
+                    check = true
                 } else {
-                    val prev = file.concreteDefinitions.putIfAbsent(ref.refLongName, def)
+                    val prev = file.concreteDefinitions[ref.refLongName]
                     if (prev == null || !prev.accept(ConcreteCompareVisitor(), def)) {
                         def.data.typechecked = null
-                        file.concreteDefinitions[ref.refLongName] = def
-                        if (prev != null) {
-                            modified = def
-                            numberOfModified++
-                            if (ref is PsiConcreteReferable) {
-                                psiListenerService.updateDefinition(ref, file, false)
-                            }
-                        }
+                        check = true
+                    }
+                }
+                if (check) {
+                    definitions.add(def)
+                    file.concreteDefinitions[def.data.refLongName] = def
+                    if (ref is PsiConcreteReferable) {
+                        psiListenerService.updateDefinition(ref, file, false)
                     }
                 }
             }
         }
 
-        if (numberOfModified > 0) {
+        if (definitions.isNotEmpty()) {
             file.cleanupTCRefMaps()
         }
 
         val dependencyListener = myProject.service<TypeCheckingService>().dependencyListener
         val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
-        val lastModified = if (numberOfModified == 1) modified else null
+        val lastModified = if (definitions.size == 1) definitions[0] else null
         if (lastModified != null) {
             lastModifiedDefinition = lastModified.data
             ordering.order(lastModified)

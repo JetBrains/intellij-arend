@@ -479,7 +479,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
             mainDocument.insertString(caret.offset, representation.text)
             PsiDocumentManager.getInstance(definition.project).commitDocument(mainDocument)
             action.execute(mainEditor)
-            service<ArendPsiChangeService>().incModificationCount(true)
+            service<ArendPsiChangeService>().incModificationCount()
         })
     }
 

@@ -68,7 +68,7 @@ import org.arend.yaml.YAMLFileListener
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
 
-class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener, Disposable {
     val dependencyListener = DependencyCollector()
     private val libraryErrorReporter = NotificationErrorReporter(project)
     val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this) {
@@ -343,7 +343,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 }
 
                 isLoaded = true
-                service<ArendPsiChangeService>().incModificationCount()
                 DaemonCodeAnalyzer.getInstance(project).restart()
             }
         })
@@ -351,7 +350,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private fun prepareReload(): ArendTypechecking {
         project.service<ErrorService>().clearAllErrors()
-        service<ArendPsiChangeService>().incModificationCount()
         service<TypecheckingTaskQueue>().clearQueue()
         return ArendTypechecking.create(project)
     }
@@ -365,10 +363,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     val additionalReferables: Map<String, List<PsiLocatedReferable>>
         get() = additionalNames
 
-    private fun resetErrors(def: Referable, removeTCRef: Boolean) {
-        if (removeTCRef) {
-            (def as? ReferableBase<*>)?.dropTCCache()
-        }
+    private fun resetErrors(def: Referable) {
         if (def is TCDefinition) {
             project.service<ErrorService>().clearTypecheckingErrors(def)
         }
@@ -384,7 +379,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val tcRefMap = fullName.modulePath?.let { getTCRefMaps(Referable.RefKind.EXPR)[it] }
         val tcReferable = tcRefMap?.get(fullName.longName)
         if (tcReferable !is TCDefReferable) {
-            resetErrors(curRef, removeTCRef)
+            resetErrors(curRef)
             return tcReferable
         }
 
@@ -410,7 +405,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (removeTCRef) {
             tcRefMap.remove(fullName.longName)
         }
-        resetErrors(curRef, removeTCRef)
+        resetErrors(curRef)
 
         val tcTypecheckable = tcReferable.typecheckable
         tcTypecheckable.location?.let { updatedModules.add(it) }
@@ -432,9 +427,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
 
     override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        if (!isExternalUpdate) {
-            def.checkTCReferableName()
-        }
         doUpdateDefinition(def, file, !isExternalUpdate)
     }
 
@@ -453,4 +445,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
     }
+
+    override fun dispose() {}
 }

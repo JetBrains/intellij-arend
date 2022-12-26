@@ -7,14 +7,10 @@ import org.arend.psi.ext.*
 
 class ArendPsiChangeService {
     private val listeners = HashSet<ArendDefinitionChangeListener>()
-    val modificationTracker = SimpleModificationTracker()
     val definitionModificationTracker = SimpleModificationTracker()
 
-    fun incModificationCount(withDef: Boolean = true) {
-        modificationTracker.incModificationCount()
-        if (withDef) {
-            definitionModificationTracker.incModificationCount()
-        }
+    fun incModificationCount() {
+        definitionModificationTracker.incModificationCount()
     }
 
     fun addListener(listener: ArendDefinitionChangeListener) {
@@ -26,9 +22,6 @@ class ArendPsiChangeService {
     }
 
     fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        if (!isExternalUpdate) {
-            definitionModificationTracker.incModificationCount()
-        }
         for (listener in listeners) {
             listener.updateDefinition(def, file, isExternalUpdate)
         }
