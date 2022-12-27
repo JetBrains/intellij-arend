@@ -2,6 +2,7 @@ package org.arend.refactoring.changeSignature
 
 import com.intellij.lang.Language
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.elementType
 import com.intellij.refactoring.changeSignature.ChangeInfo
 import com.intellij.refactoring.changeSignature.ParameterInfo
 import org.arend.ArendLanguage
@@ -35,10 +36,11 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
 
     override fun getLanguage(): Language = ArendLanguage.INSTANCE
 
-    fun signature(): String {
+    fun parameterText(): String {
         val teleEntries = ArrayList<Pair<Pair<String?, Boolean>, MutableList<String?>>>()
         val whitespaceList = ArrayList<String>()
         var lastWhitespace = " "
+
         when (locatedReferable) {
             is ArendDefFunction -> {
                 var buffer = ""
@@ -77,11 +79,34 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
                 newTeles.append(" : ${entry.first.first}")
             newTeles.append (if (entry.first.second) ")" else "}")
         }
+        return newTeles.toString()
+    }
 
-        return when (locatedReferable) {
-            is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable.precedence as? PsiElement)?.text?.let{ " $it" } ?: ""} $name $newTeles${returnType?.let { " : $it" } ?: ""}"
-            else -> throw IllegalStateException()
+    fun returnPart(): String {
+        val colon = locatedReferable.childrenWithLeaves.firstOrNull { it.elementType == ArendElementTypes.COLON }
+        val returnExpr = locatedReferable.children.firstOrNull { it.elementType == ArendElementTypes.RETURN_EXPR }
+        var colonWhitespace = ""
+        var returnExprWhitespace = ""
+        var pointer: PsiElement? = colon?.prevSibling
+        while (pointer != null && !locatedReferable.children.contains(pointer)) {
+            colonWhitespace = pointer.text + colonWhitespace
+            pointer = pointer.prevSibling
         }
+        pointer = returnExpr?.prevSibling
+        while (pointer != null && pointer != colon) {
+            returnExprWhitespace = pointer.text + returnExprWhitespace
+            pointer = pointer.prevSibling
+        }
+        if (colonWhitespace == "") colonWhitespace = " "
+        if (returnExprWhitespace == "") returnExprWhitespace = " "
+        return if (returnType.isNullOrEmpty()) "" else "$colonWhitespace:$returnExprWhitespace$returnType"
+    }
+
+    fun signaturePart() = "$name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText().let { if (it.isNotEmpty()) " $it" else "" }}${returnPart()}"
+
+    fun signaturePreview(): String = when (locatedReferable) {
+        is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable as? ReferableBase<*>)?.prec?.let { " ${it.text}" } ?: ""} $name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText().let { if (it.isNotEmpty()) " $it" else "" }}${returnPart()}"
+        else -> throw IllegalStateException()
     }
 
     companion object {
