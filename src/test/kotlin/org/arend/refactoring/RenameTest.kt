@@ -318,6 +318,30 @@ class RenameTest : ArendTestBase() {
             "\\func :b => {?}"
     )
 
+    fun `test namespace command rename`() = doInlineTest("f123", """
+       \module N \where {
+         \class Foo \where {
+           \func foo (a b : Nat) => a Nat.+ b
+         }
+       }
+
+       \module M \where {
+         \open N.Foo (foo \as f)
+         \func bar => f{-caret-} 1 2
+       }
+    """, """
+       \module N \where {
+         \class Foo \where {
+           \func foo (a b : Nat) => a Nat.+ b
+         }
+       }
+
+       \module M \where {
+         \open N.Foo (foo \as f123)
+         \func bar => f123 1 2
+       } 
+    """)
+
     private fun doTest(
             newName: String,
             @Language("Arend") before: String,

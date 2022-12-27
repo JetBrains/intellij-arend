@@ -608,6 +608,10 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                 }
         }.map { Pair(getParentPsiFunctionCall(it.first), it.second )} }.flatten().sortedWith { a, b -> if (a.first.textLength == b.first.textLength) b.first.startOffset.compareTo(a.first.startOffset) else a.first.textLength.compareTo(b.first.textLength)  }.toCollection(LinkedHashSet())
 
+        for (usingNsCmd in fCallParents.filter { it.first is ArendNsUsing }) {
+            //TODO: Implement me
+        }
+
         val concreteSet = LinkedHashSet<Pair<Pair<PsiElement, RefactoringDescriptor>, Concrete.Expression?>>()
         val textReplacements = LinkedHashMap<PsiElement, String>()
         val fileChangeMap = LinkedHashMap<PsiFile, SortedList<Pair<TextRange, String>>>()
@@ -770,7 +774,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
 
 class NameFieldApplier(project: Project) : ChangeArgumentExplicitnessApplier(project) {
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement {
-        return element.parentOfType<ArendPattern>() ?: element.parentOfType<ArendArgumentAppExpr>() ?: element
+        return element.parentOfType<ArendPattern>() ?: element.parentOfType<ArendArgumentAppExpr>() ?: element.parentOfType<ArendNsUsing>() ?: element
     }
 
     override fun getCallingParameters(call: PsiElement): List<PsiElement> = when (call) {

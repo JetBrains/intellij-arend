@@ -19,20 +19,24 @@ import com.intellij.util.containers.mapSmartSet
 import com.intellij.util.indexing.FileBasedIndex
 import gnu.trove.THashSet
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.ArendDefIdentifier
+import org.arend.psi.ext.ArendNsId
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.PsiReferable
 import org.arend.typechecking.TypeCheckingService
 
 class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>() {
     override fun processQuery(parameters: ReferencesSearch.SearchParameters, consumer: Processor<in PsiReference>) {
-        val elementToSearch = parameters.elementToSearch as? PsiLocatedReferable ?: return
+        val elementToSearch = parameters.elementToSearch
         val scope = parameters.scopeDeterminedByUser
         val project = parameters.project
         val tasks = ArrayList<Pair<String, SearchScope>>()
 
-
         runReadAction {
+            val nsId = elementToSearch is ArendDefIdentifier && elementToSearch.parent is ArendNsId
+            if (elementToSearch !is PsiReferable) return@runReadAction
             val standardName = elementToSearch.refName
-            val aliasName = elementToSearch.aliasName
+            val aliasName = (elementToSearch as? PsiLocatedReferable)?.aliasName
             if (scope is GlobalSearchScope) {
                 collectSearchScopes(listOf(standardName), scope, project).forEach {
                     val arendFile = PsiManager.getInstance(project).findFile(it) as? ArendFile
@@ -47,10 +51,11 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
                             tasks.add(aliasName to LocalSearchScope(arendFile))
                         }
                     }
-            }
+                }
             } else if (aliasName != null) {
                 tasks.add(Pair(aliasName, scope))
             }
+            if (nsId) tasks.add(Pair(standardName, scope))
         }
 
         for (task in tasks) {
@@ -61,7 +66,7 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
 }
 
 /**
- * Every returned file contains **all** of identifiers speicified in [namesToSearch]
+ * Every returned file contains **all** of identifiers specified in [namesToSearch]
  */
 fun collectSearchScopes(namesToSearch: List<String>, scope: GlobalSearchScope, project: Project): List<VirtualFile> =
     runReadAction {

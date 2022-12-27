@@ -16,6 +16,7 @@ class ArendFindUsagesProvider : FindUsagesProvider {
     override fun getHelpId(element: PsiElement): String = HelpID.FIND_OTHER_USAGES
 
     override fun getType(element: PsiElement): String = when (element) {
+        is ArendDefIdentifier -> "identifier"
         is ArendDefClass -> "class"
         is ArendDefModule -> "module"
         is FieldReferable -> "class field"
