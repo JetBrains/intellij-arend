@@ -90,6 +90,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
     }
 
     private fun runDumbTypechecker(def: Concrete.ResolvableDefinition) {
-        DesugarVisitor.desugar(def, errorService).accept(DumbTypechecker(errorService), null)
+        DesugarVisitor.desugar(def, errorService)
+        def.accept(DumbTypechecker(errorService), null)
     }
 }
