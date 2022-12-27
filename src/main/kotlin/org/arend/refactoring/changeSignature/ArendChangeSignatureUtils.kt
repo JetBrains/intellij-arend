@@ -1,6 +1,9 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
 import org.arend.intention.NameFieldApplier
 import org.arend.intention.NewParameter
 import org.arend.intention.Parameter
@@ -13,11 +16,9 @@ import java.util.Collections.singletonList
 
 
 fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: ArendDefFunction) {
-    val factory = ArendPsiFactory(project)
-
     for (nsCmd in changeInfo.nsCmds) nsCmd.execute()
     renameParametersUsages(project, function, changeInfo.newParameters.toList().map { it as ArendParameterInfo })
-    modifyFunctionBody(factory, function, changeInfo)
+    modifyFunctionBody(function, changeInfo)
 
     if (changeInfo.isNameChanged) {
         val renameProcessor = ArendRenameProcessor(project, function, changeInfo.newName, function.refName, false, null)
@@ -39,14 +40,13 @@ private fun renameParametersUsages(project: Project, function: ArendDefFunction,
     NameFieldApplier(project).applyTo(singletonList(RefactoringDescriptor(function, oldParameters, newParameters)).toSet())
 }
 
-private fun modifyFunctionBody(factory: ArendPsiFactory, function: ArendDefFunction, changeInfo: ArendChangeInfo) {
-    val params = function.parameters
-    if (params.isNotEmpty()) function.deleteChildRangeWithNotification(params.first(), params.last())
-    val anchor = function.findParametersElement()
-    val signatureText = changeInfo.signature()
-    val sampleFunc = factory.createFromText(signatureText)!!.childOfType<ArendDefFunction>()!!
-    val whitespaceBeforeFirstNameTele = sampleFunc.defIdentifier!!.nextSibling
-    if (signatureText.trim() != "" && whitespaceBeforeFirstNameTele != null) {
-        function.addRangeBeforeWithNotification(whitespaceBeforeFirstNameTele, sampleFunc.parameters.last(), anchor)
-    }
+private fun modifyFunctionBody(function: ArendDefFunction, changeInfo: ArendChangeInfo) {
+    val signatureText = changeInfo.signaturePart()
+    val startPosition = function.nameIdentifier?.startOffset ?: return
+    val endPosition = (((function.returnExpr?.endOffset) ?: function.parameters.lastOrNull()?.endOffset) ?: function.alias?.endOffset) ?: function.nameIdentifier?.endOffset ?: return
+    val containingFile = function.containingFile
+    val documentManager = PsiDocumentManager.getInstance(function.project)
+    val document = documentManager.getDocument(containingFile) ?: return
+    document.replaceString(startPosition, endPosition, signatureText)
+    documentManager.commitDocument(document)
 }

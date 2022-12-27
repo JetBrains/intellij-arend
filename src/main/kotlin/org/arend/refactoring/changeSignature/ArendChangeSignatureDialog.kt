@@ -5,7 +5,6 @@ import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerEx
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.lang.annotation.HighlightSeverity
-import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.*
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
@@ -170,7 +169,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         }
 
         for (item in myParametersTable.items) checkFragment((item.typeCodeFragment as ArendExpressionCodeFragment), "in the type expression for \"${item.parameter.name}\"")
-        checkFragment(myReturnTypeCodeFragment as ArendExpressionCodeFragment, "in the return expression")
+        if (myReturnTypeCodeFragment?.text?.isNotEmpty() == true) checkFragment(myReturnTypeCodeFragment as ArendExpressionCodeFragment, "in the return expression")
 
         if (!hasErrors) return null
 
@@ -189,7 +188,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     override fun calculateSignature(): String =
-        evaluateChangeInfo(myParametersTableModel).signature()
+        evaluateChangeInfo(myParametersTableModel).signaturePreview()
 
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
 
@@ -367,7 +366,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         val upButton = ToolbarDecorator.findUpButton(parametersPanel) ?: return
 
         val selectedIndices = this.myParametersTable.selectionModel.selectedIndices
-        if (selectedIndices.size == 1) {
+        if (selectedIndices.size == 1 && this.myParametersTableModel.items.size > 0) {
             val selectedIndex = selectedIndices.first()
             val currentItem = this.myParametersTableModel.items[selectedIndex]
 

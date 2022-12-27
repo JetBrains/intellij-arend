@@ -10,7 +10,6 @@ import com.intellij.ui.BooleanTableCellEditor
 import com.intellij.ui.BooleanTableCellRenderer
 import org.arend.ArendFileType
 import org.arend.ext.module.LongName
-import org.arend.naming.scope.Scope
 import org.arend.util.FileUtils.isCorrectDefinitionName
 import java.awt.Component
 import java.util.Collections.singletonList
@@ -19,7 +18,7 @@ import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 
 class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
-                               val dialog: ArendChangeSignatureDialog,
+                               private val dialog: ArendChangeSignatureDialog,
                                defaultValueContext: PsiElement):
     ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor, dialog), ArendImplicitnessColumn()) {
 
