@@ -1,7 +1,9 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.lang.Language
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.elementType
 import com.intellij.refactoring.changeSignature.ChangeInfo
 import com.intellij.refactoring.changeSignature.ParameterInfo
@@ -9,13 +11,68 @@ import org.arend.ArendLanguage
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.NsCmdRefactoringAction
+import org.arend.term.abs.Abstract.ParametersHolder
 import java.util.Collections.singletonList
 
 class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
                        val returnType: String?,
                        val name: String,
-                       val locatedReferable: PsiLocatedReferable /* TODO: Use more persistent pointers */,
+                       val locatedReferable: PsiLocatedReferable,
                        val nsCmds: List<NsCmdRefactoringAction> = emptyList()) : ChangeInfo {
+    private data class TeleWhitespaceData (val beforeTeleWhitespace: String, val beforeVarWhitespace: List<String>, val colonText: String?, val afterTypeText: String?)
+    private val myTeleWhitespaces: List<TeleWhitespaceData>
+
+    private fun leadingSpace(element: PsiElement?, onlySignificant: Boolean = true): String? {
+        val parent = element?.parent ?: return null
+        val children = when (onlySignificant) {
+            false -> parent.childrenWithLeaves.filter { it !is PsiWhiteSpace && it !is PsiComment }.toList()
+            true -> parent.children.toList()
+        }
+        var prev = element.prevSibling
+        var buffer = ""
+        while (prev != null && !children.contains(prev)) {
+            buffer = prev.text + buffer
+            prev = prev.prevSibling
+        }
+        return buffer
+    }
+
+    private fun trailingSpace(element: PsiElement?, onlySignificant: Boolean = true): String? {
+        val parent = element?.parent ?: return null
+        val children = when (onlySignificant) {
+            false -> parent.childrenWithLeaves.filter { it !is PsiWhiteSpace && it !is PsiComment }.toList()
+            true -> parent.children.toList()
+        }
+        var next = element.nextSibling
+        var buffer = ""
+        while (next != null && !children.contains(next)) {
+            buffer += next.text
+            next = next.nextSibling
+        }
+        return buffer
+    }
+
+    init {
+        val teleWhitespaces = ArrayList<TeleWhitespaceData>()
+        if (locatedReferable is ParametersHolder) {
+            for (tele in locatedReferable.parameters) when (tele) {
+                is ArendNameTele -> {
+                    val beforeTeleWhitespace = leadingSpace(tele)!!
+                    val beforeVarWhitespaces = ArrayList<String>()
+                    for (id in tele.identifierOrUnknownList) {
+                        val beforeVar = leadingSpace(id, false)
+                        if (beforeVar != null) beforeVarWhitespaces.add(beforeVar)
+                    }
+                    val colonText = tele.type?.let { leadingSpace(it) }
+                    val afterTypeText = tele.type?.let{ trailingSpace(it, false) }
+                    teleWhitespaces.add(TeleWhitespaceData(beforeTeleWhitespace, beforeVarWhitespaces, colonText, afterTypeText))
+                }
+            }
+        }
+        myTeleWhitespaces = teleWhitespaces
+        println(myTeleWhitespaces)
+    }
+
     override fun getNewParameters(): Array<ParameterInfo> = parameterInfo.toTypedArray()
 
     override fun isParameterSetOrOrderChanged(): Boolean = true //TODO: Implement me
@@ -82,24 +139,18 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
         return newTeles.toString()
     }
 
+
     fun returnPart(): String {
-        val colon = locatedReferable.childrenWithLeaves.firstOrNull { it.elementType == ArendElementTypes.COLON }
         val returnExpr = locatedReferable.children.firstOrNull { it.elementType == ArendElementTypes.RETURN_EXPR }
         var colonWhitespace = ""
-        var returnExprWhitespace = ""
-        var pointer: PsiElement? = colon?.prevSibling
+        var pointer: PsiElement? = returnExpr?.prevSibling
         while (pointer != null && !locatedReferable.children.contains(pointer)) {
             colonWhitespace = pointer.text + colonWhitespace
-            pointer = pointer.prevSibling
-        }
-        pointer = returnExpr?.prevSibling
-        while (pointer != null && pointer != colon) {
-            returnExprWhitespace = pointer.text + returnExprWhitespace
+            pointer.findPrevSibling()
             pointer = pointer.prevSibling
         }
         if (colonWhitespace == "") colonWhitespace = " "
-        if (returnExprWhitespace == "") returnExprWhitespace = " "
-        return if (returnType.isNullOrEmpty()) "" else "$colonWhitespace:$returnExprWhitespace$returnType"
+        return if (returnType.isNullOrEmpty()) "" else "$colonWhitespace$returnType"
     }
 
     fun signaturePart() = "$name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText().let { if (it.isNotEmpty()) " $it" else "" }}${returnPart()}"
