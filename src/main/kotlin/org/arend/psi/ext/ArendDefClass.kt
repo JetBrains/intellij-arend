@@ -54,8 +54,6 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefi
 
     override fun getSuperClassReferences(): List<ClassReferable> = superClassList.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
 
-    override fun hasLevels(index: Int) = superClassList.getOrNull(index)?.pLevels != null
-
     override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.firstRelevantChild as? ArendGroup ?: it.coClause?.functionReference }
 
     private inline val parameterFields: List<ArendFieldDefIdentifier>

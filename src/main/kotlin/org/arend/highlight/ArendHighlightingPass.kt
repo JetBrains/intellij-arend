@@ -14,6 +14,7 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
+import org.arend.resolving.IntellijTCReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteCompareVisitor
@@ -65,6 +66,18 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
     }
 
     private fun collectInfo(progress: ProgressIndicator) {
+        val service = myProject.service<TypeCheckingService>()
+        file.moduleLocation?.let {
+            service.cleanupTCRefMaps(it)
+        }
+        file.traverseGroup { group ->
+            val ref = group.referable as? PsiLocatedReferable
+            val tcRef = ref?.tcReferableCached
+            if (tcRef is IntellijTCReferable && !tcRef.isEquivalent(ref)) {
+                ref.dropTCReferable()
+            }
+        }
+
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
@@ -180,7 +193,6 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 } else {
                     val prev = file.concreteDefinitions.putIfAbsent(ref.refLongName, def)
                     if (prev != null && !prev.accept(ConcreteCompareVisitor(), def)) {
-                        def.data.typechecked = null
                         check = true
                     }
                 }
@@ -198,7 +210,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             file.cleanupTCRefMaps()
         }
 
-        val dependencyListener = myProject.service<TypeCheckingService>().dependencyListener
+        val dependencyListener = service.dependencyListener
         val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
         val lastModified = if (definitions.size == 1) definitions[0] else null
         if (lastModified != null) {

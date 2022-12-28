@@ -13,6 +13,7 @@ import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
+import org.arend.resolving.IntellijTCReferable
 import org.arend.typechecking.TypeCheckingService
 
 abstract class ReferableBase<StubT> : PsiStubbedReferableImpl<StubT>, PsiDefReferable
@@ -50,7 +51,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         tcReferableCache = null
     }
 
-    protected abstract fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): TCReferable
+    override val tcReferableCached: TCReferable?
+        get() = tcReferableCache
+
+    protected abstract fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable
 
     override val tcReferable: TCReferable?
         get() = tcReferableCache ?: runReadAction {
@@ -91,6 +95,19 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
             dropTCReferable()
             true
         } else false
+    }
+
+    override fun checkTCReferableName() {
+        val tcRef = tcReferableCache ?: return
+        val refName = refName
+        if (tcRef.refName != refName) synchronized(this) {
+            val tcRef2 = tcReferableCache ?: return
+            if (tcRef2.refName != refName) {
+                dropTCRefCachesRecursively()
+                return
+            }
+        }
+        dropTCReferable()
     }
 
     override fun dropTCReferable() {

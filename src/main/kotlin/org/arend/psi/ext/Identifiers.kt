@@ -10,10 +10,7 @@ import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
-import org.arend.resolving.ArendDefReferenceImpl
-import org.arend.resolving.ArendPatternDefReferenceImpl
-import org.arend.resolving.ArendReference
-import org.arend.resolving.ArendReferenceImpl
+import org.arend.resolving.*
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
 import org.arend.term.NamespaceCommand
@@ -150,6 +147,13 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
 
     private var tcReferableCache: TCLevelReferable? = null
 
+    override val tcReferableCached: IntellijTCReferable?
+        get() = tcReferableCache as? IntellijTCReferable
+
+    override fun dropTCReferable() {
+        tcReferableCache = null
+    }
+
     override val tcReferable: TCReferable?
         get() = tcReferableCache ?: runReadAction {
             val parent = parent
@@ -169,10 +173,10 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
                     }
                     val locatedParent = locatedReferableParent
                     val actualParent = if (locatedParent is ArendFile) locatedParent.moduleLocation?.let { FullModuleReferable(it) } else locatedParent?.tcReferable
-                    val tcList = ArrayList<TCLevelReferable>(list.size)
+                    val tcList = ArrayList<IntellijTCLevelReferable>(list.size)
                     val levelDef = LevelDefinition(refKind == Referable.RefKind.PLEVEL, parent.getChildOfType<ArendLevelCmp>()?.isIncreasing != false, tcList, actualParent)
                     for (ref in list) {
-                        tcList.add(TCLevelReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer<PsiLocatedReferable>(ref, file), ref.refName, levelDef))
+                        tcList.add(IntellijTCLevelReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(ref, file), ref.refName, levelDef))
                     }
                     tcRefMap[longName] = tcList[0]
                     tcReferableCache = tcList[index]

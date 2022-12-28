@@ -38,6 +38,7 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.resolving.DataLocatedReferable
+import org.arend.resolving.IntellijTCReferable
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.TypeCheckingService
@@ -78,8 +79,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     val concreteDefinitions = HashMap<LongName, Concrete.Definition>()
 
-    class LifetimeAwareDefinitionRegistry : ConcurrentHashMap<LongName, TCReferable>() {
-        override fun get(key: LongName): TCReferable? {
+    // TODO: Is this still needed?
+    class LifetimeAwareDefinitionRegistry : ConcurrentHashMap<LongName, IntellijTCReferable>() {
+        override fun get(key: LongName): IntellijTCReferable? {
             val tc = super.get(key)
             if (tc is DataLocatedReferable && tc.data != null && tc.data!!.element == null) {
                 logger<BackgroundTypechecker>().error("""
@@ -205,6 +207,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun dropTCReferable() {}
 
     override fun checkTCReferable() = true
+
+    override fun checkTCReferableName() {}
 
     override fun getLocation() = moduleLocation
 

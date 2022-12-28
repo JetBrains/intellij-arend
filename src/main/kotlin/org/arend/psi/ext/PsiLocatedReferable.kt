@@ -16,6 +16,11 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 
     val tcReferable: TCReferable?
 
+    val tcReferableCached: TCReferable?
+        get() = null
+
+    fun dropTCReferable()
+
     companion object {
         fun fromReferable(referable: GlobalReferable) = referable.underlyingReferable as? PsiLocatedReferable
 
@@ -26,9 +31,9 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 interface PsiDefReferable : PsiLocatedReferable {
     fun dropTypechecked()
 
-    fun dropTCReferable()
-
     fun checkTCReferable(): Boolean
+
+    fun checkTCReferableName()
 }
 
 private fun PsiLocatedReferable.getFullName(builder: StringBuilder) {

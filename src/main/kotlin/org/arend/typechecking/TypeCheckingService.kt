@@ -41,10 +41,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
-import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.ArendResolveCache
-import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.PsiConcreteProvider
+import org.arend.resolving.*
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
@@ -138,6 +135,12 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
     }
 
+    fun cleanupTCRefMaps(module: ModuleLocation) {
+        for (tcRefMap in tcRefMaps) {
+            tcRefMap[module]?.values?.removeIf { !it.isConsistent }
+        }
+    }
+
     val updatedModules = HashSet<ModuleLocation>()
 
     var isInitialized = false
@@ -167,7 +170,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 if (tcRefMap != null) {
                     Prelude.forEach {
                         val name = it.referable.refLongName
-                        tcRefMap[name] = it.referable
+                        tcRefMap[name] = it.referable as IntellijTCReferable
                         val dataRef = it.referable
                         if (dataRef is DataLocatedReferable) {
                             val ref = Scope.resolveName(preludeScope, name.toList())
@@ -398,7 +401,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
 
-        val prevRef = tcReferable.underlyingReferable
+        val prevRef = (tcReferable as TCDefReferable).underlyingReferable
+        val tcTypecheckable = (tcReferable as TCDefReferable).typecheckable
         if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef && prevRef.containingFile == curRef.containingFile) {
             return null
         }
@@ -407,7 +411,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
         resetErrors(curRef)
 
-        val tcTypecheckable = tcReferable.typecheckable
         tcTypecheckable.location?.let { updatedModules.add(it) }
         return tcTypecheckable
     }
