@@ -138,6 +138,10 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
 
         val newNameCorrect = isCorrectDefinitionName(LongName(singletonList(this.methodName)))
         if (!newNameCorrect) return RefactoringBundle.message("text.identifier.invalid", this.methodName)
+
+        for (item in myParametersTableModel.items) {
+            if (item.parameter.name.isEmpty()) return RefactoringBundle.message("refactoring.introduce.parameter.invalid.name", "")
+        }
         
         val allPsiTargets = HashSet<LocatedReferable>()
 

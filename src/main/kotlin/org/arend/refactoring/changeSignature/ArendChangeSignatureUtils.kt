@@ -47,6 +47,7 @@ private fun modifyFunctionBody(function: ArendDefFunction, changeInfo: ArendChan
     val containingFile = function.containingFile
     val documentManager = PsiDocumentManager.getInstance(function.project)
     val document = documentManager.getDocument(containingFile) ?: return
+    documentManager.doPostponedOperationsAndUnblockDocument(document)
     document.replaceString(startPosition, endPosition, signatureText)
     documentManager.commitDocument(document)
 }
