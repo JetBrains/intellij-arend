@@ -26,7 +26,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.local.ElimScope
-import org.arend.naming.scope.local.ListScope
+import org.arend.naming.scope.local.LocalListScope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
@@ -729,7 +729,7 @@ fun collectDefinedVariables(startElement: ArendCompositeElement): List<Variable>
 
     val scope = when {
         excluded.isNotEmpty() -> ElimScope(elementScope, excluded)
-        added.isNotEmpty() -> ListScope(elementScope, added)
+        added.isNotEmpty() -> LocalListScope(elementScope, added)
         else -> elementScope
     }
     return scope.elements.mapNotNull { if (it is GlobalReferable) null else VariableImpl(it.refName) }
