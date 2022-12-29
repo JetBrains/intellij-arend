@@ -28,7 +28,7 @@ class ArendDocComment(text: CharSequence?) : LazyParseablePsiElement(ParserMixin
     companion object {
         fun getScope(owner: PsiElement?): Scope? {
             val scope = (owner as? ArendCompositeElement)?.scope
-            return if (owner is Abstract.ParametersHolder) TelescopeScope(scope ?: EmptyScope.INSTANCE, owner.parameters) else scope
+            return if (owner is Abstract.ParametersHolder) TelescopeScope.make(scope ?: EmptyScope.INSTANCE, owner.parameters) else scope
         }
     }
 }
