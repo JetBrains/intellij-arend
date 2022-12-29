@@ -1,9 +1,7 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.lang.Language
-import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.elementType
 import com.intellij.refactoring.changeSignature.ChangeInfo
 import com.intellij.refactoring.changeSignature.ParameterInfo
@@ -14,63 +12,34 @@ import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.term.abs.Abstract.ParametersHolder
 import java.util.Collections.singletonList
 
-class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
-                       val returnType: String?,
-                       val name: String,
-                       val locatedReferable: PsiLocatedReferable,
-                       val nsCmds: List<NsCmdRefactoringAction> = emptyList()) : ChangeInfo {
+class ArendChangeInfo (
+    private val parameterInfo : List<ArendParameterInfo>,
+    private val returnType: String?,
+    private val name: String,
+    private val locatedReferable: PsiLocatedReferable,
+    val nsCmds: List<NsCmdRefactoringAction> = emptyList()) : ChangeInfo {
     private data class TeleWhitespaceData (val beforeTeleWhitespace: String, val beforeVarWhitespace: List<String>, val colonText: String?, val afterTypeText: String?)
-    private val myTeleWhitespaces: List<TeleWhitespaceData>
-
-    private fun leadingSpace(element: PsiElement?, onlySignificant: Boolean = true): String? {
-        val parent = element?.parent ?: return null
-        val children = when (onlySignificant) {
-            false -> parent.childrenWithLeaves.filter { it !is PsiWhiteSpace && it !is PsiComment }.toList()
-            true -> parent.children.toList()
-        }
-        var prev = element.prevSibling
-        var buffer = ""
-        while (prev != null && !children.contains(prev)) {
-            buffer = prev.text + buffer
-            prev = prev.prevSibling
-        }
-        return buffer
-    }
-
-    private fun trailingSpace(element: PsiElement?, onlySignificant: Boolean = true): String? {
-        val parent = element?.parent ?: return null
-        val children = when (onlySignificant) {
-            false -> parent.childrenWithLeaves.filter { it !is PsiWhiteSpace && it !is PsiComment }.toList()
-            true -> parent.children.toList()
-        }
-        var next = element.nextSibling
-        var buffer = ""
-        while (next != null && !children.contains(next)) {
-            buffer += next.text
-            next = next.nextSibling
-        }
-        return buffer
-    }
+    private val parameterToTeleWhitespaceData = HashMap<Int, TeleWhitespaceData>()
 
     init {
-        val teleWhitespaces = ArrayList<TeleWhitespaceData>()
+        var count = 0
         if (locatedReferable is ParametersHolder) {
             for (tele in locatedReferable.parameters) when (tele) {
                 is ArendNameTele -> {
-                    val beforeTeleWhitespace = leadingSpace(tele)!!
+                    val beforeTeleWhitespace = tele.getWhitespace(SpaceDirection.LeadingSpace) ?: continue
                     val beforeVarWhitespaces = ArrayList<String>()
-                    for (id in tele.identifierOrUnknownList) {
-                        val beforeVar = leadingSpace(id, false)
-                        if (beforeVar != null) beforeVarWhitespaces.add(beforeVar)
+                    for (id in tele.identifierOrUnknownList) id.getWhitespace(SpaceDirection.LeadingSpace)?.let { beforeVarWhitespaces.add(it)  }
+                    val colonText = tele.type?.let { it.getWhitespace(SpaceDirection.LeadingSpace, true) }
+                    val afterTypeText = tele.type?.let{ it.getWhitespace(SpaceDirection.TrailingSpace) }
+                    val data = TeleWhitespaceData(beforeTeleWhitespace, beforeVarWhitespaces, colonText, afterTypeText)
+                    for (p in tele.identifierOrUnknownList) {
+                        parameterToTeleWhitespaceData[count] = data
+                        count++
                     }
-                    val colonText = tele.type?.let { leadingSpace(it) }
-                    val afterTypeText = tele.type?.let{ trailingSpace(it, false) }
-                    teleWhitespaces.add(TeleWhitespaceData(beforeTeleWhitespace, beforeVarWhitespaces, colonText, afterTypeText))
                 }
             }
         }
-        myTeleWhitespaces = teleWhitespaces
-        println(myTeleWhitespaces)
+
     }
 
     override fun getNewParameters(): Array<ParameterInfo> = parameterInfo.toTypedArray()
@@ -93,54 +62,45 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
 
     override fun getLanguage(): Language = ArendLanguage.INSTANCE
 
-    fun parameterText(): String {
-        val teleEntries = ArrayList<Pair<Pair<String?, Boolean>, MutableList<String?>>>()
-        val whitespaceList = ArrayList<String>()
-        var lastWhitespace = " "
-
-        when (locatedReferable) {
-            is ArendDefFunction -> {
-                var buffer = ""
-                var currNode = locatedReferable.parameters.firstOrNull()?.findPrevSibling()?.nextSibling
-                while (currNode != null) {
-                    if (currNode is ArendNameTele) {
-                        lastWhitespace = buffer
-                        whitespaceList.add(buffer)
-                        buffer = ""
-                    } else {
-                        buffer += currNode.text
-                    }
-                    currNode = currNode.nextSibling
-                }
-            }
-        }
+    private data class TeleEntry(val typeText: String?, val isExplicit: Boolean, val parameterNames: MutableList<String?>)
+    private fun parameterText(): String {
+        val teleEntries = ArrayList<TeleEntry>()
+        val associatedWhitespaceData = HashSet<Pair<TeleEntry, TeleWhitespaceData>>()
+        val usedWhitespaceData = HashSet<TeleWhitespaceData>()
 
         for (parameter in parameterInfo) {
-            if (teleEntries.isEmpty() || (teleEntries.last().first.first != parameter.typeText || teleEntries.last().first.second != parameter.isExplicit())) {
-                teleEntries.add(Pair(Pair(parameter.typeText, parameter.isExplicit()), singletonList(parameter.name).toMutableList()))
-            } else {
-                teleEntries.last().second.add(parameter.name)
+            if (teleEntries.isEmpty() || teleEntries.last().typeText != parameter.typeText || teleEntries.last().isExplicit != parameter.isExplicit())
+                teleEntries.add(TeleEntry(parameter.typeText, parameter.isExplicit(), singletonList(parameter.name).toMutableList())) else
+                    teleEntries.last().parameterNames.add(parameter.name)
+            val data = parameterToTeleWhitespaceData[parameter.oldIndex]
+            if (data != null && !usedWhitespaceData.contains(data)) {
+                usedWhitespaceData.add(data)
+                associatedWhitespaceData.add(Pair(teleEntries.last(), data))
             }
         }
 
         val newTeles = StringBuilder()
-        for ((index, entry) in teleEntries.withIndex()) {
-            val whitespace = whitespaceList.getOrNull(index) ?: lastWhitespace
-            if (index > 0) newTeles.append(whitespace)
-            newTeles.append (if (entry.first.second) "(" else "{")
-            for ((i, p) in entry.second.withIndex()) {
-                if (i > 0) newTeles.append(" ")
-                newTeles.append(p ?: "_")
+        for (entry in teleEntries) {
+            val whitespaceData = associatedWhitespaceData.firstOrNull { it.first == entry }?.second
+            newTeles.append(whitespaceData?.beforeTeleWhitespace ?: " ")
+            newTeles.append (if (entry.isExplicit) "(" else "{")
+            for ((i, p) in entry.parameterNames.withIndex()) {
+                newTeles.append(whitespaceData?.beforeVarWhitespace?.getOrNull(i) ?: if (i > 0) " " else "")
+                newTeles.append(if (p.isNullOrEmpty()) "_" else p)
             }
-            if (entry.first.first != null)
-                newTeles.append(" : ${entry.first.first}")
-            newTeles.append (if (entry.first.second) ")" else "}")
+            for (j in whitespaceData?.beforeVarWhitespace?.drop(entry.parameterNames.size) ?: emptyList()) newTeles.append(j)
+            if (entry.typeText != null) {
+                newTeles.append(whitespaceData?.colonText ?: " : ")
+                newTeles.append(entry.typeText)
+            }
+            newTeles.append(whitespaceData?.afterTypeText ?: "")
+            newTeles.append (if (entry.isExplicit) ")" else "}")
         }
         return newTeles.toString()
     }
 
 
-    fun returnPart(): String {
+    private fun returnPart(): String {
         val returnExpr = locatedReferable.children.firstOrNull { it.elementType == ArendElementTypes.RETURN_EXPR }
         var colonWhitespace = ""
         var pointer: PsiElement? = returnExpr?.prevSibling
@@ -153,10 +113,10 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
         return if (returnType.isNullOrEmpty()) "" else "$colonWhitespace$returnType"
     }
 
-    fun signaturePart() = "$name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText().let { if (it.isNotEmpty()) " $it" else "" }}${returnPart()}"
+    fun signaturePart() = "$name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText()}}${returnPart()}"
 
     fun signaturePreview(): String = when (locatedReferable) {
-        is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable as? ReferableBase<*>)?.prec?.let { " ${it.text}" } ?: ""} $name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText().let { if (it.isNotEmpty()) " $it" else "" }}${returnPart()}"
+        is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable as? ReferableBase<*>)?.prec?.let { " ${it.text}" } ?: ""} $name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText()}${returnPart()}"
         else -> throw IllegalStateException()
     }
 
@@ -180,7 +140,7 @@ class ArendChangeInfo (val parameterInfo : List<ArendParameterInfo>,
             }
             return result
         }
-        fun getTeles(locatedReferable: PsiLocatedReferable): List<PsiElement> = when (locatedReferable) {
+        private fun getTeles(locatedReferable: PsiLocatedReferable): List<PsiElement> = when (locatedReferable) {
             is ArendFunctionDefinition<*> -> locatedReferable.parameters
             is ArendDefData -> locatedReferable.parameters
             is ArendDefClass -> locatedReferable.fieldTeleList

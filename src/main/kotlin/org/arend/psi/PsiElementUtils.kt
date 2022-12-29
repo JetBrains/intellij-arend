@@ -225,6 +225,32 @@ val PsiElement.extendLeft: PsiElement
         return result
     }
 
+enum class SpaceDirection {TrailingSpace, LeadingSpace}
+
+fun PsiElement?.getWhitespace(direction: SpaceDirection, includingPunctuation: Boolean = false): String? {
+    val parent = this?.parent ?: return null
+    val significantChildren = when (includingPunctuation) {
+        true -> parent.children.toList() // This list typically omits punctuation like "," or ":"
+        false -> parent.childrenWithLeaves.filter { it !is PsiWhiteSpace && it !is PsiComment }.toList()
+    }
+    var pointer = when (direction) {
+        SpaceDirection.TrailingSpace -> this.nextSibling
+        SpaceDirection.LeadingSpace -> this.prevSibling
+    }
+    var buffer = ""
+    while (pointer != null && !significantChildren.contains(pointer)) {
+        buffer = when (direction) {
+            SpaceDirection.TrailingSpace -> buffer + pointer.text
+            SpaceDirection.LeadingSpace -> pointer.text + buffer
+        }
+        pointer = when (direction) {
+            SpaceDirection.TrailingSpace -> pointer.nextSibling
+            SpaceDirection.LeadingSpace -> pointer.prevSibling
+        }
+    }
+    return buffer
+}
+
 val PsiElement.nextElement: PsiElement?
     get() {
         var current: PsiElement? = this

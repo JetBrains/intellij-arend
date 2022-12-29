@@ -61,4 +61,16 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
            } 
         """, listOf(-3, -2, -1))
 
+    fun testWhitespace() = changeSignature(
+        """
+            \func foo{-caret-} -- test
+               {{-1-}X {-2-} Y : {- 3 -} \Type {-4-}} -- foo
+               (x : X) {- 5-} (y : Y) : 
+               X => x
+        """, """
+            \func foo -- test
+               ({-1-}Y {-2-} X Z : {- 3 -} \Type {-4-}) {- 5-} (y : Y) -- foo
+               (x : X)} => x
+        """, listOf(-2, -1, "Z", 4, 3), listOf(Pair("Z", Pair(true, "\\Type"))))
+
 }
