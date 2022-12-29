@@ -9,7 +9,6 @@ import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.resolve.FileContextUtil
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
@@ -92,27 +91,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
             }
             return tc
         }
-
-        fun cleanup() {
-            val keysToRemove = this.filterValues {
-                val pointer = it.data as? SmartPsiElementPointer<*>
-                pointer != null && pointer.element == null
-            }
-            for ((key, _) in keysToRemove) {
-                remove(key)
-            }
-        }
     }
 
     fun getTCRefMap(refKind: RefKind): LifetimeAwareDefinitionRegistry {
         val location = moduleLocation ?: return LifetimeAwareDefinitionRegistry()
         return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { LifetimeAwareDefinitionRegistry() }
-    }
-
-    fun cleanupTCRefMaps() {
-        for (refKind in RefKind.values()) {
-            getTCRefMap(refKind).cleanup()
-        }
     }
 
     override fun setName(name: String): PsiElement =
@@ -205,10 +188,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun dropTypechecked() {}
 
     override fun dropTCReferable() {}
-
-    override fun checkTCReferable() = true
-
-    override fun checkTCReferableName() {}
 
     override fun getLocation() = moduleLocation
 

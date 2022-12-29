@@ -372,7 +372,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
     }
 
-    private fun removeDefinition(referable: LocatedReferable, removeTCRef: Boolean): TCReferable? {
+    private fun removeDefinition(referable: LocatedReferable): TCReferable? {
         if (referable is PsiElement && !referable.isValid) {
             return null
         }
@@ -406,31 +406,28 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef && prevRef.containingFile == curRef.containingFile) {
             return null
         }
-        if (removeTCRef) {
-            tcRefMap.remove(fullName.longName)
-        }
         resetErrors(curRef)
 
         tcTypecheckable.location?.let { updatedModules.add(it) }
         return tcTypecheckable
     }
 
-    private fun doUpdateDefinition(referable: LocatedReferable, file: ArendFile, removeTCRef: Boolean) {
-        val tcReferable = removeDefinition(referable, removeTCRef) ?: return
+    private fun doUpdateDefinition(referable: LocatedReferable, file: ArendFile) {
+        val tcReferable = removeDefinition(referable) ?: return
         val dependencies = synchronized(project) {
             dependencyListener.update(tcReferable)
         }
         for (ref in dependencies) {
-            removeDefinition(ref, removeTCRef)
+            removeDefinition(ref)
         }
 
         if ((referable as? ArendDefFunction)?.functionKind?.isUse == true) {
-            (referable.parentGroup as? TCDefinition)?.let { doUpdateDefinition(it, file, removeTCRef) }
+            (referable.parentGroup as? TCDefinition)?.let { doUpdateDefinition(it, file) }
         }
     }
 
     override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        doUpdateDefinition(def, file, !isExternalUpdate)
+        doUpdateDefinition(def, file)
     }
 
     class LibraryManagerTestingOptions {

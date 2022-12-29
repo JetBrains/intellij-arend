@@ -206,10 +206,6 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             }
         }
 
-        if (definitions.isNotEmpty()) {
-            file.cleanupTCRefMaps()
-        }
-
         val dependencyListener = service.dependencyListener
         val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
         val lastModified = if (definitions.size == 1) definitions[0] else null

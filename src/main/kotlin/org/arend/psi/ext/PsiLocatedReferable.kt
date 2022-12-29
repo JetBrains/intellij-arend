@@ -30,10 +30,6 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 
 interface PsiDefReferable : PsiLocatedReferable {
     fun dropTypechecked()
-
-    fun checkTCReferable(): Boolean
-
-    fun checkTCReferableName()
 }
 
 private fun PsiLocatedReferable.getFullName(builder: StringBuilder) {
