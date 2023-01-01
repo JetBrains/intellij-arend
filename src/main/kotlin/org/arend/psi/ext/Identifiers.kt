@@ -81,10 +81,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
 
     override fun textRepresentation(): String = referenceName
 
-    override fun getReference(): ArendReference = when (parent) {
-        is ArendPattern -> ArendPatternDefReferenceImpl<ArendReferenceElement>(this)
-        else -> ArendDefReferenceImpl<ArendReferenceElement>(this)
-    }
+    override fun getReference() = ArendDefReferenceImpl<ArendReferenceElement>(this)
 
     override fun getTypeClassReference(): ClassReferable? {
         val parent = parent

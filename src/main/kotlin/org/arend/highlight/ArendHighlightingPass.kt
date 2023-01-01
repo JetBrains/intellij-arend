@@ -6,6 +6,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
@@ -119,13 +120,9 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
             override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
                 super.patternResolved(originalRef, pattern, resolvedRefs)
-                val dataPattern = pattern.data as? ArendPattern ?: return
-                val constructors =
-                        dataPattern.sequence.takeIf { it.isNotEmpty() }?.mapNotNull { it.referenceElement?.referenceNameElement?.takeIf { el -> el.text == pattern.constructor?.refName } }
-                        ?: dataPattern.takeIf { it.singleReferable != null }?.let { listOfNotNull(it.referenceElement?.referenceNameElement) }
-                        ?: return
-                for (psi in constructors) {
-                    addHighlightInfo(psi.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
+                val data = pattern.constructorData
+                if (data is PsiElement) {
+                    addHighlightInfo(data.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
                 }
             }
 

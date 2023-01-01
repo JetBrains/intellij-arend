@@ -34,6 +34,7 @@ import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.intention.SplitAtomPatternIntention
 import org.arend.intention.SplitAtomPatternIntention.Companion.doReplacePattern
+import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
@@ -417,7 +418,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     return false
                 }
 
-                val constructor = pattern.sequence[0].singleReferable?.resolve(pattern.ancestor<ArendDefinition<*>>()?.scope ?: return false, null) as? ArendConstructor
+                val subPattern = pattern.sequence[0]
+                val constructor = (subPattern.referenceElement?.unresolvedReference ?: subPattern.singleReferable?.refName?.let { NamedUnresolvedReference(subPattern, it) })?.resolve(pattern.ancestor<ArendDefinition<*>>()?.scope ?: return false, null) as? ArendConstructor
                         ?: return false
                 return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT ||
                        constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.FIN
