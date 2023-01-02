@@ -69,8 +69,37 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
                X => x
         """, """
             \func foo -- test
-               ({-1-}Y {-2-} X Z : {- 3 -} \Type {-4-}) {- 5-} (y : Y) -- foo
-               (x : X)} => x
+               ({-2-} Y{-1-}X Z : {- 3 -} \Type {-4-}) {- 5-} (y : Y) -- foo
+               (x : X) : 
+               X => x
         """, listOf(-2, -1, "Z", 4, 3), listOf(Pair("Z", Pair(true, "\\Type"))))
+
+    fun testWhitespace2() = changeSignature("""
+           \func foo{-caret-} ({-1-} a {-2-} b {-3-} c {-4-} d {-5-} : Nat) => 1
+    """, """
+           \func foo ({-1-} a {-5-} : Nat) {{-2-} b : Nat} ({-3-} c : Nat) => 1
+    """, listOf(1, -2, 3))
+
+    fun testRenameParameters() = changeSignature("""
+       \func foo{-caret-} (a b : Nat) => a Nat.+ b 
+    """, """
+       \func foo (b a : Nat) => b Nat.+ a 
+    """, listOf(Pair(1, "b"), Pair(2, "a")))
+
+    fun testWith() = changeSignature("""
+       \func foo{-caret-} {X : \Type} (a b : Nat) : Nat \with {
+         | 0, 0 => 0
+         | _, _ => 1
+       }
+       
+       \func test => foo 1 2
+    """, """
+       \func foo {X : \Type} (b a : Nat) : Nat \elim a, b {
+         | 0, 0 => 0
+         | _, _ => 1
+       }
+       
+       \func test => foo 2 1
+    """, listOf(1, 3, 2))
 
 }

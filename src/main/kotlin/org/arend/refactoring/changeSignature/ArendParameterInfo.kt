@@ -2,7 +2,7 @@ package org.arend.refactoring.changeSignature
 
 import com.intellij.refactoring.changeSignature.ParameterInfo
 
-class ArendParameterInfo constructor(
+data class ArendParameterInfo(
     private var name: String?,
     private var type: String?,
     private val oldIndex: Int, /* == -1, if does not correspond to an old parameter */

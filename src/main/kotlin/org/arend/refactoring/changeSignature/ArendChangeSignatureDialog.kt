@@ -71,7 +71,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     override fun expressionFragmentResolved(codeFragment: ArendExpressionCodeFragment) {
-        println("fragment resolved: ${codeFragment.text}")
         val resolveCache = project.service<ArendResolveCache>()
         val referableToItem = HashMap<ArendChangeSignatureDialogParameter, ArendChangeSignatureDialogParameterTableModelItem>()
         for (item in myParametersTable.items) referableToItem[item.associatedReferable] = item
@@ -220,7 +219,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                                 val deps = HashSet<Int>()
                                 deps.add(-1)
                                 deps.addAll(i+1 until myParametersTable.items.size)
-                                println("Invalidate rename deps")
                                 invalidateIndices(deps)
                             }
                     }
@@ -293,7 +291,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 val obsoleteTableItems = parameterToUsages.filter { !myParametersTableModel.items.contains(it.key) }
                 invalidateIndices(calculateUsagesOf(obsoleteTableItems.map { it.key }))
                 for (item in obsoleteTableItems) (item.key.typeCodeFragment as? ArendExpressionCodeFragment)?.let {
-                    println("Obsolete items: ${it.text}")
                     deleteFragmentDependencyData(it)
                 }
             }
@@ -313,7 +310,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         return result
     }
     fun invalidateIndices(depIndices: Set<Int>) {
-        println("invalidateUsagesOf: ${depIndices.toSortedSet()}")
         for (i in depIndices.toSortedSet().reversed()) invokeLater {
             project.service<ArendPsiChangeService>().modificationTracker.incModificationCount()
             invokeNameResolverHighlighting(i)

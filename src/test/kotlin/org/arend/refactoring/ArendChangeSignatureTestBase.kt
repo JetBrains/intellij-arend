@@ -35,6 +35,11 @@ abstract class ArendChangeSignatureTestBase: ArendTestBase() {
                 val entry = typeMap[element]!!
                 ArendParameterInfo(element, entry.second, -1, entry.first)
             }
+            is Pair<*, *> -> {
+                val (index, toggle) = (element.first as? Int ?: throw java.lang.IllegalArgumentException()).let { Pair(it - 1, it < 0) }
+                val originalElement = baseParams[index]
+                ArendParameterInfo(element.second as? String ?: throw java.lang.IllegalArgumentException(), originalElement.typeText, index, originalElement.isExplicit().let { if (toggle) !it else it })
+            }
             else -> throw IllegalArgumentException()
         }.let { newParams.add(it) }
 
