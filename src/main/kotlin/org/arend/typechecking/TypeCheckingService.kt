@@ -24,6 +24,7 @@ import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.core.ops.CMP
 import org.arend.ext.instance.InstanceSearchParameters
 import org.arend.ext.instance.SubclassSearchParameters
+import org.arend.ext.module.LongName
 import org.arend.ext.typechecking.DefinitionListener
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
@@ -123,8 +124,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
     */
 
-    private val tcRefMaps = Array<MutableMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>>(Referable.RefKind.values().size) {
-        ConcurrentHashMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>()
+    private val tcRefMaps = Array<MutableMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>>(Referable.RefKind.values().size) {
+        ConcurrentHashMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>()
     }
 
     fun getTCRefMaps(refKind: Referable.RefKind) = tcRefMaps[refKind.ordinal]

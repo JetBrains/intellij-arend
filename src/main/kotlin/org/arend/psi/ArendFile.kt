@@ -3,8 +3,6 @@ package org.arend.psi
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.FileViewProvider
@@ -36,10 +34,8 @@ import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
-import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.IntellijTCReferable
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.libraryName
 import org.arend.util.mapFirstNotNull
@@ -79,24 +75,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     val concreteDefinitions = HashMap<LongName, Concrete.Definition>()
 
-    // TODO: Is this still needed?
-    class LifetimeAwareDefinitionRegistry : ConcurrentHashMap<LongName, IntellijTCReferable>() {
-        override fun get(key: LongName): IntellijTCReferable? {
-            val tc = super.get(key)
-            if (tc is DataLocatedReferable && tc.data != null && tc.data!!.element == null) {
-                logger<BackgroundTypechecker>().error("""
-                    | Invalid definition ${tc.refLongName} in caches. 
-                    | It does not do any harm generally, but there may be some incorrect red code in the editor.
-                    | Please try to find a stable reproducer for this behavior and report it to maintainers.
-                    | Typical reproduction actions involve deleting some parts of text or clearing and re-inserting the whole file.""".trimMargin())
-            }
-            return tc
-        }
-    }
-
-    fun getTCRefMap(refKind: RefKind): LifetimeAwareDefinitionRegistry {
-        val location = moduleLocation ?: return LifetimeAwareDefinitionRegistry()
-        return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { LifetimeAwareDefinitionRegistry() }
+    fun getTCRefMap(refKind: RefKind): ConcurrentHashMap<LongName, IntellijTCReferable> {
+        val location = moduleLocation ?: return ConcurrentHashMap<LongName, IntellijTCReferable>()
+        return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { ConcurrentHashMap<LongName, IntellijTCReferable>() }
     }
 
     override fun setName(name: String): PsiElement =
@@ -202,7 +183,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getReference(): ArendReference? = null
 
-    override fun getFileType(): FileType = ArendFileType
+    override fun getFileType() = ArendFileType
 
     override fun textRepresentation(): String = name.removeSuffix("." + ArendFileType.defaultExtension)
 

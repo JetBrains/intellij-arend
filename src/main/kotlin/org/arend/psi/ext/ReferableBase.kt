@@ -16,6 +16,7 @@ import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.IntellijTCReferable
 import org.arend.typechecking.TypeCheckingService
+import java.util.concurrent.ConcurrentHashMap
 
 abstract class ReferableBase<StubT> : PsiStubbedReferableImpl<StubT>, PsiDefReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
@@ -47,9 +48,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         get() = getChildOfType()
 
     protected var tcReferableCache: TCReferable? = null
-    private var tcRefMapCache: ArendFile.LifetimeAwareDefinitionRegistry? = null
+    private var tcRefMapCache: ConcurrentHashMap<LongName, IntellijTCReferable>? = null
 
-    private val tcRefMap: ArendFile.LifetimeAwareDefinitionRegistry?
+    private val tcRefMap: ConcurrentHashMap<LongName, IntellijTCReferable>?
         get() {
             tcRefMapCache?.let { return it }
             val file = if (isValid) containingFile as? ArendFile else null
