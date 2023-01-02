@@ -126,7 +126,7 @@ data class ArendChangeInfo (
         if (colonWhitespace == "") colonWhitespace = " "
         return if (returnType == null) {
             val retExpr = (locatedReferable as? ArendFunctionDefinition<*>)?.returnExpr
-            if (retExpr != null) "$colonWhitespace${retExpr.text}" else ""
+            if (retExpr != null) " : ${retExpr.text}" else ""
         } else if (returnType.isEmpty()) "" else "$colonWhitespace$returnType"
     }
 
