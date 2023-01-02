@@ -128,8 +128,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
         if (definition != null && clauseIndex != -1) {
             var typeCheckedDefinition = definition.tcReferable?.typechecked
-            val concreteFunction = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcreteFunction(definition) ?: return null
-            var concreteClauseOwner = concreteFunction
+            var concreteClauseOwner = (element.containingFile as? ArendFile)?.concreteDefinitions?.get(definition.refLongName) as? Concrete.FunctionDefinition ?: PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcreteFunction(definition) ?: return null
             if (typeCheckedDefinition is FunctionDefinition && definition is Abstract.ParametersHolder && definition is Abstract.EliminatedExpressionsHolder && abstractPatterns != null) {
                 if (coClauseName != null) {
                   val classCallExpression = typeCheckedDefinition.resultType as? ClassCallExpression
