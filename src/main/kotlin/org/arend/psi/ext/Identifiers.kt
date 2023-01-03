@@ -6,6 +6,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
+import com.intellij.psi.util.childrenOfType
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
@@ -83,25 +84,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
 
     override fun getReference() = ArendDefReferenceImpl<ArendReferenceElement>(this)
 
-    override fun getTypeClassReference(): ClassReferable? {
-        val parent = parent
-        return if (parent is ArendLetClause) {
-            parent.typeClassReference
-        } else {
-            (typeOf as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
-        }
-    }
-
     override fun getRefKind() = refKind
-
-    override val typeOf: Abstract.Expression?
-        get() = when (val parent = parent) {
-            is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
-            is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.type
-            is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
-            is ArendAsPattern -> parent.type
-            else -> null
-        }
 
     override val psiElementType: PsiElement?
         get() {
@@ -113,12 +96,34 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
         }
 }
 
-class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR) {
+class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR), TypedReferable {
     val id: PsiElement
         get() = getChildOfTypeStrict(ArendElementTypes.ID)
 
     override val referenceName: String
         get() = id.text
+
+    override val typeOf: Abstract.Expression?
+        get() = when (val parent = parent) {
+            is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
+            is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.type
+            is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
+            is ArendAsPattern -> parent.type
+            is ArendPattern -> {
+                val parentParent = parent.parent
+                if (parentParent is ArendPattern && parentParent.childrenOfType<ArendPattern>().size == 1) parentParent.type else null
+            }
+            else -> null
+        }
+
+    override fun getTypeClassReference(): ClassReferable? {
+        val parent = parent
+        return if (parent is ArendLetClause) {
+            parent.typeClassReference
+        } else {
+            (typeOf as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
+        }
+    }
 }
 
 class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable, LevelReferable, ArendReferenceElement {
