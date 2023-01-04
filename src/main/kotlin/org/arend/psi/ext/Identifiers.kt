@@ -170,7 +170,7 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
                         val refs = it.defParent.referables
                         if (index < refs.size) {
                             tcReferableCache = refs[index]
-                            return@run it
+                            return@run refs[index]
                         }
                     }
                     val locatedParent = locatedReferableParent
