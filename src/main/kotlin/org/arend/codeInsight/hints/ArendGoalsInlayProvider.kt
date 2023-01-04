@@ -5,25 +5,25 @@ import com.intellij.codeInsight.hints.SettingsKey
 import org.arend.core.definition.Definition
 
 @Suppress("UnstableApiUsage")
-class ArendAxiomsInlayProvider : ArendDefinitionInlayProvider() {
+class ArendGoalsInlayProvider : ArendDefinitionInlayProvider() {
     override val key: SettingsKey<NoSettings>
-        get() = SettingsKey("arend.inlays.axioms")
+        get() = SettingsKey("arend.inlays.goals")
 
     override val name: String
-        get() = "Axioms"
+        get() = "Goals"
 
     override val previewText: String
         get() = """
-            \axiom axiom : 0 = 0
+            \func foo => {?}
             
-            \func foo => axiom
+            \func bar => foo
         """.trimIndent()
 
     override val description
-        get() = "Shows axioms used by a definition"
+        get() = "Shows definitions with goals used by a definition"
 
     override fun getText(definition: Definition): String? {
-        val axioms = definition.axioms
-        return if (axioms.isEmpty() || axioms.size == 1 && axioms.contains(definition)) null else "Axioms: " + axioms.joinToString()
+        val goals = definition.goals
+        return if (goals.isEmpty() || goals.size == 1 && goals.contains(definition)) null else "Goals: " + goals.joinToString()
     }
 }
