@@ -17,4 +17,6 @@ class IntellijClassLoaderDelegate(private val root: VirtualFile) : ClassLoaderDe
             throw ClassNotFoundException("An exception happened during loading of class $longName", e)
         }
     }
+
+    override fun toString() = root.path
 }
