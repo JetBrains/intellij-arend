@@ -419,7 +419,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
         resetErrors(curRef)
 
-        tcTypecheckable.location?.let { updatedModules.add(it) }
+        if (tcTypecheckable.typechecked?.goals?.isNotEmpty() != true) {
+            tcTypecheckable.location?.let { updatedModules.add(it) }
+        }
         return tcTypecheckable
     }
 
