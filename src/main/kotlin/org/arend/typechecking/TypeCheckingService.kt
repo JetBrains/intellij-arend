@@ -322,6 +322,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 }
 
                 runReadAction {
+                    service<ArendPsiChangeService>().definitionModificationTracker.incModificationCount()
                     isLoaded = false
                     if (onlyInternal) {
                         libraryManager.reloadInternalLibraries {
@@ -344,8 +345,17 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                             prepareReload()
                         }
                     }
-                }
 
+                    for (library in libraryManager.registeredLibraries) {
+                        if (library.isExternal || library !is ArendRawLibrary) continue
+                        for (module in library.config.findModules(false)) {
+                            library.config.findArendFile(module, false)?.decLastModification()
+                        }
+                        for (module in library.config.findModules(true)) {
+                            library.config.findArendFile(module, true)?.decLastModification()
+                        }
+                    }
+                }
                 isLoaded = true
                 DaemonCodeAnalyzer.getInstance(project).restart()
             }

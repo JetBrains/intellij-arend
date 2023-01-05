@@ -59,6 +59,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     var lastModificationImportOptimizer: AtomicLong = AtomicLong(-1)
     var lastDefinitionModification: AtomicLong = AtomicLong(-1)
 
+    fun decLastModification() {
+        lastModification.updateAndGet { it - 1 }
+        lastDefinitionModification.updateAndGet { it - 1 }
+    }
+
     val isBackgroundTypecheckingFinished: Boolean
         get() = lastDefinitionModification.get() >= service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
 
@@ -107,7 +112,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         }
 
     private fun <T> cachedValue(value: T) =
-        CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT)
+        CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT, service<ArendPsiChangeService>().definitionModificationTracker)
 
     val arendLibrary: ArendRawLibrary?
         get() = CachedValuesManager.getCachedValue(this) {
