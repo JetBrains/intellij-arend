@@ -62,12 +62,6 @@ fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
         .filter(ArendDefIdentifier::class.java)
         .firstOrNull()
 
-fun refBinding(p: PsiElement, selected: TextRange) = SyntaxTraverser
-        .psiTraverser(p)
-        .onRange { selected in it.textRange }
-        .filter(ArendRefIdentifier::class.java)
-        .firstOrNull()
-
 data class SubExprResult(
         val subCore: Expression,
         val subConcrete: Concrete.Expression,
@@ -94,7 +88,7 @@ data class SubExprResult(
         it to FindBinding.visitSigma(it, subConcrete, subCore)
     } else if (subPsi is ArendCaseExpr
             && subConcrete is Concrete.CaseExpression
-            && subCore is CaseExpression) refBinding(subPsi, selected)?.let {
+            && subCore is CaseExpression) binding(subPsi, selected)?.let {
         it to FindBinding.visitCase(it, subConcrete, subCore)
     } else null
 }

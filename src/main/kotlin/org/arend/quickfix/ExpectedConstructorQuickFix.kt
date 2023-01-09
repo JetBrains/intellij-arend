@@ -314,7 +314,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         for (clauseExpression in clauseExpressionList) if (clauseExpression != null)
                             for (mismatchedEntry in mismatchedPatterns) {
                                 for (varToRemove in mismatchedEntry.value.second) {
-                                    val defIdentifier = varToRemove.childOfType<ArendRefIdentifier>()
+                                    val defIdentifier = varToRemove.childOfType<ArendDefIdentifier>()
                                     if (defIdentifier != null) SplitAtomPatternIntention.doSubstituteUsages(project, defIdentifier, clauseExpression, "{?${defIdentifier.name}}")
                                 }
                             }
@@ -324,7 +324,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             doReplacePattern(psiFactory, mismatchedEntry.key as ArendPattern, printData.patternString, printData.requiresParentheses)
                         }
 
-                        val varsNoLongerUsed = HashSet<ArendRefIdentifier>()
+                        val varsNoLongerUsed = HashSet<ArendDefIdentifier>()
 
                         for (substEntry in processedSubstitutions) {
                             val renamer = StringRenamer()
@@ -334,16 +334,16 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             var printData = computePrintData()
                             val namePatternToReplace = substEntry.key as ArendPattern
 
-                            val idOrUnderscore = namePatternToReplace.childOfType<ArendRefIdentifier>() ?: namePatternToReplace.underscore
+                            val idOrUnderscore = namePatternToReplace.childOfType<ArendDefIdentifier>() ?: namePatternToReplace.underscore
                             val asPiece = namePatternToReplace.parent.childOfType<ArendAsPattern>()
                             val asDefIdentifier = asPiece?.referable
 
-                            if (idOrUnderscore is ArendRefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
+                            if (idOrUnderscore is ArendDefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
 
-                            val target = asDefIdentifier ?: if (idOrUnderscore is ArendRefIdentifier) idOrUnderscore else null
+                            val target = asDefIdentifier ?: if (idOrUnderscore is ArendDefIdentifier) idOrUnderscore else null
                             val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = {
                                 val name = it.name
-                                (it.scope.resolveName(name) as? DataContainer)?.data as? PsiElement
+                                it.scope.resolveName(name) as? PsiElement
                             }
 
                             val noOfUsages = if (target != null) {
@@ -362,7 +362,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                             val useAsPattern = asDefIdentifier != null || ((printData.complexity > 2 || printData.containsClassConstructor) && noOfUsages > 0)
 
-                            if (!useAsPattern && asPiece == null && idOrUnderscore is ArendRefIdentifier) {
+                            if (!useAsPattern && asPiece == null && idOrUnderscore is ArendDefIdentifier) {
                                 varsNoLongerUsed.add(idOrUnderscore)
                                 newVariables.clear()
                                 printData = computePrintData() //Recompute print data, this time allowing the variable being substituted to be reused in the substituted pattern (as one of its NamePatterns)
@@ -370,13 +370,13 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                             val existingAsName = asPiece?.referable
                             for (clauseExpression in clauseExpressionList) if (clauseExpression != null) {
-                                if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendRefIdentifier)
+                                if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendDefIdentifier)
                                     SplitAtomPatternIntention.doSubstituteUsages(project, idOrUnderscore, clauseExpression, printData.patternString, nonCachedResolver)
                             }
 
                             if (idOrUnderscore != null) {
                                 var asName: String = if (!useAsPattern) "" else {
-                                    val n = existingAsName?.name ?: (idOrUnderscore as? ArendRefIdentifier)?.name
+                                    val n = existingAsName?.name ?: (idOrUnderscore as? ArendDefIdentifier)?.name
                                     if (n != null) n else {
                                         val freshName = Renamer().generateFreshName(VariableImpl("_x"), (variablePatterns.map{ VariableImpl(it) } + newVariables.map { VariableImpl(it) }).toList())
                                         newVariables.add(freshName)

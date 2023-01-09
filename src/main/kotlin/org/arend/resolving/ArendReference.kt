@@ -144,7 +144,7 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : ArendR
 
     override fun resolve() = when (val parent = element.parent) {
         is PsiReferable -> parent
-        is ArendPattern -> super.resolve()
+        is ArendPattern -> super.resolve() ?: element
         else -> element
     }
 }
