@@ -61,13 +61,15 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     lateinit var commonTypeFragmentListener: ArendChangeSignatureCustomDocumentListener
     private lateinit var deferredNsCmds : MutableList<NsCmdRefactoringAction>
 
-    private fun deleteFragmentDependencyData(fragment: ArendExpressionCodeFragment) {
-        val obsoleteItem = parameterToUsages.keys.firstOrNull { it.typeCodeFragment == fragment }
-        if (obsoleteItem != null) parameterToUsages.remove(obsoleteItem)
-        for (usageEntry in parameterToUsages) usageEntry.value.remove(fragment)
+    private fun deleteFragmentDependencyData(fragment: ArendExpressionCodeFragment, includingDependencies: Boolean = false) {
+        if (includingDependencies) {
+            val obsoleteItem = parameterToUsages.keys.firstOrNull { it.typeCodeFragment == fragment }
+            if (obsoleteItem != null) parameterToUsages.remove(obsoleteItem)
+            for (dependencyEntry in parameterToDependencies) dependencyEntry.value.removeAll {it.typeCodeFragment == fragment}
+        }
 
+        for (usageEntry in parameterToUsages) usageEntry.value.remove(fragment)
         parameterToDependencies.remove(fragment)
-        for (dependencyEntry in parameterToDependencies) dependencyEntry.value.removeAll {it.typeCodeFragment == fragment}
     }
 
     override fun expressionFragmentResolved(codeFragment: ArendExpressionCodeFragment) {
@@ -93,7 +95,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 s.add(ref.textRange)
             }
         }
-        updateToolbarButtons()
     }
 
     override fun scopeModified(deferredNsCmd: NsCmdRefactoringAction) {
@@ -127,10 +128,11 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
 
     override fun createReturnTypeCodeFragment(): PsiCodeFragment {
         val referable = myMethod.method
-        val returnExpression = when (referable) {
+        var returnExpression = when (referable) {
             is ArendDefFunction -> referable.returnExpr?.text ?: ""
             else -> ""
         }
+        returnExpression = returnExpression.replace(Regex(" *\\n *"), " ")
         return ArendExpressionCodeFragment(myProject, returnExpression, referable, this)
     }
 
@@ -214,20 +216,26 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 super.editingStopped(e)
                 when (val src = e.source) {
                     is StringTableCellEditor -> {
-                        for (i in 0 until myParametersTable.items.size)
-                            if (myParametersTable.getCellEditor(i, 0) == src) {
-                                val deps = HashSet<Int>()
-                                deps.add(-1)
-                                deps.addAll(i+1 until myParametersTable.items.size)
-                                invalidateIndices(deps)
-                            }
+                        val i = myParametersTable.selectionModel.selectedIndices.firstOrNull()
+                        val text = if (i != null) myParametersTableModel.items.getOrNull(i)?.parameter?.name else null
+                        if (i != null) invokeLater {
+                            val deps = HashSet<Int>()
+                            if (text == null || myReturnTypeCodeFragment?.text?.contains(text) == true) deps.add(-1)
+                            for (j in i+1 until myParametersTable.items.size)
+                                if (text == null || myParametersTableModel.items.getOrNull(j)?.typeCodeFragment?.text?.contains(text) == true)
+                                    deps.add(j)
+                            invalidateIndices(deps)
+                        }
                     }
                     is CodeFragmentTableCellEditorBase -> {
                         val fragment = (src.cellEditorValue as? ArendExpressionCodeFragment)
                         val item = myParametersTable.items.firstOrNull { it.typeCodeFragment == fragment }
 
                         val codeAnalyzer = DaemonCodeAnalyzer.getInstance(project) as? DaemonCodeAnalyzerImpl
-                        if (codeAnalyzer != null && fragment != null && item != null) invalidateIndices(calculateUsagesOf(singletonList(item)))
+                        if (codeAnalyzer != null && fragment != null && item != null)
+                            invokeLater {
+                                invalidateIndices(calculateUsagesOf(singletonList(item)))
+                            }
                     }
                 }
             }
@@ -289,9 +297,9 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 invokeNameResolverHighlighting(ev.lastRow)
             } else if (ev.type == TableModelEvent.DELETE) { //Row deletion
                 val obsoleteTableItems = parameterToUsages.filter { !myParametersTableModel.items.contains(it.key) }
-                invalidateIndices(calculateUsagesOf(obsoleteTableItems.map { it.key }))
+                invokeLater { invalidateIndices(calculateUsagesOf(obsoleteTableItems.map { it.key })) }
                 for (item in obsoleteTableItems) (item.key.typeCodeFragment as? ArendExpressionCodeFragment)?.let {
-                    deleteFragmentDependencyData(it)
+                    deleteFragmentDependencyData(it, true)
                 }
             }
             updateToolbarButtons()
@@ -310,7 +318,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         return result
     }
     fun invalidateIndices(depIndices: Set<Int>) {
-        for (i in depIndices.toSortedSet().reversed()) invokeLater {
+        for (i in depIndices.toSortedSet().reversed()) {
             project.service<ArendPsiChangeService>().modificationTracker.incModificationCount()
             invokeNameResolverHighlighting(i)
         }
