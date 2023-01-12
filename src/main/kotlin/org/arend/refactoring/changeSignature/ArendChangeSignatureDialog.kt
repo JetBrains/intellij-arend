@@ -40,6 +40,7 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.listener.ArendPsiChangeService
+import org.arend.psi.oneLineText
 import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.resolving.ArendResolveCache
 import org.arend.util.FileUtils.isCorrectDefinitionName
@@ -128,12 +129,11 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
 
     override fun createReturnTypeCodeFragment(): PsiCodeFragment {
         val referable = myMethod.method
-        var returnExpression = when (referable) {
-            is ArendDefFunction -> referable.returnExpr?.text ?: ""
-            else -> ""
+        val expr = when (referable) {
+            is ArendDefFunction -> referable.returnExpr?.copy()
+            else -> null
         }
-        returnExpression = returnExpression.replace(Regex(" *\\n *"), " ")
-        return ArendExpressionCodeFragment(myProject, returnExpression, referable, this)
+        return ArendExpressionCodeFragment(myProject, expr?.oneLineText ?: "", referable, this)
     }
 
     override fun createCallerChooser(title: String?, treeToReuse: Tree?, callback: Consumer<in MutableSet<PsiElement>>?) = null

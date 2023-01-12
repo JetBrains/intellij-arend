@@ -145,15 +145,14 @@ data class ArendChangeInfo (
         fun getParameterInfo(locatedReferable: PsiLocatedReferable): MutableList<ArendParameterInfo> {
             var index = 0
             val result = ArrayList<ArendParameterInfo>()
-            fun fixCrlfs(input: String?) = input?.replace(Regex(" *\\n *"), " ")
 
             for (t in getTeles(locatedReferable)) when (t) {
                 is ArendNameTele -> for (parameter in t.identifierOrUnknownList) {
-                    result.add(ArendParameterInfo(parameter.defIdentifier?.name ?: "_", fixCrlfs(t.type?.text), index, t.isExplicit))
+                    result.add(ArendParameterInfo(parameter.defIdentifier?.name ?: "_", t.type?.oneLineText, index, t.isExplicit))
                     index++
                 }
                 is ArendTypeTele -> {
-                    result.add(ArendParameterInfo(null, fixCrlfs(t.typedExpr?.text), index, t.isExplicit))
+                    result.add(ArendParameterInfo(null, t.typedExpr?.oneLineText, index, t.isExplicit))
                     index++
                 }
                 is ArendNameTeleUntyped -> {
