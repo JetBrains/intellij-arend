@@ -76,15 +76,8 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         resolveReference(refExpr.data, refExpr.referent, listOf(resolvedRef))
     }
 
-    override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
-        val ref = pattern.constructor
-        if (ref != null) resolveReference(pattern.constructorData, ref, resolvedRefs)
-    }
-
-    override fun patternResolved(pattern: Concrete.NamePattern) {
-        pattern.referable?.let {
-            resolveReference(pattern.data, it, listOf(it))
-        }
+    override fun patternResolved(originalRef: Referable?, newRef: Referable, pattern: Concrete.Pattern, resolvedRefs: List<Referable?>) {
+        resolveReference(pattern.data, newRef, resolvedRefs)
     }
 
     override fun coPatternResolved(element: Concrete.CoClauseElement, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {

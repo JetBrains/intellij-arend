@@ -118,8 +118,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 }
             }
 
-            override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
-                super.patternResolved(originalRef, pattern, resolvedRefs)
+            override fun patternParsed(pattern: Concrete.ConstructorPattern) {
                 val data = pattern.constructorData
                 if (data is PsiElement) {
                     addHighlightInfo(data.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)

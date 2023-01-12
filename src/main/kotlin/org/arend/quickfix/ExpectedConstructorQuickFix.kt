@@ -29,7 +29,6 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
-import org.arend.ext.reference.DataContainer
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.intention.SplitAtomPatternIntention
@@ -275,7 +274,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                 val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, patternPrimer.scope, ArrayList<Referable>(), cer, null)
                                 val primerList = ArrayList<Concrete.Pattern>()
                                 primerList.add(concretePrimer)
-                                resolver.visitPatterns(primerList, null, true)
+                                resolver.visitPatterns(primerList, null)
                                 concretePrimer = primerList[0]
                                 resolver.resolvePattern(concretePrimer)
                                 primerOk = cer.errorsNumber == 0

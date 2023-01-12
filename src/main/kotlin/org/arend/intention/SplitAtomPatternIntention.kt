@@ -340,7 +340,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val topLevelPatterns = localClause.patterns.mapTo(mutableListOf()) {
                 ConcreteBuilder.convertPattern(it, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
             }
-            ExpressionResolveNameVisitor(ArendReferableConverter, localClause.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(topLevelPatterns, mutableMapOf(), true)
+            ExpressionResolveNameVisitor(ArendReferableConverter, localClause.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(topLevelPatterns, mutableMapOf())
 
             val localNames = HashSet<Variable>()
             localNames.addAll(findAllVariablePatterns(topLevelPatterns, element).map(::VariableImpl))
@@ -541,7 +541,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (enclosingPattern.isTuplePattern) return false
             if (patternLine.startsWith("(") && patternLine.endsWith(")")) return false
             val patternList = mutableListOf(ConcreteBuilder.convertPattern(enclosingPattern, ArendReferableConverter, DummyErrorReporter.INSTANCE, null))
-            ExpressionResolveNameVisitor(ArendReferableConverter, enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf(), true)
+            ExpressionResolveNameVisitor(ArendReferableConverter, enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf())
             val parsedConcretePattern = patternList[0]
             val correspondingConcrete = findParentConcrete(parsedConcretePattern, elementToReplace)
             if (correspondingConcrete !is Concrete.ConstructorPattern) {

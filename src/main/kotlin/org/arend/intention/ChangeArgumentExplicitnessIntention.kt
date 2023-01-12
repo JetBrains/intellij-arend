@@ -164,7 +164,7 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
 
         var concrete = ConcreteBuilder.convertPattern(pattern, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
         val list = mutableListOf(concrete)
-        ExpressionResolveNameVisitor(ArendReferableConverter, pattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(list, mutableMapOf(), true)
+        ExpressionResolveNameVisitor(ArendReferableConverter, pattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(list, mutableMapOf())
         concrete = list.single()
 
         for (arg in concrete.patterns) {
