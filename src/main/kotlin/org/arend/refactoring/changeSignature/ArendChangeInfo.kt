@@ -120,13 +120,10 @@ data class ArendChangeInfo (
         var pointer: PsiElement? = returnExpr?.prevSibling
         while (pointer != null && !locatedReferable.children.contains(pointer)) {
             colonWhitespace = pointer.text + colonWhitespace
-            pointer.findPrevSibling()
             pointer = pointer.prevSibling
         }
-        if (colonWhitespace == "") colonWhitespace = " "
         return if (returnType == null) {
-            val retExpr = (locatedReferable as? ArendFunctionDefinition<*>)?.returnExpr
-            if (retExpr != null) " : ${retExpr.text}" else ""
+            if (returnExpr != null) "$colonWhitespace${returnExpr.text}" else ""
         } else if (returnType.isEmpty()) "" else "$colonWhitespace$returnType"
     }
 

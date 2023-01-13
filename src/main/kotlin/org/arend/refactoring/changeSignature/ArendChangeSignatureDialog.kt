@@ -38,6 +38,7 @@ import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.MergeScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ext.ArendDefFunction
+import org.arend.psi.ext.ArendFunctionDefinition
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.oneLineText
@@ -142,12 +143,14 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         val builder = StringBuilder()
         val documentManager = PsiDocumentManager.getInstance(myProject)
         val rawErrors = ArrayList<HighlightInfo>()
+        val isElim = (myMethod.method as? ArendFunctionDefinition<*>)?.body?.elim != null
 
         val newNameCorrect = isCorrectDefinitionName(LongName(singletonList(this.methodName)))
         if (!newNameCorrect) return RefactoringBundle.message("text.identifier.invalid", this.methodName)
 
         for (item in myParametersTableModel.items) {
-            if (item.parameter.name.isEmpty()) return RefactoringBundle.message("refactoring.introduce.parameter.invalid.name", "")
+            if (item.parameter.name.let { it.isEmpty() || isElim && it == "_" }) //We may need to transform "with-body" to "elim-body" so "_" may turn into a problem
+                return RefactoringBundle.message("refactoring.introduce.parameter.invalid.name", item.parameter.name)
         }
         
         val allPsiTargets = HashSet<LocatedReferable>()

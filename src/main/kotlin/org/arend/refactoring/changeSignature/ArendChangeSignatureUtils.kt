@@ -12,8 +12,7 @@ import org.arend.intention.NewParameter
 import org.arend.intention.Parameter
 import org.arend.intention.RefactoringDescriptor
 import org.arend.psi.*
-import org.arend.psi.ext.ArendDefClass
-import org.arend.psi.ext.ArendDefFunction
+import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendRenameProcessor
 import java.util.Collections.singletonList
 
@@ -22,25 +21,51 @@ fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: Are
     changeInfo.addNamespaceCommands()
     if (changeInfo.isParameterSetOrOrderChanged) {
         val elim = function.body?.elim
-        if (elim?.withKw != null) {
-            val defIdentifiers = function.parameters.map { tele -> if (tele.isExplicit) tele.identifierOrUnknownList.mapNotNull { iou -> iou.defIdentifier } else emptyList() }.flatten().fold("") { acc, dI -> if (acc == "") dI.name else acc + ", ${dI.name}" }
-            performTextModification(elim, "\\elim $defIdentifiers")
+        if (elim != null) {
+            val eliminatedParameters = if (elim.withKw != null) {
+                function.parameters.map { tele -> if (tele.isExplicit) tele.identifierOrUnknownList.map { iou -> iou.defIdentifier } else emptyList() }.flatten()
+            } else elim.refIdentifierList.map { it.reference.resolve() as? ArendDefIdentifier }.toList()
+            val allParameters = function.parameters.map { tele -> tele.identifierOrUnknownList.map { iou -> iou.defIdentifier } }.flatten()
 
+            val parameters = changeInfo.newParameters.filter { it.oldIndex != -1 }.map { allParameters[it.oldIndex]!! }.filter { eliminatedParameters.contains(it) }
+            val deletedParameters = eliminatedParameters.minus(parameters.toSet()).asSequence().map { eliminatedParameters.indexOf(it) }.sorted()
+            val template = ArrayList<Pair<Int, Boolean>>(); template.addAll(parameters.map { Pair(eliminatedParameters.indexOf(it), false) })
+            for (d in deletedParameters) if (d <= template.size) template.add(d, Pair(d, true))
+
+            fun<T> printWithComments(list: List<T>, t: List<Pair<Int, Boolean>>, converter: (T) -> String): String {
+                val builder = StringBuilder(); var isInComment = false; var isFirst = true;
+                for ((i, isCommented) in t) { //TODO: Fix me
+                    if (isCommented && !isInComment) { builder.append("{-"); isInComment = true}
+                    if (isInComment && !isCommented) { builder.append("-}"); isInComment = false}
+                    if (!isFirst) builder.append(", ")
+                    builder.append(converter.invoke(list[i]))
+                    isFirst = false
+                }
+                if (isInComment) builder.append("-}")
+                return builder.toString()
+            }
+
+            performTextModification(elim, "\\elim ${printWithComments(eliminatedParameters, template) { d -> d?.name ?: "_" }}")
+            for (clause in function.body!!.clauseList) if (clause.patterns.isNotEmpty()) {
+                val newPatterns = printWithComments(clause.patterns, template) { p -> p.text }
+                performTextModification(clause, newPatterns, clause.patterns.first().startOffset, clause.patterns.last().endOffset)
+            }
         }
+
         modifyFunctionUsages(project, function, changeInfo.newParameters.toList().map { it as ArendParameterInfo })
     }
 
     if (changeInfo.isParameterNamesChanged)
         renameFunctionParameters(project, changeInfo, function)
 
-    if (changeInfo.isParameterNamesChanged || changeInfo.isParameterSetOrOrderChanged || changeInfo.isParameterTypesChanged)
-        modifyFunctionSignature(function, changeInfo)
-
     if (changeInfo.isNameChanged) {
         val renameProcessor = ArendRenameProcessor(project, function, changeInfo.newName, function.refName, false, null)
         val usages = renameProcessor.findUsages()
         renameProcessor.executeEx(usages)
     }
+
+    if (changeInfo.isParameterNamesChanged || changeInfo.isParameterSetOrOrderChanged || changeInfo.isParameterTypesChanged)
+        modifyFunctionSignature(function, changeInfo)
 }
 
 private fun renameFunctionParameters(project: Project, changeInfo: ArendChangeInfo, function: ArendDefFunction) {

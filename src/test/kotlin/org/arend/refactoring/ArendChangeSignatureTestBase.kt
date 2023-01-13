@@ -36,9 +36,10 @@ abstract class ArendChangeSignatureTestBase: ArendTestBase() {
                 ArendParameterInfo(element, entry.second, -1, entry.first)
             }
             is Pair<*, *> -> {
-                val (index, toggle) = (element.first as? Int ?: throw java.lang.IllegalArgumentException()).let { Pair(it - 1, it < 0) }
+                val (index, toggle) = (element.first as? Int ?: throw java.lang.IllegalArgumentException()).let { Pair(abs(it) - 1, it < 0) }
+                val tq = typeMap[element.second]
                 val originalElement = baseParams[index]
-                ArendParameterInfo(element.second as? String ?: throw java.lang.IllegalArgumentException(), originalElement.typeText, index, originalElement.isExplicit().let { if (toggle) !it else it })
+                ArendParameterInfo(element.second as? String ?: throw java.lang.IllegalArgumentException(), tq?.second ?: originalElement.typeText, index, originalElement.isExplicit().let { tq?.first ?: if (toggle) !it else it })
             }
             else -> throw IllegalArgumentException()
         }.let { newParams.add(it) }

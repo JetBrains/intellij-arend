@@ -87,19 +87,63 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
     """, listOf(Pair(1, "b"), Pair(2, "a")))
 
     fun testWith() = changeSignature("""
-       \func foo{-caret-} {X : \Type} (a b : Nat) : Nat \with {
+       \func foo{-caret-} (a b : Nat) : Nat \with {
          | 0, 0 => 0
-         | _, _ => 1
+         | 0, _ => 1
+         | _, 0 => 2
+         | suc a, suc b => foo a b
        }
        
        \func test => foo 1 2
     """, """
-       \func foo {X : \Type} (b a : Nat) : Nat \elim a, b {
+       \func foo (b a : Nat) : Nat \elim b, a {
          | 0, 0 => 0
-         | _, _ => 1
+         | _, 0 => 1
+         | 0, _ => 2
+         | suc b, suc a => foo b a
        }
        
        \func test => foo 2 1
-    """, listOf(1, 3, 2))
+    """, listOf(2, 1))
+
+    fun testRemoveArgumentInElim() = changeSignature("""
+       \func foo{-caret-} (x y z : Nat) : Nat \elim x, y {
+         | 0, 0 => z
+         | _, _ => 1
+       } 
+    """, """
+       \func foo (x z : Nat) : Nat \elim x{-, y-} {
+         | 0{-, 0-} => z
+         | _{-, _-} => 1
+       } 
+    """, listOf(1, 3))
+
+    fun testCombined() = changeSignature("""
+       \data List (A : \Set) | nil | cons A (List A)
+
+       \func zip{-caret-} {A {-foo-} B : \Set} 
+               {-*-} (x : List A) -- ... 
+               (y : List {-bar-} B) : List (\Sigma A B) \with
+         | nil, _ => nil
+         | _, nil => nil
+         | cons x xs, cons y ys => cons (x, y) (zip xs ys)
+
+       \func doubleZip (A B C : \Set) (x : List A) (y : List B) (z : List C) => zip (zip x y) z
+       """, """
+       \data List (A : \Set) | nil | cons A (List A)
+
+       \func doubleZip2 ({-foo-} X Y Z : \Set) -- ... 
+               (x : List X) 
+               {-*-} (y : List Y) (z : List Z) : List (\Sigma Y X) \elim x, y
+         | _, nil => nil
+         | nil, _ => nil
+         | cons y ys, cons x xs => cons (x, y) (doubleZip2 _ _ {?} ys xs {?})
+
+       \func doubleZip (A B C : \Set) (x : List A) (y : List B) (z : List C) => doubleZip2 _ _ {?} z (doubleZip2 _ _ {?} y x {?}) {?}
+       """, listOf(Pair(-2, "X"), Pair(-1, "Y"), "Z", Pair(4, "x"), Pair(3, "y"), "z"),
+            listOf(Pair("Z", Pair(true, "\\Set")),
+                   Pair("x", Pair(true, "List X")),
+                   Pair("y", Pair(true, "List Y")),
+                   Pair("z", Pair(true, "List Z"))), "doubleZip2")
 
 }
