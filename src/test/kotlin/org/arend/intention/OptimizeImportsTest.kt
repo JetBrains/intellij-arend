@@ -1267,4 +1267,31 @@ class OptimizeImportsTest : ArendTestBase() {
         """)
     }
 
+    fun `test class field reimport`() {
+        doSoftTest("""
+            -- ! Main.ard
+            \data Unit | unit
+            
+            \class Op {
+              | f : Unit
+            }
+            
+            \lemma foo {o : Op} : Unit => f'
+            \where {
+              \open Op(f \as f')
+            }
+        """, """
+            \data Unit | unit
+            
+            \class Op {
+              | f : Unit
+            }
+            
+            \lemma foo {o : Op} : Unit => f'
+            \where {
+              \open Op(f \as f')
+            }
+        """)
+    }
+
 }

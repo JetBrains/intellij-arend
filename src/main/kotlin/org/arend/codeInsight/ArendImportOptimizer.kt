@@ -150,12 +150,12 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit,
     for (import in statements) {
         val statCmd = import.namespaceCommand ?: continue
         val qualifiedReferences = statCmd.getQualifiedReferenceFromOpen()
-        val importedPattern = qualifiedReferences.firstNotNullOfOrNull { pattern[it] }
-        val deepPatterns = qualifiedReferences.firstNotNullOfOrNull { hierarchy.getDeeplyImportedNames(it) } ?: emptySet()
+        val importedPattern = qualifiedReferences.flatMapTo(HashSet()) { pattern[it] ?: emptySet() }
+        val deepPatterns = qualifiedReferences.flatMapTo(HashSet()) { hierarchy.getDeeplyImportedNames(it) } ?: emptySet()
         val importedHere = statCmd.nsUsing?.nsIdList ?: emptyList()
         val importedNamesHere = importedHere.map { ImportedName(it.refIdentifier.text, it.defIdentifier?.text) }
         val importedTopLevelButUsedDeeply = deepPatterns intersect importedNamesHere.toSet()
-        if ((importedPattern == null && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in ((importedPattern ?: emptySet()) + deepPatterns) } } == true)  {
+        if ((importedPattern.isEmpty() && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in ((importedPattern ?: emptySet()) + deepPatterns) } } == true)  {
             action(import)
             continue
         }
@@ -446,7 +446,7 @@ private class ImportStructureCollector(
         val identifierImportedFromFile = groupPath.firstName ?: characteristics
         fileImports.computeIfAbsent(importedFilePath) { HashSet() }.add(ImportedName(identifierImportedFromFile, importedAs?.takeIf { identifierImportedFromFile == characteristics }))
         val shortenedOpeningPath = openingPath.shorten(groupStack)
-        if (shortenedOpeningPath.isNotEmpty()) {
+        if (shortenedOpeningPath.isNotEmpty() || importedAs != null) {
             currentFrame.usages[ImportedName(characteristics, importedAs)] = ModulePath(openingPath)
         }
     }
@@ -468,11 +468,10 @@ private class ImportStructureCollector(
         val elementGroup by lazy(LazyThreadSafetyMode.NONE) { element.parentOfType<ArendGroup>() ?: element }
         if (resolved is ArendDefModule ||
             element.parent?.parent is CoClauseBase ||
-            (resolved is ArendClassField && PsiTreeUtil.isAncestor(
-                resolvedParentGroup?.parentGroup,
-                elementGroup,
-                false
-            )) ||
+            (resolved is ArendClassField &&
+               resolved.name == element.referenceName && // check against renamed field
+               PsiTreeUtil.isAncestor(resolvedParentGroup?.parentGroup, elementGroup, false)
+               ) ||
             isSuperAffectsElement(resolvedParentGroup, resolved, elementGroup)
         ) {
             return true
