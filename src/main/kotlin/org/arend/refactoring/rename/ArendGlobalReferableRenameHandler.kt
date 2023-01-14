@@ -3,6 +3,7 @@ package org.arend.refactoring.rename
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
@@ -22,14 +23,16 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ext.ArendAlias
 import org.arend.psi.ArendElementTypes.ID
 import org.arend.psi.ext.ArendAliasIdentifier
+import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.ReferableBase
 import org.arend.psi.getArendNameText
+import org.arend.resolving.ArendResolveCache
 
 class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
     override fun createMemberRenamer(element: PsiElement, elementToRename: PsiNameIdentifierOwner, editor: Editor): MemberInplaceRenamer {
         //Notice that element == elementToRename since currently there are no such things as inherited methods in Arend
         val project = editor.project
-        if (project != null && elementToRename is GlobalReferable && elementToRename.hasAlias()) {
+        if (project != null && elementToRename is GlobalReferable) {
             val context = getContext(project, elementToRename, editor)
             if (context != null) return ArendInplaceRenamer(elementToRename, editor, context.name, context.isAlias)
         }
@@ -102,7 +105,7 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
         }
 
         fun getContext(project: Project, elementToRename: PsiNameIdentifierOwner, editor: Editor): ArendRenameRefactoringContext? {
-            if (elementToRename is GlobalReferable && elementToRename.hasAlias()) {
+            if (elementToRename is GlobalReferable) {
                 val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
                 val caretElement = if (psiFile != null) findElementAtCaret(psiFile, editor) else null
                 val caretElementText = getArendNameText(caretElement)
@@ -179,9 +182,20 @@ class ArendRenameProcessor(project: Project, val element: PsiElement, newName: S
                 RenamePsiElementProcessor.forElement(element).isToSearchForTextOccurrences(element)
                         && TextOccurrencesUtil.isSearchTextOccurrencesEnabled(element)) {
 
-    override fun findUsages(): Array<UsageInfo> = super.findUsages().filter {
-        getArendNameText(it.element) == oldName
-    }.toTypedArray()
+    override fun findUsages(): Array<UsageInfo> {
+        val cacheService = myProject.service<ArendResolveCache>()
+        element.accept(object : PsiRecursiveElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                super.visitElement(element)
+                if (element is ArendReferenceElement) {
+                    cacheService.dropCache(element)
+                }
+            }
+        })
+        return super.findUsages().filter {
+            getArendNameText(it.element) == oldName
+        }.toTypedArray()
+    }
 
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         val oldRefName = (element as? GlobalReferable)?.refName
