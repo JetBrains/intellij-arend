@@ -19,7 +19,9 @@ import com.intellij.psi.PsiCodeFragment
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.injected.changesHandler.range
+import com.intellij.psi.util.descendants
 import com.intellij.psi.util.descendantsOfType
+import com.intellij.psi.util.elementType
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.RefactoringBundle
 import com.intellij.refactoring.changeSignature.ChangeSignatureDialogBase
@@ -37,6 +39,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.MergeScope
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.psi.ext.ArendFunctionDefinition
 import org.arend.psi.ext.ArendReferenceElement
@@ -220,13 +223,18 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                 when (val src = e.source) {
                     is StringTableCellEditor -> {
                         val i = myParametersTable.selectionModel.selectedIndices.firstOrNull()
-                        val text = if (i != null) myParametersTableModel.items.getOrNull(i)?.parameter?.name else null
+                        val newName = if (i != null) myParametersTableModel.items.getOrNull(i)?.parameter?.name else null
                         if (i != null) invokeLater {
                             val deps = HashSet<Int>()
-                            if (text == null || myReturnTypeCodeFragment?.text?.contains(text) == true) deps.add(-1)
-                            for (j in i+1 until myParametersTable.items.size)
-                                if (text == null || myParametersTableModel.items.getOrNull(j)?.typeCodeFragment?.text?.contains(text) == true)
-                                    deps.add(j)
+                            if (newName == null || myReturnTypeCodeFragment?.text?.contains(newName) == true) deps.add(-1)
+                            for (j in i+1 until myParametersTable.items.size) {
+                                val psi = myParametersTableModel.items.getOrNull(j)?.typeCodeFragment
+                                if (psi != null) {
+                                    val children = psi.descendants().filter { it.elementType == ArendElementTypes.ID }.map { it.text }.toSet()
+                                    if (newName == null || children.contains(newName))
+                                        deps.add(j)
+                                }
+                            }
                             invalidateIndices(deps)
                         }
                     }

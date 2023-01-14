@@ -122,9 +122,13 @@ data class ArendChangeInfo (
             colonWhitespace = pointer.text + colonWhitespace
             pointer = pointer.prevSibling
         }
-        return if (returnType == null) {
-            if (returnExpr != null) "$colonWhitespace${returnExpr.text}" else ""
-        } else if (returnType.isEmpty()) "" else "$colonWhitespace$returnType"
+        return when {
+            returnType == null && returnExpr == null -> ""
+            returnType == null && returnExpr != null -> "$colonWhitespace${returnExpr.text}"
+            returnType != null && returnType.isEmpty() -> ""
+            returnType != null && returnExpr == null -> " : $returnType"
+            else -> "$colonWhitespace$returnType"
+        }
     }
 
     fun signaturePart() = "$name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText()}${returnPart()}"

@@ -20,38 +20,7 @@ import java.util.Collections.singletonList
 fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: ArendDefFunction) {
     changeInfo.addNamespaceCommands()
     if (changeInfo.isParameterSetOrOrderChanged) {
-        val elim = function.body?.elim
-        if (elim != null) {
-            val eliminatedParameters = if (elim.withKw != null) {
-                function.parameters.map { tele -> if (tele.isExplicit) tele.identifierOrUnknownList.map { iou -> iou.defIdentifier } else emptyList() }.flatten()
-            } else elim.refIdentifierList.map { it.reference.resolve() as? ArendDefIdentifier }.toList()
-            val allParameters = function.parameters.map { tele -> tele.identifierOrUnknownList.map { iou -> iou.defIdentifier } }.flatten()
-
-            val parameters = changeInfo.newParameters.filter { it.oldIndex != -1 }.map { allParameters[it.oldIndex]!! }.filter { eliminatedParameters.contains(it) }
-            val deletedParameters = eliminatedParameters.minus(parameters.toSet()).asSequence().map { eliminatedParameters.indexOf(it) }.sorted()
-            val template = ArrayList<Pair<Int, Boolean>>(); template.addAll(parameters.map { Pair(eliminatedParameters.indexOf(it), false) })
-            for (d in deletedParameters) if (d <= template.size) template.add(d, Pair(d, true))
-
-            fun<T> printWithComments(list: List<T>, t: List<Pair<Int, Boolean>>, converter: (T) -> String): String {
-                val builder = StringBuilder(); var isInComment = false; var isFirst = true;
-                for ((i, isCommented) in t) { //TODO: Fix me
-                    if (isCommented && !isInComment) { builder.append("{-"); isInComment = true}
-                    if (isInComment && !isCommented) { builder.append("-}"); isInComment = false}
-                    if (!isFirst) builder.append(", ")
-                    builder.append(converter.invoke(list[i]))
-                    isFirst = false
-                }
-                if (isInComment) builder.append("-}")
-                return builder.toString()
-            }
-
-            performTextModification(elim, "\\elim ${printWithComments(eliminatedParameters, template) { d -> d?.name ?: "_" }}")
-            for (clause in function.body!!.clauseList) if (clause.patterns.isNotEmpty()) {
-                val newPatterns = printWithComments(clause.patterns, template) { p -> p.text }
-                performTextModification(clause, newPatterns, clause.patterns.first().startOffset, clause.patterns.last().endOffset)
-            }
-        }
-
+        fixElim(function, changeInfo)
         modifyFunctionUsages(project, function, changeInfo.newParameters.toList().map { it as ArendParameterInfo })
     }
 
@@ -67,7 +36,24 @@ fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: Are
     if (changeInfo.isParameterNamesChanged || changeInfo.isParameterSetOrOrderChanged || changeInfo.isParameterTypesChanged)
         modifyFunctionSignature(function, changeInfo)
 }
+private fun fixElim(function: ArendFunctionDefinition<*>, changeInfo: ArendChangeInfo) {
+    val elim = function.body?.elim ?: return
+    val eliminatedParameters = if (elim.withKw != null) {
+        function.parameters.map { tele -> if (tele.isExplicit) tele.identifierOrUnknownList.map { iou -> iou.defIdentifier } else emptyList() }.flatten()
+    } else elim.refIdentifierList.map { it.reference.resolve() as? ArendDefIdentifier }.toList()
+    val allParameters = function.parameters.map { tele -> tele.identifierOrUnknownList.map { iou -> iou.defIdentifier } }.flatten()
 
+    val parameters = changeInfo.newParameters.filter { it.oldIndex != -1 }.map { allParameters[it.oldIndex]!! }.filter { eliminatedParameters.contains(it) }
+    val deletedParameters = eliminatedParameters.minus(parameters.toSet()).asSequence().map { eliminatedParameters.indexOf(it) }.sorted()
+    val template = ArrayList<Pair<Int, Boolean>>(); template.addAll(parameters.map { Pair(eliminatedParameters.indexOf(it), false) })
+    for (d in deletedParameters) if (d <= template.size) template.add(d, Pair(d, true))
+
+    performTextModification(elim, "\\elim ${printWithComments(eliminatedParameters, template, "_") { d -> d?.name ?: "_" }}")
+    for (clause in function.body!!.clauseList) if (clause.patterns.isNotEmpty()) {
+        val newPatterns = printWithComments(clause.patterns, template, "_") { p -> p.text }
+        performTextModification(clause, newPatterns, clause.patterns.first().startOffset, clause.patterns.last().endOffset)
+    }
+}
 private fun renameFunctionParameters(project: Project, changeInfo: ArendChangeInfo, function: ArendDefFunction) {
     val defIdentifiers = function.parameters.map { tele -> tele.identifierOrUnknownList.mapNotNull { iou -> iou.defIdentifier } }.flatten()
     val processors = ArrayList<Pair<List<SmartPsiElementPointer<PsiElement>>, ArendRenameProcessor>>()
@@ -105,6 +91,21 @@ private fun modifyFunctionSignature(function: ArendDefFunction, changeInfo: Aren
     val startPosition = function.nameIdentifier?.startOffset ?: return
     val endPosition = (((function.returnExpr?.endOffset) ?: function.parameters.lastOrNull()?.endOffset) ?: function.alias?.endOffset) ?: function.nameIdentifier?.endOffset ?: return
     performTextModification(function, signatureText, startPosition, endPosition)
+}
+
+private fun<T> printWithComments(list: List<T>, t: List<Pair<Int, Boolean>>, defaultValue: String, converter: (T) -> String): String {
+    val builder = StringBuilder(); var isInComment = false; var isAbsolutelyFirst = true; var isFirstUncommented = true
+    for ((i, isCommented) in t) {
+        if (isCommented && !isInComment) { builder.append("{-"); isInComment = true}
+        if (!isAbsolutelyFirst && isFirstUncommented) builder.append(", ")
+        if (isInComment && !isCommented) { builder.append("-}"); isInComment = false}
+        if (!isAbsolutelyFirst && !isFirstUncommented) builder.append(", ")
+        builder.append(list.getOrNull(i)?.let{converter.invoke(it)} ?: defaultValue)
+        isAbsolutelyFirst = false
+        if (!isCommented) isFirstUncommented = false
+    }
+    if (isInComment) builder.append("-}")
+    return builder.toString()
 }
 
 private fun performTextModification(psi: PsiElement, newElim: String, startPosition : Int = psi.startOffset, endPosition : Int = psi.endOffset) {
