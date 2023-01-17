@@ -397,20 +397,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             return tcReferable
         }
 
-        instances.remove(tcReferable)
-        val funcDef = tcReferable.typechecked as? FunctionDefinition
-        if (funcDef != null) {
-            val classDef = (funcDef.resultType as? ClassCallExpression)?.definition
-            if (classDef != null) {
-                instances.remove(classDef.referable, funcDef.referable)
-            }
-        }
-
-        if (extensionDefinitions.containsKey(tcReferable)) {
-            runReadAction {
-                service<ArendExtensionChangeListener>().notifyIfNeeded(project)
-            }
-        }
+        removeTCDefinition(tcReferable)
 
         val prevRef = (tcReferable as TCDefReferable).underlyingReferable
         val tcTypecheckable = (tcReferable as TCDefReferable).typecheckable
@@ -418,11 +405,29 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             return null
         }
         resetErrors(curRef)
+        return tcTypecheckable
+    }
 
+    private fun removeTCDefinition(ref: TCDefReferable) {
+        instances.remove(ref)
+        val funcDef = ref.typechecked as? FunctionDefinition
+        if (funcDef != null) {
+            val classDef = (funcDef.resultType as? ClassCallExpression)?.definition
+            if (classDef != null) {
+                instances.remove(classDef.referable, funcDef.referable)
+            }
+        }
+
+        if (extensionDefinitions.containsKey(ref)) {
+            runReadAction {
+                service<ArendExtensionChangeListener>().notifyIfNeeded(project)
+            }
+        }
+
+        val tcTypecheckable = ref.typecheckable
         if (tcTypecheckable.typechecked?.goals?.isNotEmpty() != true) {
             tcTypecheckable.location?.let { updatedModules.add(it) }
         }
-        return tcTypecheckable
     }
 
     private fun doUpdateDefinition(referable: LocatedReferable, file: ArendFile) {
@@ -436,6 +441,19 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         if ((referable as? ArendDefFunction)?.functionKind?.isUse == true) {
             (referable.parentGroup as? TCDefinition)?.let { doUpdateDefinition(it, file) }
+        }
+    }
+
+    fun updateDefinition(ref: TCDefReferable) {
+        removeTCDefinition(ref)
+        val tcRef = ref.typecheckable
+        val dependencies = synchronized(project) {
+            dependencyListener.update(tcRef)
+        }
+        for (dep in dependencies) {
+            if (dep is TCDefReferable) {
+                removeTCDefinition(dep)
+            }
         }
     }
 

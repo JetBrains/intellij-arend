@@ -178,6 +178,15 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
         concreteProvider.resolve = true
 
+        file.concreteDefinitions.values.removeIf {
+            val ref = it.data.underlyingReferable
+            val remove = ref !is PsiLocatedReferable || ref.tcReferable != it.data
+            if (remove) {
+                service.updateDefinition(it.data)
+            }
+            remove
+        }
+
         val definitions = ArrayList<Concrete.Definition>()
         file.traverseGroup { group ->
             val ref = group.referable
