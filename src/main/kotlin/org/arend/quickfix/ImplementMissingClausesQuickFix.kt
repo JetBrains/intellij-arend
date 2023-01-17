@@ -321,6 +321,10 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     } else {
                         val tupleMode = definition == null
                         val argumentPatterns = ArrayList<String>()
+                        var nExplicit = 0
+                        val explicitPatterns = ArrayList<String>()
+                        val implicitPatterns = ArrayList<String>()
+
                         run {
                             val patternIterator = pattern.subPatterns.iterator()
                             var constructorArgument: CoreParameter = pattern.parameters ?: EmptyDependentLink.getInstance()
@@ -332,8 +336,14 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                                     constructorArgument.isExplicit -> Companion.Braces.PARENTHESES
                                     else -> Companion.Braces.BRACES
                                 }
+
                                 val argPattern = doTransformPattern(argumentPattern, cause, project, filters, argumentParen, occupiedNames, sampleParameter, nRecursiveBindings, eliminatedBindings, missingClausesError)
                                 argumentPatterns.add(argPattern.first)
+                                if (constructorArgument.isExplicit) {
+                                    nExplicit++
+                                    explicitPatterns.add(argPattern.first)
+                                } else
+                                    implicitPatterns.add(argPattern.first)
                                 containsEmptyPattern = containsEmptyPattern || argPattern.second
                                 if (constructorArgument.hasNext()) constructorArgument = constructorArgument.next
                             }
@@ -344,12 +354,14 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         val result = buildString {
                             val defCall = if (referable != null) getTargetName(referable, cause)
                                     ?: referable.name else definition?.name
-                            if (infixMode && argumentPatterns.size >= 2) {
-                                append(argumentPatterns[0])
+                            if (infixMode && nExplicit == 2) {
+                                append(explicitPatterns[0])
                                 append(" ")
                                 append(defCall)
                                 append(" ")
-                                append(concat(argumentPatterns.tail(), filter, " "))
+                                append(concat(implicitPatterns, filter, " "))
+                                append(" ")
+                                append(explicitPatterns[1])
                                 return@buildString
                             }
                             if (tupleMode) append("(") else {

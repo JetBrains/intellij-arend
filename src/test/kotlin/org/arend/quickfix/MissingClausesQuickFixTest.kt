@@ -846,6 +846,17 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          } 
     """)
 
+    fun `test infix patterns 1`() = doTest("""
+       \func test{-caret-} (l : Array Nat) : Nat
+         | nil => 0
+         | a :: {0} l => a 
+    """, """
+       \func test (l : Array Nat) : Nat
+         | nil => 0
+         | a :: {0} l => a
+         | a :: {suc n} l => {?} 
+    """)
+
 
     val dataLeq = """
        \data \infix 4 < (n m : Nat) \with
