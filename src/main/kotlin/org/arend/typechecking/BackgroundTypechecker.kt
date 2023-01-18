@@ -3,6 +3,8 @@ package org.arend.typechecking
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendFile
@@ -20,18 +22,18 @@ import org.arend.util.afterTypechecking
 
 class BackgroundTypechecker(private val project: Project, private val instanceProviderSet: PsiInstanceProviderSet, private val concreteProvider: ConcreteProvider, private val modificationCount: Long) {
     private val definitionBlackListService = service<DefinitionBlacklistService>()
-    private val modificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
+    private val modificationTracker = service<ArendPsiChangeService>().definitionModificationTracker
     private val errorService: ErrorService = project.service()
 
-    fun runTypechecker(file: ArendFile, lastModified: TCDefReferable?, collector1: CollectingOrderingListener, collector2: CollectingOrderingListener, runAnalyzer: Boolean): Boolean {
+    fun runTypechecker(file: ArendFile, lastModified: TCDefReferable?, collector1: CollectingOrderingListener, collector2: CollectingOrderingListener, runAnalyzer: Boolean) {
         if (collector1.isEmpty && collector2.isEmpty) {
-            return true
+            return
         }
 
         val settings = service<ArendSettings>()
         val mode = settings.typecheckingMode
         if (mode == ArendSettings.TypecheckingMode.OFF) {
-            return true
+            return
         }
 
         if (mode == ArendSettings.TypecheckingMode.DUMB) {
@@ -39,41 +41,49 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
                 runDumbTypechecker(def)
             }
             if (runAnalyzer) runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
-            return true
+            return
         }
 
-        if (file.lastDefinitionModification.get() >= modificationCount) {
-            return false
-        }
+        object : Task.Backgroundable(project, "Typechecking", false) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = false
+                indicator.fraction = 0.0
+                val check2 = !collector2.isEmpty && !settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true
+                val total = collector1.elements.size + if (check2) collector2.elements.size else 0
+                var i = 0
 
-        val tcService = project.service<TypeCheckingService>()
-        val typechecking = ArendTypechecking(tcService, instanceProviderSet, concreteProvider, errorService, tcService.dependencyListener, LibraryArendExtensionProvider(tcService.libraryManager))
+                val tcService = project.service<TypeCheckingService>()
+                val typechecking = ArendTypechecking(tcService, instanceProviderSet, concreteProvider, errorService, tcService.dependencyListener, LibraryArendExtensionProvider(tcService.libraryManager))
 
-        if (!collector1.isEmpty) {
-            for (element in collector1.elements) {
-                if (!typecheckDefinition(typechecking, element)) {
-                    return false
-                }
-            }
-        }
-
-        if (!settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true) {
-            file.lastModifiedDefinition = null
-            if (!collector2.isEmpty) {
-                for (element in collector2.elements) {
-                    if (!typecheckDefinition(typechecking, element)) {
-                        return false
+                if (!collector1.isEmpty) {
+                    for (element in collector1.elements) {
+                        if (!typecheckDefinition(typechecking, element)) {
+                            indicator.fraction = 1.0
+                            return
+                        }
+                        indicator.fraction = (++i).toDouble() / total
                     }
                 }
+
+                if (check2) {
+                    for (element in collector2.elements) {
+                        if (!typecheckDefinition(typechecking, element)) {
+                            indicator.fraction = 1.0
+                            return
+                        }
+                        indicator.fraction = (++i).toDouble() / total
+                    }
+                }
+
+                if (runAnalyzer) {
+                    project.afterTypechecking(listOf(file))
+                }
+
+                modificationTracker.incModificationCount()
+                file.lastDefinitionModification.updateAndGet { maxOf(it, modificationTracker.modificationCount) }
+                return
             }
-        }
-
-        if (runAnalyzer) {
-            project.afterTypechecking(listOf(file))
-        }
-
-        file.lastDefinitionModification.updateAndGet { maxOf(it, modificationCount) }
-        return true
+        }.queue()
     }
 
     private fun typecheckDefinition(typechecking: ArendTypechecking, element: CollectingOrderingListener.Element): Boolean {

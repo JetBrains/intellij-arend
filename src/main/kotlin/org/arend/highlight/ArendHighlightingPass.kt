@@ -6,6 +6,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.psi.*
@@ -14,8 +15,10 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
+import org.arend.resolving.IntellijTCReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.ConcreteCompareVisitor
 import org.arend.term.group.Group
 import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.PsiInstanceProviderSet
@@ -29,7 +32,7 @@ import org.arend.typechecking.order.listener.CollectingOrderingListener
 class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
-    private val psiListenerService = myProject.service<ArendPsiChangeService>()
+    private val psiListenerService = service<ArendPsiChangeService>()
     private val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
     private val instanceProviderSet = PsiInstanceProviderSet()
     private val collector1 = CollectingOrderingListener()
@@ -64,7 +67,18 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
     }
 
     private fun collectInfo(progress: ProgressIndicator) {
-        val definitions = ArrayList<Concrete.Definition>()
+        val service = myProject.service<TypeCheckingService>()
+        file.moduleLocation?.let {
+            service.cleanupTCRefMaps(it)
+        }
+        file.traverseGroup { group ->
+            val ref = group.referable as? PsiLocatedReferable
+            val tcRef = ref?.tcReferableCached
+            if (tcRef is IntellijTCReferable && !tcRef.isEquivalent(ref)) {
+                ref.dropTCReferable()
+            }
+        }
+
         DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
@@ -104,15 +118,10 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 }
             }
 
-            override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
-                super.patternResolved(originalRef, pattern, resolvedRefs)
-                val dataPattern = pattern.data as? ArendPattern ?: return
-                val constructors =
-                        dataPattern.sequence.takeIf { it.isNotEmpty() }?.mapNotNull { it.referenceElement?.referenceNameElement?.takeIf { el -> el.text == pattern.constructor?.refName } }
-                        ?: dataPattern.takeIf { it.singleReferable != null }?.let { listOfNotNull(it.referenceElement?.referenceNameElement) }
-                        ?: return
-                for (psi in constructors) {
-                    addHighlightInfo(psi.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
+            override fun patternParsed(pattern: Concrete.ConstructorPattern) {
+                val data = pattern.constructorData
+                if (data is PsiElement) {
+                    addHighlightInfo(data.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
                 }
             }
 
@@ -162,9 +171,6 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
                 }
 
                 definition.accept(IntentionBackEndVisitor(), null)
-                if (definition is Concrete.Definition) {
-                    definitions.add(definition)
-                }
 
                 advanceProgress(1)
             }
@@ -172,9 +178,42 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
         concreteProvider.resolve = true
 
-        val dependencyListener = myProject.service<TypeCheckingService>().dependencyListener
+        file.concreteDefinitions.values.removeIf {
+            val ref = it.data.underlyingReferable
+            val remove = ref !is PsiLocatedReferable || ref.tcReferable != it.data
+            if (remove) {
+                service.updateDefinition(it.data)
+            }
+            remove
+        }
+
+        val definitions = ArrayList<Concrete.Definition>()
+        file.traverseGroup { group ->
+            val ref = group.referable
+            val def = concreteProvider.getConcrete(ref)
+            if (def is Concrete.Definition) {
+                var check = false
+                if (def.data.typechecked == null) {
+                    check = true
+                } else {
+                    val prev = file.concreteDefinitions.putIfAbsent(ref.refLongName, def)
+                    if (prev != null && !prev.accept(ConcreteCompareVisitor(), def)) {
+                        check = true
+                    }
+                }
+                if (check) {
+                    definitions.add(def)
+                    file.concreteDefinitions[def.data.refLongName] = def
+                    if (ref is PsiConcreteReferable) {
+                        psiListenerService.updateDefinition(ref, file, false)
+                    }
+                }
+            }
+        }
+
+        val dependencyListener = service.dependencyListener
         val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
-        val lastModified = file.lastModifiedDefinition?.let { concreteProvider.getConcrete(it) as? Concrete.Definition }
+        val lastModified = if (definitions.size == 1) definitions[0] else null
         if (lastModified != null) {
             lastModifiedDefinition = lastModified.data
             ordering.order(lastModified)
@@ -202,7 +241,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             // DaemonCodeAnalyzer.restart does not work in tests
             typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, false)
         } else {
-            myProject.service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
+            service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
                 typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, true)
             }
         }

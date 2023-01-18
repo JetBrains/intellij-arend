@@ -157,6 +157,7 @@
 
         <codeInsight.inlayProvider language="Arend" implementationClass="org.arend.codeInsight.hints.ArendParametersInlayProvider"/>
         <codeInsight.inlayProvider language="Arend" implementationClass="org.arend.codeInsight.hints.ArendAxiomsInlayProvider"/>
+        <codeInsight.inlayProvider language="Arend" implementationClass="org.arend.codeInsight.hints.ArendGoalsInlayProvider"/>
 
         <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionContributor"/>
         <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendNoVariantsDelegator"/>
@@ -358,7 +359,7 @@
 
         <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
 
-        <projectService serviceImplementation="org.arend.psi.listener.ArendPsiChangeService"/>
+        <applicationService serviceImplementation="org.arend.psi.listener.ArendPsiChangeService"/>
 
         <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
 
@@ -376,7 +377,7 @@
 
         <projectService serviceImplementation="org.arend.ui.console.ArendConsoleService"/>
 
-        <projectService serviceImplementation="org.arend.typechecking.TypecheckingTaskQueue"/>
+        <applicationService serviceImplementation="org.arend.typechecking.TypecheckingTaskQueue"/>
 
         <!-- Task Execution Listener -->
 

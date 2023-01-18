@@ -43,7 +43,9 @@ class ArendPattern(node: ASTNode) : ArendLamParam(node), Abstract.Pattern {
 
     override fun getFixity() = if (singleReferable == null) null else getChildOfType<ArendIPName>()?.fixity ?: Fixity.NONFIX
 
-    override fun getSingleReferable() = referenceElement?.unresolvedReference
+    override fun getSingleReferable(): ArendDefIdentifier? = getChildOfType()
+
+    override fun getConstructorReference() = singleReferable ?: referenceElement?.unresolvedReference
 
     val referenceElement: ArendReferenceContainer?
         get() = getChild { it is ArendLongName || it is ArendIPName }

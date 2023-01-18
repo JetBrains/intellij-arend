@@ -11,6 +11,9 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendCoClauseDefStub
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.naming.reference.*
+import org.arend.naming.scope.EmptyScope
+import org.arend.naming.scope.LexicalScope
+import org.arend.naming.scope.local.TelescopeScope
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ReferableExtractVisitor
 import javax.swing.Icon
@@ -24,7 +27,19 @@ class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract
         get() = parent as? ArendCoClause
 
     override val scope: Scope
-        get() = getArendScope(this)
+        get() = if (isDefault) {
+            val parentClass = ancestor<ArendDefClass>()
+            if (parentClass == null) {
+                getArendScope(this)
+            } else {
+                val parentParent = parentClass.parent.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: parentClass.containingFile as? ArendFile
+                LexicalScope.insideOf(parentClass, parentParent?.scope ?: EmptyScope.INSTANCE)
+            }
+        } else {
+            val parentFunction = parent?.ancestor<ArendFunctionDefinition<*>>()
+            val parentScope = parentFunction?.scope
+            if (parentScope != null) TelescopeScope.make(parentScope, parentFunction.parameters) else getArendScope(this)
+        }
 
     override fun getNameIdentifier() = parentCoClause?.defIdentifier ?: parentCoClause?.longName?.refIdentifierList?.lastOrNull()
 

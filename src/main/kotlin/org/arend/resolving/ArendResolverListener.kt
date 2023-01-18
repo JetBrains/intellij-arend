@@ -3,6 +3,7 @@ package org.arend.resolving
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.LocalReferable
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.resolving.ResolverListener
@@ -17,10 +18,13 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
         if (newRef is LocalReferable) return
         val oldRef = resolverCache.replaceCache(newRef, reference)
-        if (oldRef != null && oldRef != newRef && !(newRef == null && oldRef == TCDefReferable.NULL_REFERABLE)) {
+        if (oldRef != null && toDataRef(oldRef) != toDataRef(newRef) && !(newRef == null && oldRef == TCDefReferable.NULL_REFERABLE)) {
             resetDefinition = true
         }
     }
+
+    private fun toDataRef(ref: Referable?): Referable? =
+        if (ref is LocatedReferable) ArendReferableConverter.toDataLocatedReferable(ref) ?: ref else ref
 
     private fun replaceCache(list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
         var i = 0
@@ -40,7 +44,16 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
             }
             is ArendReferenceElement -> listOf(data)
             is ArendPattern -> {
-                data.sequence.mapNotNull { it.referenceElement?.takeIf { ref -> ref.referenceName == resolvedRefs.singleOrNull()?.refName }?.referenceNameElement as? ArendReferenceElement }
+                val defId = data.singleReferable
+                if (defId != null) {
+                    listOf(defId)
+                } else {
+                    when (val ref = data.referenceElement) {
+                        is ArendLongName -> ref.refIdentifierList
+                        is ArendIPName -> listOf(ref)
+                        else -> return
+                    }
+                }
             }
             is ArendAtomLevelExpr -> data.refIdentifier?.let { listOf(it) } ?: return
             else -> return
@@ -63,15 +76,8 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         resolveReference(refExpr.data, refExpr.referent, listOf(resolvedRef))
     }
 
-    override fun patternResolved(originalRef: Referable?, pattern: Concrete.ConstructorPattern, resolvedRefs: List<Referable?>) {
-        val ref = pattern.constructor
-        if (ref != null) resolveReference(pattern.data, ref, resolvedRefs)
-    }
-
-    override fun patternResolved(pattern: Concrete.NamePattern) {
-        pattern.referable?.let {
-            resolveReference(pattern.data, it, listOf(it))
-        }
+    override fun patternResolved(originalRef: Referable?, newRef: Referable, pattern: Concrete.Pattern, resolvedRefs: List<Referable?>) {
+        resolveReference(pattern.data, newRef, resolvedRefs)
     }
 
     override fun coPatternResolved(element: Concrete.CoClauseElement, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {

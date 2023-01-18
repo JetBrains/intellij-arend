@@ -53,9 +53,6 @@ class TestBasedTypechecking(
             if (ref is TCDefinition && definitionBlacklistService.removeFromBlacklist(ref, (diff / 1000).toInt())) {
                 runReadAction {
                     val file = ref.containingFile as? ArendFile ?: return@runReadAction
-                    if (definition.status().withoutErrors()) {
-                        file.lastModifiedDefinition = null
-                    }
                     filesToRestart.add(file)
                 }
             }

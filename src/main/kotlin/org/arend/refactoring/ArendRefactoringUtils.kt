@@ -77,7 +77,7 @@ private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using:
 
     if (anchor != null) {
         if (!needsCommaBefore && nsIds.isNotEmpty()) anchor.parent.addAfter(comma, anchor)
-        val insertedId = anchor.parent.addAfterWithNotification(nsId, anchor)
+        val insertedId = anchor.parent.addAfter(nsId, anchor)
         if (needsCommaBefore) anchor.parent.addAfter(comma, anchor)
         return insertedId as ArendNsId
     }
@@ -94,7 +94,7 @@ fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): 
     val actualNsUsing: ArendNsUsing? = statCmd.nsUsing
             ?: if (usingBlockRequired && insertAnchor != null) {
                 val newUsing = factory.createImportCommand("Dummy \\using ()", ArendPsiFactory.StatCmdKind.IMPORT).statCmd!!.nsUsing!!
-                val insertedUsing = insertAnchor.parent.addAfterWithNotification(newUsing, insertAnchor)
+                val insertedUsing = insertAnchor.parent.addAfter(newUsing, insertAnchor)
                 insertAnchor.parent.addAfter(factory.createWhitespace(" "), insertAnchor)
                 insertedUsing as ArendNsUsing
             } else null
@@ -117,20 +117,20 @@ private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElemen
     val statCmd = factory.createFromText("\\import Foo \\hiding (bar, $name)")?.childOfType<ArendStatCmd>()
     val ref = statCmd!!.refIdentifierList[1]
     val comma = ref.findPrevSibling()!!
-    if (needsComma) anchor = anchor.parent.addAfterWithNotification(comma, anchor)
-    val insertedRef = anchor.parent.addAfterWithNotification(ref, anchor) as ArendRefIdentifier
-    if (!needsComma && insertedRef.findNextSibling() is ArendRefIdentifier) anchor.parent.addAfterWithNotification(comma, insertedRef)
+    if (needsComma) anchor = anchor.parent.addAfter(comma, anchor)
+    val insertedRef = anchor.parent.addAfter(ref, anchor) as ArendRefIdentifier
+    if (!needsComma && insertedRef.findNextSibling() is ArendRefIdentifier) anchor.parent.addAfter(comma, insertedRef)
     return insertedRef
 }
 
 fun doAddIdToHiding(statCmd: ArendStatCmd, idList: List<String>) : List<ArendRefIdentifier> {
     val factory = ArendPsiFactory(statCmd.project)
     val statCmdSample = factory.createFromText("\\import Foo \\hiding (lol)")?.childOfType<ArendStatCmd>()
-    if (statCmd.hidingKw == null) statCmd.addAfterWithNotification(statCmdSample!!.hidingKw!!, statCmd.nsUsing ?: statCmd.longName)
+    if (statCmd.hidingKw == null) statCmd.addAfter(statCmdSample!!.hidingKw!!, statCmd.nsUsing ?: statCmd.longName)
     if (statCmd.lparen == null) {
         val pop = factory.createPairOfParens()
-        val anchor = statCmd.addAfterWithNotification(pop.first, statCmd.hidingKw)
-        statCmd.addAfterWithNotification(pop.second, anchor)
+        val anchor = statCmd.addAfter(pop.first, statCmd.hidingKw)
+        statCmd.addAfter(pop.second, anchor)
     }
     val lparen = statCmd.lparen
     val result = ArrayList<ArendRefIdentifier>()
@@ -145,7 +145,7 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
     val prevSibling = elementToRemove.findPrevSibling()
     val nextSibling = elementToRemove.findNextSibling()
 
-    elementToRemove.deleteWithNotification()
+    elementToRemove.delete()
 
     if (prevSibling?.node?.elementType == COMMA) {
         prevSibling?.delete()
@@ -170,7 +170,7 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
         val nsUsing = statCmd.nsUsing
         if (nsUsing != null && nsUsing.usingKw == null && nsUsing.nsIdList.isEmpty()) {
             val statCmdStatement = statCmd.parent
-            statCmdStatement.deleteWithNotification()
+            statCmdStatement.delete()
         }
     }
 }
@@ -202,7 +202,7 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
 
                 }
                 val replacementLiteral = factory.createExpression(argumentStr).childOfType<ArendLiteral>()
-                if (replacementLiteral != null) parent.replaceWithNotification(replacementLiteral)
+                if (replacementLiteral != null) parent.replace(replacementLiteral)
             }
             else -> {
                 val longNameStr = LongName(id).toString()
@@ -215,9 +215,9 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
                     when (parent) {
                         is ArendLongName -> {
                             parent.addRangeAfter(longName.firstChild, longName.lastChild, element)
-                            parent.deleteChildRangeWithNotification(parent.firstChild, element)
+                            parent.deleteChildRange(parent.firstChild, element)
                         }
-                        is ArendPattern -> element.replaceWithNotification(longName)
+                        is ArendPattern -> element.replace(longName)
                     }
                     editor?.caretModel?.moveToOffset(longNameStartOffset + offset)
                 }
@@ -280,16 +280,16 @@ fun addStatCmd(factory: ArendPsiFactory,
 
     when (relativePosition.kind) {
         PositionKind.BEFORE_ANCHOR -> {
-            insertedStatement = relativePosition.anchor.parent.addBeforeWithNotification(commandStatement, relativePosition.anchor)
+            insertedStatement = relativePosition.anchor.parent.addBefore(commandStatement, relativePosition.anchor)
             insertedStatement.parent.addAfter(factory.createWhitespace("\n"), insertedStatement)
         }
         PositionKind.AFTER_ANCHOR -> {
-            insertedStatement = relativePosition.anchor.parent.addAfterWithNotification(commandStatement, relativePosition.anchor)
+            insertedStatement = relativePosition.anchor.parent.addAfter(commandStatement, relativePosition.anchor)
             insertedStatement.parent.addAfter(factory.createWhitespace("\n"), relativePosition.anchor)
             insertedStatement.parent.addAfter(factory.createWhitespace(" "), insertedStatement)
         }
         PositionKind.INSIDE_EMPTY_ANCHOR -> {
-            insertedStatement = relativePosition.anchor.addWithNotification(commandStatement)
+            insertedStatement = relativePosition.anchor.add(commandStatement)
         }
     }
     return insertedStatement
@@ -384,7 +384,7 @@ fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<P
 fun deleteSuperfluousPatternParentheses(pattern: ArendPattern) {
     val parent = pattern.parent as? ArendPattern ?: return
     if (parent.isTuplePattern && parent.sequence.size == 1) {
-        parent.replaceWithNotification(pattern)
+        parent.replace(pattern)
     }
 
 }
@@ -439,7 +439,7 @@ fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass: ArendDefClass) {
     defClass.addAfter(braces.second, defClass.lastChild)
 
     fun surroundWithClassStat(startChild: PsiElement, endChild: PsiElement) {
-        val insertedClassStat = defClass.addAfterWithNotification(psiFactory.createClassStat(), endChild) as ArendClassStat
+        val insertedClassStat = defClass.addAfter(psiFactory.createClassStat(), endChild) as ArendClassStat
         val definition = insertedClassStat.definition!!
         insertedClassStat.addRangeAfter(startChild, endChild, definition)
         definition.delete()
@@ -474,7 +474,7 @@ fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory)
     val actualWhereImpl = if (oldWhereImpl != null) oldWhereImpl else {
         val localAnchor = myTargetContainer.lastChild
         val insertedWhere =
-            myTargetContainer.addAfterWithNotification(psiFactory.createWhere(), localAnchor) as ArendWhere
+            myTargetContainer.addAfter(psiFactory.createWhere(), localAnchor) as ArendWhere
         val space = if (myTargetContainer is ArendFunctionDefinition<*>) "\n" else " "
         myTargetContainer.addAfter(psiFactory.createWhitespace(space), localAnchor)
         insertedWhere
@@ -526,7 +526,7 @@ fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcr
         else -> throw IllegalStateException()
     }
 
-    definition.addAfterWithNotification(thisTele, anchor)
+    definition.addAfter(thisTele, anchor)
     definition.addAfter(psiFactory.createWhitespace(" "), anchor)
 
     return thisVarName
@@ -571,12 +571,12 @@ fun addImplicitArgAfter(psiFactory: ArendPsiFactory, anchor: PsiElement, argumen
     val thisArgument = psiFactory.createExpression("foo {$argument}").childOfType<ArendImplicitArgument>()
     if (thisArgument != null) {
         if (anchor is ArendAtomFieldsAcc || infixMode) {
-            anchor.parent?.addAfterWithNotification(thisArgument, anchor)
-            anchor.parent?.addAfterWithNotification(psiFactory.createWhitespace(" "), anchor)
+            anchor.parent?.addAfter(thisArgument, anchor)
+            anchor.parent?.addAfter(psiFactory.createWhitespace(" "), anchor)
         } else if (anchor is ArendAtomArgument) {
             val oldLiteral = anchor.atomFieldsAcc.atom.literal
             val tuple = psiFactory.createExpression("(${anchor.text} {$argument})").childOfType<ArendTuple>()
-            if (oldLiteral != null && tuple != null) oldLiteral.replaceWithNotification(tuple)
+            if (oldLiteral != null && tuple != null) oldLiteral.replace(tuple)
         }
     }
 }
@@ -592,13 +592,13 @@ fun splitTele(tele: PsiElement/* Name or Type tele */, index : Int) {
     var teleSize = getTele(tele)?.size
     if (teleSize != null) {
         if (index > 0) {
-            val copy = tele.parent.addBeforeWithNotification(tele.copy(), tele)
+            val copy = tele.parent.addBefore(tele.copy(), tele)
             getTele(tele)?.let { it.first().parent.deleteChildRange(it.first(), it[index-1]) }
             getTele(copy)?.let { it.first().parent.deleteChildRange(it[index], it.last()) }
         }
         teleSize -= index
         if (teleSize > 1) {
-            val copy = tele.parent.addAfterWithNotification(tele.copy(), tele)
+            val copy = tele.parent.addAfter(tele.copy(), tele)
             getTele(tele)?.let { it.first().parent.deleteChildRange(it[1], it.last()) }
             getTele(copy)?.let { it[0].delete() }
         }
@@ -673,24 +673,24 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
             if (tupleExpr != null && tupleExpr.colon == null && isLambda) {
                 val newPsi = appExpr.childOfType<ArendLamExpr>()!!
                 rangeCallback?.invoke(argumentAppExpr.textRange, newPsi.textLength)
-                argumentAppExpr.parent.replaceWithNotification(newPsi) as? ArendExpr
+                argumentAppExpr.parent.replace(newPsi) as? ArendExpr
             } else {
                 rangeCallback?.invoke(argumentAppExpr.textRange, appExpr.textLength)
-                argumentAppExpr.replaceWithNotification(appExpr)
+                argumentAppExpr.replace(appExpr) as ArendArgumentAppExpr
             }
         }
         operatorRange.contains(nodes.first().textRange) -> {
             val atomFieldsAcc = psiFactory.createExpression("(${resultingExpr.trim()}) foo").childOfType<ArendAtomFieldsAcc>()!!
             rangeCallback?.invoke(psiElementsRange, atomFieldsAcc.textLength)
-            val insertedExpr = argumentAppExpr.addAfterWithNotification(atomFieldsAcc, psiElements.last())
-            argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
+            val insertedExpr = argumentAppExpr.addAfter(atomFieldsAcc, psiElements.last())
+            argumentAppExpr.deleteChildRange(psiElements.first(), psiElements.last())
             insertedExpr.childOfType<ArendArgumentAppExpr>()
         }
         else -> {
             val atom = psiFactory.createExpression("foo (${resultingExpr.trim()})").childOfType<ArendAtomArgument>()!!
             rangeCallback?.invoke(TextRange(psiElements.first().textRange.startOffset, psiElements.last().textRange.endOffset), atom.textLength)
-            val insertedExpr = argumentAppExpr.addBeforeWithNotification(atom, psiElements.first())
-            argumentAppExpr.deleteChildRangeWithNotification(psiElements.first(), psiElements.last())
+            val insertedExpr = argumentAppExpr.addBefore(atom, psiElements.first())
+            argumentAppExpr.deleteChildRange(psiElements.first(), psiElements.last())
             insertedExpr.childOfType<ArendArgumentAppExpr>()
         }
     }

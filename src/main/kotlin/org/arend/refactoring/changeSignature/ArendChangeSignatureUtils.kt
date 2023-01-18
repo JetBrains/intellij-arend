@@ -33,12 +33,12 @@ private fun renameParametersUsages(project: Project, function: ArendDefFunction,
 
 private fun changeParameters(factory: ArendPsiFactory, function: ArendDefFunction, changeInfo: ArendChangeInfo) {
     val params = function.parameters
-    if (params.isNotEmpty()) function.deleteChildRangeWithNotification(params.first(), params.last())
+    if (params.isNotEmpty()) function.deleteChildRange(params.first(), params.last())
     val anchor = function.findParametersElement()
     val signatureText = changeInfo.signature()
     val sampleFunc = factory.createFromText(signatureText)!!.childOfType<ArendDefFunction>()!!
     val whitespaceBeforeFirstNameTele = sampleFunc.defIdentifier!!.nextSibling
     if (signatureText.trim() != "" && whitespaceBeforeFirstNameTele != null) {
-        function.addRangeBeforeWithNotification(whitespaceBeforeFirstNameTele, sampleFunc.parameters.last(), anchor)
+        function.addRangeBefore(whitespaceBeforeFirstNameTele, sampleFunc.parameters.last(), anchor)
     }
 }

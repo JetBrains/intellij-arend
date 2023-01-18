@@ -21,7 +21,7 @@ import org.arend.psi.libraryConfig
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendGotoClassIndex
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
-import org.arend.resolving.ArendReferenceImpl
+import org.arend.resolving.ArendReferenceBase
 import org.arend.typechecking.TypeCheckingService
 
 class ArendNoVariantsDelegator : CompletionContributor() {
@@ -62,7 +62,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                     val locatedReferables = refs ?: StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
                     locatedReferables.forEach {
                         val isInsideTest = (it.containingFile as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
-                        if (!tracker.variants.contains(it) && (isTestFile || !isInsideTest)) ArendReferenceImpl.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
+                        if (!tracker.variants.contains(it) && (isTestFile || !isInsideTest)) ArendReferenceBase.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
                             result.addElement(
                                     run {
                                         val oldHandler = it.insertHandler

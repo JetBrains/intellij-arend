@@ -18,7 +18,6 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
-import com.intellij.psi.util.parentOfType
 import com.intellij.util.SlowOperations
 import org.arend.settings.ArendSettings
 import org.arend.naming.scope.ScopeFactory
@@ -43,6 +42,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     override fun getText(): String = ArendBundle.message("arend.import.fix")
 
+    @Deprecated("Deprecated in Java")
     override fun fixSilently(editor: Editor): Boolean =
             doFix(editor, true) == Result.CLASS_AUTO_IMPORTED
 
@@ -64,7 +64,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
-        if (!referenceUnresolved(referenceElement) && referenceElement.parentOfType<ArendPattern>() == null) return // already imported or invalid
+        if (!referenceUnresolved(referenceElement) && referenceElement.parent !is ArendPattern) return // already imported or invalid
 
         ApplicationManager.getApplication().runWriteAction {
             val fixData = getItemsToImport(project, file)
@@ -90,7 +90,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
         if (availability == ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX &&
                 service<ArendSettings>().autoImportOnTheFly && !refElementUnderCaret /* prevent on-the-fly autoimport of element under caret */ &&
-                (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) &&
+                (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile, true)) &&
                 isInModlessContext) {
             val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions.toList(), true)
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }
@@ -135,10 +135,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             }, PsiModificationTracker.MODIFICATION_COUNT)
         }
 
-        private fun kindMatches(target: PsiLocatedReferable, element: ArendReferenceElement) : Boolean {
-            if (element.parentOfType<ArendPattern>() == null) return true
-            return target.tcReferable?.kind?.isConstructor == true
-        }
+        private fun kindMatches(target: PsiLocatedReferable, element: ArendReferenceElement) : Boolean =
+            element.parent !is ArendPattern || target.tcReferable?.kind?.isConstructor == true
 
         private fun getStubElementSet(project: Project, refElement: ArendReferenceElement, file: PsiFile?): List<PsiLocatedReferable> {
             val name = refElement.referenceName
@@ -160,7 +158,8 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         }
 
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {
-            is ArendRefIdentifier -> referenceElement.parent.parent is ArendPattern || (referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode))
+            is ArendDefIdentifier -> referenceElement.parent is ArendPattern
+            is ArendRefIdentifier -> (referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode))
             is ArendSourceNode -> referenceUnresolved(referenceElement) && ScopeFactory.isGlobalScopeVisible(referenceElement.topmostEquivalentSourceNode)
             is ArendIPName -> referenceUnresolved(referenceElement)
             else -> false

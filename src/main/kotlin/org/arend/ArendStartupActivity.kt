@@ -1,6 +1,7 @@
 package org.arend
 
 import com.intellij.ProjectTopics
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
@@ -20,9 +21,10 @@ import org.arend.util.register
 
 class ArendStartupActivity : StartupActivity.RequiredForSmartMode {
     override fun runActivity(project: Project) {
-        val libraryManager = project.service<TypeCheckingService>().libraryManager
+        val service = project.service<TypeCheckingService>()
+        val libraryManager = service.libraryManager
 
-        project.messageBus.connect(project).subscribe(ProjectTopics.MODULES, object : ModuleListener {
+        project.messageBus.connect(service).subscribe(ProjectTopics.MODULES, object : ModuleListener {
             override fun modulesAdded(project: Project, modules: List<Module>) {
                 for (module in modules) {
                     if (ArendModuleType.has(module)) {
@@ -50,14 +52,16 @@ class ArendStartupActivity : StartupActivity.RequiredForSmartMode {
 
         DumbService.getInstance(project).queueTask(object : DumbModeTask() {
             override fun performInDumbMode(indicator: ProgressIndicator) {
-                val modules = project.arendModules
-                indicator.text = ArendBundle.message("arend.startup.loading.arend.modules")
-                indicator.isIndeterminate = false
-                indicator.fraction = 0.0
-                val progressFraction = 1.0 / modules.size.toDouble()
-                for (module in modules) {
-                    module.register()
-                    indicator.fraction = indicator.fraction + progressFraction
+                ApplicationManager.getApplication().executeOnPooledThread {
+                    val modules = project.arendModules
+                    indicator.text = ArendBundle.message("arend.startup.loading.arend.modules")
+                    indicator.isIndeterminate = false
+                    indicator.fraction = 0.0
+                    val progressFraction = 1.0 / modules.size.toDouble()
+                    for (module in modules) {
+                        module.register()
+                        indicator.fraction = indicator.fraction + progressFraction
+                    }
                 }
             }
         })

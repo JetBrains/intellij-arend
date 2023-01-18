@@ -6,7 +6,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.descendants
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
-import org.arend.resolving.ArendPatternDefReferenceImpl
 
 class ArendRainbowVisitor : RainbowVisitor() {
     override fun suitableForFile(file: PsiFile) = file is ArendFile
@@ -29,12 +28,6 @@ class ArendRainbowVisitor : RainbowVisitor() {
                 .filter {
                     val parent = it.parent ?: return@filter true
                     parent !is ArendConstructor && parent !is ArendClassField
-                }
-                .filter {
-                    val reference = it.reference
-                    if (reference is ArendPatternDefReferenceImpl<*>) {
-                        reference.resolve() == it
-                    } else true
                 }.toList()
             val byName = allBindings.groupBy { it.name }
             allBindings.associateWith { "${it.name}#${byName[it.name]?.indexOf(it)}" }

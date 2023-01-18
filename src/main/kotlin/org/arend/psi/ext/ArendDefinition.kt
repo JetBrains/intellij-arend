@@ -12,13 +12,13 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.ParameterReferable
 import org.arend.naming.reference.TCDefReferable
-import org.arend.naming.reference.TCReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.DataLocatedReferable
+import org.arend.resolving.IntellijTCReferable
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -103,7 +103,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         return result
     }
 
-    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): TCReferable =
+    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable =
         DataLocatedReferable(data, this, parent)
 
     override fun getPLevelParameters(): Abstract.LevelParameters? =

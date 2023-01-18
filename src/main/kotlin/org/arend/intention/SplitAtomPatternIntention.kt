@@ -128,8 +128,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
         if (definition != null && clauseIndex != -1) {
             var typeCheckedDefinition = definition.tcReferable?.typechecked
-            val concreteFunction = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcreteFunction(definition) ?: return null
-            var concreteClauseOwner = concreteFunction
+            var concreteClauseOwner = (element.containingFile as? ArendFile)?.concreteDefinitions?.get(definition.refLongName) as? Concrete.FunctionDefinition ?: PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcreteFunction(definition) ?: return null
             if (typeCheckedDefinition is FunctionDefinition && definition is Abstract.ParametersHolder && definition is Abstract.EliminatedExpressionsHolder && abstractPatterns != null) {
                 if (coClauseName != null) {
                   val classCallExpression = typeCheckedDefinition.resultType as? ClassCallExpression
@@ -163,8 +162,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             .indexOfFirst {
                                 it.skipSingleTuples() == indexList[0]
                             }
-                    val (typecheckedPattern, concrete) = (if (isElim) elimVarPatterns.getOrNull(index)?.let { it to  concreteClause.patterns.find { it.data == indexList[0] }!! }
+                    val (typecheckedPattern, concrete) = (if (isElim) elimVarPatterns.getOrNull(index)?.let { it to  concreteClause.patterns.find { it.data == indexList[0] } }
                     else findMatchingPattern(concreteClause.patterns, typeCheckedDefinition.parameters, corePatterns, indexList[0])) ?: return null
+                    if (concrete == null) return null
                     val patternPart = findPattern(indexList.drop(1), typecheckedPattern, concrete) as? BindingPattern
                             ?: return null
                     return patternPart.binding.typeExpr
@@ -340,7 +340,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val topLevelPatterns = localClause.patterns.mapTo(mutableListOf()) {
                 ConcreteBuilder.convertPattern(it, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
             }
-            ExpressionResolveNameVisitor(ArendReferableConverter, localClause.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(topLevelPatterns, mutableMapOf(), true)
+            ExpressionResolveNameVisitor(ArendReferableConverter, localClause.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(topLevelPatterns, mutableMapOf())
 
             val localNames = HashSet<Variable>()
             localNames.addAll(findAllVariablePatterns(topLevelPatterns, element).map(::VariableImpl))
@@ -348,7 +348,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val factory = ArendPsiFactory(project)
             if (splitPatternEntries.isEmpty()) {
                 doReplacePattern(factory, element, "()", false)
-                localClause.expression?.deleteWithNotification()
+                localClause.expression?.delete()
                 localClause.fatArrow?.delete()
             } else {
                 var first = true
@@ -357,7 +357,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val sampleClause = factory.createClause("()")
                     currAnchor = localClause.addAfter(sampleClause.fatArrow!!, currAnchor)
                     localClause.addBefore(factory.createWhitespace(" "), currAnchor)
-                    localClause.addAfterWithNotification(sampleClause.expression!!, currAnchor)
+                    localClause.addAfter(sampleClause.expression!!, currAnchor)
                     localClause.addAfter(factory.createWhitespace(" "), currAnchor)
                 }
 
@@ -406,7 +406,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                         val anchorParent = currAnchor.parent
                         currAnchor = anchorParent.addAfter(pipe, currAnchor)
                         anchorParent.addBefore(factory.createWhitespace("\n"), currAnchor)
-                        currAnchor = anchorParent.addAfterWithNotification(clauseCopy, currAnchor)
+                        currAnchor = anchorParent.addAfter(clauseCopy, currAnchor)
                         anchorParent.addBefore(factory.createWhitespace(" "), currAnchor)
 
                         if (currAnchor is ArendClause) {
@@ -531,7 +531,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     else pLine
             )
 
-            return elementToReplace.replaceWithNotification(replacementPattern)
+            return elementToReplace.replace(replacementPattern) as ArendPattern
         }
 
         private fun needParentheses(elementToReplace: ArendPattern, mayRequireParentheses: Boolean, asExpression: String, patternLine: String, referable: GlobalReferable?) : Boolean {
@@ -541,7 +541,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (enclosingPattern.isTuplePattern) return false
             if (patternLine.startsWith("(") && patternLine.endsWith(")")) return false
             val patternList = mutableListOf(ConcreteBuilder.convertPattern(enclosingPattern, ArendReferableConverter, DummyErrorReporter.INSTANCE, null))
-            ExpressionResolveNameVisitor(ArendReferableConverter, enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf(), true)
+            ExpressionResolveNameVisitor(ArendReferableConverter, enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf())
             val parsedConcretePattern = patternList[0]
             val correspondingConcrete = findParentConcrete(parsedConcretePattern, elementToReplace)
             if (correspondingConcrete !is Concrete.ConstructorPattern) {
@@ -597,9 +597,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
                     if (arendNewExpr != null && atomFieldsAcc.numberList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
                             arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {
-                        arendNewExpr.replaceWithNotification(substitutedExpression)
+                        arendNewExpr.replace(substitutedExpression)
                     } else if (substitutedAtom is PsiElement) {
-                        atom.replaceWithNotification(substitutedAtom)
+                        atom.replace(substitutedAtom)
                     }
                 }
             } else for (child in element.children)

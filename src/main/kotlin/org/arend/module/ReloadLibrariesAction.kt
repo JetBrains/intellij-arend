@@ -1,5 +1,6 @@
 package org.arend.module
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
@@ -15,4 +16,6 @@ class ReloadLibrariesAction : AnAction("Reload Arend Libraries") {
     override fun update(e: AnActionEvent) {
         e.presentation.isVisible = ArendModuleType.has(LangDataKeys.MODULE.getData(e.dataContext))
     }
+
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
 }

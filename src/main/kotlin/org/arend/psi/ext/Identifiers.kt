@@ -6,14 +6,12 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
+import com.intellij.psi.util.childrenOfType
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
-import org.arend.resolving.ArendDefReferenceImpl
-import org.arend.resolving.ArendPatternDefReferenceImpl
-import org.arend.resolving.ArendReference
-import org.arend.resolving.ArendReferenceImpl
+import org.arend.resolving.*
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
 import org.arend.term.NamespaceCommand
@@ -80,34 +78,13 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
         get() = null
 
     override fun setName(name: String): PsiElement? =
-            this.replaceWithNotification(ArendPsiFactory(project).createDefIdentifier(name))
+            this.replace(ArendPsiFactory(project).createDefIdentifier(name))
 
     override fun textRepresentation(): String = referenceName
 
-    override fun getReference(): ArendReference = when (parent) {
-        is ArendPattern -> ArendPatternDefReferenceImpl<ArendReferenceElement>(this)
-        else -> ArendDefReferenceImpl<ArendReferenceElement>(this)
-    }
-
-    override fun getTypeClassReference(): ClassReferable? {
-        val parent = parent
-        return if (parent is ArendLetClause) {
-            parent.typeClassReference
-        } else {
-            (typeOf as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
-        }
-    }
+    override fun getReference() = ArendDefReferenceImpl<ArendReferenceElement>(this)
 
     override fun getRefKind() = refKind
-
-    override val typeOf: Abstract.Expression?
-        get() = when (val parent = parent) {
-            is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
-            is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.type
-            is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
-            is ArendAsPattern -> parent.type
-            else -> null
-        }
 
     override val psiElementType: PsiElement?
         get() {
@@ -119,12 +96,34 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
         }
 }
 
-class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR) {
+class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR), TypedReferable {
     val id: PsiElement
         get() = getChildOfTypeStrict(ArendElementTypes.ID)
 
     override val referenceName: String
         get() = id.text
+
+    override val typeOf: Abstract.Expression?
+        get() = when (val parent = parent) {
+            is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
+            is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.type
+            is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
+            is ArendAsPattern -> parent.type
+            is ArendPattern -> {
+                val parentParent = parent.parent
+                if (parentParent is ArendPattern && parentParent.childrenOfType<ArendPattern>().size == 1) parentParent.type else null
+            }
+            else -> null
+        }
+
+    override fun getTypeClassReference(): ClassReferable? {
+        val parent = parent
+        return if (parent is ArendLetClause) {
+            parent.typeClassReference
+        } else {
+            (typeOf as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
+        }
+    }
 }
 
 class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable, LevelReferable, ArendReferenceElement {
@@ -150,6 +149,13 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
 
     private var tcReferableCache: TCLevelReferable? = null
 
+    override val tcReferableCached: IntellijTCReferable?
+        get() = tcReferableCache as? IntellijTCReferable
+
+    override fun dropTCReferable() {
+        tcReferableCache = null
+    }
+
     override val tcReferable: TCReferable?
         get() = tcReferableCache ?: runReadAction {
             val parent = parent
@@ -164,15 +170,15 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
                         val refs = it.defParent.referables
                         if (index < refs.size) {
                             tcReferableCache = refs[index]
-                            return@run it
+                            return@run refs[index]
                         }
                     }
                     val locatedParent = locatedReferableParent
                     val actualParent = if (locatedParent is ArendFile) locatedParent.moduleLocation?.let { FullModuleReferable(it) } else locatedParent?.tcReferable
-                    val tcList = ArrayList<TCLevelReferable>(list.size)
+                    val tcList = ArrayList<IntellijTCLevelReferable>(list.size)
                     val levelDef = LevelDefinition(refKind == Referable.RefKind.PLEVEL, parent.getChildOfType<ArendLevelCmp>()?.isIncreasing != false, tcList, actualParent)
                     for (ref in list) {
-                        tcList.add(TCLevelReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer<PsiLocatedReferable>(ref, file), ref.refName, levelDef))
+                        tcList.add(IntellijTCLevelReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(ref, file), ref.refName, levelDef))
                     }
                     tcRefMap[longName] = tcList[0]
                     tcReferableCache = tcList[index]
@@ -200,7 +206,7 @@ class ArendRefIdentifier(node: ASTNode) : ArendIdentifierBase(node), ArendSource
         get() = referent
 
     override fun setName(name: String): PsiElement =
-        this.replaceWithNotification(ArendPsiFactory(project).createRefIdentifier(name))
+        this.replace(ArendPsiFactory(project).createRefIdentifier(name))
 
     override fun getData() = this
 
@@ -226,5 +232,5 @@ class ArendAliasIdentifier(node: ASTNode) : ArendCompositeElementImpl(node), Psi
     override fun getNameIdentifier(): PsiElement? = firstChild
 
     override fun setName(name: String): PsiElement =
-        replaceWithNotification(ArendPsiFactory(project).createAliasIdentifier(name))
+        replace(ArendPsiFactory(project).createAliasIdentifier(name))
 }

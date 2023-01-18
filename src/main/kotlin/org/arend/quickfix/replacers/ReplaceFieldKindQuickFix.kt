@@ -7,7 +7,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.replaceWithNotification
 import org.arend.util.ArendBundle
 
 class ReplaceFieldKindQuickFix(private val kwRef: SmartPsiElementPointer<PsiElement>) : IntentionAction {
@@ -22,6 +21,6 @@ class ReplaceFieldKindQuickFix(private val kwRef: SmartPsiElementPointer<PsiElem
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val kw = kwRef.element ?: return
         val factory = ArendPsiFactory(project)
-        kw.replaceWithNotification(factory.createPipe())
+        kw.replace(factory.createPipe())
     }
 }

@@ -182,7 +182,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                                 val clause = concreteData.constructorClauses.firstOrNull { it.constructors.map { (it.data as? DataLocatedReferable)?.data?.element }.contains(def) }
                                 val clausePatterns = clause?.patterns?.run {
                                     val newList = ArrayList(this)
-                                    ExpressionResolveNameVisitor(ArendReferableConverter, data.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(newList, mutableMapOf(), true)
+                                    ExpressionResolveNameVisitor(ArendReferableConverter, data.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(newList, mutableMapOf())
                                     newList
                                 }
                                 fun collectNamePatterns(pattern: Concrete.Pattern): List<Concrete.NamePattern> = if (pattern is Concrete.NamePattern) singletonList(pattern) else pattern.patterns.map { collectNamePatterns(it) }.flatten()

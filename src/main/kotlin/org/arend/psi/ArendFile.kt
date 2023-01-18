@@ -3,14 +3,10 @@ package org.arend.psi
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.fileTypes.FileType
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.impl.source.resolve.FileContextUtil
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
@@ -38,8 +34,8 @@ import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
-import org.arend.resolving.DataLocatedReferable
-import org.arend.typechecking.BackgroundTypechecker
+import org.arend.resolving.IntellijTCReferable
+import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.libraryName
 import org.arend.util.mapFirstNotNull
@@ -60,10 +56,16 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = enforcedLibraryConfig != null
 
     var lastModification: AtomicLong = AtomicLong(-1)
+    var lastModificationImportOptimizer: AtomicLong = AtomicLong(-1)
     var lastDefinitionModification: AtomicLong = AtomicLong(-1)
 
+    fun decLastModification() {
+        lastModification.updateAndGet { it - 1 }
+        lastDefinitionModification.updateAndGet { it - 1 }
+    }
+
     val isBackgroundTypecheckingFinished: Boolean
-        get() = lastDefinitionModification.get() >= project.service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
+        get() = lastDefinitionModification.get() >= service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
 
     val moduleLocation: ModuleLocation?
         get() = generatedModuleLocation ?: CachedValuesManager.getCachedValue(this) {
@@ -76,49 +78,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     val libraryName: String?
         get() = arendLibrary?.name ?: if (name == ArendPreludeLibrary.PRELUDE_FILE_NAME) Prelude.LIBRARY_NAME else null
 
-    var lastModifiedDefinition: TCDefinition? = null
-        get() {
-            if (field?.isValid == false) {
-                field = null
-            }
-            return field
-        }
+    val concreteDefinitions = HashMap<LongName, Concrete.Definition>()
 
-    class LifetimeAwareDefinitionRegistry : ConcurrentHashMap<LongName, TCReferable>() {
-        override fun get(key: LongName): TCReferable? {
-            val tc = super.get(key)
-            if (tc is DataLocatedReferable && tc.data != null && tc.data!!.element == null) {
-                logger<BackgroundTypechecker>().error("""
-                    | Invalid definition ${tc.refLongName} in caches. 
-                    | It does not do any harm generally, but there may be some incorrect red code in the editor.
-                    | Please try to find a stable reproducer for this behavior and report it to maintainers.
-                    | Typical reproduction actions involve deleting some parts of text or clearing and re-inserting the whole file.""".trimMargin())
-            }
-            return tc
-        }
-
-        fun cleanup(project: Project?) {
-            val keysToRemove = this.filterValues {
-                val pointer = it.data as? SmartPsiElementPointer<*>
-                pointer != null && pointer.element == null
-            }
-            val typecheckingService = project?.service<TypeCheckingService>()
-            for ((key, value) in keysToRemove) {
-                remove(key)
-                typecheckingService?.dependencyListener?.update(value)
-            }
-        }
-    }
-
-    fun getTCRefMap(refKind: RefKind): LifetimeAwareDefinitionRegistry {
-        val location = moduleLocation ?: return LifetimeAwareDefinitionRegistry()
-        return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { LifetimeAwareDefinitionRegistry() }
-    }
-
-    fun cleanupTCRefMaps() {
-        for (refKind in RefKind.values()) {
-            getTCRefMap(refKind).cleanup(project)
-        }
+    fun getTCRefMap(refKind: RefKind): ConcurrentHashMap<LongName, IntellijTCReferable> {
+        val location = moduleLocation ?: return ConcurrentHashMap<LongName, IntellijTCReferable>()
+        return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { ConcurrentHashMap<LongName, IntellijTCReferable>() }
     }
 
     override fun setName(name: String): PsiElement =
@@ -148,7 +112,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         }
 
     private fun <T> cachedValue(value: T) =
-        CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT)
+        CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT, service<ArendPsiChangeService>().definitionModificationTracker)
 
     val arendLibrary: ArendRawLibrary?
         get() = CachedValuesManager.getCachedValue(this) {
@@ -212,10 +176,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun dropTCReferable() {}
 
-    override fun checkTCReferable() = true
-
-    override fun checkTCReferableName() {}
-
     override fun getLocation() = moduleLocation
 
     override fun getTypecheckable(): PsiLocatedReferable = this
@@ -228,7 +188,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getReference(): ArendReference? = null
 
-    override fun getFileType(): FileType = ArendFileType
+    override fun getFileType() = ArendFileType
 
     override fun textRepresentation(): String = name.removeSuffix("." + ArendFileType.defaultExtension)
 

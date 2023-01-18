@@ -25,16 +25,16 @@ class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<Aren
     private fun removeClauses(clause: ArendClause) {
         when (val pParent = clause.parent) {
             is ArendConstructor -> pParent.elim?.let {
-                pParent.deleteChildRangeWithNotification(it, pParent.lastChild)
+                pParent.deleteChildRange(it, pParent.lastChild)
             }
             is ArendFunctionClauses -> {
                 val body = pParent.parent
                 if (body is ArendFunctionBody) {
                     val prev = body.prevSibling
                     if (prev is PsiWhiteSpace) {
-                        prev.parent.deleteChildRangeWithNotification(prev, body)
+                        prev.parent.deleteChildRange(prev, body)
                     } else {
-                        body.deleteWithNotification()
+                        body.delete()
                     }
                 }
             }
@@ -62,7 +62,7 @@ class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<Aren
             if (first.prevSibling.let { it == null || it is LeafPsiElement && it.elementType == ArendElementTypes.PIPE }) {
                 when (val parent = first.parent) {
                     is ArendClause -> removeClauses(parent)
-                    is ArendConstructorClause -> (parent.parent as? ArendDataBody)?.deleteWithNotification()
+                    is ArendConstructorClause -> (parent.parent as? ArendDataBody)?.delete()
                 }
                 return
             }
@@ -88,13 +88,13 @@ class RemovePatternsQuickFix(private val patternRef: SmartPsiElementPointer<Aren
         // Add a whitespace before '=>' or '\as'
         val parent = first.parent
         if (last.nextElement.let { it is LeafPsiElement && it.elementType in listOf(ArendElementTypes.FAT_ARROW, ArendElementTypes.AS_KW) }) {
-            parent.addAfterWithNotification(ArendPsiFactory(parent.project).createWhitespace(" "), last)
+            parent.addAfter(ArendPsiFactory(parent.project).createWhitespace(" "), last)
         }
 
-        parent.deleteChildRangeWithNotification(first, last)
+        parent.deleteChildRange(first, last)
         val child = parent.childrenOfType<ArendPattern>().singleOrNull()
         if (parent is ArendPattern && child is ArendPattern && !parent.isTuplePattern) {
-            parent.replaceWithNotification(child)
+            parent.replace(child)
         }
     }
 }

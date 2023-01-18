@@ -23,7 +23,7 @@ open class DataLocatedReferable(
     private var psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
     referable: LocatedReferable,
     parent: LocatedReferable?
-) : LocatedReferableImpl(if (referable is ArendCoClauseDef && referable.parentCoClause?.prec == null) null else referable.precedence, referable.textRepresentation(), parent, referable.kind), SourceInfo {
+) : LocatedReferableImpl(if (referable is ArendCoClauseDef && referable.parentCoClause?.prec == null) null else referable.precedence, referable.textRepresentation(), parent, referable.kind), IntellijTCReferable, SourceInfo {
 
     private var alias = referable.aliasName?.let { Alias(it, referable.aliasPrecedence) }
 
@@ -47,6 +47,15 @@ open class DataLocatedReferable(
             return result
         }
     }
+
+    override fun isEquivalent(ref: LocatedReferable) =
+        kind == ref.kind && precedence == ref.precedence && refName == ref.refName && aliasName == ref.aliasName && aliasPrecedence == ref.aliasPrecedence
+
+    override val isConsistent: Boolean
+        get() {
+            val underlyingRef = psiElementPointer?.let { runReadAction { it.element } } as? LocatedReferable
+            return underlyingRef != null && isEquivalent(underlyingRef)
+        }
 
     override fun getUnderlyingReferable() =
         psiElementPointer?.let { runReadAction { it.element }?.underlyingReferable } ?: this
@@ -95,4 +104,7 @@ class FieldDataLocatedReferable(
     override fun isExplicitField() = isExplicit
 
     override fun isParameterField() = isParameter
+
+    override fun isEquivalent(ref: LocatedReferable) =
+        ref is FieldReferable && isExplicitField == ref.isExplicitField && isParameterField == ref.isParameterField && super.isEquivalent(ref)
 }

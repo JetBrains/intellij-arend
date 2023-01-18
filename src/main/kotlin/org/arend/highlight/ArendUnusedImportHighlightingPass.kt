@@ -25,7 +25,7 @@ import org.arend.psi.ext.ArendStat
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
-class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val editor: Editor) :
+class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val editor: Editor, private val lastModification: Long) :
     TextEditorHighlightingPass(file.project, editor.document) {
 
     @Volatile
@@ -89,5 +89,6 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
             colorsScheme,
             id
         )
+        file.lastModificationImportOptimizer.updateAndGet { lastModification }
     }
 }
