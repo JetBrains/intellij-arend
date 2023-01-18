@@ -124,6 +124,14 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
        } 
     """, listOf(1, 3))
 
+    fun testClausesWithoutElim() = changeSignature("""
+       \func foo{-caret-} (l : Array Nat) : Nat
+         | nil => 0 
+    """, """
+       \func foo {l : Array Nat} : Nat \elim l
+         | nil => 0 
+    """, listOf(-1))
+
     fun testCombined() = changeSignature("""
        \data List (A : \Set) | nil | cons A (List A)
 

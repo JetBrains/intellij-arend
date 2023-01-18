@@ -37,8 +37,11 @@ fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: Are
         modifyFunctionSignature(function, changeInfo)
 }
 private fun fixElim(function: ArendFunctionDefinition<*>, changeInfo: ArendChangeInfo) {
-    val elim = function.body?.elim ?: return
-    val eliminatedParameters = if (elim.withKw != null) {
+    val body = function.body ?: return
+    val functionClauses = body.clauseList
+    if (body.elim == null && functionClauses.isEmpty()) return
+    val elim = body.elim
+    val eliminatedParameters = if (elim == null || elim.withKw != null) {
         function.parameters.map { tele -> if (tele.isExplicit) tele.identifierOrUnknownList.map { iou -> iou.defIdentifier } else emptyList() }.flatten()
     } else elim.refIdentifierList.map { it.reference.resolve() as? ArendDefIdentifier }.toList()
     val allParameters = function.parameters.map { tele -> tele.identifierOrUnknownList.map { iou -> iou.defIdentifier } }.flatten()
@@ -48,7 +51,11 @@ private fun fixElim(function: ArendFunctionDefinition<*>, changeInfo: ArendChang
     val template = ArrayList<Pair<Int, Boolean>>(); template.addAll(parameters.map { Pair(eliminatedParameters.indexOf(it), false) })
     for (d in deletedParameters) if (d <= template.size) template.add(d, Pair(d, true))
 
-    performTextModification(elim, "\\elim ${printWithComments(eliminatedParameters, template, "_") { d -> d?.name ?: "_" }}")
+    val correctedElim = "\\elim ${printWithComments(eliminatedParameters, template, "_") { d -> d?.name ?: "_" }}"
+    if (elim != null) performTextModification(elim, correctedElim) else {
+        val insertPosition = body.findPrevSibling()!!
+        performTextModification(body, " $correctedElim", insertPosition.endOffset, insertPosition.endOffset)
+    }
     for (clause in function.body!!.clauseList) if (clause.patterns.isNotEmpty()) {
         val newPatterns = printWithComments(clause.patterns, template, "_") { p -> p.text }
         performTextModification(clause, newPatterns, clause.patterns.first().startOffset, clause.patterns.last().endOffset)
