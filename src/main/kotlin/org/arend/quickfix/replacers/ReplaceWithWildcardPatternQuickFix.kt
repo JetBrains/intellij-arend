@@ -29,6 +29,6 @@ class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElement
             else -> null
         }
 
-        if (wildcardPattern != null) (pattern as? PsiElement)?.replaceWithNotification(wildcardPattern)
+        if (wildcardPattern != null) (pattern as? PsiElement)?.replace(wildcardPattern)
     }
 }

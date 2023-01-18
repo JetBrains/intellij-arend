@@ -60,7 +60,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
-import org.arend.refactoring.changeSignature.ArendExpressionCodeFragment
+import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.util.ArendBundle
 import java.util.*
 
@@ -146,11 +146,12 @@ abstract class BasePass(open protected val file: IArendFile, editor: Editor, nam
             return
         }
         if (error is CannotFindConstructorError && cause is ArendPattern) {
+            val singleRef = cause.singleReferable
             val refElement = cause.referenceElement
             val references = when {
+                singleRef != null -> listOf(singleRef)
                 refElement != null -> listOfNotNull(refElement.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>())
-                cause.sequence.isNotEmpty() -> cause.sequence.mapNotNull { subpattern -> subpattern.referenceElement?.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>() }
-                else -> listOf()
+                else -> cause.sequence.mapNotNull { subpattern -> subpattern.singleReferable ?: subpattern.referenceElement?.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>() }
             }
             var fixRegistered = false
             for (referenceElement in references) {

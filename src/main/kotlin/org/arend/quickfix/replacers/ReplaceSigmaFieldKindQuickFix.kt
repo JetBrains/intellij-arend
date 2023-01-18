@@ -6,7 +6,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.psi.deleteWithNotification
 import org.arend.util.ArendBundle
 
 class ReplaceSigmaFieldKindQuickFix(private val kwRef: SmartPsiElementPointer<PsiElement>) : IntentionAction {
@@ -19,6 +18,6 @@ class ReplaceSigmaFieldKindQuickFix(private val kwRef: SmartPsiElementPointer<Ps
     override fun getText(): String = ArendBundle.message("arend.replace.sigma.kind")
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        kwRef.element?.deleteWithNotification()
+        kwRef.element?.delete()
     }
 }

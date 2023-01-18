@@ -6,10 +6,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.deleteWithNotification
 import org.arend.psi.ext.*
 import org.arend.psi.parentOfType
-import org.arend.psi.replaceWithNotification
 import org.arend.util.ArendBundle
 
 class MakePatternExplicitQuickFix(private val patternRef: SmartPsiElementPointer<ArendPattern>,
@@ -26,11 +24,11 @@ class MakePatternExplicitQuickFix(private val patternRef: SmartPsiElementPointer
 
     private fun makeExplicit(pattern: ArendPattern) {
         val factory = ArendPsiFactory(pattern.project)
-        pattern.firstChild.deleteWithNotification()
-        pattern.lastChild.deleteWithNotification()
+        pattern.firstChild.delete()
+        pattern.lastChild.delete()
         if (pattern.parent is ArendPattern && pattern.sequence.isNotEmpty()) {
             val newPattern = factory.createPattern("(${pattern.text})")
-            pattern.replaceWithNotification(newPattern)
+            pattern.replace(newPattern)
         }
     }
 

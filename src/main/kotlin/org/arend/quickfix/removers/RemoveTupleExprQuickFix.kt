@@ -24,13 +24,13 @@ class RemoveTupleExprQuickFix(private val message: String, private val tupleExpr
         val element = tupleExpr.element ?: return
         val next = element.findNextSibling()
         if (next is LeafPsiElement && next.elementType == ArendElementTypes.COMMA) {
-            element.parent?.deleteChildRangeWithNotification(element, next)
+            element.parent?.deleteChildRange(element, next)
             return
         }
 
         val prev = element.findPrevSibling()
         if (prev is LeafPsiElement && prev.elementType == ArendElementTypes.COMMA) {
-            element.parent?.deleteChildRangeWithNotification(prev, element)
+            element.parent?.deleteChildRange(prev, element)
             return
         }
 
@@ -40,7 +40,7 @@ class RemoveTupleExprQuickFix(private val message: String, private val tupleExpr
                 is ArendTuple -> (parent.topmostEquivalentSourceNode.parent as? ArendArgument)?.deleteWithWhitespaces()
             }
         } else {
-            element.deleteWithNotification()
+            element.delete()
         }
     }
 }

@@ -23,7 +23,6 @@ import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
-import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.typechecking.error.ErrorService
 import java.util.SortedMap
 
@@ -324,68 +323,7 @@ fun PsiElement.deleteAndGetPosition(): RelativePosition? {
         nS != null -> RelativePosition(PositionKind.BEFORE_ANCHOR, nS)
         else -> this.parent?.let { RelativePosition(PositionKind.INSIDE_EMPTY_ANCHOR, it) }
     }
-    this.deleteWithNotification()
-    return result
-}
-
-private fun notify(child: PsiElement?, oldChild: PsiElement?, newChild: PsiElement?, parent: PsiElement?, additionOrRemoval: Boolean) {
-    val file = (parent ?: child ?: oldChild)?.containingFile as? ArendFile ?: return
-    file.project.service<ArendPsiChangeService>().processEvent(file, child, oldChild, newChild, parent, additionOrRemoval)
-}
-
-private fun notifyRange(firstChild: PsiElement, lastChild: PsiElement, parent: PsiElement) {
-    val file = parent.containingFile as? ArendFile ?: return
-    val service = file.project.service<ArendPsiChangeService>()
-
-    var child: PsiElement? = firstChild
-    while (child != lastChild && child != null) {
-        service.processEvent(file, child, null, null, parent, true)
-        child = child.nextSibling
-    }
-    service.processEvent(file, lastChild, null, null, parent, true)
-}
-
-fun <T : PsiElement> PsiElement.addBeforeWithNotification(element: T, anchor: PsiElement?): T {
-    notify(element, null, null, this, true)
-    @Suppress("UNCHECKED_CAST")
-    return this.addBefore(element, anchor) as T
-}
-
-fun PsiElement.addAfterWithNotification(element: PsiElement, anchor: PsiElement?): PsiElement {
-    notify(element, null, null, this, true)
-    return this.addAfter(element, anchor)
-}
-
-fun PsiElement.addWithNotification(element: PsiElement): PsiElement {
-    notify(element, null, null, this, true)
-    return this.add(element)
-}
-
-fun <T : PsiElement> T.replaceWithNotification(newElement: T): T {
-    notify(null, this, newElement, parent, false)
-    @Suppress("UNCHECKED_CAST")
-    return this.replace(newElement) as T
-}
-
-fun PsiElement.deleteWithNotification() {
-    notify(this, null, null, parent, true)
     this.delete()
-}
-
-fun PsiElement.deleteChildRangeWithNotification(firstChild: PsiElement, lastChild: PsiElement) {
-    this.deleteChildRange(firstChild, lastChild)
-    notify(this, null, null, parent, true)
-}
-
-fun PsiElement.addRangeAfterWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement): PsiElement {
-    val result = this.addRangeAfter(firstElement, lastElement, anchor)
-    notify(this, null, null, parent, true)
-    return result
-}
-
-fun PsiElement.addRangeBeforeWithNotification(firstElement: PsiElement, lastElement: PsiElement, anchor: PsiElement?): PsiElement {
-    val result = if (anchor == null) addRange(firstElement, lastElement) else addRangeBefore(firstElement, lastElement, anchor)
-    notify(this, null, null, parent, true)
     return result
 }
 
@@ -393,11 +331,11 @@ fun PsiElement.deleteWithWhitespaces() {
     if (prevElement is PsiWhiteSpace) {
         val next = nextElement
         if (next is PsiWhiteSpace) {
-            parent.deleteChildRangeWithNotification(this, next)
+            parent.deleteChildRange(this, next)
             return
         }
     }
-    deleteWithNotification()
+    delete()
 }
 
 fun getArendNameText(element: PsiElement?): String? = when (element) {

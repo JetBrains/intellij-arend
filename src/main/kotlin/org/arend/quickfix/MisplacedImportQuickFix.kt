@@ -8,7 +8,6 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.module.ModulePath
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.deleteWithNotification
 import org.arend.psi.ext.*
 import org.arend.refactoring.addStatCmd
 import org.arend.refactoring.findPlaceForNsCmd
@@ -33,7 +32,7 @@ class MisplacedImportQuickFix(private val misplacedStatCmdRef: SmartPsiElementPo
             val path = ModulePath(misplacedStatCmd.path)
             val factory = ArendPsiFactory(project)
 
-            parent.deleteWithNotification()
+            parent.delete()
             addStatCmd(factory, parentCopy, findPlaceForNsCmd(containingFile, path))
         }
     }

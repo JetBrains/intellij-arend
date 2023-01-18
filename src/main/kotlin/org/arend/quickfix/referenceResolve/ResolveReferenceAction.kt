@@ -8,7 +8,7 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendGroup
 import org.arend.refactoring.*
-import org.arend.refactoring.changeSignature.ArendExpressionCodeFragment
+import org.arend.psi.ArendExpressionCodeFragment
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,

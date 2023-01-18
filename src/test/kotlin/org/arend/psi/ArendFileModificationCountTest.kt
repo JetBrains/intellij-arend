@@ -9,7 +9,7 @@ class ArendFileModificationCountTest : ArendTestBase() {
         myFixture.doHighlighting()
         assertTrue(file.isBackgroundTypecheckingFinished)
         type("2")
-        assertFalse(file.isBackgroundTypecheckingFinished)
+        assertTrue(file.isBackgroundTypecheckingFinished)
         myFixture.doHighlighting()
         assertTrue(file.isBackgroundTypecheckingFinished)
     }
@@ -20,7 +20,7 @@ class ArendFileModificationCountTest : ArendTestBase() {
         myFixture.doHighlighting()
         assertTrue(file.isBackgroundTypecheckingFinished)
         type("3")
-        assertFalse(file.isBackgroundTypecheckingFinished)
+        assertTrue(file.isBackgroundTypecheckingFinished)
     }
 
     private fun type(str: String) {

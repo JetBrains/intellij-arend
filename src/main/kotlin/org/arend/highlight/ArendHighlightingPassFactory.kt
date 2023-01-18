@@ -9,7 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.IArendFile
-import org.arend.psi.listener.ArendPsiChangeService
+import com.intellij.psi.util.PsiModificationTracker
 
 class ArendHighlightingPassFactory : BasePassFactory<IArendFile>(IArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
     private var myPassId = -1
@@ -24,7 +24,7 @@ class ArendHighlightingPassFactory : BasePassFactory<IArendFile>(IArendFile::cla
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor) =
         if (file is IArendFile) {
-            val modCount = file.project.service<ArendPsiChangeService>().modificationTracker.modificationCount
+            val modCount = PsiModificationTracker.getInstance(file.project).modificationCount
             if (file.lastModification.get() < modCount) {
                 val pass = super.createHighlightingPass(file, editor)
                 if (pass is ArendHighlightingPass) {

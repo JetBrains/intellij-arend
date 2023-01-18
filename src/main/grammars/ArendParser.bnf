@@ -399,7 +399,13 @@ atomPattern ::= atomic_pattern
     elementType=pattern
 }
 
-private atomic_pattern ::= IPName | longNameIP | NUMBER | NEGATIVE_NUMBER | UNDERSCORE
+private atomic_pattern ::= defIdentifier_pattern | NUMBER | NEGATIVE_NUMBER | UNDERSCORE
+
+private defIdentifier_pattern ::= defIdentifier !DOT | IPName | longNameIP {
+    recoverWhile = defIdentifier_pattern_recover
+}
+
+private defIdentifier_pattern_recover ::= !(ID | LPAREN | LBRACE | NUMBER | NEGATIVE_NUMBER | STRING | UNDERSCORE | COLON | AS_KW) & pattern_recover
 
 tuple_pattern ::= LPAREN <<comma_separated_sequence pattern>>? RPAREN {
     pin=1

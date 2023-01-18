@@ -26,14 +26,13 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendDefinition
 import org.arend.psi.ext.ArendGroup
 import org.arend.psi.ext.ArendLongName
-import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.*
-import org.arend.resolving.ArendReferenceImpl
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.naming.reference.TCDefReferable
+import org.arend.resolving.ArendReferenceBase
 import org.arend.util.ArendBundle
 
 class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: SmartPsiElementPointer<ArendLongName>) : IntentionAction {
@@ -65,7 +64,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                 if (instancesVal != null && instancesVal.size > 1 && longName != null) {
                     val lookupList = instancesVal.map {
                         val ref = it.first().ref
-                        (ArendReferenceImpl.createArendLookUpElement(ref, null, false, null, false, "") ?: LookupElementBuilder.create(ref, "")).withPresentableText(ref.refName)
+                        (ArendReferenceBase.createArendLookUpElement(ref, null, false, null, false, "") ?: LookupElementBuilder.create(ref, "")).withPresentableText(ref.refName)
                     }
                     val lookup = LookupManager.getInstance(project).showLookup(editor, *lookupList.toTypedArray())
                     lookup?.addLookupListener(object : LookupListener {
@@ -119,7 +118,6 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                             }
                         }
                     }
-                    project.service<ArendPsiChangeService>().incModificationCount()
                 }
             }, longName.containingFile)
         }

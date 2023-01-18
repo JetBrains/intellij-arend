@@ -29,11 +29,11 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
-import org.arend.ext.reference.DataContainer
 import org.arend.ext.variable.Variable
 import org.arend.ext.variable.VariableImpl
 import org.arend.intention.SplitAtomPatternIntention
 import org.arend.intention.SplitAtomPatternIntention.Companion.doReplacePattern
+import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
@@ -274,7 +274,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                 val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, patternPrimer.scope, ArrayList<Referable>(), cer, null)
                                 val primerList = ArrayList<Concrete.Pattern>()
                                 primerList.add(concretePrimer)
-                                resolver.visitPatterns(primerList, null, true)
+                                resolver.visitPatterns(primerList, null)
                                 concretePrimer = primerList[0]
                                 resolver.resolvePattern(concretePrimer)
                                 primerOk = cer.errorsNumber == 0
@@ -313,7 +313,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         for (clauseExpression in clauseExpressionList) if (clauseExpression != null)
                             for (mismatchedEntry in mismatchedPatterns) {
                                 for (varToRemove in mismatchedEntry.value.second) {
-                                    val defIdentifier = varToRemove.childOfType<ArendRefIdentifier>()
+                                    val defIdentifier = varToRemove.childOfType<ArendDefIdentifier>()
                                     if (defIdentifier != null) SplitAtomPatternIntention.doSubstituteUsages(project, defIdentifier, clauseExpression, "{?${defIdentifier.name}}")
                                 }
                             }
@@ -323,7 +323,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             doReplacePattern(psiFactory, mismatchedEntry.key as ArendPattern, printData.patternString, printData.requiresParentheses)
                         }
 
-                        val varsNoLongerUsed = HashSet<ArendRefIdentifier>()
+                        val varsNoLongerUsed = HashSet<ArendDefIdentifier>()
 
                         for (substEntry in processedSubstitutions) {
                             val renamer = StringRenamer()
@@ -333,16 +333,16 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             var printData = computePrintData()
                             val namePatternToReplace = substEntry.key as ArendPattern
 
-                            val idOrUnderscore = namePatternToReplace.childOfType<ArendRefIdentifier>() ?: namePatternToReplace.underscore
+                            val idOrUnderscore = namePatternToReplace.childOfType<ArendDefIdentifier>() ?: namePatternToReplace.underscore
                             val asPiece = namePatternToReplace.parent.childOfType<ArendAsPattern>()
                             val asDefIdentifier = asPiece?.referable
 
-                            if (idOrUnderscore is ArendRefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
+                            if (idOrUnderscore is ArendDefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
 
-                            val target = asDefIdentifier ?: if (idOrUnderscore is ArendRefIdentifier) idOrUnderscore else null
+                            val target = asDefIdentifier ?: if (idOrUnderscore is ArendDefIdentifier) idOrUnderscore else null
                             val nonCachedResolver : (ArendRefIdentifier) -> PsiElement? = {
                                 val name = it.name
-                                (it.scope.resolveName(name) as? DataContainer)?.data as? PsiElement
+                                it.scope.resolveName(name) as? PsiElement
                             }
 
                             val noOfUsages = if (target != null) {
@@ -361,7 +361,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                             val useAsPattern = asDefIdentifier != null || ((printData.complexity > 2 || printData.containsClassConstructor) && noOfUsages > 0)
 
-                            if (!useAsPattern && asPiece == null && idOrUnderscore is ArendRefIdentifier) {
+                            if (!useAsPattern && asPiece == null && idOrUnderscore is ArendDefIdentifier) {
                                 varsNoLongerUsed.add(idOrUnderscore)
                                 newVariables.clear()
                                 printData = computePrintData() //Recompute print data, this time allowing the variable being substituted to be reused in the substituted pattern (as one of its NamePatterns)
@@ -369,13 +369,13 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                             val existingAsName = asPiece?.referable
                             for (clauseExpression in clauseExpressionList) if (clauseExpression != null) {
-                                if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendRefIdentifier)
+                                if (existingAsName == null && !useAsPattern && idOrUnderscore is ArendDefIdentifier)
                                     SplitAtomPatternIntention.doSubstituteUsages(project, idOrUnderscore, clauseExpression, printData.patternString, nonCachedResolver)
                             }
 
                             if (idOrUnderscore != null) {
                                 var asName: String = if (!useAsPattern) "" else {
-                                    val n = existingAsName?.name ?: (idOrUnderscore as? ArendRefIdentifier)?.name
+                                    val n = existingAsName?.name ?: (idOrUnderscore as? ArendDefIdentifier)?.name
                                     if (n != null) n else {
                                         val freshName = Renamer().generateFreshName(VariableImpl("_x"), (variablePatterns.map{ VariableImpl(it) } + newVariables.map { VariableImpl(it) }).toList())
                                         newVariables.add(freshName)
@@ -417,7 +417,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     return false
                 }
 
-                val constructor = pattern.sequence[0].singleReferable?.resolve(pattern.ancestor<ArendDefinition<*>>()?.scope ?: return false, null) as? ArendConstructor
+                val subPattern = pattern.sequence[0]
+                val constructor = (subPattern.referenceElement?.unresolvedReference ?: subPattern.singleReferable?.refName?.let { NamedUnresolvedReference(subPattern, it) })?.resolve(pattern.ancestor<ArendDefinition<*>>()?.scope ?: return false, null) as? ArendConstructor
                         ?: return false
                 return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT ||
                        constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.FIN
@@ -884,27 +885,27 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     val templateList = atomPattern.sequence.takeIf { it.isNotEmpty() } ?: listOf(atomPattern)
                     if (position == null) {
                         enclosingNode = if (enclosingNode.parent is ArendPattern && enclosingNode.singleReferable != null && !enclosingNode.isTuplePattern) {
-                            enclosingNode.replaceWithNotification(psiFactory.createPattern("(${enclosingNode.text})"))
+                            enclosingNode.replace(psiFactory.createPattern("(${enclosingNode.text})")) as ArendPattern
                         } else {
                             enclosingNode
                         }
                         if (!enclosingNode.isExplicit || enclosingNode.isTuplePattern && enclosingNode.sequence.size == 1) {
                             val rightBrace = enclosingNode.lastChild
-                            val first = enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), rightBrace)
+                            val first = enclosingNode.addRangeBefore(templateList.first(), templateList.last(), rightBrace)
                             enclosingNode.addBefore(psiFactory.createWhitespace(" "), first)
                             (rightBrace.findPrevSibling() as? ArendPattern)?.let { callback.invoke(entry.second, it) }
                         } else {
                             if (enclosingNode.sequence.isEmpty()) {
-                                enclosingNode = enclosingNode.replaceWithNotification(psiFactory.createPattern("${enclosingNode.text}$patternLine"))
+                                enclosingNode = enclosingNode.replace(psiFactory.createPattern("${enclosingNode.text}$patternLine")) as ArendPattern
                             } else {
-                                val first = enclosingNode.addRangeAfterWithNotification(templateList.first(), templateList.last(), enclosingNode.sequence.last())
+                                val first = enclosingNode.addRangeAfter(templateList.first(), templateList.last(), enclosingNode.sequence.last())
                                 enclosingNode.addBefore(psiFactory.createWhitespace(" "), first)
                             }
                             enclosingNode.sequence.last().let { callback.invoke(entry.second, it) }
                         }
                     } else {
                         val actualPosition = absorbParenthesesUp(position)
-                        enclosingNode.addRangeBeforeWithNotification(templateList.first(), templateList.last(), actualPosition)
+                        enclosingNode.addRangeBefore(templateList.first(), templateList.last(), actualPosition)
                         enclosingNode.addBefore(psiFactory.createWhitespace(" "), actualPosition)
                         (actualPosition.findPrevSibling() as? ArendPattern)?.let { callback.invoke(entry.second, it) }
                     }
@@ -948,7 +949,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     anchor = elimPsi.addAfter(comma, anchor)
                     commaInserted = true
                 }
-                anchor = elimPsi.addAfterWithNotification(template, anchor ?: elimPsi.elimKw)
+                anchor = elimPsi.addAfter(template, anchor ?: elimPsi.elimKw)
                 elimPsi.addBefore(psiFactory.createWhitespace(" "), anchor)
                 if (!commaInserted) {
                     elimPsi.addAfter(comma, anchor)
@@ -976,7 +977,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 bindingToCaseArgMap[binding] = ce.second
                 if (ce.second.referable == null) {
                     val newCaseArgExprAs = psiFactory.createCaseArg("0 \\as $freshName")
-                    if (newCaseArgExprAs != null) ce.second.addRangeAfterWithNotification(newCaseArgExprAs.firstChild.nextSibling, newCaseArgExprAs.lastChild, ce.second.expression)
+                    if (newCaseArgExprAs != null) ce.second.addRangeAfter(newCaseArgExprAs.firstChild.nextSibling, newCaseArgExprAs.lastChild, ce.second.expression)
                 }
 
                 if (expectedConstructorErrorEntries != null) {
@@ -993,8 +994,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val abstractExpr = ToAbstractVisitor.convert(expression, ppConfig)
             val newCaseArg = psiFactory.createCaseArg("$abstractExpr \\as $freshName")!!
             val comma = newCaseArg.findNextSibling()!!
-            bindingToCaseArgMap[binding] = dependentCaseArg.parent.addBeforeWithNotification(newCaseArg, dependentCaseArg)
-            dependentCaseArg.parent.addBeforeWithNotification(comma, dependentCaseArg)
+            bindingToCaseArgMap[binding] = dependentCaseArg.parent.addBefore(newCaseArg, dependentCaseArg) as ArendCaseArg
+            dependentCaseArg.parent.addBefore(comma, dependentCaseArg)
         }
 
         fun doWriteTypeQualification(psiFactory: ArendPsiFactory, expression: Expression, caseArg: ArendCaseArg) {
@@ -1002,11 +1003,11 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val typeExpr = psiFactory.createExpression(ToAbstractVisitor.convert(expression, ppConfig).toString())
             val caseArgExpr = caseArg.type
             if (caseArgExpr != null) {
-                caseArgExpr.replaceWithNotification(typeExpr)
+                caseArgExpr.replace(typeExpr)
             } else {
                 caseArg.add(psiFactory.createWhitespace(" "))
                 caseArg.add(psiFactory.createColon())
-                caseArg.addWithNotification(typeExpr)
+                caseArg.add(typeExpr)
             }
         }
 
@@ -1042,14 +1043,14 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             if (anchor != null) {
                 insertedPsi = clause.addAfter(comma, anchor)
                 commaInserted = true
-                insertedPsi = clause.addAfterWithNotification(template, insertedPsi ?: clause.firstChild)
+                insertedPsi = clause.addAfter(template, insertedPsi ?: clause.firstChild)
                 clause.addBefore(psiFactory.createWhitespace(" "), insertedPsi)
             } else {
-                insertedPsi = clause.addBeforeWithNotification(template, clause.firstChild)
+                insertedPsi = clause.addBefore(template, clause.firstChild)
             }
             if (patternPrimers != null) patternPrimers[param] = insertedPsi as ArendPattern
             if (!commaInserted) clause.addAfter(comma, insertedPsi)
-            return insertedPsi
+            return insertedPsi!!
         }
 
         interface VariableLocationDescriptor

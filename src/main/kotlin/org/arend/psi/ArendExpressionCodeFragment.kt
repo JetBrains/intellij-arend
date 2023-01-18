@@ -1,4 +1,4 @@
-package org.arend.refactoring.changeSignature
+package org.arend.psi
 
 import com.intellij.lang.ASTNode
 import com.intellij.lang.PsiBuilderFactory
@@ -14,7 +14,6 @@ import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.MergeScope
 import org.arend.naming.scope.Scope
 import org.arend.parser.ArendParser
-import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendExpr
 import org.arend.refactoring.NsCmdRefactoringAction

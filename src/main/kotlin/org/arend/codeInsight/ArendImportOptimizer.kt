@@ -74,7 +74,6 @@ class ArendImportOptimizer : ImportOptimizer {
             } else {
                 optimizeImportsHard(fileImports, optimalTree)
             }
-            file.project.service<ArendPsiChangeService>().processEvent(file, null, null, null, null, true)
         }
 
         private fun optimizeImportsHard(

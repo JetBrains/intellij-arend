@@ -1,6 +1,7 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
+import org.arend.psi.ArendExpressionCodeFragment
 
 class ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo: ArendParameterInfo,
                                                         typeCodeFragment: ArendExpressionCodeFragment):

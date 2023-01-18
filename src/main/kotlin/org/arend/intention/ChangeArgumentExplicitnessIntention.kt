@@ -162,7 +162,7 @@ class PatternEntry(pattern: ArendPattern, refactoringContext: RefactoringContext
 
         var concrete = ConcreteBuilder.convertPattern(pattern, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
         val list = mutableListOf(concrete)
-        ExpressionResolveNameVisitor(ArendReferableConverter, pattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(list, mutableMapOf(), true)
+        ExpressionResolveNameVisitor(ArendReferableConverter, pattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(list, mutableMapOf())
         concrete = list.single()
 
         for (arg in concrete.patterns) {
@@ -561,10 +561,10 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
         val anchor = def.children[teleIndex - 1]
         val factory = ArendPsiFactory(tele.project)
         val newTele = createSwitchedTele(factory, tele) ?: return
-        def.children[teleIndex].deleteWithNotification()
-        val inserted = def.addAfterWithNotification(newTele, anchor)
+        def.children[teleIndex].delete()
+        val inserted = def.addAfter(newTele, anchor)
         val ws = factory.createWhitespace(" ")
-        def.addBeforeWithNotification(ws, inserted)
+        def.addBefore(ws, inserted)
     }
 }
 
@@ -742,7 +742,7 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
         val newTele = createSwitchedTele(factory, tele)
         newTele ?: return tele
 
-        return tele.replaceWithNotification(newTele)
+        return tele.replace(newTele)
     }
 
     /**

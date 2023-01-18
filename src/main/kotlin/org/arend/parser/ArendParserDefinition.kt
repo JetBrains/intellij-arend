@@ -20,7 +20,7 @@ import org.arend.psi.doc.ArendDocReference
 import org.arend.psi.doc.ArendDocReferenceText
 import org.arend.psi.ext.*
 import org.arend.psi.stubs.ArendFileStub
-import org.arend.refactoring.changeSignature.ArendExpressionCodeFragmentElementType
+import org.arend.psi.ArendExpressionCodeFragmentElementType
 
 class ArendParserDefinition : ParserDefinition {
 

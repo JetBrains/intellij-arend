@@ -8,12 +8,15 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
+import org.arend.ext.module.LongName
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
+import org.arend.resolving.IntellijTCReferable
 import org.arend.typechecking.TypeCheckingService
+import java.util.concurrent.ConcurrentHashMap
 
 abstract class ReferableBase<StubT> : PsiStubbedReferableImpl<StubT>, PsiDefReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
@@ -45,12 +48,23 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         get() = getChildOfType()
 
     protected var tcReferableCache: TCReferable? = null
+    private var tcRefMapCache: ConcurrentHashMap<LongName, IntellijTCReferable>? = null
+
+    private val tcRefMap: ConcurrentHashMap<LongName, IntellijTCReferable>?
+        get() {
+            tcRefMapCache?.let { return it }
+            val file = if (isValid) containingFile as? ArendFile else null
+            return file?.getTCRefMap(Referable.RefKind.EXPR)
+        }
 
     fun dropTCCache() {
         tcReferableCache = null
     }
 
-    protected abstract fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): TCReferable
+    override val tcReferableCached: TCReferable?
+        get() = tcReferableCache
+
+    protected abstract fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable
 
     override val tcReferable: TCReferable?
         get() = tcReferableCache ?: runReadAction {
@@ -58,7 +72,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
                 tcReferableCache ?: run {
                     val file = (if (isValid) containingFile as? ArendFile else null) ?: return@run null
                     val longName = refLongName
-                    val tcRefMap = file.getTCRefMap(Referable.RefKind.EXPR)
+                    val tcRefMap = tcRefMap ?: return@run null
                     tcRefMap[longName]?.let {
                         tcReferableCache = it
                         return@run it
@@ -85,48 +99,21 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         tcReferableCache = null
     }
 
-    override fun checkTCReferable(): Boolean {
-        val tcRef = tcReferableCache ?: return true
-        return if (tcRef.underlyingReferable != this) {
-            dropTCReferable()
-            true
-        } else false
-    }
-
-    override fun checkTCReferableName() {
-        val tcRef = tcReferableCache ?: return
-        val refName = refName
-        if (tcRef.refName != refName) synchronized(this) {
-            val tcRef2 = tcReferableCache ?: return
-            if (tcRef2.refName != refName) {
-                dropTCRefCachesRecursively()
-                return
-            }
-        }
-        dropTCReferable()
-    }
-
     override fun dropTCReferable() {
         tcReferableCache = null
+        val tcRefMap = tcRefMap
+        val name = refLongName
+        tcRefMap?.remove(name)
         if (this is ArendGroup) {
+            val list = ArrayList<String>(name.toList().size)
+            list.addAll(name.toList())
+            list.add("")
+            val internalName = LongName(list)
             for (referable in internalReferables) {
                 (referable as? ReferableBase<*>)?.tcReferableCache = null
+                list[list.size - 1] = referable.refName
+                tcRefMap?.remove(internalName)
             }
-        }
-    }
-
-    private fun dropTCRefCachesRecursively() {
-        tcReferableCache = null
-        if (this !is ArendGroup) return
-
-        for (referable in internalReferables) {
-            (referable as? ReferableBase<*>)?.dropTCRefCachesRecursively()
-        }
-        for (statement in statements) {
-            (statement.group as? ReferableBase<*>)?.dropTCRefCachesRecursively()
-        }
-        for (subgroup in dynamicSubgroups) {
-            (subgroup as? ReferableBase<*>)?.dropTCRefCachesRecursively()
         }
     }
 

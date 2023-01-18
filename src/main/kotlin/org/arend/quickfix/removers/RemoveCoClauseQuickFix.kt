@@ -7,8 +7,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.elementType
 import org.arend.psi.ArendElementTypes.PIPE
-import org.arend.psi.deleteChildRangeWithNotification
-import org.arend.psi.deleteWithNotification
 import org.arend.psi.ext.ArendFunctionBody
 import org.arend.psi.ext.CoClauseBase
 import org.arend.psi.findPrevSibling
@@ -30,9 +28,9 @@ class RemoveCoClauseQuickFix(private val coClauseRef: SmartPsiElementPointer<CoC
         val pipe = coClause.findPrevSibling()
         val parent = coClause.parent
         if (pipe != null && pipe.elementType == PIPE) {
-            parent.deleteChildRangeWithNotification(pipe, coClause)
-        } else coClause.deleteWithNotification()
+            parent.deleteChildRange(pipe, coClause)
+        } else coClause.delete()
 
-        if (parent is ArendFunctionBody && parent.firstChild == null) parent.deleteWithNotification()
+        if (parent is ArendFunctionBody && parent.firstChild == null) parent.delete()
     }
 }

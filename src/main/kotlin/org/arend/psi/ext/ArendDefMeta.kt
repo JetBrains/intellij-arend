@@ -13,6 +13,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.TypeClassReferenceExtractVisitor
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefMetaStub
+import org.arend.resolving.IntellijMetaReferable
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
@@ -33,14 +34,16 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
             tcReferableCache = value
         }
 
-    private fun prepareTCRef(parent: LocatedReferable?) =
-        MetaReferable(precedence, refName, aliasPrecedence, aliasName, documentation?.toString() ?: "", null, null, parent)
+    override fun getDescription() = documentation?.toString() ?: ""
+
+    private fun prepareTCRef(data: SmartPsiElementPointer<PsiLocatedReferable>?, parent: LocatedReferable?) =
+        IntellijMetaReferable(data, precedence, refName, aliasPrecedence, aliasName, description, parent)
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        prepareTCRef(parent).apply { underlyingReferable = Supplier { runReadAction { data.element } } }
+        prepareTCRef(data, parent).apply { underlyingReferable = Supplier { runReadAction { data.element } } }
 
     fun makeTCReferable(parent: LocatedReferable?) =
-        prepareTCRef(parent).apply { underlyingReferable = Supplier { this } }
+        prepareTCRef(null, parent).apply { underlyingReferable = Supplier { this } }
 
     override fun getBodyReference(visitor: TypeClassReferenceExtractVisitor): Referable? =
         ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr)

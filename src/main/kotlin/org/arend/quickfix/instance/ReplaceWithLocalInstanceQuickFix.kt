@@ -13,7 +13,6 @@ import org.arend.psi.ext.ArendFunctionDefinition
 import org.arend.psi.ext.ArendLongName
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.getTeleType
-import org.arend.psi.replaceWithNotification
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.splitTele
 import org.arend.resolving.DataLocatedReferable
@@ -55,7 +54,7 @@ class ReplaceWithLocalInstanceQuickFix(val error: InstanceInferenceError, val ca
                 val psiFactory = ArendPsiFactory(project)
                 val telescope = tele.first
                 splitTele(telescope, index)
-                if (className != null) getTeleType(telescope)?.replaceWithNotification(psiFactory.createExpression(className))
+                if (className != null) getTeleType(telescope)?.replace(psiFactory.createExpression(className))
             }
         }
 

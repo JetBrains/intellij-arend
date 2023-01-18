@@ -24,6 +24,7 @@ import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.core.ops.CMP
 import org.arend.ext.instance.InstanceSearchParameters
 import org.arend.ext.instance.SubclassSearchParameters
+import org.arend.ext.module.LongName
 import org.arend.ext.typechecking.DefinitionListener
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
@@ -41,10 +42,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
-import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.ArendResolveCache
-import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.PsiConcreteProvider
+import org.arend.resolving.*
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
@@ -68,7 +66,7 @@ import org.arend.yaml.YAMLFileListener
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
 
-class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener {
+class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener, Disposable {
     val dependencyListener = DependencyCollector()
     private val libraryErrorReporter = NotificationErrorReporter(project)
     val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this) {
@@ -126,8 +124,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
     */
 
-    private val tcRefMaps = Array<MutableMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>>(Referable.RefKind.values().size) {
-        ConcurrentHashMap<ModuleLocation, ArendFile.LifetimeAwareDefinitionRegistry>()
+    private val tcRefMaps = Array<MutableMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>>(Referable.RefKind.values().size) {
+        ConcurrentHashMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>()
     }
 
     fun getTCRefMaps(refKind: Referable.RefKind) = tcRefMaps[refKind.ordinal]
@@ -135,6 +133,12 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     fun clearTCRefMaps() {
         for (tcRefMap in tcRefMaps) {
             tcRefMap.clear()
+        }
+    }
+
+    fun cleanupTCRefMaps(module: ModuleLocation) {
+        for (tcRefMap in tcRefMaps) {
+            tcRefMap[module]?.values?.removeIf { !it.isConsistent }
         }
     }
 
@@ -167,7 +171,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 if (tcRefMap != null) {
                     Prelude.forEach {
                         val name = it.referable.refLongName
-                        tcRefMap[name] = it.referable
+                        tcRefMap[name] = it.referable as IntellijTCReferable
                         val dataRef = it.referable
                         if (dataRef is DataLocatedReferable) {
                             val ref = Scope.resolveName(preludeScope, name.toList())
@@ -187,7 +191,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
 
             // Set the listener that updates typechecked definitions
-            project.service<ArendPsiChangeService>().addListener(this)
+            service<ArendPsiChangeService>().addListener(this)
 
             // Listen for YAML files changes
             YAMLFileListener(project).register()
@@ -318,6 +322,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                 }
 
                 runReadAction {
+                    service<ArendPsiChangeService>().definitionModificationTracker.incModificationCount()
                     isLoaded = false
                     if (onlyInternal) {
                         libraryManager.reloadInternalLibraries {
@@ -340,10 +345,18 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                             prepareReload()
                         }
                     }
-                }
 
+                    for (library in libraryManager.registeredLibraries) {
+                        if (library.isExternal || library !is ArendRawLibrary) continue
+                        for (module in library.config.findModules(false)) {
+                            library.config.findArendFile(module, false)?.decLastModification()
+                        }
+                        for (module in library.config.findModules(true)) {
+                            library.config.findArendFile(module, true)?.decLastModification()
+                        }
+                    }
+                }
                 isLoaded = true
-                project.service<ArendPsiChangeService>().incModificationCount()
                 DaemonCodeAnalyzer.getInstance(project).restart()
             }
         })
@@ -351,8 +364,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private fun prepareReload(): ArendTypechecking {
         project.service<ErrorService>().clearAllErrors()
-        project.service<ArendPsiChangeService>().incModificationCount()
-        project.service<TypecheckingTaskQueue>().clearQueue()
+        service<TypecheckingTaskQueue>().clearQueue()
         return ArendTypechecking.create(project)
     }
 
@@ -365,16 +377,13 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     val additionalReferables: Map<String, List<PsiLocatedReferable>>
         get() = additionalNames
 
-    private fun resetErrors(def: Referable, removeTCRef: Boolean) {
-        if (removeTCRef) {
-            (def as? ReferableBase<*>)?.dropTCCache()
-        }
+    private fun resetErrors(def: Referable) {
         if (def is TCDefinition) {
             project.service<ErrorService>().clearTypecheckingErrors(def)
         }
     }
 
-    private fun removeDefinition(referable: LocatedReferable, removeTCRef: Boolean): TCReferable? {
+    private fun removeDefinition(referable: LocatedReferable): TCReferable? {
         if (referable is PsiElement && !referable.isValid) {
             return null
         }
@@ -384,12 +393,24 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val tcRefMap = fullName.modulePath?.let { getTCRefMaps(Referable.RefKind.EXPR)[it] }
         val tcReferable = tcRefMap?.get(fullName.longName)
         if (tcReferable !is TCDefReferable) {
-            resetErrors(curRef, removeTCRef)
+            resetErrors(curRef)
             return tcReferable
         }
 
-        instances.remove(tcReferable)
-        val funcDef = tcReferable.typechecked as? FunctionDefinition
+        removeTCDefinition(tcReferable)
+
+        val prevRef = (tcReferable as TCDefReferable).underlyingReferable
+        val tcTypecheckable = (tcReferable as TCDefReferable).typecheckable
+        if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef && prevRef.containingFile == curRef.containingFile) {
+            return null
+        }
+        resetErrors(curRef)
+        return tcTypecheckable
+    }
+
+    private fun removeTCDefinition(ref: TCDefReferable) {
+        instances.remove(ref)
+        val funcDef = ref.typechecked as? FunctionDefinition
         if (funcDef != null) {
             val classDef = (funcDef.resultType as? ClassCallExpression)?.definition
             if (classDef != null) {
@@ -397,58 +418,47 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
 
-        if (extensionDefinitions.containsKey(tcReferable)) {
+        if (extensionDefinitions.containsKey(ref)) {
             runReadAction {
                 service<ArendExtensionChangeListener>().notifyIfNeeded(project)
             }
         }
 
-        val prevRef = tcReferable.underlyingReferable
-        if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef && prevRef.containingFile == curRef.containingFile) {
-            return null
+        val tcTypecheckable = ref.typecheckable
+        if (tcTypecheckable.typechecked?.goals?.isNotEmpty() != true) {
+            tcTypecheckable.location?.let { updatedModules.add(it) }
         }
-        if (removeTCRef) {
-            tcRefMap.remove(fullName.longName)
-        }
-        resetErrors(curRef, removeTCRef)
-
-        val tcTypecheckable = tcReferable.typecheckable
-        tcTypecheckable.location?.let { updatedModules.add(it) }
-        return tcTypecheckable
     }
 
-    enum class LastModifiedMode { SET, SET_NULL, DO_NOT_TOUCH }
-
-    private fun updateDefinition(referable: LocatedReferable, file: ArendFile, mode: LastModifiedMode, removeTCRef: Boolean) {
-        if (mode != LastModifiedMode.DO_NOT_TOUCH && referable is TCDefinition) {
-            val isValid = referable.isValid
-            if (mode == LastModifiedMode.SET) {
-                file.lastModifiedDefinition = if (isValid) referable else null
-            } else {
-                if (file.lastModifiedDefinition != referable) {
-                    file.lastModifiedDefinition = null
-                }
-            }
-        }
-
-        val tcReferable = removeDefinition(referable, removeTCRef) ?: return
+    private fun doUpdateDefinition(referable: LocatedReferable, file: ArendFile) {
+        val tcReferable = removeDefinition(referable) ?: return
         val dependencies = synchronized(project) {
             dependencyListener.update(tcReferable)
         }
         for (ref in dependencies) {
-            removeDefinition(ref, removeTCRef)
+            removeDefinition(ref)
         }
 
         if ((referable as? ArendDefFunction)?.functionKind?.isUse == true) {
-            (referable.parentGroup as? TCDefinition)?.let { updateDefinition(it, file, LastModifiedMode.DO_NOT_TOUCH, removeTCRef) }
+            (referable.parentGroup as? TCDefinition)?.let { doUpdateDefinition(it, file) }
+        }
+    }
+
+    fun updateDefinition(ref: TCDefReferable) {
+        removeTCDefinition(ref)
+        val tcRef = ref.typecheckable
+        val dependencies = synchronized(project) {
+            dependencyListener.update(tcRef)
+        }
+        for (dep in dependencies) {
+            if (dep is TCDefReferable) {
+                removeTCDefinition(dep)
+            }
         }
     }
 
     override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        if (!isExternalUpdate) {
-            def.checkTCReferableName()
-        }
-        updateDefinition(def, file, if (isExternalUpdate) LastModifiedMode.SET_NULL else LastModifiedMode.SET, !isExternalUpdate)
+        doUpdateDefinition(def, file)
     }
 
     class LibraryManagerTestingOptions {
@@ -466,4 +476,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
     }
+
+    override fun dispose() {}
 }

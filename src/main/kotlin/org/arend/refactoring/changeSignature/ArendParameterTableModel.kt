@@ -10,6 +10,7 @@ import com.intellij.ui.BooleanTableCellEditor
 import com.intellij.ui.BooleanTableCellRenderer
 import org.arend.ArendFileType
 import org.arend.ext.module.LongName
+import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.util.FileUtils.isCorrectDefinitionName
 import java.awt.Component
 import java.util.Collections.singletonList

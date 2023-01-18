@@ -39,7 +39,9 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.MergeScope
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendCodeFragmentController
 import org.arend.psi.ArendElementTypes
+import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.psi.ext.ArendFunctionDefinition
 import org.arend.psi.ext.ArendReferenceElement
@@ -330,7 +332,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
     fun invalidateIndices(depIndices: Set<Int>) {
         for (i in depIndices.toSortedSet().reversed()) {
-            project.service<ArendPsiChangeService>().modificationTracker.incModificationCount()
+            service<ArendPsiChangeService>().definitionModificationTracker.incModificationCount()
             invokeNameResolverHighlighting(i)
         }
     }

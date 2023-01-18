@@ -68,7 +68,7 @@ abstract class IntellijRepl private constructor(
     }
 
     private val project = service.project
-    private val definitionModificationTracker = project.service<ArendPsiChangeService>().definitionModificationTracker
+    private val definitionModificationTracker = service<ArendPsiChangeService>().definitionModificationTracker
     private val psiFactory = ArendPsiFactory(project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
         ?.also { resetCurrentLineScope() }

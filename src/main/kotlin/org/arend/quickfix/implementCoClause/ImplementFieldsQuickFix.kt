@@ -11,8 +11,6 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.addAfterWithNotification
-import org.arend.psi.addBeforeWithNotification
 import org.arend.psi.ext.*
 import org.arend.psi.findPrevSibling
 import org.arend.refactoring.moveCaretToEndOffset
@@ -50,9 +48,9 @@ open class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPoint
 
             if (coClause != null) {
                 val pipeSample = coClause.findPrevSibling()
-                val insertedCoClause = anchor.parent.addAfterWithNotification(coClause, anchor)
+                val insertedCoClause = anchor.parent.addAfter(coClause, anchor)
                 if (insertedCoClause is ArendCoClause && pipeSample != null) {
-                    anchor.parent.addBeforeWithNotification(pipeSample, insertedCoClause)
+                    anchor.parent.addBefore(pipeSample, insertedCoClause)
                 }
                 if (!caretMoved && editor != null) {
                     moveCaretToEndOffset(editor, anchor.nextSibling)
