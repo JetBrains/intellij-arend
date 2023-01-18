@@ -427,7 +427,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         val selectedIndices = this.myParametersTable.selectionModel.selectedIndices
         if (selectedIndices.size == 1 && this.myParametersTableModel.items.size > 0) {
             val selectedIndex = selectedIndices.first()
-            val currentItem = this.myParametersTableModel.items[selectedIndex]
+            val currentItem = this.myParametersTableModel.items.getOrNull(selectedIndex) ?: return
 
             val dependencyChecker = { pI: ArendChangeSignatureDialogParameterTableModelItem, cI: ArendChangeSignatureDialogParameterTableModelItem ->
                 !(parameterToDependencies[cI.typeCodeFragment]?.contains(pI) ?: false)

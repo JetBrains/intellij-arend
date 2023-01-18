@@ -550,6 +550,7 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
 
     private fun getSwitchedArgIndex(tele: ArendCompositeElement, switchedArg: PsiElement?): Int? {
         switchedArg ?: return -1
+        if (tele is ArendTypeTele && getTele(tele) == null) return 0
         val argsText = getTele(tele)?.map { it.text }
         return if (argsText?.size == 1) 0 else argsText?.indexOf(switchedArg.text)
     }
@@ -829,25 +830,29 @@ class TypeApplier(project: Project) : ChangeArgumentExplicitnessApplier(project)
  * Creates telescope with a changed parens
  */
 private fun createSwitchedTele(factory: ArendPsiFactory, tele: ArendCompositeElement): ArendCompositeElement? {
-    val isExplicit = (tele.text.first() == '(')
     val params = getTele(tele)?.joinToString(" ") { it.text }
 
     return when (tele) {
         is ArendNameTele -> {
+            val isExplicit = tele.isExplicit
             val type = tele.type!!.text
             factory.createNameTele(params, type, !isExplicit)
         }
 
         is ArendFieldTele -> {
+            val isExplicit = tele.isExplicit
             val type = tele.type!!.text
             factory.createFieldTele(params, type, !isExplicit)
         }
 
         is ArendTypeTele -> {
-            val typedExpr = tele.typedExpr!!
-            val expr = typedExpr.type
+            val isExplicit = tele.isExplicit
+            val typedExpr = tele.typedExpr
+            val expr = typedExpr?.type
             if (expr == null) {
-                factory.createTypeTele(null, typedExpr.text, !isExplicit)
+                if (typedExpr != null)
+                    factory.createTypeTele(null, typedExpr.text, !isExplicit) else
+                        factory.createTypeTele("", tele.text, !isExplicit)
             } else {
                 factory.createTypeTele(params, expr.text, !isExplicit)
             }

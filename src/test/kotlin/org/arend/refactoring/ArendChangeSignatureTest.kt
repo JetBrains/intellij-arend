@@ -80,6 +80,12 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
            \func foo ({-1-} a {-5-} : Nat) {{-2-} b : Nat} ({-3-} c : Nat) => 1
     """, listOf(1, -2, 3))
 
+    fun testLevelsInSignature() = changeSignature("""
+           \func \infix 1 foo{-caret-} \plevels p1 <= p2 \hlevels h1 >= h2 >= h3 \alias fubar : Nat => 101
+    """, """
+           \func \infix 1 foobar \plevels p1 <= p2 \hlevels h1 >= h2 >= h3 \alias fubar (A : \Type) : Nat => 101
+    """, listOf("A"), listOf(Pair("A", Pair(true, "\\Type"))), "foobar")
+
     fun testRenameParameters() = changeSignature("""
        \func foo{-caret-} (a b : Nat) => a Nat.+ b 
     """, """

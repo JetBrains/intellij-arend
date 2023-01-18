@@ -1020,4 +1020,20 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          }
        } 
     """)
+
+    fun testTypeTele() = doTest("""
+       \data N | z | s N{-caret-}
+  
+       \func foo (n : N) : Nat \with {
+         | z => 0
+         | s n => suc (foo n)
+        }
+    """, """
+       \data N | z | s {N}
+  
+       \func foo (n : N) : Nat \with {
+         | z => 0
+         | s {n} => suc (foo n)
+        }
+    """)
 }

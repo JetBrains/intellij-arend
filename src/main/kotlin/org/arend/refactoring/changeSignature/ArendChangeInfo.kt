@@ -22,6 +22,15 @@ data class ArendChangeInfo (
     private val parameterToTeleWhitespaceData = HashMap<Int, TeleWhitespaceData>()
     private val parameterWhitespaceData = HashMap<Int, String>()
 
+    private val pLevelsKw = locatedReferable.childrenWithLeaves.firstOrNull {it.elementType == ArendElementTypes.PLEVELS_KW}
+    private val pLevelParam = (locatedReferable as? ArendDefinition<*>)?.pLevelParameters
+    private val pLevelsText = if (pLevelsKw != null && pLevelParam is PsiElement) " ${pLevelsKw.text} ${pLevelParam.text}" else ""
+    private val hLevelsKw = locatedReferable.childrenWithLeaves.firstOrNull {it.elementType == ArendElementTypes.HLEVELS_KW}
+    private val hLevelParam = (locatedReferable as? ArendDefinition<*>)?.hLevelParameters
+    private val hLevelsText = if (hLevelsKw != null && hLevelParam is PsiElement) " ${hLevelsKw.text} ${hLevelParam.text}" else ""
+    private val precText = (locatedReferable as? ReferableBase<*>)?.prec?.let { " ${it.text}" } ?: ""
+    private val aliasText = (locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""
+
     init {
         var count = 0
         if (locatedReferable is ParametersHolder) {
@@ -131,10 +140,14 @@ data class ArendChangeInfo (
         }
     }
 
-    fun signaturePart() = "$name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText()}${returnPart()}"
+    fun signaturePart(): String {
+        return "$name$pLevelsText$hLevelsText${aliasText}${parameterText()}${returnPart()}"
+    }
 
     fun signaturePreview(): String = when (locatedReferable) {
-        is ArendDefFunction -> "${locatedReferable.functionKw.text}${(locatedReferable as? ReferableBase<*>)?.prec?.let { " ${it.text}" } ?: ""} $name${(locatedReferable as? ReferableBase<*>)?.alias?.let{ " ${it.text}" } ?: ""}${parameterText()}${returnPart()}"
+        is ArendDefFunction -> {
+            "${locatedReferable.functionKw.text}$precText $name$pLevelsText$hLevelsText$aliasText${parameterText()}${returnPart()}"
+        }
         else -> throw IllegalStateException()
     }
 
