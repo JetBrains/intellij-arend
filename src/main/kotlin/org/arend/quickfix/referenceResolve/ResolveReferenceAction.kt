@@ -8,11 +8,12 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendGroup
 import org.arend.refactoring.*
+import org.arend.psi.ArendExpressionCodeFragment
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,
-                             private val statCmdFixAction: NsCmdRefactoringAction?,
-                             private val nameFixAction: RenameReferenceAction?) {
+                             val statCmdFixAction: NsCmdRefactoringAction?,
+                             val nameFixAction: RenameReferenceAction?) {
 
     override fun toString(): String {
         val prefix = LongName(targetFullName).toString()
@@ -34,7 +35,11 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
             val currentTarget = element.reference?.resolve()
             val fixRequired = currentTarget != target
-            val containingFile = element.containingFile as? ArendFile ?: return null
+            val containingFile: ArendFile = when (val file = element.containingFile) {
+                is ArendFile -> file
+                is ArendExpressionCodeFragment -> file.context?.containingFile as? ArendFile ?: return null
+                else -> return null
+            }
             val location = LocationData(target)
             val (importAction, resultName) = calculateReferenceName(location, containingFile, element, true) ?: return null
             val renameAction = when {

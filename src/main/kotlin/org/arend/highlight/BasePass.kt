@@ -15,6 +15,7 @@ import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
+import org.arend.IArendFile
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.ReferenceExpression
@@ -59,14 +60,15 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
+import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.util.ArendBundle
 import java.util.*
 
-abstract class BasePass(protected val file: ArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+abstract class BasePass(open protected val file: IArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
 
     private val highlights = ArrayList<HighlightInfo>()
-    private val errorList = ArrayList<GeneralError>()
+    protected val errorList = ArrayList<GeneralError>()
 
     override fun applyInformationWithProgress() {
         val errorService = myProject.service<ErrorService>()
@@ -86,7 +88,7 @@ abstract class BasePass(protected val file: ArendFile, editor: Editor, name: Str
             if (isValid) {
                 UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
             }
-        }, ModalityState.stateForComponent(editor.component))
+        }, if (file is ArendExpressionCodeFragment) ModalityState.defaultModalityState() else ModalityState.stateForComponent(editor.component))
     }
 
     protected fun addHighlightInfo(builder: HighlightInfo.Builder): HighlightInfo? {

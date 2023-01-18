@@ -1,5 +1,6 @@
 package org.arend.psi
 
+import ai.grazie.text.replace
 import com.intellij.ide.util.EditSourceUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -12,7 +13,9 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.descendants
 import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.SmartList
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.module.config.ArendModuleConfigService
@@ -21,6 +24,7 @@ import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
 import org.arend.typechecking.error.ErrorService
+import java.util.SortedMap
 
 val PsiElement.theOnlyChild: PsiElement?
     get() = firstChild?.takeIf { it.nextSibling == null }
@@ -224,6 +228,32 @@ val PsiElement.extendLeft: PsiElement
         return result
     }
 
+enum class SpaceDirection {TrailingSpace, LeadingSpace}
+
+fun PsiElement?.getWhitespace(direction: SpaceDirection, includingPunctuation: Boolean = false): String? {
+    val parent = this?.parent ?: return null
+    val significantChildren = when (includingPunctuation) {
+        true -> parent.children.toList() // This list typically omits punctuation like "," or ":"
+        false -> parent.childrenWithLeaves.filter { it !is PsiWhiteSpace && it !is PsiComment }.toList()
+    }
+    var pointer = when (direction) {
+        SpaceDirection.TrailingSpace -> this.nextSibling
+        SpaceDirection.LeadingSpace -> this.prevSibling
+    }
+    var buffer = ""
+    while (pointer != null && !significantChildren.contains(pointer)) {
+        buffer = when (direction) {
+            SpaceDirection.TrailingSpace -> buffer + pointer.text
+            SpaceDirection.LeadingSpace -> pointer.text + buffer
+        }
+        pointer = when (direction) {
+            SpaceDirection.TrailingSpace -> pointer.nextSibling
+            SpaceDirection.LeadingSpace -> pointer.prevSibling
+        }
+    }
+    return buffer
+}
+
 val PsiElement.nextElement: PsiElement?
     get() {
         var current: PsiElement? = this
@@ -250,37 +280,17 @@ val PsiElement.prevElement: PsiElement?
 
 val PsiElement.oneLineText: String
     get() {
-        val text = text
-        return if (!text.contains('\n')) {
-            text
-        } else buildString {
-            var start = 0
-            var i = 0
-            while (i < text.length) {
-                if (text[i++] != '\n') continue
-                var j = i - 1
-                while (j >= start) {
-                    if (!text[j].isWhitespace()) break
-                    j--
-                }
-                if (j + 1 > start) {
-                    if (start > 0) {
-                        append(' ')
-                    }
-                    append(text.substring(start, j + 1))
-                }
-                i++
-                while (i < text.length) {
-                    if (!text[i].isWhitespace()) break
-                    i++
-                }
-                start = i
-            }
-            if (start < text.length) {
-                append(' ')
-                append(text.substring(start, text.length))
-            }
+        val descendants = descendants()
+        val ofs = startOffset
+        val modifications = HashMap<TextRange, String>()
+        descendants.filter { it is PsiWhiteSpace }.forEach { modifications[it.textRange] = " " }
+        descendants.filter { it is PsiComment && it.text.startsWith("-- ") }.forEach { modifications[it.textRange] = "{-${it.text.drop(3)}-}" }
+        var t = text
+        modifications.keys.sortedBy { -it.startOffset }.forEach {
+            t = t.replaceRange(it.startOffset - ofs, it.endOffset - ofs, modifications[it]!!)
         }
+
+        return t
     }
 
 enum class PositionKind {

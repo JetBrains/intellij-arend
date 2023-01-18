@@ -8,6 +8,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import org.arend.IArendFile
 import org.arend.ext.error.SourceInfo
 import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
@@ -57,7 +58,7 @@ fun getArendScope(element: ArendCompositeElement): Scope {
             // The last parameters is set to ONLY_EXTERNAL to prevent infinite recursion during resolving of references in \\extends
             LexicalScope.insideOf(classDef, classDef.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
         } else it.scope
-    } ?: (sourceNode.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
+    } ?: (sourceNode.containingFile as? IArendFile)?.scope ?: EmptyScope.INSTANCE
 
     val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope {
         val containingFile = sourceNode.containingFile?.originalFile as? ArendFile

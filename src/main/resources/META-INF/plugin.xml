@@ -303,9 +303,7 @@
         <nameSuggestionProvider implementation="org.arend.refactoring.rename.ArendAliasNameSuggestionProvider"/>
         <!-- Change Signature -->
         <refactoring.changeSignatureUsageProcessor implementation="org.arend.refactoring.changeSignature.ArendChangeSignatureUsageProcessor"
-                                                   id="Arend" />
-
-        <refactoring.changeSignatureUsageProcessor implementation="org.arend.refactoring.changeSignature.ArendChangeSignatureUsageProcessor"/>
+                                                   id="Arend"/>
 
         <!-- Notification groups -->
 

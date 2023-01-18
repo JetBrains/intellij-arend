@@ -7,16 +7,20 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import org.arend.IArendFile
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
+import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolverListener
 import org.arend.resolving.IntellijTCReferable
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteCompareVisitor
 import org.arend.term.group.Group
@@ -29,7 +33,7 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
 
-class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
+class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
 
     private val psiListenerService = service<ArendPsiChangeService>()
@@ -47,7 +51,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         if (myProject.service<TypeCheckingService>().isLoaded) {
-            setProgressLimit(numberOfDefinitions(file).toLong())
+            setProgressLimit(numberOfDefinitions(file as? Group).toLong())
             collectInfo(progress)
         }
     }
@@ -68,10 +72,10 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
     private fun collectInfo(progress: ProgressIndicator) {
         val service = myProject.service<TypeCheckingService>()
-        file.moduleLocation?.let {
+        (file as? ArendFile)?.moduleLocation?.let {
             service.cleanupTCRefMaps(it)
         }
-        file.traverseGroup { group ->
+        (file as? ArendFile)?.traverseGroup { group ->
             val ref = group.referable as? PsiLocatedReferable
             val tcRef = ref?.tcReferableCached
             if (tcRef is IntellijTCReferable && !tcRef.isEquivalent(ref)) {
@@ -79,7 +83,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             }
         }
 
-        DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, object : ArendResolverListener(myProject.service()) {
+        val resolveListener = object : ArendResolverListener(myProject.service()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
                 if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
@@ -142,6 +146,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
             }
 
             override fun definitionResolved(definition: Concrete.ResolvableDefinition) {
+                if (file !is ArendFile) return
                 progress.checkCanceled()
 
                 if (resetDefinition) {
@@ -174,11 +179,21 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
                 advanceProgress(1)
             }
-        }).resolveGroup(file, file.scope)
+        }
+        when (file) {
+            is ArendFile -> DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, resolveListener).resolveGroup(file, file.scope)
+            is ArendExpressionCodeFragment -> {
+                file.getExpr()?.let{ expr ->
+                    val concrete = ConcreteBuilder.convertExpression(expr)
+                    ExpressionResolveNameVisitor(ArendReferableConverter, file.scope, ArrayList(), this, resolveListener).resolve(concrete)
+                    file.fragmentResolved()
+                }
+            }
+        }
 
         concreteProvider.resolve = true
 
-        file.concreteDefinitions.values.removeIf {
+        (file as? ArendFile)?.concreteDefinitions?.values?.removeIf {
             val ref = it.data.underlyingReferable
             val remove = ref !is PsiLocatedReferable || ref.tcReferable != it.data
             if (remove) {
@@ -188,7 +203,7 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
         }
 
         val definitions = ArrayList<Concrete.Definition>()
-        file.traverseGroup { group ->
+        (file as? ArendFile)?.traverseGroup { group ->
             val ref = group.referable
             val def = concreteProvider.getConcrete(ref)
             if (def is Concrete.Definition) {
@@ -228,21 +243,22 @@ class ArendHighlightingPass(file: ArendFile, editor: Editor, textRange: TextRang
 
     override fun applyInformationWithProgress() {
         file.lastModification.updateAndGet { maxOf(it, lastModification) }
-        myProject.service<ErrorService>().clearNameResolverErrors(file)
+        if (file is ArendFile) myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
+        if (file !is ArendFile) return
 
         if (collector1.isEmpty && collector2.isEmpty) {
             return
         }
 
-        val typechecker = BackgroundTypechecker(myProject, instanceProviderSet, concreteProvider,
+        val typeChecker = BackgroundTypechecker(myProject, instanceProviderSet, concreteProvider,
             maxOf(lastDefinitionModification, psiListenerService.definitionModificationTracker.modificationCount))
         if (ApplicationManager.getApplication().isUnitTestMode) {
             // DaemonCodeAnalyzer.restart does not work in tests
-            typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, false)
+            typeChecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, false)
         } else {
             service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
-                typechecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, true)
+                typeChecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, true)
             }
         }
     }

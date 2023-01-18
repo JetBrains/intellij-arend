@@ -2,13 +2,11 @@ package org.arend.refactoring.changeSignature
 
 import com.intellij.refactoring.changeSignature.ParameterInfo
 
-class ArendParameterInfo constructor(
+data class ArendParameterInfo(
     private var name: String?,
     private var type: String?,
-    private val oldIndex: Int, // Should be -1 if it does not correspond to any old parameter
-    private var isExplicit: Boolean
-) : ParameterInfo {
-
+    private val oldIndex: Int, /* == -1, if does not correspond to an old parameter */
+    private var isExplicit: Boolean) : ParameterInfo {
     override fun getName(): String = name ?: "_"
 
     override fun getOldIndex(): Int = oldIndex
@@ -16,8 +14,7 @@ class ArendParameterInfo constructor(
     override fun getDefaultValue(): String = ""
 
     override fun setName(name: String?) {
-        if (name == null) return
-        this.name = name
+        this.name = name ?: return
     }
 
     override fun getTypeText(): String? = type
@@ -27,19 +24,13 @@ class ArendParameterInfo constructor(
     override fun setUseAnySingleVariable(b: Boolean) {}
 
     fun setType(type: String?) {
-        if (type == null) return
-        this.type = type
+        this.type = type ?: return
     }
 
     fun isExplicit(): Boolean = isExplicit
 
     fun switchExplicit() {
         isExplicit = !isExplicit
-    }
-
-    fun showTele(): String {
-        val (lParen, rParen) = if (isExplicit) Pair("(", ")") else Pair("{", "}")
-        return "$lParen$name : $type$rParen"
     }
 
     companion object {

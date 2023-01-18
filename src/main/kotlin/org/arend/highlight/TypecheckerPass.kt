@@ -12,7 +12,7 @@ import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 
-class TypecheckerPass(file: ArendFile, editor: Editor, highlightInfoProcessor: HighlightInfoProcessor)
+class TypecheckerPass(override val file: ArendFile, editor: Editor, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend typechecker annotator", TextRange(0, editor.document.textLength), highlightInfoProcessor) {
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {

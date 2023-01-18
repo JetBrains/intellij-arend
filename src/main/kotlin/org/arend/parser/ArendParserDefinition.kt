@@ -20,6 +20,7 @@ import org.arend.psi.doc.ArendDocReference
 import org.arend.psi.doc.ArendDocReferenceText
 import org.arend.psi.ext.*
 import org.arend.psi.stubs.ArendFileStub
+import org.arend.psi.ArendExpressionCodeFragmentElementType
 
 class ArendParserDefinition : ParserDefinition {
 
@@ -136,6 +137,7 @@ class ArendParserDefinition : ParserDefinition {
         UNIVERSE_EXPR -> ArendUniverseExpr(node)
         WHERE -> ArendWhere(node)
         WITH_BODY -> ArendWithBody(node)
+        ArendExpressionCodeFragmentElementType -> ArendExpr(node)
         else -> throw AssertionError("Unknown element type: $type")
     }
 }

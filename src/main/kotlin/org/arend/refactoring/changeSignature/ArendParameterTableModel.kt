@@ -1,75 +1,66 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.psi.PsiCodeFragment
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiTypeCodeFragment
-import com.intellij.psi.impl.source.PsiTypeCodeFragmentImpl
 import com.intellij.refactoring.changeSignature.ParameterTableModelBase
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
+import com.intellij.refactoring.ui.CodeFragmentTableCellEditorBase
 import com.intellij.ui.BooleanTableCellEditor
 import com.intellij.ui.BooleanTableCellRenderer
 import org.arend.ArendFileType
+import org.arend.ext.module.LongName
+import org.arend.psi.ArendExpressionCodeFragment
+import org.arend.util.FileUtils.isCorrectDefinitionName
+import java.awt.Component
+import java.util.Collections.singletonList
+import javax.swing.JTable
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 
-class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, defaultValueContext: PsiElement):
-    ParameterTableModelBase<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor), ArendTypeColumn(descriptor), ArendImplicitnessColumn()) {
-    override fun createRowItem(parameterInfo: ArendParameterInfo?): ParameterTableModelItemBase<ArendParameterInfo> {
+class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
+                               private val dialog: ArendChangeSignatureDialog,
+                               defaultValueContext: PsiElement):
+    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor, dialog), ArendImplicitnessColumn()) {
+
+    override fun createRowItem(parameterInfo: ArendParameterInfo?): ArendChangeSignatureDialogParameterTableModelItem {
         val resultParameterInfo = if (parameterInfo == null) {
             val newParameter = ArendParameterInfo.createEmpty()
             newParameter
         } else parameterInfo
 
-        val typeCodeFragment = PsiTypeCodeFragmentImpl(
-            myTypeContext.project,
-            true,
-            "fragment.ard",
-            resultParameterInfo.typeText,
-            0,
-            myTypeContext
-        )
-
-        return object : ParameterTableModelItemBase<ArendParameterInfo>(
-            resultParameterInfo,
-            typeCodeFragment,
-            null
-        ) {
-            override fun isEllipsisType(): Boolean = false
-        }
+        return ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo, ArendExpressionCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "", myTypeContext, dialog))
     }
 
-    @Suppress("UnstableApiUsage")
-    override fun removeRow(idx: Int) {
-        super.removeRow(idx)
-    }
-
-    private class ArendNameColumn(private val descriptor: ArendChangeSignatureDescriptor) :
-        NameColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(descriptor.method.project) {
-        override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>, value: String?) {
+    private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
+        override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
             value ?: return
-            val oldName = item.parameter.name
+            val items = dialog.getParameterTableItems().toHashSet(); items.remove(item)
+            if (!items.any { it.parameter.name == value } && isCorrectDefinitionName(LongName(singletonList(value)))) {
+                dialog.refactorParameterNames(item, value)
+                super.setValue(item, value)
+            }
+        }
 
-            // update all types where current element appears
-            for (parameter in descriptor.parameters) {
-                val typeText = parameter.typeText ?: continue
-                // TODO: rewrite checking
-                if (typeText.contains(oldName) && oldName.isNotEmpty()) {
-                    parameter.setType(typeText.replace(oldName, value))
+    }
+
+    private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog) :
+        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileType) {
+        override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
+            val fragment = value as? ArendExpressionCodeFragment ?: return
+            item?.parameter?.setType(fragment.text)
+        }
+
+        override fun doCreateEditor(o: ArendChangeSignatureDialogParameterTableModelItem?): TableCellEditor {
+            return object: CodeFragmentTableCellEditorBase(myProject, ArendFileType) {
+                override fun getTableCellEditorComponent(table: JTable?, value: Any?, isSelected: Boolean, row: Int, column: Int): Component {
+                    clearListeners()
+                    val result = super.getTableCellEditorComponent(table, value, isSelected, row, column)
+                    val myDocument = PsiDocumentManager.getInstance(myProject).getDocument(myCodeFragment)
+                    if (myDocument != null) dialog.commonTypeFragmentListener.installDocumentListener(myDocument)
+                    return result
                 }
             }
-
-            super.setValue(item, value)
-        }
-    }
-
-    private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor) :
-        TypeColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(
-            descriptor.method.project,
-            ArendFileType
-        ) {
-        override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>?, value: PsiCodeFragment) {
-            val fragment = value as? PsiTypeCodeFragment ?: return
-            item?.parameter?.setType(fragment.text)
         }
     }
 
