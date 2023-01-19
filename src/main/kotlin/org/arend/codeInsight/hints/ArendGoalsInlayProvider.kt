@@ -23,7 +23,8 @@ class ArendGoalsInlayProvider : ArendDefinitionInlayProvider() {
         get() = "Shows definitions with goals used by a definition"
 
     override fun getText(definition: Definition): String? {
-        val goals = definition.goals
-        return if (goals.isEmpty() || goals.size == 1 && goals.contains(definition)) null else "Goals: " + goals.joinToString()
+        val goals = HashSet(definition.goals)
+        goals.remove(definition)
+        return if (goals.isEmpty()) null else "Goals: " + goals.map { it.ref.refLongName }.joinToString()
     }
 }
