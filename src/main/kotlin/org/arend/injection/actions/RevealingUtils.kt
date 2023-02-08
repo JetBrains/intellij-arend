@@ -3,6 +3,7 @@ package org.arend.injection.actions
 import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.*
+import org.arend.extImpl.UncheckedExpressionImpl
 
 fun Doc.withNormalizedTerms(cache: NormalizationCache, ppConfig: PrettyPrinterConfig): Doc {
     return this.accept(DocMapper(ppConfig), cache::getNormalizedExpression)
@@ -42,6 +43,6 @@ private class DocMapper(val config: PrettyPrinterConfig) : DocVisitor<(Expressio
     }
 
     override fun visitTerm(doc: TermDoc, params: (Expression) -> Expression): Doc {
-        return DocFactory.termDoc(params(doc.term as Expression), config)
+        return DocFactory.termDoc(params(UncheckedExpressionImpl.extract(doc.term)), config)
     }
 }

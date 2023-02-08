@@ -5,6 +5,7 @@ import com.intellij.openapi.util.TextRange
 import org.arend.core.expr.Expression
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.doc.*
+import org.arend.extImpl.UncheckedExpressionImpl
 import org.arend.typechecking.error.createHyperlinkInfo
 
 
@@ -49,7 +50,7 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
         }
 
         if (doc.isFirst) {
-            (doc.term as? Expression)?.let { expressions.add(it) }
+            expressions.add(UncheckedExpressionImpl.extract(doc.term))
         }
 
         if (doc.isFirst || last == null) {
