@@ -195,8 +195,11 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test completion in resulting type`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LEVEL_KW_LIST, CompletionCondition.SAME_KEYWORDS,
                     "\\func foo (a : Nat) : {-caret-}",
-                    "\\class C { | f : {-caret-} }",
                     "\\class C\n  | f : {-caret-}")
+
+    fun `test completion in resulting type 2`() =
+        checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LEVEL_KW_LIST + THIS_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            "\\class C { | f : {-caret-} }")
 
     fun `test no keyword completion after instance, open or wrong state`() =
             checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
@@ -280,12 +283,19 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\func lol (a : Nat) => \\Pi \\Set -> {-caret-}",
                     "\\func lol (a : Nat) \\elim a | zero => {-caret-}",
                     "\\func g => 101 (\\lam a => {-caret-})",
-                    "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }",
                     "\\class C (x : Nat)\n\\instance foo : C\n  | x => {-caret-}",
                     "\\class C (A : {-caret-})",
                     "\\class C (A : \\Pi (A : \\Type) -> {-caret-}",
                     "\\func lol : \\level ({-caret-})",
                     "\\func lol : \\level (Nat) ({-caret-})")
+
+    fun `test expression keywords 2`() = checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + THIS_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+        "\\class Y { | y : Nat } \\class Z \\extends Y {| y => {-caret-} }")
+
+    fun `test expression keywords 3`() =
+        checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
+            "\\func f (a : Nat) => f({-caret-})")
+
 
     fun `test expression keywords for sigma`() = checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + SIGMA_TELE_START_KWS, CompletionCondition.SAME_KEYWORDS,
             "\\func f (a : Nat) => \\Sigma ({-caret-})"
@@ -295,10 +305,6 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(emptyList(), CompletionCondition.SAME_KEYWORDS,
                     "\\func lol : \\level {-caret-}",
                     "\\func lol : \\level (Nat) {-caret-}")
-
-    fun `test expression keywords 2`() =
-            checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST + LPH_LEVEL_KWS, CompletionCondition.SAME_KEYWORDS,
-                    "\\func f (a : Nat) => f({-caret-})")
 
     fun `test expression keywords in teles`() =
             checkKeywordCompletionVariants(DATA_OR_EXPRESSION_KW + FAKE_NTYPE_LIST, CompletionCondition.SAME_KEYWORDS,
@@ -636,4 +642,12 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
 
     fun test_as_pattern() = checkKeywordCompletionVariants(AS_KW_LIST, CompletionCondition.CONTAINS,
             "\\func f (x : Nat) : Nat\n  | 0 => 0\n  | suc x {-caret-} => x'")
+
+    fun test_this() = checkKeywordCompletionVariants(THIS_KW_LIST, CompletionCondition.CONTAINS,
+        "\\class Foo { \\func foo => Path { {-caret-} } }",
+        "\\class Foo (X : \\Set) { \\func lol : Foo \\cowith { | X => {-caret-} }}",
+        "\\class Foo (X : \\Set) { \\instance Lol : Foo | X => {-caret-} }"
+    )
+
+
 }

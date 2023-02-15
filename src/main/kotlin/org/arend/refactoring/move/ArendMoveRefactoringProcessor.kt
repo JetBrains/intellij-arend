@@ -125,17 +125,6 @@ class ArendMoveRefactoringProcessor(project: Project,
         return result
     }
 
-    private fun isInDynamicPart(childPsi: PsiElement): ArendDefClass? {
-        var psi: PsiElement? = childPsi
-        var result = false
-        while (psi != null) {
-            if (psi is ArendClassStat) result = true
-            if (psi is ArendDefClass) return if (result) psi else null
-            psi = psi.parent
-        }
-        return null
-    }
-
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         var insertAnchor: PsiElement?
         val psiFactory = ArendPsiFactory(myProject)

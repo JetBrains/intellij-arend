@@ -386,3 +386,14 @@ fun Editor.getSelectionWithoutErrors(): TextRange? =
 
  fun parentArgumentAppExpr(atomFieldsAcc: ArendAtomFieldsAcc?): ArendArgumentAppExpr? =
         atomFieldsAcc?.parent?.let { if (it is ArendAtomArgument) it.parent else it } as? ArendArgumentAppExpr
+
+fun isInDynamicPart(childPsi: PsiElement): ArendDefClass? {
+    var psi: PsiElement? = childPsi
+    var result = false
+    while (psi != null) {
+        if (psi is ArendClassStat || psi is ArendClassImplement) result = true
+        if (psi is ArendDefClass) return if (result) psi else null
+        psi = psi.parent
+    }
+    return null
+}

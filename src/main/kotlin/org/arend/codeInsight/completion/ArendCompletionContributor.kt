@@ -380,6 +380,16 @@ class ArendCompletionContributor : CompletionContributor() {
         }
 
         basic(or(ARGUMENT_EXPRESSION, ATOM_LEVEL_CONTEXT), LPH_KW_LIST, unifiedLevelCondition.invoke(0, false, 2))
+
+        fun trueForPsiOrFragmentContext (condition: (PsiElement) -> Boolean, psi : PsiElement) : Boolean =
+            condition(psi) || psi.ancestor<ArendExpressionCodeFragment>()?.context?.let{ condition(it) } == true
+
+        basic(or(ARGUMENT_EXPRESSION, EXPRESSION_CONTEXT,
+            withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendAtomArgument::class.java, ArendArgumentAppExpr::class.java),
+            withAncestors(PsiErrorElement::class.java, ArendNewExpr::class.java)), THIS_KW_LIST) { cP: CompletionParameters ->
+            trueForPsiOrFragmentContext({psi -> ((psi.parent?.parent as? ArendNewExpr)?.let { it.lbrace != null } ?: true) && (isInDynamicPart(psi) != null)}, cP.position)
+        }
+
         basic(ARGUMENT_EXPRESSION, LEVELS_KW_LIST, unifiedLevelCondition.invoke(0, true, 1))
         basic(or(ARGUMENT_EXPRESSION_IN_BRACKETS, ATOM_LEVEL_CONTEXT), LPH_LEVEL_KWS, unifiedLevelCondition.invoke(1, false, 2))
 
@@ -538,7 +548,8 @@ class ArendCompletionContributor : CompletionContributor() {
         private val DATA_OR_EXPRESSION_CONTEXT = or(DATA_CONTEXT, EXPRESSION_CONTEXT, TELE_CONTEXT, FIRST_TYPE_TELE_CONTEXT)
 
         private val ARGUMENT_EXPRESSION = or(withAncestors(*(ATOM_FIELDS_ACC_PREFIX + arrayOf(ArendAtomArgument::class.java))),
-                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java))
+                withAncestors(PsiErrorElement::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java),
+                withAncestors(*(NEW_EXPR_PREFIX + listOf(ArendTupleExpr::class.java, ArendImplicitArgument::class.java, ArendArgumentAppExpr::class.java))))
 
         private val ATOM_LEVEL_CONTEXT =
                or(withAncestors(*(ATOM_LEVEL_PREFIX + arrayOf(ArendLevelExpr::class.java))),
@@ -734,7 +745,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    private open class ConditionalProvider(keywords: Collection<String>, val condition: (CompletionParameters) -> Boolean,
+    private open class ConditionalProvider(val keywords: Collection<String>, val condition: (CompletionParameters) -> Boolean,
                                            completionBehavior: KeywordCompletionBehavior = KeywordCompletionBehavior.ADD_WHITESPACE,
                                            disableAfter2Crlfs: Boolean = true) :
             KeywordCompletionProvider(keywords, completionBehavior, disableAfter2Crlfs) {
