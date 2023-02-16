@@ -20,7 +20,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class C (foo : Nat)\n  | \\classifying {-caret-}",
                     "\\class C (foo : Nat) {\n  | \\coerce {-caret-}\n}",
                     "\\class C (foo : Nat) {\n  | \\classifying {-caret-}\n}",
-                    "\\class C (foo : Nat)\n   | \\coerce {-caret-} bar : Nat")
+                    "\\class C (foo : Nat)\n   | \\coerce {-caret-} bar : Nat",
+                    "\\func f \\alias {-caret-} => {?}")
 
     fun `test fixity + coerce completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST, CompletionCondition.SAME_KEYWORDS,

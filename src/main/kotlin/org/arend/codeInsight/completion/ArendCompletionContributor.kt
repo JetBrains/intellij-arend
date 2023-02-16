@@ -425,7 +425,9 @@ class ArendCompletionContributor : CompletionContributor() {
                 withAncestors(PsiErrorElement::class.java, ArendDefModule::class.java),
                 after(and(withParent(ArendDefIdentifier::class.java), withGrandParents(ArendDefData::class.java, ArendDefInstance::class.java,
                         ArendDefFunction::class.java, ArendConstructor::class.java, ArendDefClass::class.java, ArendClassField::class.java))),
-                after(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java)))), ALIAS_KW_LIST)
+                after(withAncestors(ArendRefIdentifier::class.java, ArendLongName::class.java, ArendClassImplement::class.java)))), ALIAS_KW_LIST) {cP ->
+            cP.position.ancestor<ReferableBase<*>>()?.alias == null
+        }
 
         basic(and(afterLeaf(ID), after(and(withParent(ArendDefIdentifier::class.java), withGrandParents(ArendDefData::class.java, ArendDefInstance::class.java,
                 ArendDefFunction::class.java, ArendDefClass::class.java)))), PH_LEVELS_KW_LIST)
@@ -485,7 +487,7 @@ class ArendCompletionContributor : CompletionContributor() {
         private val ATOM_LEVEL_PREFIX = arrayOf<Class<out PsiElement>>(ArendRefIdentifier::class.java, ArendAtomLevelExpr::class.java)
 
         private val PREC_CONTEXT = or(
-                afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, TYPE_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW, AXIOM_KW),
+                afterLeaves(FUNC_KW, SFUNC_KW, LEMMA_KW, TYPE_KW, CONS_KW, DATA_KW, CLASS_KW, RECORD_KW, AXIOM_KW, ALIAS_KW),
                 and(afterLeaf(AS_KW), withGrandParent(ArendNsId::class.java)),
                 and(afterLeaf(FAT_ARROW), withGrandParents(ArendConstructor::class.java, ArendConstructorClause::class.java)), //data type constructors with patterns
                 and(afterLeaves(PIPE, FIELD_KW, PROPERTY_KW, COERCE_KW, CLASSIFYING_KW),
