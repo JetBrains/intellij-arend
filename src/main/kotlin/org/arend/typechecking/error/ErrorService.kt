@@ -129,16 +129,18 @@ class ErrorService : ErrorReporter {
     fun updateTypecheckingErrors(file: ArendFile, definition: TCDefinition?) {
         val arendErrors = typecheckingErrors[file]
         if (arendErrors != null) {
-            val it = arendErrors.iterator()
-            while (it.hasNext()) {
-                val arendError = it.next()
-                val errorCause = arendError.cause
-                if (errorCause == null || errorCause.ancestor<PsiConcreteReferable>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
-                    it.remove()
+            synchronized(arendErrors) {
+                val it = arendErrors.iterator()
+                while (it.hasNext()) {
+                    val arendError = it.next()
+                    val errorCause = arendError.cause
+                    if (errorCause == null || errorCause.ancestor<PsiConcreteReferable>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
+                        it.remove()
+                    }
                 }
-            }
-            if (arendErrors.isEmpty()) {
-                typecheckingErrors.remove(file)
+                if (arendErrors.isEmpty()) {
+                    typecheckingErrors.remove(file)
+                }
             }
         }
     }
