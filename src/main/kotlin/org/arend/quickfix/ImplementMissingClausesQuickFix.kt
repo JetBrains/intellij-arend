@@ -7,7 +7,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import com.intellij.util.containers.tail
 import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.definition.Definition
 import org.arend.core.expr.DefCallExpression
@@ -161,9 +160,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                             } ?: (cause.addAfter(psiFactory.createWithBody(), caseExprAnchor) as ArendWithBody).lbrace))
                 }
                 is ArendLongName -> {
-                    val newExpr = ((cause.parent as? ArendLongNameExpr
-                            ?: cause.ancestor<ArendAtomFieldsAcc>())?.parent as? ArendArgumentAppExpr)?.ancestor<ArendNewExpr>()
-                    findWithBodyAnchor(newExpr, psiFactory)
+                    findWithBodyAnchor(cause.ancestor(), psiFactory)
                 }
                 is ArendWithBody -> findWithBodyAnchor(cause.parent as? ArendNewExpr, psiFactory)
                 else -> null
