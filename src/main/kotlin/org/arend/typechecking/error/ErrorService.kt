@@ -17,8 +17,8 @@ import java.util.*
 
 
 class ErrorService : ErrorReporter {
-    private val nameResolverErrors = WeakHashMap<ArendFile, MutableList<ArendError>>()
-    private val typecheckingErrors = WeakHashMap<ArendFile, MutableList<ArendError>>()
+    private val nameResolverErrors = Collections.synchronizedMap(WeakHashMap<ArendFile, MutableList<ArendError>>())
+    private val typecheckingErrors = Collections.synchronizedMap(WeakHashMap<ArendFile, MutableList<ArendError>>())
 
     private fun isValid(file: ArendFile) = file.isWritable
 
@@ -70,14 +70,16 @@ class ErrorService : ErrorReporter {
         }
     }
 
-    private fun getErrors(map: WeakHashMap<ArendFile, MutableList<ArendError>>, result: HashMap<ArendFile, ArrayList<ArendError>>) {
-        val iter = map.entries.iterator()
-        while (iter.hasNext()) {
-            val entry = iter.next()
-            if (isValid(entry.key)) {
-                result.computeIfAbsent(entry.key) { ArrayList() }.addAll(entry.value)
-            } else {
-                iter.remove()
+    private fun getErrors(map: MutableMap<ArendFile, MutableList<ArendError>>, result: HashMap<ArendFile, ArrayList<ArendError>>) {
+        synchronized(map) {
+            val iter = map.entries.iterator()
+            while (iter.hasNext()) {
+                val entry = iter.next()
+                if (isValid(entry.key)) {
+                    result.computeIfAbsent(entry.key) { ArrayList() }.addAll(entry.value)
+                } else {
+                    iter.remove()
+                }
             }
         }
     }
@@ -86,27 +88,27 @@ class ErrorService : ErrorReporter {
         get() {
             val result = HashMap<ArendFile, ArrayList<ArendError>>()
             getErrors(nameResolverErrors, result)
-            synchronized(typecheckingErrors) {
-                getErrors(typecheckingErrors, result)
-            }
+            getErrors(typecheckingErrors, result)
             return result
         }
 
-    private fun hasErrors(map: WeakHashMap<ArendFile, MutableList<ArendError>>): Boolean {
-        val iter = map.entries.iterator()
-        while (iter.hasNext()) {
-            val entry = iter.next()
-            if (isValid(entry.key)) {
-                return true
-            } else {
-                iter.remove()
+    private fun hasErrors(map: MutableMap<ArendFile, MutableList<ArendError>>): Boolean {
+        synchronized(map) {
+            val iter = map.entries.iterator()
+            while (iter.hasNext()) {
+                val entry = iter.next()
+                if (isValid(entry.key)) {
+                    return true
+                } else {
+                    iter.remove()
+                }
             }
         }
         return false
     }
 
     val hasErrors: Boolean
-        get() = hasErrors(nameResolverErrors) || synchronized(typecheckingErrors) { hasErrors(typecheckingErrors) }
+        get() = hasErrors(nameResolverErrors) || hasErrors(typecheckingErrors)
 
     fun getErrors(file: ArendFile): List<ArendError> =
         if (checkValid(file)) {
