@@ -61,7 +61,10 @@ class ErrorService : ErrorReporter {
 
                 val file = element.containingFile as? ArendFile ?: continue
                 if (checkValid(file)) {
-                    typecheckingErrors.computeIfAbsent(file) { ArrayList() }.add(ArendError(error, pointer))
+                    val errorList = typecheckingErrors.computeIfAbsent(file) { ArrayList() }
+                    synchronized(errorList) {
+                        errorList.add(ArendError(error, pointer))
+                    }
                 }
             }
         }
@@ -83,7 +86,9 @@ class ErrorService : ErrorReporter {
         get() {
             val result = HashMap<ArendFile, ArrayList<ArendError>>()
             getErrors(nameResolverErrors, result)
-            getErrors(typecheckingErrors, result)
+            synchronized(typecheckingErrors) {
+                getErrors(typecheckingErrors, result)
+            }
             return result
         }
 
@@ -101,7 +106,7 @@ class ErrorService : ErrorReporter {
     }
 
     val hasErrors: Boolean
-        get() = hasErrors(nameResolverErrors) || hasErrors(typecheckingErrors)
+        get() = hasErrors(nameResolverErrors) || synchronized(typecheckingErrors) { hasErrors(typecheckingErrors) }
 
     fun getErrors(file: ArendFile): List<ArendError> =
         if (checkValid(file)) {
