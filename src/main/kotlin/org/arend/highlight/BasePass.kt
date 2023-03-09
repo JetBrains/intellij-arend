@@ -360,13 +360,23 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 registerFix(builder, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
             }
 
-            is TypecheckingError -> for (quickFix in error.quickFixes) {
-                val sourceNode = quickFix.replacement
-                if (sourceNode == null) {
-                    val target = getTargetPsiElement(quickFix, cause)
-                    when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
-                        is ArendArgument -> registerFix(builder, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
-                        is ArendTupleExpr -> registerFix(builder, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
+            is TypecheckingError -> when (error) {
+                is ArgumentExplicitnessError -> {
+                    if (cause is ArendAtom) {
+                        registerFix(info, ExplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                    }
+                }
+                else -> {
+                    for (quickFix in error.quickFixes) {
+                        val sourceNode = quickFix.replacement
+                        if (sourceNode == null) {
+                            val target = getTargetPsiElement(quickFix, cause)
+                            when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
+                                is ArendArgument -> registerFix(info, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
+                                is ArendTupleExpr -> registerFix(info, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
+                            }
+                        }
+
                     }
                 }
             }

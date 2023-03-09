@@ -7,7 +7,7 @@ class ExplicitnessTest : QuickFixTestBase() {
     fun testExplicitness() = typedQuickFixTest(ArendBundle.message("arend.argument.explicitness"), """
         \func f (a : Nat) => a
 
-        \func f1 => f {0} 0
+        \func f1 => f {0{-caret-}}
     """, """
         \func f (a : Nat) => a
 
