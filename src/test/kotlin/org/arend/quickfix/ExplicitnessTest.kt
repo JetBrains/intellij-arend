@@ -19,7 +19,7 @@ class ExplicitnessTest : QuickFixTestBase() {
             | field {A : \Type} : A
 
         \func test : record \cowith
-            | field \as \fix 5 f t => {?}
+            | field \as \fix 5 f t{-caret-} => {?}
     """, """
         \record record
             | field {A : \Type} : A

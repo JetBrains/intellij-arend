@@ -362,8 +362,11 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
             is TypecheckingError -> when (error) {
                 is ArgumentExplicitnessError -> {
-                    if (cause is ArendAtom) {
+                    val message = error.message
+                    if (message.contains("explicit")) {
                         registerFix(info, ExplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                    } else if (message.contains("implicit")) {
+                        registerFix(info, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
                     }
                 }
                 else -> {
