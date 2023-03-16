@@ -69,6 +69,12 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
             }
             PsiTreeUtil.processElements(pair.first) { it.accept(visitor); true }
         }
+        for (range in file.errorRanges) {
+            val info = HighlightInfo.newHighlightInfo(HighlightInfoType.WEAK_WARNING).range(range).create()
+            if (info != null) {
+                highlights.add(info)
+            }
+        }
     }
 
     override fun doApplyInformationToEditor() {

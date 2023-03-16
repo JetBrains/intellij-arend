@@ -12,6 +12,7 @@ import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import org.arend.core.context.param.DependentLink
@@ -45,6 +46,7 @@ import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
+import org.arend.typechecking.error.local.TypeMismatchWithSubexprError
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -148,6 +150,21 @@ abstract class InjectedArendEditor(
                     injectionRanges = visitor.textRanges
                     scope = fileScope
                     injectedExpressions = visitor.expressions
+                    errorRanges.clear()
+                    var i = 0
+                    for (arendError in treeElement.errors) {
+                        val error = arendError.error as? TypeMismatchWithSubexprError ?: continue
+                        error.termDoc2.init()
+                        if (error.termDoc2.end > error.termDoc2.begin) {
+                            addErrorRange(TextRange(error.termDoc2.begin, error.termDoc2.end), injectionRanges[i])
+                        }
+                        if (++i >= injectionRanges.size) break
+                        error.termDoc1.init()
+                        if (error.termDoc1.end > error.termDoc1.begin) {
+                            addErrorRange(TextRange(error.termDoc1.begin, error.termDoc1.end), injectionRanges[i])
+                        }
+                        if (++i >= injectionRanges.size) break
+                    }
                 }
                 postWriteCallback()
                 UndoManager.getInstance(project).undoableActionPerformed(UnblockingDocumentAction(editor.document, id, true))

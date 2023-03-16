@@ -13,6 +13,7 @@ class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTe
     var injectionRanges = ArrayList<List<TextRange>>()
     var injectedExpressions = ArrayList<Expression?>()
     var scope: Scope = EmptyScope.INSTANCE
+    var errorRanges = ArrayList<TextRange>()
 
     val hasInjection: Boolean
         get() = injectionRanges.isNotEmpty()
@@ -22,4 +23,23 @@ class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTe
     }
 
     override fun getFileType() = InjectionTextFileType
+
+    private fun insertPosition(pos: Int, injectionRanges: List<TextRange>, inclusive: Boolean): Int {
+        var skipped = 0
+        for (injectionRange in injectionRanges) {
+            if (if (inclusive) pos <= skipped + injectionRange.length else pos < skipped + injectionRange.length) {
+                return injectionRange.startOffset + pos
+            }
+            skipped += injectionRange.length
+        }
+        return -1
+    }
+
+    fun addErrorRange(range: TextRange, injectionRanges: List<TextRange>) {
+        val start = insertPosition(range.startOffset, injectionRanges, false)
+        val end = insertPosition(range.endOffset, injectionRanges, true)
+        if (start >= 0 && end >= 0) {
+            errorRanges.add(TextRange(start, end))
+        }
+    }
 }
