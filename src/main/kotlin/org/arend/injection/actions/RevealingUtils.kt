@@ -4,6 +4,7 @@ import org.arend.core.expr.Expression
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.*
 import org.arend.extImpl.UncheckedExpressionImpl
+import org.arend.term.prettyprint.TermWithSubtermDoc
 
 fun Doc.withNormalizedTerms(cache: NormalizationCache, ppConfig: PrettyPrinterConfig): Doc {
     return this.accept(DocMapper(ppConfig), cache::getNormalizedExpression)
@@ -43,6 +44,6 @@ private class DocMapper(val config: PrettyPrinterConfig) : DocVisitor<(Expressio
     }
 
     override fun visitTerm(doc: TermDoc, params: (Expression) -> Expression): Doc {
-        return DocFactory.termDoc(params(UncheckedExpressionImpl.extract(doc.term)), config)
+        return if (doc is TermWithSubtermDoc) TermWithSubtermDoc(params(UncheckedExpressionImpl.extract(doc.term)), doc.subterm, doc.levels, config) else DocFactory.termDoc(params(UncheckedExpressionImpl.extract(doc.term)), config)
     }
 }
