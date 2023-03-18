@@ -11,7 +11,7 @@ import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendNameTele
 import org.arend.util.ArendBundle
 
-class ImplicitnessQuickFix(val cause: SmartPsiElementPointer<PsiElement>) : IntentionAction {
+class ImplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getText(): String = ArendBundle.message("arend.argument.implicitness")

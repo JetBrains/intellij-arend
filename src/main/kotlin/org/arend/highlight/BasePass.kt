@@ -61,6 +61,7 @@ import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.psi.ArendExpressionCodeFragment
+import org.arend.typechecking.error.local.inference.FunctionArgInferenceError
 import org.arend.util.ArendBundle
 import java.util.*
 
@@ -360,26 +361,28 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 registerFix(builder, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
             }
 
-            is TypecheckingError -> when (error) {
-                is ArgumentExplicitnessError -> {
-                    val message = error.message
-                    if (message.contains("explicit")) {
-                        registerFix(info, ExplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
-                    } else if (message.contains("implicit")) {
-                        registerFix(info, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
-                    }
+            is ArgumentExplicitnessError -> {
+                val message = error.message
+                if (message.contains("explicit")) {
+                    registerFix(info, ExplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                } else if (message.contains("implicit")) {
+                    registerFix(info, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
                 }
-                else -> {
-                    for (quickFix in error.quickFixes) {
-                        val sourceNode = quickFix.replacement
-                        if (sourceNode == null) {
-                            val target = getTargetPsiElement(quickFix, cause)
-                            when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
-                                is ArendArgument -> registerFix(info, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
-                                is ArendTupleExpr -> registerFix(info, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
-                            }
-                        }
+            }
 
+            is FunctionArgInferenceError -> {
+                if (error.definition != null) {
+                    registerFix(info, FunctionArgInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
+                }
+            }
+
+            is TypecheckingError -> for (quickFix in error.quickFixes) {
+                val sourceNode = quickFix.replacement
+                if (sourceNode == null) {
+                    val target = getTargetPsiElement(quickFix, cause)
+                    when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
+                        is ArendArgument -> registerFix(info, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
+                        is ArendTupleExpr -> registerFix(info, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
                     }
                 }
             }

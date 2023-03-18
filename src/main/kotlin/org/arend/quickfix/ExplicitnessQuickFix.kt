@@ -13,7 +13,7 @@ import org.arend.psi.ext.ArendAtomArgument
 import org.arend.psi.ext.ArendImplicitArgument
 import org.arend.util.ArendBundle
 
-class ExplicitnessQuickFix(val cause: SmartPsiElementPointer<PsiElement>) : IntentionAction {
+class ExplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getText(): String = ArendBundle.message("arend.argument.explicitness")
