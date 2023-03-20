@@ -361,6 +361,10 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 registerFix(builder, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
             }
 
+            is DataUniverseError -> {
+                registerFix(info, DataUniverseQuickFix(SmartPointerManager.createPointer(cause), error))
+            }
+
             is ArgumentExplicitnessError -> {
                 val message = error.message
                 if (message.contains("explicit")) {
