@@ -1,7 +1,6 @@
 package org.arend.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
-import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -35,10 +34,7 @@ class ImplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
 
         val psiFactory = ArendPsiFactory(project)
         val nameTele = psiFactory.createNameTele(cause.element!!.text, null, false)
-
-        runWriteAction {
-            element.replace(nameTele)
-        }
+        element.replace(nameTele)
     }
 
     override fun getElementToMakeWritable(currentFile: PsiFile) = currentFile

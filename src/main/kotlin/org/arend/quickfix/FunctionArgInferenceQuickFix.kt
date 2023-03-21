@@ -8,6 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.*
 import org.arend.psi.ext.*
+import org.arend.refactoring.moveCaretToEndOffset
 import org.arend.resolving.ArendReferenceBase
 import org.arend.typechecking.error.local.inference.FunctionArgInferenceError
 import org.arend.util.ArendBundle
@@ -33,7 +34,7 @@ class FunctionArgInferenceQuickFix(
             }
         }
 
-        val arendDefFunction = ArendReferenceBase.createArendLookUpElement(error.definition.referable, file, false, null, false, "")!!.`object` as ArendDefFunction
+        val arendDefFunction = ArendReferenceBase.createArendLookUpElement(error.definition.referable, null, false, null, false, "")!!.`object` as ArendDefFunction
         val universes = mutableListOf<String>()
 
         val functionSignature = getFunctionSignature(arendDefFunction, universes)
@@ -52,16 +53,24 @@ class FunctionArgInferenceQuickFix(
         val definedType = psiFactory.createExpression("foo {_}").childOfType<ArendImplicitArgument>()!!
         val whiteSpace = psiFactory.createWhitespace(" ")
 
+        var firstMissedUndefinedIndex: Int? = null
         missedIndexed.forEach {
             val curChildrenSize = element.children.size
             if (definedTypes.contains(functionSignature[it].first)) {
                 element.addAfter(definedType, element.children[it].nextElement)
             } else {
                 element.addAfter(undefinedType, element.children[it].nextElement)
+                if (firstMissedUndefinedIndex == null) {
+                    firstMissedUndefinedIndex = it
+                }
             }
             if (it + 1 < curChildrenSize) {
                 element.addAfter(whiteSpace, element.children[it + 1])
             }
+        }
+
+        if (editor != null && firstMissedUndefinedIndex != null) {
+            moveCaretToEndOffset(editor, element.children[firstMissedUndefinedIndex!! + 1])
         }
     }
 

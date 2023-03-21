@@ -1,7 +1,6 @@
 package org.arend.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
-import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -37,9 +36,7 @@ class ExplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
 
         val psiFactory = ArendPsiFactory(project)
         val atom = psiFactory.createExpression("foo ${cause.element!!.text}").childOfType<ArendAtomArgument>()!!
-        runWriteAction {
-            element.replace(atom)
-        }
+        element.replace(atom)
     }
 
     override fun getElementToMakeWritable(currentFile: PsiFile) = currentFile
