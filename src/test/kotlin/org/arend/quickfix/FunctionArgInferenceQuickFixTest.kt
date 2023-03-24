@@ -44,6 +44,34 @@ class FunctionArgInferenceQuickFixTest : QuickFixTestBase() {
         \func f7 => f6 {_} {{?}}{-caret-} 0
     """)
 
+    fun testList1() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
+        \data List (A : \Type) | nil | cons A (List A)
+
+        \func foo (X : \Type) (l : List X) => l
+        
+        \func bar => foo{-caret-} _ nil
+    """, """
+        \data List (A : \Type) | nil | cons A (List A)
+
+        \func foo (X : \Type) (l : List X) => l
+        
+        \func bar => foo {?} nil
+    """)
+
+    fun testList2() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
+        \data List (A : \Type) | nil | cons A (List A)
+
+        \func foo (X : \Type) (l : List X) => l
+        
+        \func bar => foo _ nil{-caret-}
+    """, """
+        \data List (A : \Type) | nil | cons A (List A)
+
+        \func foo (X : \Type) (l : List X) => l
+        
+        \func bar => foo _ (nil {{?}})
+    """)
+
 
     /* doesn't work with lambda because error.definition is null
     * \func f => \lam {A B : \Type0} (a : A) {C : \Type1} (b : B) => a
