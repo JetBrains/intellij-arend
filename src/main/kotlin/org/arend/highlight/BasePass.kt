@@ -327,8 +327,20 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                             registerFix(builder, RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
                         }
                     }
-                PATTERN_IGNORED -> if (cause is Abstract.Pattern) registerFix(builder, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
-                COULD_BE_LEMMA, AXIOM_WITH_BODY -> if (cause is ArendDefFunction) registerFix(builder, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
+                PATTERN_IGNORED -> if (cause is Abstract.Pattern) registerFix(info, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                COULD_BE_LEMMA, AXIOM_WITH_BODY -> if (cause is ArendDefFunction) registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
+                LEVEL_IGNORED -> {
+                    var element: PsiElement? = cause
+                    while (element !is ArendReturnExpr) {
+                        element = element?.parent
+                        if (element == null) {
+                            break
+                        }
+                    }
+                    if (element is ArendReturnExpr) {
+                        registerFix(info, RemoveLevelQuickFix(SmartPointerManager.createPointer(cause)))
+                    }
+                }
                 else -> {}
             }
 
