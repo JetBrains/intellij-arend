@@ -183,15 +183,7 @@ class ArendRenameProcessor(project: Project, val element: PsiElement, newName: S
                         && TextOccurrencesUtil.isSearchTextOccurrencesEnabled(element)) {
 
     override fun findUsages(): Array<UsageInfo> {
-        val cacheService = myProject.service<ArendResolveCache>()
-        element.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                super.visitElement(element)
-                if (element is ArendReferenceElement) {
-                    cacheService.dropCache(element)
-                }
-            }
-        })
+        myProject.service<ArendResolveCache>().clear()
         return super.findUsages().filter {
             getArendNameText(it.element) == oldName
         }.toTypedArray()
