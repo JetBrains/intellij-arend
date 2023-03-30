@@ -1,5 +1,6 @@
 package org.arend.refactoring.changeSignature
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
@@ -14,7 +15,10 @@ import org.arend.intention.RefactoringDescriptor
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendRenameProcessor
+import org.arend.resolving.ArendResolveCache
+import java.util.*
 import java.util.Collections.singletonList
+import kotlin.collections.ArrayList
 
 
 fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: ArendDefFunction) {

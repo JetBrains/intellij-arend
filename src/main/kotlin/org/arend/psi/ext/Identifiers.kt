@@ -82,7 +82,10 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
 
     override fun textRepresentation(): String = referenceName
 
-    override fun getReference() = null // ArendDefReferenceImpl<ArendReferenceElement>(this)
+    override fun getReference() = when (parent) {
+        is PsiLocatedReferable -> null
+        else -> ArendDefReferenceImpl<ArendReferenceElement>(this)
+    }
 
     override fun getRefKind() = refKind
 

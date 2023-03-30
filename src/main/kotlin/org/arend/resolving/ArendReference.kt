@@ -236,7 +236,7 @@ private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
     if (!ArendNamesValidator.isIdentifier(name, oldNameIdentifier.project)) return
     val factory = ArendPsiFactory(oldNameIdentifier.project)
     val newNameIdentifier = when (oldNameIdentifier) {
-        is ArendDefIdentifier -> factory.createDefIdentifier(name)
+        is ArendDefIdentifier, is ArendFieldDefIdentifier -> factory.createDefIdentifier(name)
         is ArendRefIdentifier -> factory.createRefIdentifier(name)
         is ArendIPName -> if (oldNameIdentifier.postfix != null) factory.createPostfixName(name) else factory.createInfixName(name)
         else -> error("Unsupported identifier type for `$name`")
