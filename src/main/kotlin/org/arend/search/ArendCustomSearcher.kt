@@ -19,12 +19,21 @@ import com.intellij.util.containers.mapSmartSet
 import com.intellij.util.indexing.FileBasedIndex
 import gnu.trove.THashSet
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.ArendAliasIdentifier
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.typechecking.TypeCheckingService
 
 class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>() {
     override fun processQuery(parameters: ReferencesSearch.SearchParameters, consumer: Processor<in PsiReference>) {
-        val elementToSearch = parameters.elementToSearch as? PsiLocatedReferable ?: return
+        var elementToSearch_var : PsiLocatedReferable? = null
+        runReadAction {
+            elementToSearch_var = when (val e = parameters.elementToSearch) {
+                is PsiLocatedReferable -> e
+                is ArendAliasIdentifier -> e.parent?.parent as? PsiLocatedReferable
+                else -> null
+            }
+        }
+        val elementToSearch = elementToSearch_var ?: return
         val scope = parameters.scopeDeterminedByUser
         val project = parameters.project
         val tasks = ArrayList<Pair<String, SearchScope>>()
