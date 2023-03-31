@@ -1,6 +1,5 @@
 package org.arend.refactoring.changeSignature
 
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
@@ -8,6 +7,7 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
+import com.intellij.refactoring.util.MoveRenameUsageInfo
 import org.arend.intention.NameFieldApplier
 import org.arend.intention.NewParameter
 import org.arend.intention.Parameter
@@ -15,8 +15,6 @@ import org.arend.intention.RefactoringDescriptor
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendRenameProcessor
-import org.arend.resolving.ArendResolveCache
-import java.util.*
 import java.util.Collections.singletonList
 import kotlin.collections.ArrayList
 
@@ -76,12 +74,8 @@ private fun renameFunctionParameters(project: Project, changeInfo: ArendChangeIn
             processors.add(Pair(usages.mapNotNull{ it.element }.map { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }.toList(), renameProcessor))
         }
     }
-    for (p in processors) {
-        val renameProcessor = p.second
-        val actualUsages = p.first.mapNotNull { it.element }.toHashSet()
-        val usages = renameProcessor.findUsages().filter { actualUsages.contains(it.element) }.toTypedArray()
-        renameProcessor.executeEx(usages)
-    }
+    for (p in processors)
+        p.second.executeEx(p.first.mapNotNull { it.element }.map { MoveRenameUsageInfo(it.reference, p.second.element) }.toTypedArray())
 }
 
 private fun modifyFunctionUsages(project: Project, function: ArendDefFunction, newParams: List<ArendParameterInfo>) {
