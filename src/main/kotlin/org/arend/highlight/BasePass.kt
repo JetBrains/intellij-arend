@@ -392,6 +392,10 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 }
             }
 
+            is ElimSubstError -> {
+                registerFix(info, ElimSubstQuickFix(SmartPointerManager.createPointer(cause), error))
+            }
+
             is TypecheckingError -> for (quickFix in error.quickFixes) {
                 val sourceNode = quickFix.replacement
                 if (sourceNode == null) {

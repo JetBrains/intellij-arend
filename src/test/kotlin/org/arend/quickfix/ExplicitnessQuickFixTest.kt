@@ -2,7 +2,7 @@ package org.arend.quickfix
 
 import org.arend.util.ArendBundle
 
-class ExplicitnessTest : QuickFixTestBase() {
+class ExplicitnessQuickFixTest : QuickFixTestBase() {
 
     fun testExplicitness() = typedQuickFixTest(ArendBundle.message("arend.argument.explicitness"), """
         \func f (a : Nat) => a
