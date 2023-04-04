@@ -62,6 +62,7 @@ import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.typechecking.error.local.inference.FunctionArgInferenceError
+import org.arend.typechecking.error.local.inference.LambdaInferenceError
 import org.arend.util.ArendBundle
 import java.util.*
 
@@ -384,6 +385,10 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 } else if (message.contains("implicit")) {
                     registerFix(info, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
                 }
+            }
+
+            is LambdaInferenceError -> {
+                registerFix(info, LambdaInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
             }
 
             is FunctionArgInferenceError -> {
