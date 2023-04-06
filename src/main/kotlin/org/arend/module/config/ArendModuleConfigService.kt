@@ -69,7 +69,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         get() = VersionRange.parseVersionRange(langVersionString) ?: Range.unbound()
 
     override val root: VirtualFile?
-        get() = ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
+        get() = if (module.isDisposed) null else ModuleRootManager.getInstance(module).contentEntries.firstOrNull()?.file
 
     override val name
         get() = module.name
