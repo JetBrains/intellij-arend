@@ -152,7 +152,7 @@ class ArendTraceAction : ArendPopupAction() {
             var firstTraceEntryIndex = -1
             ActionUtil.underModalProgress(project, ArendBundle.message("arend.tracer.collecting.tracing.data")) {
                 DesugarVisitor.desugar(definition, tracer.errorReporter)
-                definition.accept(DefinitionTypechecker(tracer).apply { updateState(false) }, null)
+                definition.accept(DefinitionTypechecker(tracer, definition.recursiveDefinitions).apply { updateState(false) }, null)
                 firstTraceEntryIndex = tracer.trace.indexOfEntry(expression)
             }
             return ArendTracingData(tracer.trace, errorsConsumer.hasErrors, firstTraceEntryIndex)
