@@ -212,7 +212,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImpor
                 }
             }
 
-            override fun levelResolved(originalRef: Referable?, refExpr: Concrete.IdLevelExpression, resolvedRef: Referable?, availableRefs: Collection<Referable>) {
+            override fun levelResolved(originalRef: Referable?, refExpr: Concrete.VarLevelExpression, resolvedRef: Referable?, availableRefs: Collection<Referable>) {
                 if (refExpr.data == parent || refExpr.data == element) {
                     elements = ArrayList(availableRefs)
                 }
