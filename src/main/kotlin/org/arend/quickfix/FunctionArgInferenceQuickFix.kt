@@ -75,10 +75,10 @@ class FunctionArgInferenceQuickFix(
     }
 
     private fun addMissedArguments(psiFactory: ArendPsiFactory, element: PsiElement, functionSignature: List<Triple<String, Expression, Boolean>>, missedIndexed: List<Int>, definedTypes: Set<String>): Int? {
-        val undefinedImplicitType = psiFactory.createExpression("foo {{?}}").childOfType<ArendImplicitArgument>()!!
-        val definedImplicitType = psiFactory.createExpression("foo {_}").childOfType<ArendImplicitArgument>()!!
-        val undefinedExplicitType = psiFactory.createExpression("foo {?}").childOfType<ArendAtomArgument>()!!
-        val definedExplicitType = psiFactory.createExpression("foo _").childOfType<ArendAtomArgument>()!!
+        val undefinedImplicitType = psiFactory.createUndefinedImplicitType()
+        val definedImplicitType = psiFactory.createDefinedImplicitType()
+        val undefinedExplicitType = psiFactory.createUndefinedExplicitType()
+        val definedExplicitType = psiFactory.createDefinedExplicitType()
         val whiteSpace = psiFactory.createWhitespace(" ")
 
         var firstMissedUndefinedIndex: Int? = null

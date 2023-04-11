@@ -27,6 +27,9 @@ class RemoveLevelQuickFix(
         var element: PsiElement? = cause.element
         while (element !is ArendReturnExpr) {
             element = element?.parent
+            if (element == null) {
+                return
+            }
         }
 
         element.levelKw?.delete()

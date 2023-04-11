@@ -22,10 +22,6 @@ class ExplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        if (cause.element?.text == null) {
-            return
-        }
-
         var element: PsiElement? = cause.element
         while (element !is ArendImplicitArgument) {
             element = element?.parent
@@ -35,9 +31,7 @@ class ExplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
         }
 
         val psiFactory = ArendPsiFactory(project)
-        val atom = psiFactory.createExpression("foo ${cause.element!!.text}").childOfType<ArendAtomArgument>()!!
+        val atom = psiFactory.createExpression("foo ${cause.element?.text}").childOfType<ArendAtomArgument>()!!
         element.replace(atom)
     }
-
-    override fun getElementToMakeWritable(currentFile: PsiFile) = currentFile
 }

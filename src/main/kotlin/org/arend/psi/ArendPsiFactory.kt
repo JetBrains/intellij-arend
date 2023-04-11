@@ -193,4 +193,18 @@ class ArendPsiFactory(
     fun createCaseArg(caseArg: String): ArendCaseArg? = createFromText("\\func foo => \\case $caseArg, lol \\with {} ")?.childOfType()
 
     fun createColon() = createCaseArg("dummy : Nat")?.colon ?: error("Failed to create ':'")
+
+    fun createComma() = createFromText(",")?.firstChild?.firstChild?.firstChild ?: error("Failed to create ','")
+
+    fun createReturnKeyword() = createFromText("\\return")?.firstChild?.firstChild?.firstChild ?: error("Failed to create return keyword")
+
+    fun createLevelKeyword() = createFromText("\\level")?.firstChild?.firstChild?.firstChild ?: error("Failed to create level keyword")
+
+    fun createUndefinedImplicitType() = createExpression("foo {{?}}").childOfType<ArendImplicitArgument>() ?: error("Failed to create {{?}}")
+
+    fun createDefinedImplicitType() = createExpression("foo {_}").childOfType<ArendImplicitArgument>() ?: error("Failed to create {_}")
+
+    fun createUndefinedExplicitType() = createExpression("foo {?}").childOfType<ArendAtomArgument>() ?: error("Failed to create {?}")
+
+    fun createDefinedExplicitType() = createExpression("foo _").childOfType<ArendAtomArgument>() ?: error("Failed to create _")
 }

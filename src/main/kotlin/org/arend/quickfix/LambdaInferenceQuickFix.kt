@@ -7,6 +7,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendPsiFactory
+import org.arend.psi.childOfType
+import org.arend.psi.ext.ArendIdentifierOrUnknown
 import org.arend.psi.ext.ArendNameTele
 import org.arend.typechecking.error.local.inference.LambdaInferenceError
 import org.arend.util.ArendBundle
@@ -38,10 +40,10 @@ class LambdaInferenceQuickFix(
     private fun PsiElement.findChildByText(text: String) =
         children.find {
             val element = it as ArendNameTele
-            if (!element.isExplicit) {
-                element.children[0].text == text
-            } else {
+            if (element.isExplicit) {
                 it.text == text
+            } else {
+                element.childOfType<ArendIdentifierOrUnknown>()?.text == text
             }
         }
 

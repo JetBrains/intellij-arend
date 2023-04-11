@@ -54,7 +54,7 @@ class ElimSubstQuickFix(
             elimElement.delete()
         } else {
             val lastCaseArg = caseExpr.childrenOfType<ArendCaseArg>().last()
-            var comma = psiFactory.createFromText(",")?.childOfType<PsiElement>()!!.children[0].children[0]
+            var comma = psiFactory.createComma()
             var whiteSpace = psiFactory.createWhitespace(" ")
 
             comma = if (lastCaseArg.nextElement?.text != ",") {
