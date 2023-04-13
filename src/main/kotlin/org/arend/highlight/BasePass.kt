@@ -394,6 +394,10 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 registerFix(info, SquashedDataQuickFix(SmartPointerManager.createPointer(cause)))
             }
 
+            is TruncatedDataError -> {
+                registerFix(info, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
+            }
+
             is TypecheckingError -> for (quickFix in error.quickFixes) {
                 val sourceNode = quickFix.replacement
                 if (sourceNode == null) {
