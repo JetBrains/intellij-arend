@@ -88,7 +88,7 @@ class ArendParserDefinition : ParserDefinition {
         FUNCTION_KW -> ArendCompositeElementImpl(node)
         GOAL -> ArendGoal(node)
         H_LEVEL_IDENTIFIER -> ArendLevelIdentifier(node, Referable.RefKind.HLEVEL)
-        H_LEVEL_PARAMS_SEQ, META_H_LEVELS_SEQ, META_P_LEVELS_SEQ, P_LEVEL_PARAMS_SEQ -> ArendLevelParamsSeq(node)
+        H_LEVEL_PARAMS_SEQ, P_LEVEL_PARAMS_SEQ -> ArendLevelParamsSeq(node)
         IDENTIFIER_OR_UNKNOWN -> ArendIdentifierOrUnknown(node)
         IMPLICIT_ARGUMENT -> ArendImplicitArgument(node)
         INSTANCE_BODY -> ArendFunctionBody(node, ArendFunctionBody.Kind.INSTANCE)

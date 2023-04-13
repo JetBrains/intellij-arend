@@ -107,10 +107,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         DataLocatedReferable(data, this, parent)
 
     override fun getPLevelParameters(): Abstract.LevelParameters? =
-        getChild { it.elementType == P_LEVEL_PARAMS_SEQ || it.elementType == META_P_LEVELS_SEQ }
+        getChild { it.elementType == P_LEVEL_PARAMS_SEQ }
 
     override fun getHLevelParameters(): Abstract.LevelParameters? =
-        getChild { it.elementType == H_LEVEL_PARAMS_SEQ || it.elementType == META_H_LEVELS_SEQ }
+        getChild { it.elementType == H_LEVEL_PARAMS_SEQ }
 
     override val where: ArendWhere?
         get() = getChildOfType()

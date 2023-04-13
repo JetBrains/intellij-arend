@@ -220,18 +220,10 @@ defModule ::= MODULE_KW defIdentifier_module where? {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-defMeta ::= META_KW prec? defIdentifier_func metaPLevels? metaHLevels? alias? [nameTeleUntyped* functionTermBody] where? {
+defMeta ::= META_KW prec? defIdentifier_func pLevelParams? hLevelParams? [nameTeleUntyped* functionTermBody] where? {
     pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
-
-private metaPLevels ::= PLEVELS_KW metaPLevelsSeq { pin = 1 }
-
-private metaHLevels ::= HLEVELS_KW metaHLevelsSeq { pin = 1 }
-
-metaPLevelsSeq ::= <<comma_separated_sequence pLevelIdentifier>>?
-
-metaHLevelsSeq ::= <<comma_separated_sequence hLevelIdentifier>>?
 
 pLevelIdentifier ::= ID
 
