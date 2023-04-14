@@ -15,9 +15,9 @@ import org.arend.intention.RefactoringDescriptor
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendRenameProcessor
+import org.arend.refactoring.rename.ArendRenameRefactoringContext
 import java.util.Collections.singletonList
 import kotlin.collections.ArrayList
-
 
 fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: ArendDefFunction) {
     changeInfo.addNamespaceCommands()
@@ -30,7 +30,7 @@ fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: Are
         renameFunctionParameters(project, changeInfo, function)
 
     if (changeInfo.isNameChanged) {
-        val renameProcessor = ArendRenameProcessor(project, function, changeInfo.newName, function.refName, false, null)
+        val renameProcessor = ArendRenameProcessor(project, function, changeInfo.newName, ArendRenameRefactoringContext(function.refName), null)
         val usages = renameProcessor.findUsages()
         renameProcessor.executeEx(usages)
     }
@@ -69,7 +69,7 @@ private fun renameFunctionParameters(project: Project, changeInfo: ArendChangeIn
     for (p in changeInfo.newParameters) {
         val d = if (p.oldIndex != -1) defIdentifiers[p.oldIndex] else null
         if (d != null && p.name != d.name) {
-            val renameProcessor = ArendRenameProcessor(project, d, p.name, d.name, false, null)
+            val renameProcessor = ArendRenameProcessor(project, d, p.name, ArendRenameRefactoringContext(d.name), null)
             val usages = renameProcessor.findUsages()
             processors.add(Pair(usages.mapNotNull{ it.element }.map { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }.toList(), renameProcessor))
         }

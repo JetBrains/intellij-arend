@@ -63,6 +63,10 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
             }
         }
 
+         if (parent is ArendNsId && pParent is ArendNsUsing) {
+            pParent.ancestor<ArendGroup>()?.let { return@getUseScope LocalSearchScope(it) }
+        }
+
         return super.getUseScope()
     }
 }

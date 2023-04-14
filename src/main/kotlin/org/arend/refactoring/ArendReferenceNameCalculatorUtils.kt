@@ -2,7 +2,6 @@ package org.arend.refactoring
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.isAncestor
-import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.module.ModuleLocation
 import org.arend.naming.reference.AliasReferable
@@ -31,8 +30,10 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
         else -> null
     }
+    val aliasLocation = if (defaultLocation.target.hasAlias()) LocationData(defaultLocation.target, alias = true) else null
     val locations: MutableList<LocationData> = ArrayList()
     alternativeLocation?.let { locations.add(it) }
+    aliasLocation?.let { locations.add(it) }
     locations.add(defaultLocation)
 
     var modifyingImportsNeeded = false
@@ -78,6 +79,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         modifyingImportsNeeded = true
 
         defaultLocation.addLongNameAsReferenceName()
+        aliasLocation?.addLongNameAsReferenceName()
         if (alternativeLocation != null) {
             val alternativeFullName = alternativeLocation.getLongName()
             if (importedScope.resolveName(alternativeFullName[0]) == null) alternativeLocation.addLongNameAsReferenceName()
@@ -136,12 +138,22 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         correctedScope = MergeScope(correctedScope, defaultLocation.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
 
-    val resultingDecisions = ArrayList<Pair<List<String>, NsCmdRefactoringAction?>>()
+    data class ImportDecision(val refName: List<String>, val nsAction: NsCmdRefactoringAction?, val isAlias: Boolean = false): Comparable<ImportDecision> {
+        override fun compareTo(other: ImportDecision): Int {
+            val lD = this.refName.size - other.refName.size
+            if (lD != 0) return lD // if this is more optimal => result < 0 => this < other
+            if (this.isAlias && !other.isAlias) return -1
+            if (!this.isAlias && other.isAlias) return 1 // other is more optimal
+            return compareValues(this.refName.first(), this.refName.first())
+        }
+    }
+
+    val resultingDecisions = ArrayList<ImportDecision>()
 
     for (location in locations) {
         location.getReferenceNames().map { referenceName ->
             if (referenceName.isEmpty() || Scope.resolveName(correctedScope, referenceName)?.underlyingReferable == defaultLocation.target) {
-                resultingDecisions.add(Pair(referenceName, fileResolveActions[location]))
+                resultingDecisions.add(ImportDecision(referenceName, fileResolveActions[location], location.alias))
             }
         }
     }
@@ -150,14 +162,13 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     if (resultingDecisions.isEmpty()) {
         veryLongName.addAll(targetModulePath.modulePath.toList()) // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
         veryLongName.addAll(defaultLocation.getLongName()) // Let us use the "longest possible name" when referring to the anchor
-        resultingDecisions.add(Pair(veryLongName, fallbackImportAction))
+        resultingDecisions.add(ImportDecision(veryLongName, fallbackImportAction, false))
     }
+    resultingDecisions.sort()
 
-    resultingDecisions.sortBy { LongName(it.first) }
-
-    val resultingName = resultingDecisions[0].first
+    val resultingName = resultingDecisions[0].refName // most optimal name comes first
     val importAction = if (targetFile != currentFile || (resultingName.isNotEmpty() || allowSelfImport) && resultingName == veryLongName)
-        resultingDecisions[0].second else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
+        resultingDecisions[0].nsAction else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
 
     return Pair(importAction, resultingName)
 }
@@ -185,7 +196,7 @@ fun calculateReferenceName(defaultLocation: LocationData,
     return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport, deferredImports)
 }
 
-class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = false) {
+class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = false, val alias: Boolean = false) {
     private val myLongNameWithRefs: List<Pair<String, Referable>>
     private val myReferenceNames: MutableSet<List<String>> = HashSet()
     val myContainingFile: ArendFile
@@ -198,7 +209,9 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
         myLongNameWithRefs = ArrayList()
         while (psi != null) {
             if (psi is PsiReferable && psi !is ArendFile) {
-                val name = if (psi is GlobalReferable) psi.representableName else
+                val name = if (psi is GlobalReferable) {
+                    if (alias) psi.representableName else psi.textRepresentation()
+                } else
                     psi.name ?: throw IllegalStateException() //Fix later :)
 
                 if (skipFlag && myLongNameWithRefs.isNotEmpty()) {

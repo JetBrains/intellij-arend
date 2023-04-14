@@ -318,6 +318,102 @@ class RenameTest : ArendTestBase() {
             "\\func :b => {?}"
     )
 
+    fun testNsId1() = doTest("fubar1", """
+       \module M1 \where {
+         \func foo => 101
+       }
+       
+       \module M2 \where {
+         \open M1 (foo \as {-caret-}fubar)
+         \open M1 (foo \as fubar2)
+         \func lol => fubar2 Nat.+ fubar
+       }
+       
+       \module M3 \where {
+         \open M1 (foo \as fubar)
+         \func lol => fubar Nat.+ fubar
+       }
+    """, """
+       \module M1 \where {
+         \func foo => 101
+       }
+       
+       \module M2 \where {
+         \open M1 (foo \as fubar1)
+         \open M1 (foo \as fubar2)
+         \func lol => fubar2 Nat.+ fubar1
+       }
+       
+       \module M3 \where {
+         \open M1 (foo \as fubar)
+         \func lol => fubar Nat.+ fubar
+       }
+    """, true)
+
+    fun testNsId2() = doTest("fubar1", """
+       \module M1 \where {
+         \func foo => 101
+       }
+       
+       \module M2 \where {
+         \open M1 (foo \as fubar)
+         \open M1 (foo \as fubar2)
+         \func lol => fubar2 Nat.+ fubar
+       }
+       
+       \module M3 \where {
+         \open M1 (foo \as fubar)
+         \func lol => fubar{-caret-} Nat.+ fubar
+       }
+    """, """
+       \module M1 \where {
+         \func foo => 101
+       }
+       
+       \module M2 \where {
+         \open M1 (foo \as fubar)
+         \open M1 (foo \as fubar2)
+         \func lol => fubar2 Nat.+ fubar
+       }
+       
+       \module M3 \where {
+         \open M1 (foo \as fubar1)
+         \func lol => fubar1 Nat.+ fubar1
+       }
+    """, true)
+
+    fun testNsId3() = doTest("fubar1", """
+       \module M0 \where
+         \func lol => 101
+
+       \module M1 \where {
+         \open M0 (lol \as fubar)
+  
+         \func foo => fubar
+  
+         \module M2 \where {
+           \open M0 (lol \as fubar)
+    
+           \func bar => fubar{-caret-}
+         }
+       }
+    """, """
+       \module M0 \where
+         \func lol => 101
+
+       \module M1 \where {
+         \open M0 (lol \as fubar)
+  
+         \func foo => fubar
+  
+         \module M2 \where {
+           \open M0 (lol \as fubar1)
+    
+           \func bar => fubar1
+         }
+       }
+    """, true)
+
     private fun doTest(
             newName: String,
             @Language("Arend") before: String,

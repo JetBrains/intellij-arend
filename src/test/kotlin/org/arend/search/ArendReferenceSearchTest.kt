@@ -35,4 +35,11 @@ class ArendReferenceSearchTest : ArendTestBase() {
         val search = ReferencesSearch.search(element, GlobalSearchScope.allScope(project))
         assertTrue(search.toImmutableList().size == 0)
     }
+
+    fun `test findUsages upon alias 2`() {
+        InlineFile("""\func foobar \alias f{-caret-}ubar => {?}\n\n\func bar => fubar""").withCaret()
+        val element = myFixture.elementAtCaret
+        val search = ReferencesSearch.search(element, GlobalSearchScope.allScope(project))
+        assertTrue(search.toImmutableList().size == 1)
+    }
 }

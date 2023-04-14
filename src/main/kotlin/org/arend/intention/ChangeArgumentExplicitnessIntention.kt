@@ -642,7 +642,8 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
                     val psiElement = callEntry.first.first
                     val descriptor = callEntry.first.second
                     val refactoringContext = refactoringContexts[descriptor]!! // safe to write
-                    val defName = if (descriptor.def is PsiLocatedReferable && psiElement is ArendCompositeElement) ResolveReferenceAction.getTargetName(descriptor.def, psiElement)!! else descriptor.def.refName
+                    val defName = if (descriptor.def is PsiLocatedReferable && psiElement is ArendCompositeElement)
+                        ResolveReferenceAction.getTargetName(descriptor.def, psiElement)!! else descriptor.def.refName
 
                     when (psiElement) {
                         is ArendArgumentAppExpr -> {

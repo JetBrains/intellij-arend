@@ -160,4 +160,34 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
                    Pair("y", Pair(true, "List Y")),
                    Pair("z", Pair(true, "List Z"))), "doubleZip2")
 
+    fun testCombined2() = changeSignature("""
+       \module M \where {
+         \func foo \alias fu{-caret-} (a : Nat) (b : Nat) => a Nat.+ b
+  
+         \func bar => foo 1 2
+         
+         \func bar2 => fu 1 2
+       }
+
+       \module M1 \where {
+         \open M (foo \as fubar)
+  
+         \func lol => fubar 3 4
+       } 
+    """, """
+       \module M \where {
+         \func foobar \alias fu {a b : Nat} => b Nat.+ a
+  
+         \func bar => fu {2} {1}
+         
+         \func bar2 => fu {2} {1}
+       }
+
+       \module M1 \where {
+         \open M (foobar \as fubar)
+  
+         \func lol => fubar {4} {3}
+       } 
+    """, listOf(Pair(-2, "a"), Pair(-1, "b")), emptyList(), "foobar")
+
 }

@@ -3,15 +3,14 @@ package org.arend.search
 import com.intellij.openapi.application.QueryExecutorBase
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiReference
+import com.intellij.psi.*
 import com.intellij.psi.impl.cache.impl.id.IdIndex
 import com.intellij.psi.impl.cache.impl.id.IdIndexEntry
-import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.search.LocalSearchScope
-import com.intellij.psi.search.SearchScope
+import com.intellij.psi.impl.search.PsiSearchHelperImpl
+import com.intellij.psi.search.*
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.util.Processor
 import com.intellij.util.Processors
@@ -19,8 +18,8 @@ import com.intellij.util.containers.mapSmartSet
 import com.intellij.util.indexing.FileBasedIndex
 import gnu.trove.THashSet
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.ArendAliasIdentifier
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.*
+import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Companion.isDefIdentifierFromNsId
 import org.arend.typechecking.TypeCheckingService
 
 class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>() {
@@ -30,6 +29,7 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
             elementToSearch_var = when (val e = parameters.elementToSearch) {
                 is PsiLocatedReferable -> e
                 is ArendAliasIdentifier -> e.parent?.parent as? PsiLocatedReferable
+                is ArendDefIdentifier -> if (isDefIdentifierFromNsId(e)) ((e.parent as ArendNsId).refIdentifier.resolve as? PsiLocatedReferable) else null
                 else -> null
             }
         }
@@ -56,21 +56,35 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
                             tasks.add(aliasName to LocalSearchScope(arendFile))
                         }
                     }
-            }
+                }
             } else if (aliasName != null) {
                 tasks.add(Pair(aliasName, scope))
             }
+            tasks.add(Pair(standardName, scope))
         }
 
+        val searchContext = (UsageSearchContext.IN_CODE.toInt() or UsageSearchContext.IN_FOREIGN_LANGUAGES.toInt()).toShort()
         for (task in tasks) {
-            parameters.optimizer.searchWord(task.first, task.second, true, elementToSearch)
+            parameters.optimizer.searchWord(task.first, task.second, searchContext, true, elementToSearch, object: RequestResultProcessor(){
+                override fun processTextOccurrence(element: PsiElement, offsetInElement: Int, consumer: Processor<in PsiReference>): Boolean {
+                    (element as? ArendNsId)?.defIdentifier?.let { dI ->
+                        PsiSearchHelperImpl(project).processElementsWithWord({ element, _ ->
+                            !(element is ArendRefIdentifier && !consumer.process(element.reference))
+                        }, dI.useScope, dI.name, searchContext, true)
+                    }
+                    for (ref in PsiReferenceService.getService().getReferences(element, PsiReferenceService.Hints(elementToSearch, offsetInElement))) { // Copypasted from SingleTargetRequestResultProcessor
+                        ProgressManager.checkCanceled()
+                        if (ReferenceRange.containsOffsetInElement(ref, offsetInElement) && ref.isReferenceTo(elementToSearch) && !consumer.process(ref)) return false
+                    }
+                    return true
+                }
+            })
         }
     }
-
 }
 
 /**
- * Every returned file contains **all** of identifiers speicified in [namesToSearch]
+ * Every returned file contains **all** of identifiers specified in [namesToSearch]
  */
 fun collectSearchScopes(namesToSearch: List<String>, scope: GlobalSearchScope, project: Project): List<VirtualFile> =
     runReadAction {
