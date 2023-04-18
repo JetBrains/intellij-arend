@@ -1,5 +1,6 @@
 package org.arend.resolving
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.LocatedReferable
@@ -10,7 +11,9 @@ class IntellijMetaReferable(private val underlyingRef: SmartPsiElementPointer<Ps
     override fun isEquivalent(ref: LocatedReferable) =
         precedence == ref.precedence && refName == ref.refName && aliasPrecedence == ref.aliasPrecedence && aliasName == ref.aliasName && description == ref.description
 
-    override fun getUnderlyingReferable(): LocatedReferable = underlyingRef?.element ?: this
+    override fun getUnderlyingReferable(): LocatedReferable = runReadAction {
+        underlyingRef?.element ?: this
+    }
 
     override val isConsistent: Boolean
         get() {
