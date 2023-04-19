@@ -13,6 +13,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
 import com.intellij.refactoring.RefactoringActionHandler
 import com.intellij.refactoring.rename.*
 import com.intellij.refactoring.rename.inplace.InplaceRefactoring
@@ -23,7 +24,7 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
-import org.arend.psi.ArendElementTypes.ID
+import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
 import org.arend.psi.getArendNameText
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Companion.isMoreSpecific
@@ -125,7 +126,7 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             var caretElement: PsiElement?
             val offset = editor.caretModel.offset
             caretElement = file.findElementAt(offset)
-            if (caretElement == null || caretElement is PsiWhiteSpace || caretElement is PsiComment) caretElement = file.findElementAt(offset - 1)
+            if (caretElement == null || caretElement is PsiWhiteSpace || caretElement is PsiComment || caretElement.elementType == COMMA || caretElement.elementType == DOT || caretElement.elementType == RPAREN || caretElement.elementType == RBRACE) caretElement = file.findElementAt(offset - 1)
             return caretElement
         }
 
