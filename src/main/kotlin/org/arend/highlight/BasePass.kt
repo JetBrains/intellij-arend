@@ -398,6 +398,12 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 registerFix(info, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
             }
 
+            is FieldDependencyError -> {
+                if (cause is ArendLocalCoClause) {
+                    registerFix(info, FieldDependencyQuickFix(SmartPointerManager.createPointer(cause), error))
+                }
+            }
+
             is TypecheckingError -> for (quickFix in error.quickFixes) {
                 val sourceNode = quickFix.replacement
                 if (sourceNode == null) {
