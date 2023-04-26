@@ -7,13 +7,13 @@ import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.9.0.1"
+version = "1.9.0.2"
 
 plugins {
     idea
-    kotlin("jvm") version "1.7.21"
-    id("org.jetbrains.intellij") version "1.10.0"
-    id("org.jetbrains.grammarkit") version "2021.2.2"
+    kotlin("jvm") version "1.8.21"
+    id("org.jetbrains.intellij") version "1.13.3"
+    id("org.jetbrains.grammarkit") version "2022.3.1"
 }
 
 repositories {
@@ -63,11 +63,11 @@ tasks {
 }
 
 intellij {
-    version.set("2022.3")
+    version.set("2023.1")
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("yaml", "java", "IdeaVIM:2.0.0"))
+    plugins.set(listOf("yaml", "java", "IdeaVIM:2.1.0"))
 }
 
 tasks.named<JavaExec>("runIde") {
@@ -84,7 +84,7 @@ tasks.withType<PatchPluginXmlTask>().configureEach {
 val generateArendLexer = tasks.register<GenerateLexerTask>("genArendLexer") {
     description = "Generates lexer"
     group = "build setup"
-    source.set("src/main/grammars/ArendLexer.flex")
+    sourceFile.set(file("src/main/grammars/ArendLexer.flex"))
     targetDir.set("src/main/lexer/org/arend/lexer")
     targetClass.set("ArendLexer")
     purgeOldFiles.set(true)
@@ -93,7 +93,7 @@ val generateArendLexer = tasks.register<GenerateLexerTask>("genArendLexer") {
 val generateArendParser = tasks.register<GenerateParserTask>("genArendParser") {
     description = "Generates parser"
     group = "build setup"
-    source.set("src/main/grammars/ArendParser.bnf")
+    sourceFile.set(file("src/main/grammars/ArendParser.bnf"))
     targetRoot.set("src/main/parser")
     pathToParser.set("/org/arend/parser/ArendParser.java")
     pathToPsiRoot.set("/org/arend/psi")
@@ -103,7 +103,7 @@ val generateArendParser = tasks.register<GenerateParserTask>("genArendParser") {
 val generateArendDocLexer = tasks.register<GenerateLexerTask>("genArendDocLexer") {
     description = "Generates doc lexer"
     group = "build setup"
-    source.set("src/main/grammars/ArendDocLexer.flex")
+    sourceFile.set(file("src/main/grammars/ArendDocLexer.flex"))
     targetDir.set("src/main/doc-lexer/org/arend/lexer")
     targetClass.set("ArendDocLexer")
     purgeOldFiles.set(true)
