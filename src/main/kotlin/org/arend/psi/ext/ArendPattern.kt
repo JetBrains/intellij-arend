@@ -16,7 +16,7 @@ class ArendPattern(node: ASTNode) : ArendLamParam(node), Abstract.Pattern {
 
     override fun getType(): ArendExpr? = getChildOfType()
 
-    override fun getAsPatterns(): List<ArendAsPattern> = getChildrenOfType()
+    override fun getAsPattern(): ArendAsPattern? = getChildOfType()
 
     override fun getData() = this
 
