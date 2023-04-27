@@ -418,7 +418,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             editorTextField.addNotify()
             codeAnalyzer.restart(fragment)
             val textEditor = editorTextField.editor?.let{ TextEditorProvider.getInstance().getTextEditor(it) }
-            if (textEditor != null) codeAnalyzer.runPasses(fragment, document, singletonList(textEditor), IntArray(0), true, null)
+            if (textEditor != null) codeAnalyzer.runPasses(fragment, document, textEditor, IntArray(0), true, null)
         }
     }
 
