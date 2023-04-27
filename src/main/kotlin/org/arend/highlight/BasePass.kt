@@ -404,6 +404,12 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 }
             }
 
+            is ImplicitLambdaError -> {
+                if (error.parameter != null) {
+                    registerFix(info, ImplicitLambdaQuickFix(SmartPointerManager.createPointer(cause), error))
+                }
+            }
+
             is TypecheckingError -> for (quickFix in error.quickFixes) {
                 val sourceNode = quickFix.replacement
                 if (sourceNode == null) {
