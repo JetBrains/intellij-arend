@@ -1,6 +1,5 @@
 package org.arend.psi
 
-import ai.grazie.text.replace
 import com.intellij.ide.util.EditSourceUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -24,7 +23,6 @@ import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
 import org.arend.typechecking.error.ErrorService
-import java.util.SortedMap
 
 val PsiElement.theOnlyChild: PsiElement?
     get() = firstChild?.takeIf { it.nextSibling == null }
@@ -396,4 +394,57 @@ fun isInDynamicPart(childPsi: PsiElement): ArendDefClass? {
         psi = psi.parent
     }
     return null
+}
+/** Strips PSI of all surrounding braces and parentheses and returns the essential part + a flag indicating whether this part is an "atomic" expression
+ */
+fun getStrippedPsi(expression: PsiElement): Pair<PsiElement, Boolean> {
+    var expr = expression
+    stripLoop@while (true) {
+        when (val exprData1 = expr) {
+            is ArendImplicitArgument -> if (exprData1.tupleExprList.size == 1) {
+                expr = exprData1.tupleExprList[0]; continue
+            }
+            is ArendAtomArgument -> {
+                expr = exprData1.atomFieldsAcc; continue
+            }
+            is ArendAtomFieldsAcc -> if (exprData1.numberList.isEmpty()) {
+                expr = exprData1.atom; continue
+            }
+            is ArendTuple -> if (exprData1.tupleExprList.size == 1) {
+                expr = exprData1.tupleExprList[0]; continue
+            }
+            is ArendTupleExpr -> if (exprData1.type == null) {
+                expr = exprData1.expr; continue
+            }
+            is ArendAtom -> {
+                val child = exprData1.firstRelevantChild
+                if (child is ArendTuple || child is ArendLiteral) {
+                    expr = child; continue
+                }
+            }
+            is ArendNewExpr -> if (exprData1.appExpr?.let { it.textRange == exprData1.textRange } == true) {
+                expr = exprData1.appExpr!!; continue
+            }
+            is ArendArgumentAppExpr -> if (exprData1.argumentList.isEmpty() && exprData1.atomFieldsAcc != null) {
+                expr = exprData1.atomFieldsAcc!!; continue
+            }
+            is ArendPattern -> if ((exprData1.isTuplePattern || !exprData1.isExplicit) && exprData1.sequence.size == 1) {
+                expr = exprData1.sequence[0]; continue
+            } else if (!exprData1.isExplicit) {
+                if (exprData1.referenceElement != null) {
+                    expr = exprData1.referenceElement!!; continue
+                } else if (exprData1.singleReferable != null) {
+                    expr = exprData1.singleReferable!!; continue
+                } else if (exprData1.underscore != null) {
+                    expr = exprData1.underscore!!; continue
+                }
+            }
+        }
+        break
+    }
+    val isAtomic = expr is ArendAtom || expr is ArendDefIdentifier || expr is ArendLongName || expr is ArendTuple || expr is ArendLiteral ||
+            expr.text == "_" || expr is ArendAtomFieldsAcc ||
+            (expr is ArendPattern && (expr.referenceElement != null || expr.singleReferable != null || expr.isUnnamed || expr.isTuplePattern))
+
+    return Pair(expr, isAtomic)
 }

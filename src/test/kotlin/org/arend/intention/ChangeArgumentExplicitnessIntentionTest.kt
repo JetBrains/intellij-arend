@@ -836,7 +836,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func \infixr 9 *> {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a'' \elim q
          | idp => p
 
-       \func foo {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') => *> p q 
+       \func foo {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') => p *> q 
     """)
 
     fun testBrackets2() = doTest("""
@@ -1035,5 +1035,157 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          | z => 0
          | s {n} => suc (foo n)
         }
+    """)
+
+    fun testInfixPatterns() = doTest("""
+       \data tree | nil | \infixl 1 :: (t{-caret-}1 t2 : tree)
+
+       \func match (t : tree) : tree 
+         | nil => nil
+         | nil :: t => nil :: t
+         | t1 :: t2 :: t3 => t1 :: t2 :: t3
+    """, """
+       \data tree | nil | \infixl 1 :: {t1 : tree} (t2 : tree)
+
+       \func match (t : tree) : tree
+         | nil => nil
+         | :: {nil} t => :: {nil} t
+         | :: {:: {t1} t2} t3 => :: {:: {t1} t2} t3
+    """)
+
+    fun testInfixPatterns2() = doTest("""
+       \data tree | nil | \infixl 1 :: (x : tree) ({-caret-}y : tree)
+
+       \func match (t : tree) : tree
+         | nil => nil
+         | nil :: t => t
+         | (t1 :: t2 \as tt) :: t3 \as t => tt 
+    """, """
+       \data tree | nil | \infixl 1 :: (x : tree) {y : tree}
+
+       \func match (t : tree) : tree
+         | nil => nil
+         | :: nil {t} => t
+         | :: (:: t1 {t2} \as tt) {t3} \as t => tt 
+    """)
+
+    fun testInfixPatterns3() = doTest("""
+       \data tree | nil | \infixl 1 :: {{-caret-}x : tree} (y : tree)
+
+       \func match (t : tree) : tree         
+         | :: {nil} _ => nil
+    """, """
+       \data tree | nil | \infixl 1 :: (x : tree) (y : tree)
+
+       \func match (t : tree) : tree         
+         | nil :: _ => nil        
+    """)
+
+    fun testInfixPatterns4() = doTest("""
+       \data tree | nil | \infixl 1 :: {x : tree} ({-caret-}y : tree)
+
+       \func match (t : tree) : tree
+         | :: {nil} _ => nil
+         | nil => {?}
+         | :: {:: t1} t2 => {?} 
+    """, """
+       \data tree | nil | \infixl 1 :: {x : tree} {y : tree}
+
+       \func match (t : tree) : tree
+         | :: {nil} => nil
+         | nil => {?}
+         | :: {:: {_} {t1}} {t2} => {?} 
+    """)
+
+    fun testInfixPatterns5() = doTest("""
+       \data tree | nil | \infixl 1 :: {{-caret-}x : tree} {y : tree}
+
+       \func match (t : tree) : tree
+         | :: {nil} => nil
+         | nil => {?}
+         | :: {:: {_} {t1}} {t2} => {?}
+    """, """
+       \data tree | nil | \infixl 1 :: (x : tree) {y : tree}
+
+       \func match (t : tree) : tree
+         | :: nil => nil
+         | nil => {?}
+         | :: (:: _ {t1}) {t2} => {?}
+    """)
+
+    fun testInfixPatterns6() = doTest("""
+       \data tree | nil | :: {{-caret-}a : \Sigma Nat Nat} (b : tree)
+
+       \func foo (t : tree) : Nat
+         | nil => 0
+         | :: {(n, m)} b => 1 
+    """, """
+       \data tree | nil | :: (a : \Sigma Nat Nat) (b : tree)
+
+       \func foo (t : tree) : Nat
+         | nil => 0
+         | :: (n, m) b => 1 
+    """)
+
+    fun testInfixPatterns7() = doTest("""
+       \data tree | nil | :: {a : tree} (b : tree) | ** ({-caret-}c d : tree)
+
+       \func f (t : tree) : tree
+         | :: {** c a1} t => :: {** c a1} t
+       """, """
+       \data tree | nil | :: {a : tree} (b : tree) | ** {c : tree} (d : tree)
+
+       \func f (t : tree) : tree
+         | :: {** {c} a1} t => :: {** {c} a1} t
+       """)
+
+    fun testInfixPatterns8() = doTest("""
+       \data tree | nil | :: {{-caret-}a : tree} (b : tree) | ** (c d : tree)
+
+       \func f {t : tree} : tree
+         | {:: {** c a1} t} => :: {** c a1} t 
+    """, """
+       \data tree | nil | :: (a : tree) (b : tree) | ** (c d : tree)
+         
+       \func f {t : tree} : tree
+         | {:: (** c a1) t} => :: (** c a1) t 
+    """)
+
+    fun testInfixPatterns9() = doTest(
+        """
+           \data tree | nil | \infixl 1 :: {x : tree} ({-caret-}y : tree) | \infixl 2 ++ (x : tree) {y : tree}
+
+           \func match (t : tree) : tree
+             | :: {++ t {:: {t1} t3}} t2 => t3 
+        """, """
+           \data tree | nil | \infixl 1 :: {x : tree} {y : tree} | \infixl 2 ++ (x : tree) {y : tree}
+
+           \func match (t : tree) : tree
+             | :: {++ t {:: {t1} {t3}}} {t2} => t3
+        """
+    )
+
+    fun testInfixPatterns10() = doTest("""
+       \data tree | nil | \infixl 2 ++ (x : tree) {{-caret-}y : tree}
+
+       \func match (t : tree) : tree
+         | ++ t => {?} 
+    """, """
+       \data tree | nil | \infixl 2 ++ (x : tree) (y : tree)
+
+       \func match (t : tree) : tree
+         | ++ t _ => {?} 
+    """)
+
+    fun testInfixPatterns11() = doTest("""
+       \data tree | nil | \infixl 1 :: ({-caret-}z : tree) (w : tree)
+
+       \func match {t : tree} : tree
+         | {t1 :: t2 :: t3} => t1
+    """, """
+       \data tree | nil | \infixl 1 :: {z : tree} (w : tree)
+
+       \func match {t : tree} : tree
+         | {:: {:: {t1} t2} t3} => t1 
     """)
 }

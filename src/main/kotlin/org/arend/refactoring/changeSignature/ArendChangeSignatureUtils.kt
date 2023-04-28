@@ -11,7 +11,7 @@ import com.intellij.refactoring.util.MoveRenameUsageInfo
 import org.arend.intention.NameFieldApplier
 import org.arend.intention.NewParameter
 import org.arend.intention.Parameter
-import org.arend.intention.RefactoringDescriptor
+import org.arend.intention.ChangeSignatureRefactoringDescriptor
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendRenameProcessor
@@ -88,7 +88,7 @@ private fun modifyFunctionUsages(project: Project, function: ArendDefFunction, n
         oldParameters.add(0, t)
         newParameters.add(0, NewParameter(false, t))
     }
-    NameFieldApplier(project).applyTo(singletonList(RefactoringDescriptor(function, oldParameters, newParameters)).toSet())
+    NameFieldApplier(project).applyTo(singletonList(ChangeSignatureRefactoringDescriptor(function, oldParameters, newParameters)).toSet())
 }
 
 private fun modifyFunctionSignature(function: ArendDefFunction, changeInfo: ArendChangeInfo) {
