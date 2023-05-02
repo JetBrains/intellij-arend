@@ -48,29 +48,6 @@ class SquashedDataQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
         caseElement.replace(scaseElement)
     }
 
-    private fun updateReturnExpression(psiFactory: ArendPsiFactory, element: ArendCaseExpr) {
-        if (element.childOfType<ArendReturnExpr>() != null) {
-            return
-        }
-        var returnKeyword = psiFactory.createReturnKeyword()
-        var returnExpr =
-            psiFactory.createFromText("\\func foo => \\case t \\return {?} \\level {?} \\with {} ")!!.firstChild.firstChild
-                .childOfType<ArendFunctionBody>()?.childOfType<ArendCaseExpr>()?.childOfType<ArendReturnExpr>()!!
-        val whiteSpace = psiFactory.createWhitespace(" ")
-
-        val caseArg = element.childOfType<ArendCaseArg>()!!
-        val whiteSpaceAfterCaseArg = if (caseArg.nextElement == null) {
-            element.addAfter(whiteSpace, caseArg)
-        } else {
-            caseArg.nextElement
-        }
-        returnKeyword = element.addAfter(returnKeyword, whiteSpaceAfterCaseArg)
-        returnExpr = element.addAfter(returnExpr, returnKeyword) as ArendReturnExpr
-
-        element.addBefore(whiteSpace, returnExpr)
-        element.addAfter(whiteSpace, returnExpr)
-    }
-
     private fun changeDefFunction(psiFactory: ArendPsiFactory, element: ArendDefFunction) {
         val sfuncElement = psiFactory.createFunctionKeyword("\\sfunc")
         val funcElement = element.firstChild

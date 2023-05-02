@@ -28,7 +28,7 @@ class LambdaInferenceQuickFix(
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val element = cause.element ?: return
 
-        val argument = inferParameterRegex.find(error.toString())!!.groupValues[1]
+        val argument = inferParameterRegex.find(error.toString())?.groupValues?.getOrNull(1) ?: return
         val argumentElement = element.findChildByText(argument) as ArendNameTele
 
         val psiFactory = ArendPsiFactory(project)

@@ -38,7 +38,7 @@ class ElimSubstQuickFix(
 
     private fun solveCaseExpr(project: Project) {
         val caseExpr = cause.element ?: return
-        val argument = notEliminatedRegex.find(error.toString())!!.groupValues[1]
+        val argument = notEliminatedRegex.find(error.toString())?.groupValues?.getOrNull(1) ?: return
 
         val psiFactory = ArendPsiFactory(project)
         val caseArg = psiFactory.createCaseArg(getElimCaseArgument(argument))!!
@@ -68,7 +68,7 @@ class ElimSubstQuickFix(
     }
 
     private fun solveDefIdentifier() {
-        var element: PsiElement? = cause.element
+        var element = cause.element
         while (element !is ArendCaseArg) {
             element = element?.parent
             if (element == null) {
@@ -77,7 +77,7 @@ class ElimSubstQuickFix(
         }
 
         val caseExpr = element.parent
-        val argument = bindingAfterRegex.find(error.toString())!!.groupValues[1]
+        val argument = bindingAfterRegex.find(error.toString())?.groupValues?.getOrNull(1) ?: return
 
         val elimElement = caseExpr.findChildByText(getElimCaseArgument(argument))!!
         val tempElement = element.copy()

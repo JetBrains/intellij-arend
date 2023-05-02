@@ -106,6 +106,6 @@ class SquashedDataQuickFixTest: QuickFixTestBase() {
         \func test {A : \Type} (p : \Pi (a a' : A) -> a = a') (t : Trunc A) : \level A p => \case t \with { | in a{-caret-} => a }
     """, """
         \truncated \data Trunc (A : \Type) : \Prop | in A
-        \func test {A : \Type} (p : \Pi (a a' : A) -> a = a') (t : Trunc A) : \level A p => \scase t \return {?} \level {?} \with {| in a => a }
+        \func test {A : \Type} (p : \Pi (a a' : A) -> a = a') (t : Trunc A) : \level A p => \scase t \return {?} \with {| in a => a }
     """)
 }

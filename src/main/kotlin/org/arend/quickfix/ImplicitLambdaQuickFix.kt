@@ -25,8 +25,8 @@ class ImplicitLambdaQuickFix(private val cause: SmartPsiElementPointer<PsiElemen
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val element = cause.element!!
-        val parameter = lambdaImplicitParameterRegex.find(error.toString())!!.groupValues[1]
+        val element = cause.element ?: return
+        val parameter = lambdaImplicitParameterRegex.find(error.toString())?.groupValues?.getOrNull(1) ?: return
 
         var index = element.children.indexOfFirst { it.text == parameter }
         for (child in element.parent.children) {

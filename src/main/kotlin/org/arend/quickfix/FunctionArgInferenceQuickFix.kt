@@ -34,8 +34,8 @@ class FunctionArgInferenceQuickFix(
             }
         }
 
-        val arendDefFunction = ArendReferenceBase.createArendLookUpElement(error.definition.referable, null, false, null, false, "")!!.`object` as? ArendDefFunction
-        val arendConstructor = ArendReferenceBase.createArendLookUpElement(error.definition.referable, null, false, null, false, "")!!.`object` as? ArendConstructor
+        val arendDefFunction = ArendReferenceBase.createArendLookUpElement(error.definition.referable, null, false, null, false, "")?.`object` as? ArendDefFunction
+        val arendConstructor = ArendReferenceBase.createArendLookUpElement(error.definition.referable, null, false, null, false, "")?.`object` as? ArendConstructor
 
         val universes = mutableListOf<String>()
 
@@ -117,7 +117,7 @@ class FunctionArgInferenceQuickFix(
     private fun getConstructorSignature(arendConstructor: ArendConstructor, universes: MutableList<String>): List<Triple<String, Expression, Boolean>> {
         val arendDefData = arendConstructor.parent.parent as ArendDefData
         return arendDefData.parameters.map { parameter ->
-            val typedExpr = parameter.getChildOfType<ArendTypedExpr>()!!
+            val typedExpr = parameter.getChildOfType<ArendTypedExpr>() ?: return emptyList()
 
             val arguments = typedExpr.getChildrenOfType<ArendIdentifierOrUnknown>()
             val type = parameter.childOfType<ArendNewExpr>()?.getChildOfType<ArendArgumentAppExpr>()

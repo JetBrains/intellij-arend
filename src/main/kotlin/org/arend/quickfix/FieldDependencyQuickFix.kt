@@ -26,7 +26,7 @@ class FieldDependencyQuickFix(
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val element = cause.element
-        val expression = element?.parent!!
+        val expression = element?.parent ?: return
 
         val psiFactory = ArendPsiFactory(project)
         var localCoClause = psiFactory.createLocalCoClause(error.field.toString())

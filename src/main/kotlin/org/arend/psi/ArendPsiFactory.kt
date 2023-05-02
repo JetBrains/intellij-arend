@@ -207,4 +207,7 @@ class ArendPsiFactory(
     fun createUndefinedExplicitType() = createExpression("foo {?}").childOfType<ArendAtomArgument>() ?: error("Failed to create {?}")
 
     fun createDefinedExplicitType() = createExpression("foo _").childOfType<ArendAtomArgument>() ?: error("Failed to create _")
+
+    fun createReturnExpr() = createFromText("\\func foo => \\case t \\return {?} \\with {} ")?.firstChild?.firstChild
+        ?.childOfType<ArendFunctionBody>()?.childOfType<ArendCaseExpr>()?.childOfType<ArendReturnExpr>() ?: error("Failed to create ArendReturnExpr")
 }
