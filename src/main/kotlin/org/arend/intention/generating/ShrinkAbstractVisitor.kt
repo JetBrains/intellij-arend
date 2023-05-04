@@ -98,6 +98,8 @@ class ShrinkAbstractVisitor(val textRange: TextRange) : AbstractExpressionVisito
         return unescapedString
     }
 
+    override fun visitQName(data: Any?, refData: Any?, reference: Referable?, params: Unit?) = "``" + (reference?.toString() ?: "")
+
     override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, params: Unit?): String {
         return expr.accept(this, Unit) + " : $DOTS"
     }

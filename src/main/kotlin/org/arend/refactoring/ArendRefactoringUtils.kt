@@ -846,6 +846,7 @@ private object PrecVisitor : AbstractExpressionVisitor<Void?, Int> {
     override fun visitLet(data: Any?, isHave: Boolean, isStrict: Boolean, clauses: Collection<Abstract.LetClause>, expression: Abstract.Expression?, params: Void?) = MIN_PREC
     override fun visitNumericLiteral(data: Any?, number: BigInteger, params: Void?) = MAX_PREC
     override fun visitStringLiteral(data: Any?, unescapedString: String, params: Void?) = MAX_PREC
+    override fun visitQName(data: Any?, refData: Any?, reference: Referable?, params: Void?) = MAX_PREC
     override fun visitTyped(data: Any?, expr: Abstract.Expression, type: Abstract.Expression, params: Void?) = MIN_PREC
 }
 
@@ -873,6 +874,7 @@ private object ConcretePrecVisitor : ConcreteExpressionVisitor<Void?, Int> {
     override fun visitLet(expr: Concrete.LetExpression, params: Void?) = MIN_PREC
     override fun visitNumericLiteral(expr: Concrete.NumericLiteral, params: Void?) = MAX_PREC
     override fun visitStringLiteral(expr: Concrete.StringLiteral?, params: Void?) = MAX_PREC
+    override fun visitQNameLiteral(expr: Concrete.QNameLiteral?, params: Void?) = MAX_PREC
     override fun visitTyped(expr: Concrete.TypedExpression, params: Void?) = MIN_PREC
     override fun visitApplyHole(expr: Concrete.ApplyHoleExpression, params: Void?) = MAX_PREC
     override fun visitBox(expr: Concrete.BoxExpression?, params: Void?) = APP_PREC

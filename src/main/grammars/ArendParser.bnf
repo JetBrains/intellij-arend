@@ -730,7 +730,7 @@ private argumentRecovery ::= argument_recover {
     recoverWhile = argument_recover
 }
 
-private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | BOX_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW | LET_KW | LETS_KW | HAVE_KW | HAVES_KW | STRING | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
+private argument_recover ::= !(NEW_KW | EVAL_KW | PEVAL_KW | BOX_KW | NUMBER | LAM_KW | CASE_KW | SCASE_KW | LET_KW | LETS_KW | HAVE_KW | HAVES_KW | STRING | QNAME | NEGATIVE_NUMBER | INFIX | POSTFIX | AS_KW | RETURN_KW | COWITH_KW | THIS_KW) & typeTele_recover
 
 atomArgument ::= atomFieldsAcc
 
@@ -753,8 +753,10 @@ literal ::= longNameIP
     | APPLY_HOLE
     | UNDERSCORE
     | STRING
+    | QNAME longName
     | IPName
     | goal
+    { pin(".*") = 1 }
 
 goal ::= TGOAL | lGoal
 

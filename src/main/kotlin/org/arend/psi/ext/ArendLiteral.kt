@@ -34,6 +34,10 @@ class ArendLiteral(node: ASTNode) : ArendExpr(node) {
                 UNDERSCORE -> visitor.visitInferHole(this, params)
                 APPLY_HOLE -> visitor.visitApplyHole(this, params)
                 STRING -> visitor.visitStringLiteral(this, child!!.text.removeSurrounding("\""), params)
+                QNAME -> {
+                    val longName = longName
+                    visitor.visitQName(this, longName ?: this, longName?.referent, params)
+                }
                 else -> error("Incorrect expression: literal")
             }
         }

@@ -51,6 +51,7 @@ KEYWORD             = \\[0-9]*{ID}
 ID_CHAR             = {START_CHAR} | [0-9']
 ID                  = {START_CHAR} {ID_CHAR}*
 POSTFIX             = `{ID}
+QNAME               = ``
 INFIX               = `{ID}`
 
 SET                 = \\Set[0-9]*
@@ -181,6 +182,7 @@ OCT_DIGIT           = [0-8]
     {NEGATIVE_NUMBER}       { return NEGATIVE_NUMBER; }
 
     {POSTFIX}               { return POSTFIX; }
+    {QNAME}                 { return QNAME; }
     {INFIX}                 { return INFIX; }
     // For REPL
     :{ID}                   { return getTokenStart() == 0 ? REPL_COMMAND : ID; }
