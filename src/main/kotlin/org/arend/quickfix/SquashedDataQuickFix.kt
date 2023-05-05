@@ -7,9 +7,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.childOfType
-import org.arend.psi.ext.*
-import org.arend.psi.nextElement
+import org.arend.psi.ext.ArendCaseExpr
+import org.arend.psi.ext.ArendDefFunction
 import org.arend.util.ArendBundle
 
 class SquashedDataQuickFix(private val cause: SmartPsiElementPointer<PsiElement>) : IntentionAction {
@@ -22,7 +21,7 @@ class SquashedDataQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        var element: PsiElement? = cause.element
+        var element = cause.element
         while (element !is ArendCaseExpr && element !is ArendDefFunction) {
             element = element?.parent
             if (element == null) {

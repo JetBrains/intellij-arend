@@ -9,13 +9,14 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.childrenOfType
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.childOfType
-import org.arend.psi.ext.ArendIdentifierOrUnknown
-import org.arend.psi.ext.ArendPiExpr
-import org.arend.psi.ext.ArendReturnExpr
+import org.arend.psi.ext.*
 import org.arend.typechecking.error.local.ImplicitLambdaError
 import org.arend.util.ArendBundle
 
-class ImplicitLambdaQuickFix(private val cause: SmartPsiElementPointer<PsiElement>, private val error: ImplicitLambdaError): IntentionAction {
+class ImplicitLambdaQuickFix(
+    private val cause: SmartPsiElementPointer<PsiElement>,
+    private val error: ImplicitLambdaError
+) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getText(): String = ArendBundle.message("arend.lambda.argument.implicitness")
@@ -26,26 +27,23 @@ class ImplicitLambdaQuickFix(private val cause: SmartPsiElementPointer<PsiElemen
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val element = cause.element ?: return
-        val parameter = lambdaImplicitParameterRegex.find(error.toString())?.groupValues?.getOrNull(1) ?: return
+        val parameter = error.parameter.textRepresentation()
 
-        var index = element.children.indexOfFirst { it.text == parameter }
-        for (child in element.parent.children) {
-            if (child == element) {
-                break
-            }
-            index += child.childrenOfType<ArendIdentifierOrUnknown>().size
+        val parameterIdentifiers = element.childrenOfType<ArendIdentifierOrUnknown>()
+        val typeExpr = element.childOfType<ArendNewExpr>()?.text
+
+        val psiFactory = ArendPsiFactory(project)
+        var nameTele = psiFactory.createNameTele(parameter, typeExpr, true)
+        val whiteSpace = psiFactory.createWhitespace(" ")
+
+        val parent = element.parent
+        nameTele = parent.addAfter(nameTele, element) as ArendNameTele
+
+        if (parameterIdentifiers.size == 1) {
+            element.delete()
+        } else {
+            parent.addBefore(whiteSpace, nameTele)
+            parameterIdentifiers.find { it.text == parameter }?.delete()
         }
-
-        val returnExpr = element.parent.parent.parent.childOfType<ArendReturnExpr>()?.childOfType<ArendPiExpr>() ?: return
-
-        returnExpr.children.getOrNull(index)?.let {
-            val psiFactory = ArendPsiFactory(project)
-            val nameTele = psiFactory.createTypeTele(parameter, it.text, false)
-            it.replace(nameTele)
-        }
-    }
-
-    companion object {
-        private val lambdaImplicitParameterRegex = "Parameter '(.+)' is implicit, but the corresponding parameter of the expected type is not".toRegex()
     }
 }

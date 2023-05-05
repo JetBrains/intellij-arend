@@ -13,8 +13,8 @@ import org.arend.typechecking.error.local.DataUniverseError
 import org.arend.util.ArendBundle
 
 class DataUniverseQuickFix(
-        private val cause: SmartPsiElementPointer<PsiElement>,
-        private val error: DataUniverseError
+    private val cause: SmartPsiElementPointer<PsiElement>,
+    private val error: DataUniverseError
 ) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 

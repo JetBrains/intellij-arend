@@ -14,8 +14,8 @@ import org.arend.typechecking.error.local.inference.FunctionArgInferenceError
 import org.arend.util.ArendBundle
 
 class FunctionArgInferenceQuickFix(
-        private val cause: SmartPsiElementPointer<PsiElement>,
-        private val error: FunctionArgInferenceError
+    private val cause: SmartPsiElementPointer<PsiElement>,
+    private val error: FunctionArgInferenceError
 ) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
@@ -26,55 +26,93 @@ class FunctionArgInferenceQuickFix(
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        var element: PsiElement? = cause.element
-        while (element !is ArendArgumentAppExpr && element !is ArendAtomArgument) {
-            element = element?.parent
-            if (element == null) {
-                return
-            }
-        }
-
-        val arendDefFunction = ArendReferenceBase.createArendLookUpElement(error.definition.referable, null, false, null, false, "")?.`object` as? ArendDefFunction
-        val arendConstructor = ArendReferenceBase.createArendLookUpElement(error.definition.referable, null, false, null, false, "")?.`object` as? ArendConstructor
+        val arendDefFunction = ArendReferenceBase.createArendLookUpElement(
+            error.definition.referable,
+            null,
+            false,
+            null,
+            false,
+            ""
+        )?.`object` as? ArendDefFunction
+        val arendConstructor = ArendReferenceBase.createArendLookUpElement(
+            error.definition.referable,
+            null,
+            false,
+            null,
+            false,
+            ""
+        )?.`object` as? ArendConstructor
 
         val universes = mutableListOf<String>()
-
         val functionSignature = if (arendDefFunction != null) {
             getFunctionSignature(arendDefFunction, universes)
         } else if (arendConstructor != null) {
             getConstructorSignature(arendConstructor, universes)
         } else {
-            emptyList()
+            return
         }
 
+        val elementName = cause.element?.text
+        var element = cause.element
+
+        while ((arendDefFunction != null && element !is ArendArgumentAppExpr) ||
+            (arendConstructor != null && !((element !is ArendArgumentAppExpr).xor(element !is ArendAtomArgument)))
+        ) {
+            element = element?.parent
+            if (element == null) {
+                return
+            }
+        }
+        element = element!!
+
+        val constructors = arendConstructor?.constructors?.map { it.text } ?: emptyList()
         val arguments = element.children.toMutableList().apply {
-            removeFirst()
+            if (arendDefFunction != null || element is ArendAtomArgument) {
+                removeIf { it.text == elementName }
+            } else {
+                removeIf { constructors.contains(it.text) }
+            }
         }
 
-        val missedIndexed = mutableListOf<Int>()
+        var missedIndexed = mutableListOf<Int>()
         val definedTypes = mutableSetOf<String>()
-
         findMissedIndexesAndDefinedTypes(functionSignature, arguments, universes, missedIndexed, definedTypes, element)
 
+        val shift = element.children.indexOfFirst {
+            if (arendDefFunction != null || element is ArendAtomArgument) {
+                it.text == elementName
+            } else {
+                constructors.contains(it.text)
+            }
+        }
+        missedIndexed = missedIndexed.map { it + shift } as MutableList<Int>
+
         val psiFactory = ArendPsiFactory(project)
-
-        if (element is ArendAtomArgument) {
-            val arendArgumentAppExpr = psiFactory.createExpression(element.text).childOfType<ArendArgumentAppExpr>()!!
-            addMissedArguments(psiFactory, arendArgumentAppExpr, functionSignature, missedIndexed, definedTypes)
-
-            val newArendAtomArgument = psiFactory.createExpression("foo (${arendArgumentAppExpr.text})").childOfType<ArendAtomArgument>()!!
-
-            element.replace(newArendAtomArgument)
-        } else {
-            val firstMissedUndefinedIndex = addMissedArguments(psiFactory, element, functionSignature, missedIndexed, definedTypes)
+        if (element is ArendArgumentAppExpr) {
+            val firstMissedUndefinedIndex =
+                addMissedArguments(psiFactory, element, functionSignature, missedIndexed, definedTypes, shift)
 
             if (editor != null && firstMissedUndefinedIndex != null) {
                 moveCaretToEndOffset(editor, element.children[firstMissedUndefinedIndex + 1])
             }
+        } else {
+            val arendArgumentAppExpr = psiFactory.createExpression(element.text).childOfType<ArendArgumentAppExpr>()!!
+            addMissedArguments(psiFactory, arendArgumentAppExpr, functionSignature, missedIndexed, definedTypes, shift)
+
+            val newArendAtomArgument =
+                psiFactory.createExpression("foo (${arendArgumentAppExpr.text})").childOfType<ArendAtomArgument>()!!
+            element.replace(newArendAtomArgument)
         }
     }
 
-    private fun addMissedArguments(psiFactory: ArendPsiFactory, element: PsiElement, functionSignature: List<Triple<String, Expression, Boolean>>, missedIndexed: List<Int>, definedTypes: Set<String>): Int? {
+    private fun addMissedArguments(
+        psiFactory: ArendPsiFactory,
+        element: PsiElement,
+        functionSignature: List<Triple<String, Expression, Boolean>>,
+        missedIndexed: List<Int>,
+        definedTypes: Set<String>,
+        shift: Int
+    ): Int? {
         val undefinedImplicitType = psiFactory.createUndefinedImplicitType()
         val definedImplicitType = psiFactory.createDefinedImplicitType()
         val undefinedExplicitType = psiFactory.createUndefinedExplicitType()
@@ -90,7 +128,7 @@ class FunctionArgInferenceQuickFix(
             }
 
             val nextElement = element.children[it].nextElement
-            val (type, _, isExplicit) = functionSignature[it]
+            val (type, _, isExplicit) = functionSignature[it - shift]
             if (definedTypes.contains(type)) {
                 if (isExplicit) {
                     element.addAfter(definedExplicitType, nextElement)
@@ -114,11 +152,13 @@ class FunctionArgInferenceQuickFix(
         return firstMissedUndefinedIndex
     }
 
-    private fun getConstructorSignature(arendConstructor: ArendConstructor, universes: MutableList<String>): List<Triple<String, Expression, Boolean>> {
+    private fun getConstructorSignature(
+        arendConstructor: ArendConstructor,
+        universes: MutableList<String>
+    ): List<Triple<String, Expression, Boolean>> {
         val arendDefData = arendConstructor.parent.parent as ArendDefData
         return arendDefData.parameters.map { parameter ->
             val typedExpr = parameter.getChildOfType<ArendTypedExpr>() ?: return emptyList()
-
             val arguments = typedExpr.getChildrenOfType<ArendIdentifierOrUnknown>()
             val type = parameter.childOfType<ArendNewExpr>()?.getChildOfType<ArendArgumentAppExpr>()
             if (type == null) {
@@ -132,27 +172,30 @@ class FunctionArgInferenceQuickFix(
         }.flatten()
     }
 
-    private fun getFunctionSignature(arendDefFunction: ArendDefFunction, universes: MutableList<String>): List<Triple<String, Expression, Boolean>> =
-            arendDefFunction.parameters.map { parameter ->
-                val arguments = parameter.getChildrenOfType<ArendIdentifierOrUnknown>()
-                val type = parameter.childOfType<ArendNewExpr>()?.getChildOfType<ArendArgumentAppExpr>()
-                if (type == null) {
-                    arguments.map { argument ->
-                        universes.add(argument.text)
-                        Triple(argument.text, Expression.UNIVERSE, parameter.isExplicit)
-                    }
-                } else {
-                    arguments.map { Triple(type.text, Expression.ARGUMENT, parameter.isExplicit) }
+    private fun getFunctionSignature(
+        arendDefFunction: ArendDefFunction,
+        universes: MutableList<String>
+    ): List<Triple<String, Expression, Boolean>> =
+        arendDefFunction.parameters.map { parameter ->
+            val arguments = parameter.getChildrenOfType<ArendIdentifierOrUnknown>()
+            val type = parameter.childOfType<ArendNewExpr>()?.getChildOfType<ArendArgumentAppExpr>()
+            if (type == null) {
+                arguments.map { argument ->
+                    universes.add(argument.text)
+                    Triple(argument.text, Expression.UNIVERSE, parameter.isExplicit)
                 }
-            }.flatten()
+            } else {
+                arguments.map { Triple(type.text, Expression.ARGUMENT, parameter.isExplicit) }
+            }
+        }.flatten()
 
     private fun findMissedIndexesAndDefinedTypes(
-            functionSignature: List<Triple<String, Expression, Boolean>>,
-            arguments: List<PsiElement>,
-            universes: MutableList<String>,
-            missedIndexed: MutableList<Int>,
-            definedTypes: MutableSet<String>,
-            element: PsiElement
+        functionSignature: List<Triple<String, Expression, Boolean>>,
+        arguments: List<PsiElement>,
+        universes: MutableList<String>,
+        missedIndexed: MutableList<Int>,
+        definedTypes: MutableSet<String>,
+        element: PsiElement
     ) {
         var index = 0
         val errorIndex = error.index - 1
@@ -172,7 +215,8 @@ class FunctionArgInferenceQuickFix(
                 removeArgument(argument, element)
                 index++
             } else if (expression == Expression.UNIVERSE &&
-                    ((isExplicit && argument is ArendImplicitArgument) || (!isExplicit && argument !is ArendImplicitArgument))) {
+                ((isExplicit && argument is ArendImplicitArgument) || (!isExplicit && argument !is ArendImplicitArgument))
+            ) {
                 missedIndexed.add(it)
             } else {
                 index++
@@ -201,7 +245,13 @@ class FunctionArgInferenceQuickFix(
         }
     }
 
-    private fun addDefinedType(expression: Expression, argument: PsiElement, type: String, definedTypes: MutableSet<String>, universes: List<String>) {
+    private fun addDefinedType(
+        expression: Expression,
+        argument: PsiElement,
+        type: String,
+        definedTypes: MutableSet<String>,
+        universes: List<String>
+    ) {
         if (expression == Expression.ARGUMENT && !UNIVERSE_LITERALS.contains(argument.text) && universes.contains(type)) {
             definedTypes.add(type)
         }

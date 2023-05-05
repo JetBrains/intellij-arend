@@ -24,7 +24,7 @@ class RemoveLevelQuickFix(
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        var element: PsiElement? = cause.element
+        var element = cause.element
         while (element !is ArendReturnExpr) {
             element = element?.parent
             if (element == null) {
@@ -41,8 +41,9 @@ class RemoveLevelQuickFix(
         element.deleteChildRange(element.firstChild, element.lastChild)
         element.add(newExpr)
 
-        if (element.prevElement is PsiWhiteSpace) {
-            (element.prevElement as PsiWhiteSpace).replace(psiFactory.createWhitespace(" "))
+        val prevElement = element.prevElement
+        if (prevElement is PsiWhiteSpace) {
+            prevElement.replace(psiFactory.createWhitespace(" "))
         }
     }
 }

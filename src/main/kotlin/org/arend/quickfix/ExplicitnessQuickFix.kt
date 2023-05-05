@@ -8,6 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.childOfType
+import org.arend.psi.ext.ArendArgumentAppExpr
 import org.arend.psi.ext.ArendAtomArgument
 import org.arend.psi.ext.ArendImplicitArgument
 import org.arend.util.ArendBundle
@@ -22,7 +23,10 @@ class ExplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        var element: PsiElement? = cause.element
+        var element = cause.element
+        val isArendArgumentAppExpr = element is ArendArgumentAppExpr
+        val text = element?.text
+
         while (element !is ArendImplicitArgument) {
             element = element?.parent
             if (element == null) {
@@ -31,7 +35,11 @@ class ExplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
         }
 
         val psiFactory = ArendPsiFactory(project)
-        val atom = psiFactory.createExpression("foo ${cause.element?.text}").childOfType<ArendAtomArgument>()!!
+        val atom = psiFactory.createExpression(
+            if (isArendArgumentAppExpr) "foo ($text)"
+            else "foo $text"
+        ).childOfType<ArendAtomArgument>()!!
+
         element.replace(atom)
     }
 }

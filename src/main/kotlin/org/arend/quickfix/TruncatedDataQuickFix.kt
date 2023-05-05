@@ -26,7 +26,7 @@ class TruncatedDataQuickFix(
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        var element: PsiElement? = cause.element
+        var element = cause.element
         while (element !is ArendDefFunction) {
             element = element?.parent
             if (element == null) {

@@ -373,7 +373,9 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 if (message.contains("explicit")) {
                     registerFix(info, ExplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
                 } else if (message.contains("implicit")) {
-                    registerFix(info, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                    if (cause is ArendNameTele) {
+                        registerFix(info, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                    }
                 }
             }
 
@@ -396,7 +398,9 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
             }
 
             is TruncatedDataError -> {
-                registerFix(info, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
+                if ((error.definition as? DataLocatedReferable)?.data?.element?.childOfType<ArendReturnExpr>()?.firstChild?.text == "\\level") {
+                    registerFix(info, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
+                }
             }
 
             is FieldDependencyError -> {

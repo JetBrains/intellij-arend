@@ -20,16 +20,9 @@ class ImplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        var element: PsiElement? = cause.element
-        while (element !is ArendNameTele) {
-            element = element?.parent
-            if (element == null) {
-                return
-            }
-        }
-
+        val element = cause.element
         val psiFactory = ArendPsiFactory(project)
-        val nameTele = psiFactory.createNameTele(cause.element?.text, null, false)
-        element.replace(nameTele)
+        val nameTele = psiFactory.createNameTele(element?.text, null, false)
+        element?.replace(nameTele)
     }
 }

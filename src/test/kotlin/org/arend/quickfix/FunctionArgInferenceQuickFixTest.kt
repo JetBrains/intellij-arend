@@ -34,7 +34,7 @@ class FunctionArgInferenceQuickFixTest : QuickFixTestBase() {
         \func f5 => f4 {_} {_} 0 {{?}}{-caret-} 0
     """)
 
-    fun testInfixFunction() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
+    fun testFixFunction1() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
         \func \infixl 6 f6 {A B : \Type0} (a : A) => a
 
         \func f7 => f6{-caret-} 0
@@ -42,6 +42,26 @@ class FunctionArgInferenceQuickFixTest : QuickFixTestBase() {
         \func \infixl 6 f6 {A B : \Type0} (a : A) => a
 
         \func f7 => f6 {_} {{?}}{-caret-} 0
+    """)
+
+    fun testFixFunction2() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
+        \func \infixl 6 f6 {A B : \Type0} (a : A) (b : A) => a
+        
+        \func f7 => 0 f6{-caret-} 1
+    """, """
+        \func \infixl 6 f6 {A B : \Type0} (a : A) (b : A) => a
+
+        \func f7 => 0 f6 {_} {{?}}{-caret-} 1
+    """)
+
+    fun testFixFunction3() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
+        \func \infixl 6 f6 {A B : \Type0} (a : A) (b : A) => a
+
+        \func f7 : Nat -> Nat => 0 `f6{-caret-}
+    """, """
+        \func \infixl 6 f6 {A B : \Type0} (a : A) (b : A) => a
+
+        \func f7 : Nat -> Nat => 0 `f6 {_} {{?}}{-caret-}
     """)
 
     fun testList1() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
@@ -55,7 +75,7 @@ class FunctionArgInferenceQuickFixTest : QuickFixTestBase() {
 
         \func foo (X : \Type) (l : List X) => l
         
-        \func bar => foo {?} nil
+        \func bar => foo {?}{-caret-} nil
     """)
 
     fun testList2() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
@@ -70,6 +90,20 @@ class FunctionArgInferenceQuickFixTest : QuickFixTestBase() {
         \func foo (X : \Type) (l : List X) => l
         
         \func bar => foo _ (nil {{?}})
+    """)
+
+    fun testList3() = typedQuickFixTest(ArendBundle.message("arend.argument.inference.parameter"), """
+        \data List (A : \Type) (B : \Type0) | nil | cons A B (List A B)
+
+        \func foo (X : \Type) (Y : \Type0) (l : List X Y) => l
+    
+        \func bar => foo _ _ (nil {{?}}{-caret-})
+    """, """
+        \data List (A : \Type) (B : \Type0) | nil | cons A B (List A B)
+
+        \func foo (X : \Type) (Y : \Type0) (l : List X Y) => l
+        
+        \func bar => foo _ _ (nil {{?}}{-caret-} {{?}})
     """)
 
 

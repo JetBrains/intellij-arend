@@ -28,7 +28,7 @@ class LambdaInferenceQuickFix(
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val element = cause.element ?: return
 
-        val argument = inferParameterRegex.find(error.toString())?.groupValues?.getOrNull(1) ?: return
+        val argument = error.parameter.textRepresentation()
         val argumentElement = element.findChildByText(argument) as ArendNameTele
 
         val psiFactory = ArendPsiFactory(project)
@@ -39,15 +39,13 @@ class LambdaInferenceQuickFix(
 
     private fun PsiElement.findChildByText(text: String) =
         children.find {
-            val element = it as ArendNameTele
-            if (element.isExplicit) {
+            if (it !is ArendNameTele) {
+                return@find false
+            }
+            if (it.isExplicit) {
                 it.text == text
             } else {
-                element.childOfType<ArendIdentifierOrUnknown>()?.text == text
+                it.childOfType<ArendIdentifierOrUnknown>()?.text == text
             }
         }
-
-    companion object {
-        private val inferParameterRegex = "Cannot infer type of parameter \'(.+)\'".toRegex()
-    }
 }

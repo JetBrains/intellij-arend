@@ -1,5 +1,6 @@
 package org.arend.quickfix
 
+import com.intellij.psi.util.childrenOfType
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.childOfType
 import org.arend.psi.ext.ArendCaseArg
@@ -15,7 +16,12 @@ internal fun updateReturnExpression(psiFactory: ArendPsiFactory, element: ArendC
     var returnExpr = psiFactory.createReturnExpr()
     val whiteSpace = psiFactory.createWhitespace(" ")
 
-    val caseArg = element.childOfType<ArendCaseArg>() ?: return
+    val caseArg = element.childrenOfType<ArendCaseArg>().let {
+        if (it.isEmpty()) {
+            return
+        }
+        it.last()
+    }
     val whiteSpaceAfterCaseArg = if (caseArg.nextElement == null) {
         element.addAfter(whiteSpace, caseArg)
     } else {
