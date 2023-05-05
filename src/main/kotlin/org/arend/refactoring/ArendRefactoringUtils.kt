@@ -657,7 +657,7 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
                              argumentOrFieldsAcc: PsiElement,
                              ipName: ArendIPName,
                              operatorConcrete: Concrete.Expression,
-                             rangeData: HashMap<Concrete.Expression, TextRange>? = null,
+                             rangeData: HashMap<Concrete.SourceNode, TextRange>? = null,
                              rangeCallback: ((TextRange, Int) -> Unit)? = null): ArendArgumentAppExpr? {
     val argumentAppExpr = argumentOrFieldsAcc.parent as ArendArgumentAppExpr
     val nodes = argumentAppExpr.firstChild.siblings().map { it.node }.toList()

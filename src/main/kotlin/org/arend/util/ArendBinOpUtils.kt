@@ -9,17 +9,17 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
+import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendExpr
-import org.arend.psi.ext.ArendIPName
-import org.arend.psi.ext.ArendImplicitArgument
-import org.arend.psi.ext.ArendReferenceContainer
-import org.arend.psi.ext.ArendSourceNode
+import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.util.parseBinOp
 import org.arend.resolving.util.resolveReference
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
+import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 
 fun appExprToConcrete(appExpr: ArendExpr): Concrete.Expression? = appExprToConcrete(appExpr, false)
@@ -38,24 +38,50 @@ fun appExprToConcrete(appExpr: ArendExpr, setData: Boolean, errorReporter: Error
     }, null)
 }
 
-fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, rangesMap: HashMap<Concrete.Expression, TextRange>? = null): TextRange? {
+fun patternToConcrete(unparsedPattern: ArendPattern, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE): Concrete.Pattern? {
+    val scope = CachingScope.make(unparsedPattern.scope)
+    val unparsed = ConcreteBuilder.convertPattern(unparsedPattern, ArendReferableConverter, errorReporter, null)
+    val referables = ArrayList<Referable>()
+    val patterns = ArrayList<Concrete.Pattern>(); patterns.add(unparsed)
+    ExpressionResolveNameVisitor(ArendReferableConverter, scope, referables, errorReporter, null).visitPatterns(patterns, HashMap())
+    return patterns.firstOrNull()
+}
+
+fun getBounds(cExpr: Concrete.SourceNode, aaeBlocks: List<ASTNode>, rangesMap: HashMap<Concrete.SourceNode, TextRange>? = null): TextRange? {
     val cExprData = cExpr.data
     var result: TextRange? = null
 
     if (rangesMap != null && rangesMap[cExpr] != null) return rangesMap[cExpr]
 
-    if (cExpr is Concrete.AppExpression) {
+    if (cExpr is Concrete.AppExpression || cExpr is Concrete.ConstructorPattern) {
         val elements = ArrayList<TextRange>()
-        val fData = cExpr.function.data
+        val fData = when (cExpr) {
+            is Concrete.AppExpression -> cExpr.function.data
+            is Concrete.ConstructorPattern -> cExpr.constructorData
+            else -> throw IllegalStateException()
+        }
 
-        elements.addAll(cExpr.arguments.asSequence().mapNotNull { getBounds(it.expression, aaeBlocks, rangesMap) })
+        val args = when (cExpr) {
+            is Concrete.AppExpression -> cExpr.arguments
+            is Concrete.ConstructorPattern -> cExpr.patterns
+            else -> throw IllegalStateException()
+        }
+
+        elements.addAll(args.asSequence().mapNotNull {
+            val key = when (it) {
+                is Concrete.Argument -> it.expression
+                is Concrete.Pattern -> it
+                else -> throw IllegalStateException()
+            }
+            getBounds(key, aaeBlocks, rangesMap) }
+        )
 
         if (fData is PsiElement) {
             val f = aaeBlocks.filter { it.textRange.contains(fData.textRange) }
             if (f.size != 1) throw IllegalStateException()
             val functionRange = f.first().textRange
             elements.add(functionRange)
-            rangesMap?.put(cExpr.function, functionRange)
+            if (cExpr is Concrete.AppExpression) rangesMap?.put(cExpr.function, functionRange)
         }
 
         val startOffset = elements.asSequence().map { it.startOffset }.minOrNull()
@@ -78,17 +104,6 @@ fun getBounds(cExpr: Concrete.Expression, aaeBlocks: List<ASTNode>, rangesMap: H
 
 fun concreteDataToSourceNode(data: Any?): ArendSourceNode? =
     if (data is ArendIPName) data.parentOfType() else data as? ArendSourceNode
-
-/*fun checkConcreteExprIsArendExpr(aExpr: ArendExpr, cExpr: Concrete.Expression): Boolean {
-    val checkConcreteExprDataIsArendNode = { cData: ArendSourceNode?, aNode: ArendSourceNode -> // Rewrite in a less ad-hoc way
-        cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
-                cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
-                cData?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode }
-
-    if (cExpr is Concrete.AppExpression) return false
-
-    return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
-} */
 
 fun checkConcreteExprIsArendExpr(aExpr: Abstract.SourceNode, cExpr: Concrete.Expression): Boolean {
     val checkConcreteExprDataIsArendNode = ret@{ cData: ArendSourceNode?, aNode: Abstract.SourceNode ->
@@ -150,68 +165,6 @@ fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression)
 
     return null
 }
-
-/*
-// The second component of the Pair in the return type is a list of (argument, isExplicit)
-fun findDefAndArgsInParsedBinop(arg: ArendExpr, parsedExpr: Concrete.Expression): Pair<Abstract.Reference, List<Pair<ArendSourceNode, Boolean>>>? {
-    if (checkConcreteExprIsArendExpr(arg, parsedExpr)) {
-        if (checkConcreteExprIsFunc(parsedExpr, arg.scope)) {
-            return Pair(parsedExpr.data as Abstract.Reference, emptyList())
-        }
-    }
-
-    if (parsedExpr is Concrete.AppExpression) {
-        val createArglist = ret@{
-            val ardArguments = mutableListOf<Pair<ArendSourceNode, Boolean>>()
-            for (argument_ in parsedExpr.arguments) {
-                if (argument_.expression.data !is ArendSourceNode) {
-                    return@ret null
-                }
-                ardArguments.add(Pair(argument_.expression.data as ArendSourceNode, argument_.isExplicit))
-            }
-            return@ret ardArguments
-        }
-
-        if (checkConcreteExprIsArendExpr(arg, parsedExpr.function)) {
-            if (checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) {
-                return createArglist()?.let { Pair(parsedExpr.data as Abstract.Reference, it) }
-            }
-        }
-
-        val funcRes = findDefAndArgsInParsedBinop(arg, parsedExpr.function)
-        if (funcRes != null) return funcRes
-
-        for (argument in parsedExpr.arguments) {
-            if (checkConcreteExprIsArendExpr(arg, argument.expression)) {
-                if (checkConcreteExprIsFunc(argument.expression, arg.scope)) {
-                    return Pair(argument.expression.data as Abstract.Reference, emptyList())
-                }
-                if (!checkConcreteExprIsFunc(parsedExpr.function, arg.scope)) return null
-                return createArglist()?.let { Pair(parsedExpr.function.data  as Abstract.Reference, it) }
-            }
-        }
-
-        for (argument in parsedExpr.arguments) {
-            val argRes = findDefAndArgsInParsedBinop(arg, argument.expression)
-            if (argRes != null) return argRes
-        }
-    } else if (parsedExpr is Concrete.LamExpression) {
-        return findDefAndArgsInParsedBinop(arg, parsedExpr.body)
-    }
-
-    return null
-}
-
-fun concreteDataToSourceNode(data: Any?): ArendSourceNode? {
-    if (data is ArendIPName) {
-        val element = data.infix ?: data.postfix
-        val node = element?.parentOfType<ArendSourceNode>() ?: return null
-        return node
-    }
-    return data as? ArendSourceNode
-}
-
-*/
 
 fun isBinOp(binOpReference: ArendReferenceContainer?) =
         if (binOpReference is ArendIPName) binOpReference.infix != null
