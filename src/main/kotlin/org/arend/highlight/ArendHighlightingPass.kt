@@ -202,11 +202,11 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
             remove
         }
 
-        val definitions = ArrayList<Concrete.Definition>()
+        val definitions = ArrayList<Concrete.ResolvableDefinition>()
         (file as? ArendFile)?.traverseGroup { group ->
             val ref = group.referable
             val def = concreteProvider.getConcrete(ref)
-            if (def is Concrete.Definition) {
+            if (def is Concrete.ResolvableDefinition) {
                 var check = false
                 if (def.data.typechecked == null) {
                     check = true
