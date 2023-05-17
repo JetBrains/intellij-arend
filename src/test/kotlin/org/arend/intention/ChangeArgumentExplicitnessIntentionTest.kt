@@ -1188,4 +1188,18 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func match {t : tree} : tree
          | {:: {:: {t1} t2} t3} => t1 
     """)
+
+    fun testElim() = doTest("""
+       \func foo ({-caret-}a : Nat) (b : Nat) : Nat
+         | 0, 0 => 0
+         | 0, suc b => 1
+         | suc a, 0 => 2
+         | suc a, suc b => 3 
+    """, """
+       \func foo {a : Nat} (b : Nat) : Nat \elim a, b
+         | 0, 0 => 0
+         | 0, suc b => 1
+         | suc a, 0 => 2
+         | suc a, suc b => 3 
+    """)
 }

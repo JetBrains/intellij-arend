@@ -35,6 +35,9 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.*
+import org.arend.refactoring.changeSignature.ArendChangeInfo
+import org.arend.refactoring.changeSignature.ArendParameterInfo
+import org.arend.refactoring.changeSignature.fixElim
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
 import org.arend.search.ClassDescendantsSearch
@@ -542,12 +545,22 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
 
             NameFieldApplier(project).applyTo(refactoringDescriptors)
         } else {
-            if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
+            val indices = if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
                 val teleSize = if (element is ArendTypeTele && element.typedExpr?.identifierOrUnknownList?.isEmpty() == true) 1 else getTele(element)?.size ?: return
-                chooseApplier(element)?.applyTo(def, (0 until teleSize).map { it + teleIndexInDef }.toSet())
+                (0 until teleSize).map { it + teleIndexInDef }
             } else {
-                chooseApplier(element)?.applyTo(def, singletonList(switchedArgIndexInTele + teleIndexInDef).toSet())
+                singletonList(switchedArgIndexInTele + teleIndexInDef)
             }
+
+            if (def is ArendFunctionDefinition<*>) {
+                val params = ArendChangeInfo.getParameterInfo(def)
+                val newParams = params.map { ArendParameterInfo(it.name, it.typeText, it.oldIndex, if (indices.contains(it.oldIndex)) !it.isExplicit() else it.isExplicit()) }.toList()
+                runWriteAction {
+                    fixElim(def, ArendChangeInfo(newParams, "", "", def))
+                }
+            }
+
+            chooseApplier(element)?.applyTo(def, indices.toSet())
         }
 
         runWriteAction {
