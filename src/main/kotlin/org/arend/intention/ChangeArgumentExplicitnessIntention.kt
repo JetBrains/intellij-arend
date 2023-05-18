@@ -590,15 +590,9 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
     }
 
     private fun switchTeleExplicitness(tele: ArendCompositeElement) {
-        val def = tele.ancestor<PsiReferable>() as PsiElement
-        val teleIndex = def.children.indexOf(tele)
-        val anchor = def.children[teleIndex - 1]
         val factory = ArendPsiFactory(tele.project)
         val newTele = createSwitchedTele(factory, tele) ?: return
-        def.children[teleIndex].delete()
-        val inserted = def.addAfter(newTele, anchor)
-        val ws = factory.createWhitespace(" ")
-        def.addBefore(ws, inserted)
+        tele.replace(newTele)
     }
 }
 
@@ -801,9 +795,13 @@ abstract class ChangeArgumentExplicitnessApplier(val project: Project) {
 
 class NameFieldApplier(project: Project) : ChangeArgumentExplicitnessApplier(project) {
     override fun getParentPsiFunctionCall(element: PsiElement): PsiElement {
-        val pattern = element.parentOfType<ArendPattern>()
-        if (pattern != null) return if (pattern.parent is ArendPattern) pattern.parent else pattern
-        return element.parentOfType<ArendArgumentAppExpr>() ?: element
+        var e : PsiElement? = element
+        while (e != null && e !is ArendPattern && e !is ArendArgumentAppExpr) e = e.parent
+        return when {
+            (e is ArendPattern && e.parent is ArendPattern) -> e.parent
+            e != null -> e
+            else -> element
+        }
     }
 
     override fun getCallingParameters(call: PsiElement): List<PsiElement> = when (call) {

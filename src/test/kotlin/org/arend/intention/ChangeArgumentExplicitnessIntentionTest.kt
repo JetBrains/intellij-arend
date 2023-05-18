@@ -84,7 +84,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func test => k 1 2 Nat.+ k 3 4
         """,
         """
-        \func k (A B : \Type) {-caret-}(a : A) (b : B) => a
+        \func k (A B : {-caret-}\Type) (a : A) (b : B) => a
         \func test => k _ _ 1 2 Nat.+ k _ _ 3 4
         """
     )
@@ -95,7 +95,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func test => k Nat _ 1 2 Nat.+ k _ Nat 3 4
         """,
         """
-        \func k {A B : \Type} {-caret-}(a : A) (b : B) => a
+        \func k {A B : {-caret-}\Type} (a : A) (b : B) => a
         \func test => k {Nat} 1 2 Nat.+ k {_} {Nat} 3 4
         """
     )
@@ -106,7 +106,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func f => Test {\Sigma Nat Nat} (4, 2)
         """,
         """
-        \class Test ({-caret-}X : \Type) (x : X)
+        \class Test (X{-caret-} : \Type) (x : X)
         \func f => Test (\Sigma Nat Nat) (4, 2)
         """
     )
@@ -117,7 +117,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func f => Test (\Sigma Nat Nat) (4, 2)
         """,
         """
-        \class Test {{-caret-}X : \Type} (x : X)
+        \class Test {X{-caret-} : \Type} (x : X)
         \func f => Test {\Sigma Nat Nat} (4, 2)
         """
     )
@@ -128,7 +128,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func f => Test 42
         """,
         """
-        \class Test ({-caret-}X : \Type) (x : X)
+        \class Test (X{-caret-} : \Type) (x : X)
         \func f => Test _ 42
         """
     )
@@ -139,7 +139,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func f => Test _ 42
         """,
         """
-        \class Test {{-caret-}X : \Type} (x : X)
+        \class Test {X{-caret-} : \Type} (x : X)
         \func f => Test 42
         """
     )
@@ -150,7 +150,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func test => Test Nat _ 4 2
         """,
         """
-        \class Test {A B : \Type} {-caret-}(a : A) (b : B)
+        \class Test {A B :{-caret-} \Type} (a : A) (b : B)
         \func test => Test {Nat} 4 2
         """
     )
@@ -272,7 +272,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \record testRecord (T : \Type)
-          | k (A B : \Type) {-caret-}(a : A) (b : B) : A
+          | k (A B : {-caret-}\Type) (a : A) (b : B) : A
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k _ _ a b => a
@@ -291,7 +291,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \record testRecord (T : \Type)
-          | k {A B : \Type} {-caret-}(a : A) (b : B) : A
+          | k {A B : {-caret-}\Type} (a : A) (b : B) : A
 
         \func h => \new testRecord (\Sigma Nat Nat) {
           | k {- lol -} {- a -} a b => a
@@ -529,7 +529,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func f => Test {Nat}
         """,
         """
-        \class Test {A  : \Type} ({-caret-}B : \Type) (a : A) (b : B)
+        \class Test {A  : \Type} (B : \Type) (a : A) (b : B)
         \func f => Test {Nat}
         """
     )
@@ -1201,5 +1201,31 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          | 0, suc b => 1
          | suc a, 0 => 2
          | suc a, suc b => 3 
+    """)
+
+    fun testElim2() = doTest(""" 
+        \func foo (a b : {-caret-}Nat) : Nat
+         | 0, 0 => 0
+         | 0, suc b => 1
+         | suc a, 0 => 2
+         | suc a, suc b => 3
+    """, """
+        \func foo {a b : Nat} : Nat \elim a, b
+         | 0, 0 => 0
+         | 0, suc b => 1
+         | suc a, 0 => 2
+         | suc a, suc b => 3 
+    """)
+
+    fun testTqInPattern() = doTest("""
+       \class Lol {{-caret-}X Y : \Type} {foo : X -> Y}
+
+       \func lol {X : \Type} (l : Lol {X}) : Nat \elim X, l
+         | X, e : Lol => 1
+    """, """
+       \class Lol (X : \Type) {Y : \Type} {foo : X -> Y}
+
+       \func lol {X : \Type} (l : Lol X) : Nat \elim X, l
+         | X, e : Lol => 1
     """)
 }
