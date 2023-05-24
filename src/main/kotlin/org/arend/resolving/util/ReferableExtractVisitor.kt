@@ -6,7 +6,7 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ext.*
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete

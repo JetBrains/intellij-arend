@@ -6,7 +6,7 @@ import com.intellij.util.containers.tail
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.resolving.util.parseBinOp
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
 import org.arend.term.concrete.Concrete

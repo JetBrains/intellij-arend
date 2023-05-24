@@ -35,7 +35,7 @@ import org.arend.psi.ext.ArendGroup
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.settings.ArendSettings
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 import org.arend.term.NamespaceCommand
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor

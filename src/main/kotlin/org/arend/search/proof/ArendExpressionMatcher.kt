@@ -6,7 +6,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.FreeVariableCollectorConcrete
 
@@ -41,7 +41,6 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
         return ProofSearchMatchingResult(parameterResults, codomainResult)
     }
 
-    @Suppress("RedundantNullableReturnType")
     private fun matchDisjunct(jointPattern: ProofSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>) : List<Concrete.Expression>? {
         return jointPattern.patterns.flatMap {
             val patternConcrete = reassembleConcrete(it, scope, referables) ?: return@matchDisjunct null

@@ -15,7 +15,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.firstRelevantChild
 import org.arend.resolving.ArendReference
 import org.arend.resolving.ArendReferenceImpl
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 
 class ArendIPName(node: ASTNode) : ArendCompositeElementImpl(node), ArendReferenceElement {
     val infix: PsiElement?
@@ -29,7 +29,7 @@ class ArendIPName(node: ASTNode) : ArendCompositeElementImpl(node), ArendReferen
 
     override fun getReference(): ArendReference = ArendReferenceImpl(this)
 
-    override val unresolvedReference: UnresolvedReference?
+    override val unresolvedReference: UnresolvedReference
         get() = referent
 
     override val resolve

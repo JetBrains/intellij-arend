@@ -4,7 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
 

@@ -30,7 +30,7 @@ import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
 import org.arend.util.findDefAndArgsInParsedBinop

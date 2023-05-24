@@ -34,7 +34,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete

@@ -16,7 +16,7 @@ import org.arend.psi.ext.ArendExpr
 import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.util.parseBinOp
 import org.arend.resolving.util.resolveReference
-import org.arend.term.Fixity
+import org.arend.ext.reference.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.abs.ConcreteBuilder
