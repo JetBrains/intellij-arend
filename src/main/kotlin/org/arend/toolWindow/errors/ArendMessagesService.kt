@@ -3,7 +3,7 @@ package org.arend.toolWindow.errors
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
-import com.intellij.openapi.observable.properties.BooleanProperty
+import com.intellij.openapi.observable.properties.MutableBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
@@ -17,16 +17,16 @@ class ArendMessagesService(private val project: Project) {
     var isGoalTextPinned: Boolean = false
     var isErrorTextPinned: Boolean = false
 
-    var isShowImplicitGoals: BooleanProperty =
+    var isShowImplicitGoals: MutableBooleanProperty =
             AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowImplicitGoals).apply {
                 afterChange { project.service<ArendProjectSettings>().data.isShowImplicitGoals = it }
             }
 
-    var isShowErrorsPanel: BooleanProperty =
+    var isShowErrorsPanel: MutableBooleanProperty =
             AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowErrorsPanel).apply {
                 afterChange { project.service<ArendProjectSettings>().data.isShowErrorsPanel = it }
             }
-    var isShowGoalsInErrorsPanel: BooleanProperty =
+    var isShowGoalsInErrorsPanel: MutableBooleanProperty =
             AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowGoalsInErrorsPanel).apply {
                 afterChange { project.service<ArendProjectSettings>().data.isShowGoalsInErrorsPanel = it }
             }

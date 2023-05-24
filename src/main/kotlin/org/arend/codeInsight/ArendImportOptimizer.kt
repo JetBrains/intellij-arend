@@ -26,7 +26,6 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.refactoring.getCompleteWhere
 import org.arend.settings.ArendCustomCodeStyleSettings
 import org.arend.settings.ArendCustomCodeStyleSettings.OptimizeImportsPolicy
@@ -150,19 +149,19 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit,
         val statCmd = import.namespaceCommand ?: continue
         val qualifiedReferences = statCmd.getQualifiedReferenceFromOpen()
         val importedPattern = qualifiedReferences.flatMapTo(HashSet()) { pattern[it] ?: emptySet() }
-        val deepPatterns = qualifiedReferences.flatMapTo(HashSet()) { hierarchy.getDeeplyImportedNames(it) } ?: emptySet()
+        val deepPatterns = qualifiedReferences.flatMapTo(HashSet()) { hierarchy.getDeeplyImportedNames(it) }
         val importedHere = statCmd.nsUsing?.nsIdList ?: emptyList()
         val importedNamesHere = importedHere.map { ImportedName(it.refIdentifier.text, it.defIdentifier?.text) }
         val importedTopLevelButUsedDeeply = deepPatterns intersect importedNamesHere.toSet()
-        if ((importedPattern.isEmpty() && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in ((importedPattern ?: emptySet()) + deepPatterns) } } == true)  {
+        if ((importedPattern.isEmpty() && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in (importedPattern + deepPatterns) } } == true)  {
             action(import)
             continue
         }
         for ((idx, nsId) in importedHere.withIndex()) {
             val importedName = importedNamesHere[idx]
-            if (importedName !in importedTopLevelButUsedDeeply && importedName !in (importedPattern ?: emptySet())) {
+            if (importedName !in importedTopLevelButUsedDeeply && importedName !in importedPattern) {
                 action(nsId)
-            } else if (importedName !in (importedPattern ?: emptySet())) {
+            } else if (importedName !in importedPattern) {
                 deepStatements.computeIfAbsent(qualifiedReferences[0]) { mutableSetOf() }.add(importedName)
             }
         }
@@ -608,7 +607,6 @@ typealias FilePath = ModulePath
 private fun collectQualifier(element: ArendCompositeElement): Pair<FilePath, ModulePath>? {
     var currentGroup = element.parentOfType<ArendGroup>()
     if (element is ArendConstructor || element is ArendClassField) {
-        @Suppress("RemoveExplicitTypeArguments")
         currentGroup = currentGroup?.parentOfType<ArendGroup>()
     }
     val container = mutableListOf<String>()

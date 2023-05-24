@@ -16,7 +16,7 @@ import org.arend.module.editor.ArendModuleWizardStep
 import org.arend.util.FileUtils
 
 class ArendModuleBuilder : ModuleBuilder() {
-    override fun getModuleType() = ArendModuleType
+    override fun getModuleType() = ArendModuleType.INSTANCE
 
     override fun getCustomOptionsStep(context: WizardContext, parentDisposable: Disposable) =
         ArendModuleWizardStep(context.project, this)

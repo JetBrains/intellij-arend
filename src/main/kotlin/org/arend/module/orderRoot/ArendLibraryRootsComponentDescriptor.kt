@@ -15,7 +15,7 @@ import org.arend.util.FileUtils
 object ArendLibraryRootsComponentDescriptor : LibraryRootsComponentDescriptor() {
     override fun getRootDetectors() = listOf(
         ArendConfigRootDetector,
-        DescendentBasedRootFilter.createFileTypeBasedFilter(OrderRootType.SOURCES, false, ArendFileType, "sources"),
+        DescendentBasedRootFilter.createFileTypeBasedFilter(OrderRootType.SOURCES, false, ArendFileType.INSTANCE, "sources"),
         DescendentBasedRootFilter(OrderRootType.CLASSES, false, "binaries") {
             it.name.endsWith(FileUtils.SERIALIZED_EXTENSION)
         },
@@ -26,12 +26,12 @@ object ArendLibraryRootsComponentDescriptor : LibraryRootsComponentDescriptor() 
 
     override fun getRootTypePresentation(type: OrderRootType): OrderRootTypePresentation? = null
 
-    override fun getRootTypes() = arrayOf(ArendConfigOrderRootType, OrderRootType.SOURCES, OrderRootType.CLASSES)
+    override fun getRootTypes() = arrayOf(ArendConfigOrderRootType.INSTANCE, OrderRootType.SOURCES, OrderRootType.CLASSES)
 
     override fun createAttachFilesChooserDescriptor(libraryName: String?) =
         ArendLibraryChooserDescriptor(chooseYamlConfig = true, chooseZipLibrary = false, chooseLibraryDirectory = false, chooseDirectories = true).apply {
             title =
-                if (libraryName == null || libraryName.isEmpty()) {
+                if (libraryName.isNullOrEmpty()) {
                     ProjectBundle.message("library.attach.files.action")
                 } else {
                     ProjectBundle.message("library.attach.files.to.library.action", libraryName)

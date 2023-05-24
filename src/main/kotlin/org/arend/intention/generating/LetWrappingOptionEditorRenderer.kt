@@ -28,7 +28,7 @@ internal class LetWrappingOptionEditorRenderer(
     private val insertedRangeReference: AtomicReference<TextRange?> = AtomicReference(null)
     private val highlighterReference: AtomicReference<ScopeHighlighter?> = AtomicReference(ScopeHighlighter(editor))
 
-    private inline fun executeWriteCommand(noinline action: () -> Unit) {
+    private fun executeWriteCommand(action: () -> Unit) {
         executeCommand(project, null, commandGroupId) { runWriteAction(action) }
     }
 

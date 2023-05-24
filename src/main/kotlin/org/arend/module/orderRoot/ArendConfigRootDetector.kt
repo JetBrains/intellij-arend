@@ -7,7 +7,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import org.arend.util.FileUtils
 
 
-object ArendConfigRootDetector : RootDetector(ArendConfigOrderRootType, false, "Arend Library Config File") {
+object ArendConfigRootDetector : RootDetector(ArendConfigOrderRootType.INSTANCE, false, "Arend Library Config File") {
     override fun detectRoots(rootCandidate: VirtualFile, progressIndicator: ProgressIndicator): List<VirtualFile> =
         if (rootCandidate.isDirectory) {
             rootCandidate.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let { listOf(it) } ?: emptyList()

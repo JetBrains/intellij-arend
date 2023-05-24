@@ -24,7 +24,7 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
 
     override fun createHighlighter(scheme: EditorColorsScheme): EditorHighlighter? = null
 
-    override fun getFileType(): FileType = ArendFileType
+    override fun getFileType(): FileType = ArendFileType.INSTANCE
 
     override fun getPreviewText(): String? = null
 

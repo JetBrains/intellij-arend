@@ -151,7 +151,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                 val name = if (index == 0) startName else startName + "_" + index
                 val library = projectTable.getLibraryByName(name) ?: return Pair(null, name)
                 if (librariesRoot != null && (library as? LibraryEx)?.kind is ArendLibraryKind && (library as? LibraryEx)?.isDisposed == false) {
-                    val configFile = library.getFiles(ArendConfigOrderRootType).firstOrNull()
+                    val configFile = library.getFiles(ArendConfigOrderRootType.INSTANCE).firstOrNull()
                     if (configFile != null && configFile.libraryName == startName && configFile.libraryRootParent == librariesRoot) {
                         return Pair(library, name)
                     }
@@ -165,7 +165,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                 libModel.kind = ArendLibraryKind
             }
             config.root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let {
-                libModel.addRoot(it, ArendConfigOrderRootType)
+                libModel.addRoot(it, ArendConfigOrderRootType.INSTANCE)
             }
             if (config.sourcesDir.isNotEmpty()) {
                 config.sourcesDirFile?.let { libModel.addRoot(it, OrderRootType.SOURCES) }

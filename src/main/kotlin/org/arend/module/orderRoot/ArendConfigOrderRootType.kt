@@ -3,4 +3,9 @@ package org.arend.module.orderRoot
 import com.intellij.openapi.roots.OrderRootType
 
 
-object ArendConfigOrderRootType : OrderRootType("AREND_CONFIG")
+class ArendConfigOrderRootType : OrderRootType("AREND_CONFIG") {
+    companion object {
+        @JvmField
+        val INSTANCE = ArendConfigOrderRootType()
+    }
+}

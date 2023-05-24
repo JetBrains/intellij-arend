@@ -20,10 +20,9 @@ import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.ui.RowIcon
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SeparatorFactory
+import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.ui.dsl.gridLayout.HorizontalAlign
-import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import org.arend.ext.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ext.ArendClassStat
@@ -73,8 +72,7 @@ class ArendMoveMembersDialog(project: Project,
         lateinit var classPartRow: Row
         centerPanel = panel {
             row { cell(ScrollPaneFactory.createScrollPane(memberSelectionPanel, true))
-                .horizontalAlign(HorizontalAlign.FILL)
-                .verticalAlign(VerticalAlign.FILL)
+                .align(Align.FILL)
             }.resizableRow()
             aligned("Target file: ", targetFileTextField)
             aligned("Target module: ", targetModuleTextField)
@@ -90,8 +88,13 @@ class ArendMoveMembersDialog(project: Project,
         if (container is ArendDefClass) {
             sourceIsDynamic = determineClassPart(elements)
             classPartRow.enabled(true)
-            if (sourceIsDynamic != null && sourceIsDynamic) dynamicGroup.isSelected = true else
-                if (sourceIsDynamic != null && !sourceIsDynamic) staticGroup.isSelected = true
+            if (sourceIsDynamic != null) {
+                if (sourceIsDynamic) {
+                    dynamicGroup.isSelected = true
+                } else {
+                    staticGroup.isSelected = true
+                }
+            }
         } else {
             sourceIsDynamic = null
             classPartRow.enabled(false)

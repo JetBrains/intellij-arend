@@ -235,17 +235,6 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     }
 
     companion object {
-        fun getConfig(module: Module): LibraryConfig {
-            if (ArendModuleType.has(module)) {
-                val service = ModuleServiceManager.getService(module, ArendModuleConfigService::class.java)
-                if (service != null) {
-                    return service
-                }
-                NotificationErrorReporter.errorNotifications.createNotification("Failed to get ArendModuleConfigService for $module", NotificationType.ERROR).notify(module.project)
-            }
-            return EmptyLibraryConfig(module.name, module.project)
-        }
-
         fun getInstance(module: Module?) =
             if (module != null && ArendModuleType.has(module)) ModuleServiceManager.getService(module, ArendModuleConfigService::class.java) else null
     }

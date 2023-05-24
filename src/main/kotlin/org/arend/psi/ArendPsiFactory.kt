@@ -175,7 +175,7 @@ class ArendPsiFactory(
     }
 
     fun createFromText(code: String): ArendFile? =
-        psiFactory().createFileFromText(fileName, ArendFileType, code) as? ArendFile
+        psiFactory().createFileFromText(fileName, ArendFileType.INSTANCE, code) as? ArendFile
 
     private fun psiFactory() = PsiFileFactory.getInstance(project)
 

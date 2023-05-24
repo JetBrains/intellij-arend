@@ -87,7 +87,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     }
 
     override fun setName(name: String): PsiElement =
-        super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
+        super.setName(if (name.endsWith('.' + ArendFileType.INSTANCE.defaultExtension)) name else name + '.' + ArendFileType.INSTANCE.defaultExtension)
 
     override fun getStub(): ArendFileStub? = super.getStub() as ArendFileStub?
 
@@ -135,7 +135,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
             for (orderEntry in fileIndex.getOrderEntriesForFile(virtualFile)) {
                 if (orderEntry is LibraryOrderEntry) {
-                    for (file in orderEntry.getRootFiles(ArendConfigOrderRootType)) {
+                    for (file in orderEntry.getRootFiles(ArendConfigOrderRootType.INSTANCE)) {
                         val libName = file.libraryName ?: continue
                         return@getCachedValue cachedValue(ArendRawLibrary.getExternalLibrary(project.service<TypeCheckingService>().libraryManager, libName))
                     }
@@ -189,9 +189,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getReference(): ArendReference? = null
 
-    override fun getFileType() = ArendFileType
+    override fun getFileType() = ArendFileType.INSTANCE
 
-    override fun textRepresentation(): String = name.removeSuffix("." + ArendFileType.defaultExtension)
+    override fun textRepresentation(): String = name.removeSuffix("." + ArendFileType.INSTANCE.defaultExtension)
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
