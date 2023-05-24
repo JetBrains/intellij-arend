@@ -28,7 +28,7 @@ class ArendProjectStructureDetector : ProjectStructureDetector() {
     fun setupProjectStructure(roots: List<File>, projectDescriptor: ProjectDescriptor) {
         projectDescriptor.modules = ArrayList()
         for (root in roots) {
-            val moduleDescriptor = ModuleDescriptor(root, ArendModuleType, emptyList<DetectedSourceRoot>())
+            val moduleDescriptor = ModuleDescriptor(root, ArendModuleType.INSTANCE, emptyList<DetectedSourceRoot>())
             moduleDescriptor.addConfigurationUpdater(ArendModuleConfigurationUpdater(false))
             projectDescriptor.modules.add(moduleDescriptor)
         }

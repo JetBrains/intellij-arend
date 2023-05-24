@@ -10,7 +10,7 @@ import com.intellij.openapi.project.DumbModeTask
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.StartupActivity
+import com.intellij.openapi.startup.ProjectActivity
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.typechecking.TypeCheckingService
@@ -19,8 +19,8 @@ import org.arend.util.arendModules
 import org.arend.util.register
 
 
-class ArendStartupActivity : StartupActivity.RequiredForSmartMode {
-    override fun runActivity(project: Project) {
+class ArendStartupActivity : ProjectActivity {
+    override suspend fun execute(project: Project) {
         val service = project.service<TypeCheckingService>()
         val libraryManager = service.libraryManager
 

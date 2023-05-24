@@ -23,7 +23,7 @@ class ArendEditor(
         editor.isViewer = readOnly
         editor.highlighter = EditorHighlighterFactory
                 .getInstance()
-                .createEditorHighlighter(project, ArendFileType)
+                .createEditorHighlighter(project, ArendFileType.INSTANCE)
         project?.serviceIfCreated<ArendProjectSettings>()?.run {
             editor.setFontSize(data.popupFontSize)
         }

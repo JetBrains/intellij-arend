@@ -232,8 +232,8 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImpor
 }
 
 private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
-    val name = rawName.removeSuffix('.' + ArendFileType.defaultExtension)
-    if (!ArendNamesValidator.isIdentifier(name, oldNameIdentifier.project)) return
+    val name = rawName.removeSuffix('.' + ArendFileType.INSTANCE.defaultExtension)
+    if (!ArendNamesValidator.INSTANCE.isIdentifier(name, oldNameIdentifier.project)) return
     val factory = ArendPsiFactory(oldNameIdentifier.project)
     val newNameIdentifier = when (oldNameIdentifier) {
         is ArendDefIdentifier, is ArendFieldDefIdentifier -> factory.createDefIdentifier(name)

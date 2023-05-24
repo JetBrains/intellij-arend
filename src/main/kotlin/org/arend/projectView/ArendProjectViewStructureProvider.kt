@@ -38,7 +38,7 @@ class ArendProjectViewStructureProvider : TreeStructureProvider {
     private fun findArendLibrary(parent: NamedLibraryElementNode): ArendRawLibrary? {
         val ideaLibrary = (parent.value?.orderEntry as? LibraryOrderEntry)?.library
         if (ideaLibrary is LibraryEx && ideaLibrary.kind is ArendLibraryKind) {
-            val configUrl = ideaLibrary.getUrls(ArendConfigOrderRootType).singleOrNull() ?: return null
+            val configUrl = ideaLibrary.getUrls(ArendConfigOrderRootType.INSTANCE).singleOrNull() ?: return null
             return parent.project?.service<TypeCheckingService>()?.libraryManager
                     ?.getRegisteredLibrary { it is ArendRawLibrary && it.config.root?.configFile?.url == configUrl }
                     as? ArendRawLibrary

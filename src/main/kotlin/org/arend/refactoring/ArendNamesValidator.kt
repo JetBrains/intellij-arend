@@ -7,7 +7,7 @@ import org.arend.lexer.ArendLexerAdapter
 import org.arend.psi.AREND_KEYWORDS
 import org.arend.psi.ArendElementTypes
 
-object ArendNamesValidator : NamesValidator {
+class ArendNamesValidator : NamesValidator {
     override fun isKeyword(name: String, project: Project?): Boolean =
         getLexerType(name) in AREND_KEYWORDS
 
@@ -20,5 +20,10 @@ object ArendNamesValidator : NamesValidator {
         val lexer = ArendLexerAdapter()
         lexer.start(text)
         return if (lexer.tokenEnd == text.length) lexer.tokenType else null
+    }
+
+    companion object {
+        @JvmField
+        val INSTANCE = ArendNamesValidator()
     }
 }

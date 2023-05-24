@@ -25,7 +25,7 @@ import javax.swing.JComponent
 object ArendLibraryKind : PersistentLibraryKind<DummyLibraryProperties>("Arend") {
     override fun createDefaultProperties(): DummyLibraryProperties = DummyLibraryProperties.INSTANCE
 
-    override fun getAdditionalRootTypes() = arrayOf(ArendConfigOrderRootType)
+    override fun getAdditionalRootTypes() = arrayOf(ArendConfigOrderRootType.INSTANCE)
 }
 
 class ArendLibraryType : LibraryType<DummyLibraryProperties>(ArendLibraryKind) {
@@ -49,7 +49,7 @@ class ArendLibraryType : LibraryType<DummyLibraryProperties>(ArendLibraryKind) {
 
         return object : NewLibraryConfiguration(libName, this, kind.createDefaultProperties()) {
             override fun addRoots(editor: LibraryEditor) {
-                editor.addRoot(configFile, ArendConfigOrderRootType)
+                editor.addRoot(configFile, ArendConfigOrderRootType.INSTANCE)
                 if (library.sourcesDir.isNotEmpty()) {
                     library.sourcesDirFile?.let { editor.addRoot(it, OrderRootType.SOURCES) }
                 }
@@ -57,7 +57,7 @@ class ArendLibraryType : LibraryType<DummyLibraryProperties>(ArendLibraryKind) {
         }
     }
 
-    override fun getExternalRootTypes() = arrayOf(ArendConfigOrderRootType, OrderRootType.SOURCES, OrderRootType.CLASSES)
+    override fun getExternalRootTypes() = arrayOf(ArendConfigOrderRootType.INSTANCE, OrderRootType.SOURCES, OrderRootType.CLASSES)
 
     override fun getIcon(properties: DummyLibraryProperties?) = ArendIcons.LIBRARY_ICON
 

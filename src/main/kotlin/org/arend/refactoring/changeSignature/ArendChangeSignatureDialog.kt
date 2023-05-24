@@ -125,7 +125,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         super.customizeParametersTable(table)
     }
 
-    override fun getFileType() = ArendFileType
+    override fun getFileType() = ArendFileType.INSTANCE
 
     override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
         ArendParameterTableModel( descriptor, this, myDefaultValueContext)

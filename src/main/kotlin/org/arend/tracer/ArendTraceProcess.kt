@@ -221,7 +221,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     private object EditorsProvider : XDebuggerEditorsProviderBase() {
-        override fun getFileType(): FileType = ArendFileType
+        override fun getFileType(): FileType = ArendFileType.INSTANCE
         override fun createExpressionCodeFragment(
             project: Project,
             text: String,

@@ -16,7 +16,6 @@ import com.intellij.util.Processor
 import com.intellij.util.Processors
 import com.intellij.util.containers.mapSmartSet
 import com.intellij.util.indexing.FileBasedIndex
-import gnu.trove.THashSet
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Companion.isDefIdentifierFromNsId
@@ -89,7 +88,7 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
 fun collectSearchScopes(namesToSearch: List<String>, scope: GlobalSearchScope, project: Project): List<VirtualFile> =
     runReadAction {
         val fileBasedIndex = FileBasedIndex.getInstance()
-        val fileSet = THashSet<VirtualFile>()
+        val fileSet = HashSet<VirtualFile>()
         fileBasedIndex.getFilesWithKey(
             IdIndex.NAME,
             namesToSearch.mapSmartSet { IdIndexEntry(it, true) },

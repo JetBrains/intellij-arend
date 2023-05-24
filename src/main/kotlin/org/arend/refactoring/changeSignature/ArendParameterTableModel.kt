@@ -45,14 +45,14 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
     }
 
     private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog) :
-        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileType) {
+        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileType.INSTANCE) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
             val fragment = value as? ArendExpressionCodeFragment ?: return
             item?.parameter?.setType(fragment.text)
         }
 
         override fun doCreateEditor(o: ArendChangeSignatureDialogParameterTableModelItem?): TableCellEditor {
-            return object: CodeFragmentTableCellEditorBase(myProject, ArendFileType) {
+            return object: CodeFragmentTableCellEditorBase(myProject, ArendFileType.INSTANCE) {
                 override fun getTableCellEditorComponent(table: JTable?, value: Any?, isSelected: Boolean, row: Int, column: Int): Component {
                     clearListeners()
                     val result = super.getTableCellEditorComponent(table, value, isSelected, row, column)

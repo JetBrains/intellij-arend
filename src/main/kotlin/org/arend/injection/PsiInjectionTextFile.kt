@@ -22,7 +22,7 @@ class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTe
         visitor.visitFile(this)
     }
 
-    override fun getFileType() = InjectionTextFileType
+    override fun getFileType() = InjectionTextFileType.INSTANCE
 
     private fun insertPosition(pos: Int, injectionRanges: List<TextRange>, inclusive: Boolean): Int {
         var skipped = 0

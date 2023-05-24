@@ -8,9 +8,9 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.RowLayout
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.ui.layout.selected
 import org.arend.ArendIcons
 import org.arend.library.LibraryDependency
@@ -160,7 +160,7 @@ class ArendModuleConfigurationView(project: Project?, root: String?, name: Strin
         aligned("Library version: ", versionField)
         aligned("Sources directory: ", sourcesTextField)
         aligned("Tests directory: ", testsTextField)
-        checked(binariesSwitch, binariesTextField) { horizontalAlign(HorizontalAlign.FILL) }
+        checked(binariesSwitch, binariesTextField) { align(AlignX.FILL) }
             .layout(RowLayout.LABEL_ALIGNED)
 
         group("Extensions") {

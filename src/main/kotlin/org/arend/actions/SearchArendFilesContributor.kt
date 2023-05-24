@@ -32,7 +32,7 @@ class SearchArendFilesContributor(val event: AnActionEvent) : AbstractGotoSECont
                 return super.acceptItem(item)
             }
         }
-        model.setFilterItems(singletonList(FileTypeRef.forFileType(ArendFileType)))
+        model.setFilterItems(singletonList(FileTypeRef.forFileType(ArendFileType.INSTANCE)))
         return model
     }
 
@@ -41,7 +41,7 @@ class SearchArendFilesContributor(val event: AnActionEvent) : AbstractGotoSECont
     }
 }
 
-class ArendSECFactory<T> : SearchEverywhereContributorFactory<Any> {
+class ArendSECFactory : SearchEverywhereContributorFactory<Any> {
     override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<Any> {
         return SearchArendFilesContributor(initEvent)
     }
