@@ -54,13 +54,13 @@ class ArendPsiFactory(
     fun createFieldTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendFieldTele {
         val lparen = if (isExplicit) "(" else "{"
         val rparen = if (isExplicit) ")" else "}"
-        return createFromText("\\class Dummy $lparen ${name ?: "_"} : $typeExpr $rparen")!!.childOfType()!!
+        return createFromText("\\class Dummy $lparen${name ?: "_"} : $typeExpr $rparen")!!.childOfType()!!
     }
 
     fun createTypeTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendTypeTele {
         val lparen = if (isExplicit) "(" else "{"
         val rparen = if (isExplicit) ")" else "}"
-        return createFromText("\\data Dummy $lparen ${name ?: "_"}${if (name?.isEmpty() == true) "" else " : "}$typeExpr $rparen")!!.childOfType()!!
+        return createFromText("\\data Dummy $lparen${name ?: "_"}${if (name?.isEmpty() == true) "" else " : "}$typeExpr $rparen")!!.childOfType()!!
     }
 
     private fun createFunction(

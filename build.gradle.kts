@@ -112,8 +112,8 @@ val generateArendDocLexer = tasks.register<GenerateLexerTask>("genArendDocLexer"
 tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions {
         jvmTarget = "17"
-        languageVersion = "1.7"
-        apiVersion = "1.7"
+        languageVersion = "1.8"
+        apiVersion = "1.8"
         freeCompilerArgs = listOf("-Xjvm-default=all")
     }
     dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)

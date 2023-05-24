@@ -38,7 +38,7 @@ fun processFunction(project: Project, changeInfo: ArendChangeInfo, function: Are
     if (changeInfo.isParameterNamesChanged || changeInfo.isParameterSetOrOrderChanged || changeInfo.isParameterTypesChanged)
         modifyFunctionSignature(function, changeInfo)
 }
-private fun fixElim(function: ArendFunctionDefinition<*>, changeInfo: ArendChangeInfo) {
+fun fixElim(function: ArendFunctionDefinition<*>, changeInfo: ArendChangeInfo) {
     val body = function.body ?: return
     val functionClauses = body.clauseList
     if (body.elim == null && functionClauses.isEmpty()) return
