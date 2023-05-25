@@ -34,10 +34,10 @@ class ArendStartupActivity : ProjectActivity {
             }
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
-                ArendModuleConfigService.getInstance(module)?.library?.let {
-                    runReadAction {
-                        libraryManager.unloadLibrary(it)
-                    }
+                val config = ArendModuleConfigService.getInstance(module) ?: return
+                config.isInitialized = false
+                runReadAction {
+                    libraryManager.unloadLibrary(config.library)
                 }
             }
         })
