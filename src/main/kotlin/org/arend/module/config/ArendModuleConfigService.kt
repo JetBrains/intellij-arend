@@ -1,6 +1,5 @@
 package org.arend.module.config
 
-import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
@@ -18,7 +17,6 @@ import org.arend.module.*
 import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.*
 import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLFile
@@ -26,6 +24,7 @@ import org.jetbrains.yaml.psi.YAMLFile
 
 class ArendModuleConfigService(val module: Module) : LibraryConfig(module.project), ArendModuleConfiguration {
     private var synchronized = false
+    var isInitialized = false
 
     fun synchronize() = synchronized(this) {
         val result = !synchronized

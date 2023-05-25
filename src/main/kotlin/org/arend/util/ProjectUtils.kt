@@ -63,6 +63,8 @@ fun Module.register() {
         service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
     }
     ApplicationManager.getApplication().getService(ArendExtensionChangeListener::class.java).initializeModule(config)
+    config.isInitialized = true
+    DaemonCodeAnalyzer.getInstance(project).restart()
 }
 
 fun Editor.isDetailedViewEditor() : Boolean = getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null
