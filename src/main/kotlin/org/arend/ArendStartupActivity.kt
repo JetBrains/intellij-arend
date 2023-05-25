@@ -35,7 +35,7 @@ class ArendStartupActivity : ProjectActivity {
 
             override fun beforeModuleRemoved(project: Project, module: Module) {
                 val config = ArendModuleConfigService.getInstance(module) ?: return
-                config.isInitialized = false
+                config.isInitialized = ApplicationManager.getApplication().isUnitTestMode
                 runReadAction {
                     libraryManager.unloadLibrary(config.library)
                 }
