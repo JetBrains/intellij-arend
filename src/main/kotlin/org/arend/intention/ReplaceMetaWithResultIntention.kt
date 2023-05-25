@@ -23,6 +23,8 @@ class ReplaceMetaWithResultIntention : BaseArendIntention(ArendBundle.message("a
         return (refElement.resolve as? ArendDefMeta)?.metaRef.let { it?.definition != null || it?.resolver != null }
     }
 
+    override fun startInWriteAction() = false
+
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {
         val expr = element.ancestor<ArendExpr>() ?: return
         val (subCore, subConcrete, _) = tryCorrespondedSubExpr(expr.textRange, expr.containingFile as? ArendFile ?: return, project, editor ?: return) ?: return
