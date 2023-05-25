@@ -101,7 +101,7 @@ private class MyResolverListener(private val data: Any) : ResolverListener {
         if (expression.data == data) {
             this.result = result
             var expr = if (clauses == null) Concrete.AppExpression.make(data, expression, args) else
-                Concrete.BinOpSequenceExpression(data, listOf(Concrete.BinOpSequenceElem<Concrete.Expression>(expression)) + args.map { Concrete.BinOpSequenceElem(it.expression, Fixity.NONFIX, it.isExplicit) }, clauses)
+                Concrete.BinOpSequenceExpression(data, listOf(Concrete.ExpressionBinOpSequenceElem(expression)) + args.map { Concrete.ExpressionBinOpSequenceElem(it.expression, Fixity.NONFIX, it.isExplicit) }, clauses)
             if (coclauses != null) {
                 expr = Concrete.ClassExtExpression.make(data, expr, coclauses)
             }

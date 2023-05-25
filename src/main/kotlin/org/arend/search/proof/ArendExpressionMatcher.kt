@@ -137,14 +137,14 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
     ): Concrete.Expression? =
         when (tree) {
             is PatternTree.BranchingNode -> {
-                val binOpList = ArrayList<Concrete.BinOpSequenceElem<Concrete.Expression>>(tree.subNodes.size)
+                val binOpList = ArrayList<Concrete.ExpressionBinOpSequenceElem>(tree.subNodes.size)
                 for (i in tree.subNodes.indices) {
                     val expr = reassembleConcrete(tree.subNodes[i].first, scope, references) ?: break
                     val explicitness = tree.subNodes[i].second.toBoolean()
                     val binOp = if (i == 0) {
-                        Concrete.BinOpSequenceElem(expr, Fixity.NONFIX, explicitness)
+                        Concrete.ExpressionBinOpSequenceElem(expr, Fixity.NONFIX, explicitness)
                     } else {
-                        Concrete.BinOpSequenceElem(expr, Fixity.UNKNOWN, explicitness)
+                        Concrete.ExpressionBinOpSequenceElem(expr, Fixity.UNKNOWN, explicitness)
                     }
                     binOpList.add(binOp)
                 }

@@ -36,10 +36,10 @@ fun parseBinOp(left: Abstract.Expression, sequence: Collection<Abstract.BinOpSeq
         parseBinOp(null, left, sequence)
 
 fun parseBinOp(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE, scope: Scope? = null): Concrete.Expression {
-    val concreteSeq = mutableListOf<Concrete.BinOpSequenceElem<Concrete.Expression>>()
-    concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(left, scope)))
+    val concreteSeq = mutableListOf<Concrete.ExpressionBinOpSequenceElem>()
+    concreteSeq.add(Concrete.ExpressionBinOpSequenceElem(getExpression(left, scope)))
     for (elem in sequence) {
-        concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(elem.expression, scope), if (elem.isVariable) Fixity.UNKNOWN else Fixity.NONFIX, elem.isExplicit))
+        concreteSeq.add(Concrete.ExpressionBinOpSequenceElem(getExpression(elem.expression, scope), if (elem.isVariable) Fixity.UNKNOWN else Fixity.NONFIX, elem.isExplicit))
     }
     return ExpressionBinOpEngine.parse(Concrete.BinOpSequenceExpression(data, concreteSeq, null), errorReporter)
 }
