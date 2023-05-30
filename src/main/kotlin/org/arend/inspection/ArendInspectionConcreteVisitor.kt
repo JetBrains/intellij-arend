@@ -61,20 +61,6 @@ open class ArendInspectionConcreteVisitor : VoidConcreteVisitor<Void>() {
         return null
     }
 
-    override fun visitReference(expr: Concrete.ReferenceExpression?, params: Void?): Void? {
-        parents.push(expr)
-        super.visitReference(expr, params)
-        parents.pop()
-        return null
-    }
-
-    override fun visitThis(expr: Concrete.ThisExpression?, params: Void?): Void? {
-        parents.push(expr)
-        super.visitThis(expr, params)
-        parents.pop()
-        return null
-    }
-
     override fun visitParameters(parameters: MutableList<out Concrete.Parameter>?, params: Void?) {
         // TODO extract the method that visits a single parameter and push parent there.
         super.visitParameters(parameters, params)
@@ -90,34 +76,6 @@ open class ArendInspectionConcreteVisitor : VoidConcreteVisitor<Void>() {
     override fun visitPi(expr: Concrete.PiExpression?, params: Void?): Void? {
         parents.push(expr)
         super.visitPi(expr, params)
-        parents.pop()
-        return null
-    }
-
-    override fun visitUniverse(expr: Concrete.UniverseExpression?, params: Void?): Void? {
-        parents.push(expr)
-        super.visitUniverse(expr, params)
-        parents.pop()
-        return null
-    }
-
-    override fun visitHole(expr: Concrete.HoleExpression?, params: Void?): Void? {
-        parents.push(expr)
-        super.visitHole(expr, params)
-        parents.pop()
-        return null
-    }
-
-    override fun visitApplyHole(expr: Concrete.ApplyHoleExpression?, params: Void?): Void? {
-        parents.push(expr)
-        super.visitApplyHole(expr, params)
-        parents.pop()
-        return null
-    }
-
-    override fun visitGoal(expr: Concrete.GoalExpression?, params: Void?): Void? {
-        parents.push(expr)
-        super.visitGoal(expr, params)
         parents.pop()
         return null
     }
@@ -211,20 +169,6 @@ open class ArendInspectionConcreteVisitor : VoidConcreteVisitor<Void>() {
         parents.push(expr)
         // TODO extract the method that visits Concrete.LetClause and push parent there.
         super.visitLet(expr, params)
-        parents.pop()
-        return null
-    }
-
-    override fun visitNumericLiteral(expr: Concrete.NumericLiteral?, params: Void?): Void? {
-        parents.push(expr)
-        super.visitNumericLiteral(expr, params)
-        parents.pop()
-        return null
-    }
-
-    override fun visitStringLiteral(expr: Concrete.StringLiteral?, params: Void?): Void? {
-        parents.push(expr)
-        super.visitStringLiteral(expr, params)
         parents.pop()
         return null
     }

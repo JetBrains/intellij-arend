@@ -201,7 +201,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
                 Concrete.ReferenceExpression(null, LocalReferable(def.definition.name))
             )
         }
-        return ConcreteFactoryImpl(null).ref(TypedBinding(binding.first.name, null)) as Concrete.ReferenceExpression
+        return ConcreteFactoryImpl(null).ref(TypedBinding(binding.first.name, null)) as Concrete.Expression
     }
 
     private fun getReferableRenamer(bindings: Set<Binding>): Supplier<ReferableRenamer>? {
