@@ -104,7 +104,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     }
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable =
-        DataLocatedReferable(data, this, parent)
+        DataLocatedReferable(data, accessModifier, this, parent)
 
     override fun getPLevelParameters(): Abstract.LevelParameters? =
         getChild { it.elementType == P_LEVEL_PARAMS_SEQ }

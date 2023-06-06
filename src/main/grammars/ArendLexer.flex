@@ -159,6 +159,8 @@ OCT_DIGIT           = [0-8]
     "\\instance"            { return INSTANCE_KW; }
     "\\truncated"           { return TRUNCATED_KW; }
     "\\strict"              { return STRICT_KW; }
+    "\\private"             { return PRIVATE_KW; }
+    "\\protected"           { return PROTECTED_KW; }
     "\\lp"                  { return LP_KW; }
     "\\lh"                  { return LH_KW; }
     "\\oo"                  { return OO_KW; }

@@ -83,6 +83,8 @@
         EXTENDS_KW          = '\extends'
         INSTANCE_KW         = '\instance'
         TRUNCATED_KW        = '\truncated'
+        PRIVATE_KW          = '\private'
+        PROTECTED_KW        = '\protected'
         LP_KW               = '\lp'
         LH_KW               = '\lh'
         OO_KW               = '\oo'
@@ -117,11 +119,15 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | PLEVELS_KW | HLEVELS_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | PLEVELS_KW | HLEVELS_KW | PRIVATE_KW | PROTECTED_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
-stat ::= statCmd | definition | defModule | pLevelParams | hLevelParams | stat_recovery
+accessMod ::= PRIVATE_KW | PROTECTED_KW
+
+stat ::= statCmd | accessMod? definition | defModule | statAccessMod | pLevelParams | hLevelParams | stat_recovery
+
+statAccessMod ::= accessMod LBRACE stat* RBRACE { pin = 1 }
 
 private stat_recovery ::= statement_recover {
     recoverWhile = statement_recover
@@ -168,7 +174,7 @@ private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOr
     recoverWhile = statement_recover
 }
 
-classStat ::= classFieldOrImplement | definition | classFieldStat | overriddenField | defaultField | defModule { recoverWhile = classStat_recover }
+classStat ::= classFieldOrImplement | accessMod? definition | classFieldStat | overriddenField | defaultField | defModule { recoverWhile = classStat_recover }
 
 private classStatRecovery ::= {
   recoverWhile = classStat_recover
@@ -186,8 +192,8 @@ overriddenField ::= OVERRIDE_KW longName typeTele* COLON returnExpr {
     pin = 1
 }
 
-classField ::= [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
-    pin = 6
+classField ::= accessMod? [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
+    pin = 7
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -350,7 +356,7 @@ private pipe_def ::= PIPE {
     recoverWhile = def_recover
 }
 
-private def_recover ::= !(ID | LPAREN | assoc | CLASSIFYING_KW | COERCE_KW) & statement_recover
+private def_recover ::= !(ID | LPAREN | assoc | CLASSIFYING_KW | COERCE_KW | PRIVATE_KW | PROTECTED_KW) & statement_recover
 
 constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | constructors) {
     pin = 1
@@ -409,8 +415,8 @@ implicit_pattern ::= LBRACE (atomic_pattern &RBRACE | pattern_sequence?) RBRACE 
     elementType=pattern
 }
 
-constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
-    pin = 3
+constructor ::= accessMod? COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
+    pin = 4
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
@@ -798,9 +804,9 @@ private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN) & expr_recover
 
 fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery
 
-private fieldTeleExplicit ::= LPAREN [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
+private fieldTeleExplicit ::= LPAREN accessMod? [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
-private fieldTeleImplicit ::= LBRACE [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 4 }
+private fieldTeleImplicit ::= LBRACE accessMod? [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 5 }
 
 private fieldTeleRecovery ::= fieldTele_recover {
     recoverWhile = fieldTele_recover

@@ -43,7 +43,7 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
         get() = null
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        DataLocatedReferable(data, this, parent)
+        DataLocatedReferable(data, accessModifier, this, parent)
 
     override fun getIcon(flags: Int) = ArendIcons.MODULE_DEFINITION
 
