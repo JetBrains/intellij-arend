@@ -34,7 +34,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val scope: Scope
         get() = groupScope
 
-    override fun getStatements(): List<ArendStatement> = where?.statList ?: emptyList()
+    override fun getStatements(): List<ArendStatement> = ArendStat.flatStatements(where?.statList)
 
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition {
         val def = ConcreteBuilder.convert(referableConverter, this, errorReporter)

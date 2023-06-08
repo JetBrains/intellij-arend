@@ -10,7 +10,7 @@ class ArendAccessMod(node: ASTNode) : ArendSourceNodeImpl(node) {
     val accessModifier: AccessModifier
         get() = when {
             hasChildOfType(PRIVATE_KW) -> AccessModifier.PRIVATE
-            hasChildOfType(PROTECTED_KW) -> AccessModifier.PRIVATE
+            hasChildOfType(PROTECTED_KW) -> AccessModifier.PROTECTED
             else -> AccessModifier.PUBLIC
         }
 }
