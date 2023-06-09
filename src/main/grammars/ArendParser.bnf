@@ -127,7 +127,11 @@ accessMod ::= PRIVATE_KW | PROTECTED_KW
 
 stat ::= statCmd | accessMod? definition | defModule | statAccessMod | pLevelParams | hLevelParams | stat_recovery
 
-statAccessMod ::= accessMod LBRACE stat* RBRACE { pin = 1 }
+statAccessMod ::= accessMod statAccessModInternal { pin = 1 }
+
+statAccessModInternal ::= LBRACE stat* RBRACE {
+    recoverWhile = statement_recover
+}
 
 private stat_recovery ::= statement_recover {
     recoverWhile = statement_recover
@@ -356,7 +360,7 @@ private pipe_def ::= PIPE {
     recoverWhile = def_recover
 }
 
-private def_recover ::= !(ID | LPAREN | assoc | CLASSIFYING_KW | COERCE_KW | PRIVATE_KW | PROTECTED_KW) & statement_recover
+private def_recover ::= !(ID | LPAREN | assoc | CLASSIFYING_KW | COERCE_KW) & statement_recover
 
 constructorClause ::= PIPE <<comma_separated_sequence pattern>> fat_arrow_def_pipe_lbrace (constructor | constructors) {
     pin = 1
