@@ -15,6 +15,7 @@ import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.IntellijTCReferable
+import org.arend.term.group.AccessModifier
 import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentHashMap
 
@@ -43,6 +44,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
 
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
+
+    override fun getAccessModifier() =
+        parent?.childOfType<ArendAccessMod>()?.accessModifier ?: ancestor<ArendStatAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
 
     override val defIdentifier: ArendDefIdentifier?
         get() = getChildOfType()

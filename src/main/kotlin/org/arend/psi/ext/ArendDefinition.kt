@@ -34,7 +34,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val scope: Scope
         get() = groupScope
 
-    override fun getStatements(): List<ArendStatement> = where?.statList ?: emptyList()
+    override fun getStatements(): List<ArendStatement> = ArendStat.flatStatements(where?.statList)
 
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition {
         val def = ConcreteBuilder.convert(referableConverter, this, errorReporter)
@@ -104,7 +104,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     }
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable =
-        DataLocatedReferable(data, this, parent)
+        DataLocatedReferable(data, accessModifier, this, parent)
 
     override fun getPLevelParameters(): Abstract.LevelParameters? =
         getChild { it.elementType == P_LEVEL_PARAMS_SEQ }

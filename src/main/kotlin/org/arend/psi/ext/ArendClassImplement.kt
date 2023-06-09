@@ -51,7 +51,7 @@ class ArendClassImplement : ReferableBase<ArendClassImplementStub>, PsiLocatedRe
     override fun getKind() = GlobalReferable.Kind.OTHER
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        DataLocatedReferable(data, this, parent)
+        DataLocatedReferable(data, accessModifier, this, parent)
 
     override fun isDefault() = false
 }

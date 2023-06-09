@@ -203,7 +203,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
-    override fun getStatements() = children.filterIsInstance<ArendStat>()
+    override fun getStatements() = ArendStat.flatStatements(children.filterIsInstance<ArendStat>())
 
     override val where: ArendWhere?
         get() = null
