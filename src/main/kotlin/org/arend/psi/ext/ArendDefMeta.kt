@@ -6,10 +6,7 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.MetaReferable
-import org.arend.naming.reference.Referable
+import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.TypeClassReferenceExtractVisitor
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefMetaStub
@@ -20,7 +17,7 @@ import org.arend.term.abs.AbstractDefinitionVisitor
 import java.util.function.Supplier
 
 
-class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition, StubBasedPsiElement<ArendDefMetaStub> {
+class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition, StubBasedPsiElement<ArendDefMetaStub>, TCDefinition {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefMetaStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -33,6 +30,9 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
         set(value) {
             tcReferableCache = value
         }
+
+    override val tcReferable: TCDefReferable?
+        get() = super.tcReferable as? TCDefReferable
 
     override fun getDescription() = documentation?.toString() ?: ""
 
@@ -54,7 +54,7 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
 
     override fun getTerm(): Abstract.Expression? = expr
 
-    override fun getParameters(): List<ArendNameTeleUntyped> = getChildrenOfType()
+    override fun getParameters(): List<ArendNameTele> = getChildrenOfType()
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R =
         visitor.visitMeta(this)

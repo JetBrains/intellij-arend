@@ -169,10 +169,6 @@ data class ArendChangeInfo (
                     result.add(ArendParameterInfo(null, t.typedExpr?.oneLineText, index, t.isExplicit))
                     index++
                 }
-                is ArendNameTeleUntyped -> {
-                    result.add(ArendParameterInfo(t.defIdentifier.name, null, index, t.isExplicit))
-                    index++
-                }
             }
             return result
         }

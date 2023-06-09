@@ -109,7 +109,6 @@ class ArendParserDefinition : ParserDefinition {
         LONG_NAME_EXPR -> ArendLongNameExpr(node)
         MAYBE_ATOM_LEVEL_EXPR -> ArendMaybeAtomLevelExpr(node)
         MAYBE_ATOM_LEVEL_EXPRS -> ArendMaybeAtomLevelExprs(node)
-        NAME_TELE_UNTYPED -> ArendNameTeleUntyped(node)
         NEW_ARG, NEW_EXPR -> ArendNewExpr(node)
         NS_ID -> ArendNsId(node)
         NS_USING -> ArendNsUsing(node)

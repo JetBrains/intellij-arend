@@ -31,23 +31,6 @@ class ArendNameTele(node: ASTNode): ArendLamParam(node), Abstract.Parameter {
     override fun isProperty() = propertyKw != null
 }
 
-class ArendNameTeleUntyped(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Parameter {
-    val defIdentifier: ArendDefIdentifier
-        get() = getChildOfTypeStrict()
-
-    override fun getData() = this
-
-    override fun isExplicit() = true
-
-    override fun getReferableList(): List<Referable?> = listOf(defIdentifier)
-
-    override fun getType(): ArendExpr? = null
-
-    override fun isStrict() = false
-
-    override fun isProperty() = false
-}
-
 class ArendTypeTele(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Parameter {
     val typedExpr: ArendTypedExpr?
         get() = getChildOfType()

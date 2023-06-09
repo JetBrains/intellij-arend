@@ -16,13 +16,15 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             return null
         }
 
-        val parent = when (val id = element.parent) {
+        val id = element.parent
+        val parent = when (id) {
             is ArendDefIdentifier -> id.parent as? TCDefinition
             is ArendRefIdentifier -> ((id.parent as? ArendLongName)?.parent as? ArendCoClause)?.functionReference
             else -> null
         } ?: return null
 
-        val def = parent.tcReferable?.typechecked
+        val metaDef = id.parent as? ArendDefMeta
+        val def = parent.tcReferable?.typechecked ?: if (id is ArendDefIdentifier && metaDef?.metaRef?.defaultConcrete?.parameters?.any { it.type != null } == true) metaDef.metaRef?.typechecked else return null
         val icon = when (def?.status()) {
             NO_ERRORS, DEP_ERRORS, DEP_WARNiNGS -> AllIcons.RunConfigurations.TestState.Green2
             HAS_WARNINGS -> AllIcons.RunConfigurations.TestState.Yellow2

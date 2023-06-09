@@ -226,7 +226,7 @@ defModule ::= MODULE_KW defIdentifier_module where? {
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-defMeta ::= META_KW prec? defIdentifier_func pLevelParams? hLevelParams? alias? [nameTeleUntyped* functionTermBody] where? {
+defMeta ::= META_KW prec? defIdentifier_func alias? pLevelParams? hLevelParams? COMMA? [nameTele* functionTermBody] where? {
     pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
@@ -241,7 +241,7 @@ private defIdentifier_module ::= defIdentifier {
 
 private defIdentifier_module_recover ::= !ALIAS_KW & statement_recover
 
-defFunction ::= functionKw prec? defIdentifier_func pLevelParams? hLevelParams? alias? nameTele* functionType? functionBody? where? {
+defFunction ::= functionKw prec? defIdentifier_func alias? pLevelParams? hLevelParams? COMMA? nameTele* functionType? functionBody? where? {
     pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
@@ -275,14 +275,14 @@ private defIdentifier_func ::= defIdentifier {
 
 private defIdentifier_func_recover ::= !(COLON | FAT_ARROW | COWITH_KW | WITH_KW | ELIM_KW | PIPE | ALIAS_KW | PLEVELS_KW | HLEVELS_KW) & nameTele_first & statement_recover
 
-defInstance ::= instanceOrCons prec? defIdentifier_func pLevelParams? hLevelParams? alias? nameTele* functionType? instanceBody? where? {
+defInstance ::= instanceOrCons prec? defIdentifier_func alias? pLevelParams? hLevelParams? COMMA? nameTele* functionType? instanceBody? where? {
     pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
 private instanceOrCons ::= INSTANCE_KW | CONS_KW
 
-defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody? where? {
+defData ::= dataKw prec? defIdentifier_top alias? pLevelParams? hLevelParams? COMMA? typeTele* dataUniverse? dataBody? where? {
     pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
@@ -316,7 +316,7 @@ private defClassClass ::= CLASS_KW defClassHeader classStats { pin = 1 }
 
 private defClassRecord ::= RECORD_KW defClassHeader classStats { pin = 1 }
 
-private defClassHeader ::= prec? defIdentifier pLevelParams? hLevelParams? alias? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence superClass>>]
+private defClassHeader ::= prec? defIdentifier alias? pLevelParams? hLevelParams? NO_CLASSIFYING_KW? fieldTele* [EXTENDS_KW <<comma_separated_sequence superClass>>]
 
 superClass ::= longName [maybeAtomLevelExprs maybeAtomLevelExprs?] {
     pin = 1
@@ -788,13 +788,7 @@ lamTele ::= identifierOrUnknown
     | LPAREN identifierOrUnknown+ COLON expr RPAREN
     | LBRACE (identifierOrUnknown [identifierOrUnknown* COLON expr]) RBRACE
 
-nameTeleUntyped ::= defIdentifier {
-    recoverWhile = nameTeleUntyped_recover
-}
-
 private paramAttr ::= STRICT_KW | PROPERTY_KW
-
-private nameTeleUntyped_recover ::= !(ID | FAT_ARROW) & statement_recover
 
 private nameTeleExplicit ::= LPAREN paramAttr? identifierOrUnknown+ COLON expr RPAREN { pin = 1 }
 
