@@ -196,9 +196,13 @@ overriddenField ::= OVERRIDE_KW longName typeTele* COLON returnExpr {
     pin = 1
 }
 
-classField ::= accessMod? [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
-    pin = 7
+classField ::= accessMod classFieldPrivate | classFieldPrivate {
+    pin(".*") = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
+
+private classFieldPrivate ::= [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
+    pin = 6
 }
 
 classImplement ::= localCoClausePrivate {
@@ -286,7 +290,7 @@ defInstance ::= instanceOrCons prec? defIdentifier_func pLevelParams? hLevelPara
 
 private instanceOrCons ::= INSTANCE_KW | CONS_KW
 
-defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody? where? {
+defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody where? {
     pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
@@ -344,9 +348,11 @@ instanceBody ::= functionTermBody
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }
 
-dataBody ::= elim constructorClauses | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)+ {
+dataBody ::= elim constructorClauses | fat_arrow_constructor? <<piped constructor>>* {
     recoverWhile = statement_recover
 }
+
+private fat_arrow_constructor ::= fat_arrow_def_pipe pipe_def? constructor { pin = 1 }
 
 private constructorClauses ::= LBRACE constructorClause* RBRACE | constructorClause* { pin(".*") = 1 }
 
@@ -374,7 +380,7 @@ private fat_arrow_def_pipe_lbrace ::= FAT_ARROW {
 
 private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc) & statement_recover
 
-elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>> { pin(".*") = 1}
+elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>> { pin(".*") = 1 }
 
 where ::= WHERE_KW (statementList | stat) { pin = 1 }
 
@@ -419,10 +425,16 @@ implicit_pattern ::= LBRACE (atomic_pattern &RBRACE | pattern_sequence?) RBRACE 
     elementType=pattern
 }
 
-constructor ::= accessMod? COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
-    pin = 4
+constructor ::= constructorHeaderAccessMod alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
+    pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+private constructorHeaderAccessMod ::= accessMod constructorHeader | constructorHeader {
+    pin(".*") = 1
+}
+
+private constructorHeader ::= COERCE_KW? prec? defIdentifier_constructor
 
 private defIdentifier_constructor ::= defIdentifier {
     recoverWhile = defIdentifier_constructor_recover
