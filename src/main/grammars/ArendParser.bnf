@@ -430,11 +430,15 @@ constructor ::= constructorHeaderAccessMod alias? typeTele* [COLON exprWOB] [eli
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
 
-private constructorHeaderAccessMod ::= accessMod constructorHeader | constructorHeader {
+private constructorHeaderAccessMod ::= accessMod constructorHeaderCoerce | constructorHeaderCoerce {
     pin(".*") = 1
 }
 
-private constructorHeader ::= COERCE_KW? prec? defIdentifier_constructor
+private constructorHeaderCoerce ::= COERCE_KW constructorHeader | constructorHeader {
+    pin(".*") = 1
+}
+
+private constructorHeader ::= prec? defIdentifier_constructor
 
 private defIdentifier_constructor ::= defIdentifier {
     recoverWhile = defIdentifier_constructor_recover
