@@ -12,7 +12,6 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\data {-caret-}MyNat | myzero",
                     "\\data {-caret-}",
                     "\\import B (lol \\as {-caret-}+)",
-                    "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)",
                     "\\data MyNat | \\coerce {-caret-} myzero",
                     "\\class C (foo : Nat)\n  | \\coerce {-caret-}",
                     "\\class C {\n  | \\coerce {-caret-} bar : Nat }",
@@ -23,20 +22,40 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class C (foo : Nat)\n   | \\coerce {-caret-} bar : Nat",
                     "\\func f \\alias {-caret-} => {?}")
 
-    fun `test fixity + coerce completion`() =
-            checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+    fun `test fixity + coerce + visibility completion`() =
+            checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST + ACCESS_MODIFIERS, CompletionCondition.SAME_KEYWORDS,
                     "\\data MyNat | {-caret-}myzero",
                     "\\data MyNat | {-caret-}",
                     "\\record R\n  | {-caret-} foo : Nat",
-                    "\\record R{\n  | {-caret-} foo : Nat\n}")
+                    "\\record R{\n  | {-caret-} foo : Nat\n}"
+                )
 
-    fun `test fixity + coerce + classifying completion`() =
-            checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST + CLASSIFYING_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+    fun `test fixity + visibility completion`() =
+        checkKeywordCompletionVariants(FIXITY_KWS + ACCESS_MODIFIERS, CompletionCondition.SAME_KEYWORDS,
+            "\\data Fin (n : Nat) \\with | suc n => {-caret-}fzero | suc n => fsuc (Fin n)")
+
+    fun `test fixity + coerce completion after access modifiers`() =
+        checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            "\\data D\n | \\protected {-caret-}\n | cons2 "
+            ,"\\data D\n  | \\private {-caret-} cons1",
+            "\\data D\n | \\private {-caret-}",
+            "\\record R\n  | \\private {-caret-} foo : Nat",
+            "\\record R{\n  | \\protected {-caret-} foo : Nat\n}")
+
+    fun `test fixity + coerce + classifying + visibility completion`() =
+            checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST + CLASSIFYING_KW_LIST + ACCESS_MODIFIERS, CompletionCondition.SAME_KEYWORDS,
                     "\\class C\n  | {-caret-} foo : Nat",
                     "\\class Monoid (El : \\Set) { | {-caret-}* : El -> El -> El}",
-                    "\\class Monoid (El : \\Set) { \\field {-caret-} }",
                     "\\class Monoid { | {-caret-} }",
                     "\\class Monoid | {-caret-}")
+
+    fun `test fixity + coerce + classifying completion`() =
+        checkKeywordCompletionVariants(FIXITY_KWS + COERCE_KW_LIST + CLASSIFYING_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            "\\class Monoid (El : \\Set) { \\field {-caret-} }",
+            "\\class C\n  | \\protected {-caret-} foo : Nat",
+            "\\class Monoid (El : \\Set) { | \\private {-caret-}* : El -> El -> El}",
+            "\\class Monoid { | \\protected {-caret-} }",
+            "\\class Monoid | \\private {-caret-}")
 
     fun `test no fixity completion`() =
             checkKeywordCompletionVariants(FIXITY_KWS, CompletionCondition.DOES_NOT_CONTAIN,
@@ -83,6 +102,15 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
     fun `test root keywords completion 2`() =
             checkKeywordCompletionVariants(STATEMENT_WT_KWS + TRUNCATED_KW_LIST + IMPORT_KW_LIST, CompletionCondition.CONTAINS,
                     "\\import B \\func foo => 0\n {-caret-}\\data bar | foobar \\func f => 0 \\where { \\func g => 1 } ")
+
+    fun `test root keywords completion after visibility modifier`() =
+        checkKeywordCompletionVariants(STATEMENT_WT_KWS, CompletionCondition.CONTAINS,"" +
+                "\\private {-caret-}",
+                "\\func lol => 101 \\where {\n  \\protected {-caret-}\n}",
+                "\\class C {\n  \\private {-caret-}\n}"
+            )
+    fun `test truncated`() =
+        checkKeywordCompletionVariants(TRUNCATED_KW_LIST, CompletionCondition.CONTAINS,"\\private {-caret-} \\data")
 
     private val kwSuite1 =
             arrayOf("\\import B \\func foo => 0 \\data bar | foobar  \\func f => 0 \\where {\n{-caret-}\\func g => 1 } ",
@@ -161,7 +189,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class Foo => Foo' {| A => A'\n {-caret-} }")
 
     fun `test root keywords completion 3`() =
-            checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS, CompletionCondition.DOES_NOT_CONTAIN,
+            checkKeywordCompletionVariants(GLOBAL_STATEMENT_KWS + ACCESS_MODIFIERS, CompletionCondition.DOES_NOT_CONTAIN,
                     "\\class A {| foo : Nat}\n\\func f => \\new A {| foo => 0 |\n{-caret-}=> 1\n}\n")
 
     fun `test no import in completion 1`() =
@@ -213,7 +241,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             checkKeywordCompletionVariants(WHERE_KW_FULL, CompletionCondition.DOES_NOT_CONTAIN,
                     "{-caret-}",
                     "\\import A\n{-caret-}",
-                    "\\open Nat\n{-caret-}")
+                    "\\open Nat\n{-caret-}",
+                    "\\class C {\n  \\private {-caret-} \n}")
 
     fun `test where completion after func, data, class, iterated where`() =
             checkKeywordCompletionVariants(WHERE_KW_FULL, CompletionCondition.CONTAINS,
@@ -422,7 +451,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class X {\n   | xxxx {-caret-} : xxxx\n}")
 
     fun `test classifying keyword in class parameters`() =
-            checkKeywordCompletionVariants(CLASSIFYING_KW_LIST + COERCE_KW_LIST, CompletionCondition.SAME_KEYWORDS,
+            checkKeywordCompletionVariants(CLASSIFYING_KW_LIST + COERCE_KW_LIST + ACCESS_MODIFIERS, CompletionCondition.SAME_KEYWORDS,
                     "\\class C ({-caret-} a : Nat)",
                     "\\class C (x y : Nat) ({-caret-})")
 
@@ -438,7 +467,7 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
             "\\record R ({-caret-} foo : Nat)\n  | bar : Int\n",
             "\\data D\n   | {-caret-} con Nat")
 
-    fun `test coerce keyword 2`() = checkKeywordCompletionVariants(COERCE_KW_LIST, CompletionCondition.SAME_ELEMENTS,
+    fun `test coerce keyword 2`() = checkKeywordCompletionVariants(COERCE_KW_LIST + ACCESS_MODIFIERS, CompletionCondition.SAME_ELEMENTS,
             "\\class C1 (\\classifying x : Nat) ({-caret-})")
 
     fun `test noclassifying keyword`() =
