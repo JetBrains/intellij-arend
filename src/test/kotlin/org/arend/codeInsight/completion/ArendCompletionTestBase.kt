@@ -13,7 +13,7 @@ import org.arend.replaceCaretMarker
 
 abstract class ArendCompletionTestBase : ArendTestBase() {
 
-    protected fun checkSingleCompletion(@Language("Arend") code: String, target: String) {
+    protected fun checkSingleCompletion(code: String, target: String) {
         InlineFile(code).withCaret()
         executeSoloCompletion()
 
@@ -31,7 +31,7 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
 
     enum class CompletionCondition {CONTAINS, SAME_ELEMENTS, SAME_KEYWORDS, DOES_NOT_CONTAIN}
 
-    protected fun checkCompletionVariants(@Language("Arend") code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS, withKeywords: Boolean = true) {
+    protected fun checkCompletionVariants(code: String, variants: List<String>, condition: CompletionCondition = CompletionCondition.SAME_ELEMENTS, withKeywords: Boolean = true) {
         InlineFile(code).withCaret()
 
         val result : List<String> = (myFixture.getCompletionVariants("Main.ard") ?: error("Null completion variants")).let { list ->
@@ -57,7 +57,7 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
         if (errorMessage != null) throw Exception(errorMessage)
     }
 
-    protected fun checkKeywordCompletionVariants(variants: List<String>, condition: CompletionCondition, @Language("Arend") vararg code: String){
+    protected fun checkKeywordCompletionVariants(variants: List<String>, condition: CompletionCondition, vararg code: String){
         var failed = false
         var failString = ""
         var successString = ""
@@ -101,8 +101,8 @@ abstract class ArendCompletionTestBase : ArendTestBase() {
     }
 
     protected fun doSingleCompletion(
-            @Language("Arend") before: String,
-            @Language("Arend") after: String
+            before: String,
+            after: String
     ) {
         check(hasCaretMarker(before) && hasCaretMarker(after)) {
             "Please add `$CARET_MARKER` marker"

@@ -9,7 +9,7 @@ class ArendStat(node: ASTNode) : ArendSourceNodeImpl(node), ArendStatement {
         get() = getChildOfType()
 
     val statAccessMod: ArendStatAccessMod?
-        get() = firstRelevantChild as? ArendStatAccessMod
+        get() = getChildOfType()
 
     override fun getGroup(): ArendGroup? = getChildOfType()
 
