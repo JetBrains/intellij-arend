@@ -46,7 +46,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
 
     override fun getAccessModifier() =
-        parent?.childOfType<ArendAccessMod>()?.accessModifier ?: ancestor<ArendStatAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+        parent?.getChildOfType<ArendAccessMod>()?.accessModifier ?: ancestor<ArendStatAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
 
     override val defIdentifier: ArendDefIdentifier?
         get() = getChildOfType()

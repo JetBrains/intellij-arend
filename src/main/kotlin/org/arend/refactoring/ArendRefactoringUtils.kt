@@ -114,7 +114,7 @@ private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElemen
         }
         if (ref.referenceName == name) return ref
     }
-    val statCmd = factory.createFromText("\\import Foo \\hiding (bar, $name)")?.childOfType<ArendStatCmd>()
+    val statCmd = factory.createFromText("\\import Foo \\hiding (bar, $name)")?.findChildOfType<ArendStatCmd>()
     val ref = statCmd!!.refIdentifierList[1]
     val comma = ref.findPrevSibling()!!
     if (needsComma) anchor = anchor.parent.addAfter(comma, anchor)
@@ -125,7 +125,7 @@ private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElemen
 
 fun doAddIdToHiding(statCmd: ArendStatCmd, idList: List<String>) : List<ArendRefIdentifier> {
     val factory = ArendPsiFactory(statCmd.project)
-    val statCmdSample = factory.createFromText("\\import Foo \\hiding (lol)")?.childOfType<ArendStatCmd>()
+    val statCmdSample = factory.createFromText("\\import Foo \\hiding (lol)")?.findChildOfType<ArendStatCmd>()
     if (statCmd.hidingKw == null) statCmd.addAfter(statCmdSample!!.hidingKw!!, statCmd.nsUsing ?: statCmd.longName)
     if (statCmd.lparen == null) {
         val pop = factory.createPairOfParens()
@@ -201,7 +201,7 @@ class RenameReferenceAction constructor(private val element: ArendReferenceEleme
                     if (element.fixity == Fixity.INFIX) append("`")
 
                 }
-                val replacementLiteral = factory.createExpression(argumentStr).childOfType<ArendLiteral>()
+                val replacementLiteral = factory.createExpression(argumentStr).findChildOfType<ArendLiteral>()
                 if (replacementLiteral != null) parent.replace(replacementLiteral)
             }
             else -> {
@@ -352,7 +352,7 @@ fun addIdToUsing(groupMember: PsiElement?,
         val insertedStatement = addStatCmd(factory,
                 createStatCmdStatement(factory, targetContainerName, renamings, ArendPsiFactory.StatCmdKind.OPEN),
                 relativePosition)
-        val statCmd = insertedStatement.childOfType<ArendStatCmd>()
+        val statCmd = insertedStatement.findChildOfType<ArendStatCmd>()
         val nsIds = statCmd?.nsUsing?.nsIdList ?: emptyList()
         return Pair(nsIds, nsIds.isNotEmpty())
     }
@@ -568,14 +568,14 @@ fun getFirstExplicitParameter(ref: Referable?, defaultName: String): String {
 }
 
 fun addImplicitArgAfter(psiFactory: ArendPsiFactory, anchor: PsiElement, argument: String, infixMode: Boolean) {
-    val thisArgument = psiFactory.createExpression("foo {$argument}").childOfType<ArendImplicitArgument>()
+    val thisArgument = psiFactory.createExpression("foo {$argument}").findChildOfType<ArendImplicitArgument>()
     if (thisArgument != null) {
         if (anchor is ArendAtomFieldsAcc || infixMode) {
             anchor.parent?.addAfter(thisArgument, anchor)
             anchor.parent?.addAfter(psiFactory.createWhitespace(" "), anchor)
         } else if (anchor is ArendAtomArgument) {
             val oldLiteral = anchor.atomFieldsAcc.atom.literal
-            val tuple = psiFactory.createExpression("(${anchor.text} {$argument})").childOfType<ArendTuple>()
+            val tuple = psiFactory.createExpression("(${anchor.text} {$argument})").findChildOfType<ArendTuple>()
             if (oldLiteral != null && tuple != null) oldLiteral.replace(tuple)
         }
     }
@@ -669,9 +669,9 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
     val result: ArendExpr? = when {
         psiElements.size == nodes.size -> {
             val tupleExpr = surroundingTupleExpr(argumentAppExpr)
-            val appExpr = psiFactory.createExpression(resultingExpr.trim()).childOfType<ArendArgumentAppExpr>()!!
+            val appExpr = psiFactory.createExpression(resultingExpr.trim()).findChildOfType<ArendArgumentAppExpr>()!!
             if (tupleExpr != null && tupleExpr.colon == null && isLambda) {
-                val newPsi = appExpr.childOfType<ArendLamExpr>()!!
+                val newPsi = appExpr.findChildOfType<ArendLamExpr>()!!
                 rangeCallback?.invoke(argumentAppExpr.textRange, newPsi.textLength)
                 argumentAppExpr.parent.replace(newPsi) as? ArendExpr
             } else {
@@ -680,21 +680,21 @@ fun transformPostfixToPrefix(psiFactory: ArendPsiFactory,
             }
         }
         operatorRange.contains(nodes.first().textRange) -> {
-            val atomFieldsAcc = psiFactory.createExpression("(${resultingExpr.trim()}) foo").childOfType<ArendAtomFieldsAcc>()!!
+            val atomFieldsAcc = psiFactory.createExpression("(${resultingExpr.trim()}) foo").findChildOfType<ArendAtomFieldsAcc>()!!
             rangeCallback?.invoke(psiElementsRange, atomFieldsAcc.textLength)
             val insertedExpr = argumentAppExpr.addAfter(atomFieldsAcc, psiElements.last())
             argumentAppExpr.deleteChildRange(psiElements.first(), psiElements.last())
-            insertedExpr.childOfType<ArendArgumentAppExpr>()
+            insertedExpr.findChildOfType<ArendArgumentAppExpr>()
         }
         else -> {
-            val atom = psiFactory.createExpression("foo (${resultingExpr.trim()})").childOfType<ArendAtomArgument>()!!
+            val atom = psiFactory.createExpression("foo (${resultingExpr.trim()})").findChildOfType<ArendAtomArgument>()!!
             rangeCallback?.invoke(TextRange(psiElements.first().textRange.startOffset, psiElements.last().textRange.endOffset), atom.textLength)
             val insertedExpr = argumentAppExpr.addBefore(atom, psiElements.first())
             argumentAppExpr.deleteChildRange(psiElements.first(), psiElements.last())
-            insertedExpr.childOfType<ArendArgumentAppExpr>()
+            insertedExpr.findChildOfType<ArendArgumentAppExpr>()
         }
     }
-    return if (isLambda) result?.childOfType(true) else result as ArendArgumentAppExpr
+    return if (isLambda) result?.findChildOfType(true) else result as ArendArgumentAppExpr
 }
 
 fun getPrec(psiElement: PsiElement?): ArendPrec? = when (psiElement) {

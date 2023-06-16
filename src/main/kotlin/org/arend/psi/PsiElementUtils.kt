@@ -88,7 +88,7 @@ inline fun <reified T : PsiElement> PsiElement.parentOfType(
         minStartOffset: Int = -1
 ): T? = PsiTreeUtil.getParentOfType(this, T::class.java, strict, minStartOffset)
 
-inline fun <reified T : PsiElement> PsiElement.childOfType(
+inline fun <reified T : PsiElement> PsiElement.findChildOfType(
         strict: Boolean = true
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 

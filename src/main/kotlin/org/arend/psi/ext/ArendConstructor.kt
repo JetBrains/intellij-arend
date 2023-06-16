@@ -47,7 +47,7 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
 
     override fun isCoerce() = hasChildOfType(ArendElementTypes.COERCE_KW)
 
-    override fun getAccessModifier() = childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+    override fun getAccessModifier() = getChildOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
 
     private val allParameters
         get() = (ancestor<ArendDefData>()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters

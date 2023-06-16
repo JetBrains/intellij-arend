@@ -907,7 +907,7 @@ private fun getTeleIndexInDef(def: PsiElement, tele: PsiElement, includeConstruc
 }
 
 private fun ArendPsiFactory.createArgumentAppExpr(expr: String): ArendArgumentAppExpr =
-    createExpression(expr).childOfType() ?: error("Failed to create argument app expr: `$expr`")
+    createExpression(expr).findChildOfType() ?: error("Failed to create argument app expr: `$expr`")
 
 /**
  * Extract reference to function from long name.
