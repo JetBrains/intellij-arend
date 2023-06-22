@@ -99,13 +99,13 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
     private fun performReverseSubstitution(type: Expression, reverseSubstitution: Map<Expression, Binding>): Expression {
         var currentType = type
         for ((subExpr, binding) in reverseSubstitution) {
-            val uncheckedTargetExpression = currentType.replaceSubexpressions {
+            val uncheckedTargetExpression = currentType.replaceSubexpressions ({
                 if (it == subExpr) {
                     ReferenceExpression(binding)
                 } else {
                     null
                 }
-            }
+            }, false)
             currentType = UncheckedExpressionImpl.extract(uncheckedTargetExpression)
         }
         return currentType
