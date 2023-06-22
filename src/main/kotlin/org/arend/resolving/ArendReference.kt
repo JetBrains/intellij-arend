@@ -157,13 +157,15 @@ class TemporaryLocatedReferable(private val referable: LocatedReferable) : Locat
     override fun getTypechecked(): Definition? = null
 
     override fun getUnderlyingReferable() = referable
+
+    override fun getAccessModifier() = referable.accessModifier
 }
 
 object ArendIdReferableConverter : ReferableConverter {
     override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
         null -> null
         is TCReferable -> referable
-        is FieldReferable -> FieldReferableImpl(referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCDefReferable.NULL_REFERABLE)
+        is FieldReferable -> FieldReferableImpl(referable.accessModifier, referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCDefReferable.NULL_REFERABLE)
         is ArendDefMeta -> referable.metaRef ?: referable.makeTCReferable(TCDefReferable.NULL_REFERABLE)
         else -> TemporaryLocatedReferable(referable)
     }

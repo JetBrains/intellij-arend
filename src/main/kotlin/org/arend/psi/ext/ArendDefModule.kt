@@ -24,7 +24,7 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
     override val where: ArendWhere?
         get() = getChildOfType()
 
-    override fun getStatements(): List<ArendStatement> = where?.statList ?: emptyList()
+    override fun getStatements(): List<ArendStat> = ArendStat.flatStatements(where?.statList)
 
     override fun getParentGroup() = parent.ancestor<ArendGroup>()
 
@@ -43,7 +43,7 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
         get() = null
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        DataLocatedReferable(data, this, parent)
+        DataLocatedReferable(data, accessModifier, this, parent)
 
     override fun getIcon(flags: Int) = ArendIcons.MODULE_DEFINITION
 

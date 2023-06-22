@@ -50,10 +50,8 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
     }
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        if (myProject.service<TypeCheckingService>().isLoaded) {
-            setProgressLimit(numberOfDefinitions(file as? Group).toLong())
-            collectInfo(progress)
-        }
+        setProgressLimit(numberOfDefinitions(file as? Group).toLong())
+        collectInfo(progress)
     }
 
     private fun numberOfDefinitions(group: Group?): Int {

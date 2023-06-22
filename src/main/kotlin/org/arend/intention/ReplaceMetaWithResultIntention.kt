@@ -1,5 +1,6 @@
 package org.arend.intention
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
@@ -22,6 +23,8 @@ class ReplaceMetaWithResultIntention : BaseArendIntention(ArendBundle.message("a
         val refElement = (expr as? ArendLiteral)?.ipName ?: ((expr as? ArendLiteral)?.longName ?: (expr as? ArendLongNameExpr)?.longName)?.refIdentifierList?.lastOrNull() ?: return false
         return (refElement.resolve as? ArendDefMeta)?.metaRef.let { it?.definition != null || it?.resolver != null }
     }
+
+    override fun startInWriteAction() = ApplicationManager.getApplication().isUnitTestMode
 
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {
         val expr = element.ancestor<ArendExpr>() ?: return

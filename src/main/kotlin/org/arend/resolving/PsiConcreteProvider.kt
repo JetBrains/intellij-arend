@@ -19,11 +19,12 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.*
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteDefinitionVisitor
+import org.arend.term.group.AccessModifier
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
 import org.arend.typechecking.provider.ConcreteProvider
 
 
-private object NullDefinition : Concrete.Definition(LocatedReferableImpl(Precedence.DEFAULT, "_", null, GlobalReferable.Kind.OTHER)) {
+private object NullDefinition : Concrete.Definition(LocatedReferableImpl(AccessModifier.PUBLIC, Precedence.DEFAULT, "_", null, GlobalReferable.Kind.OTHER)) {
     override fun getParameters() = emptyList<Concrete.Parameter>()
 
     override fun addParameters(parameters: List<Concrete.Parameter>?, parametersOriginalDefinitions: List<Pair<TCDefReferable, Int>>?) {

@@ -10,6 +10,9 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.IArendFile
 import com.intellij.psi.util.PsiModificationTracker
+import org.arend.module.config.ArendModuleConfigService
+import org.arend.psi.module
+import org.arend.typechecking.TypeCheckingService
 
 class ArendHighlightingPassFactory : BasePassFactory<IArendFile>(IArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
     private var myPassId = -1
@@ -25,7 +28,7 @@ class ArendHighlightingPassFactory : BasePassFactory<IArendFile>(IArendFile::cla
     override fun createHighlightingPass(file: PsiFile, editor: Editor) =
         if (file is IArendFile) {
             val modCount = PsiModificationTracker.getInstance(file.project).modificationCount
-            if (file.lastModification.get() < modCount) {
+            if (file.lastModification.get() < modCount && file.project.service<TypeCheckingService>().isLoaded && ArendModuleConfigService.getInstance(file.module)?.isInitialized == true) {
                 val pass = super.createHighlightingPass(file, editor)
                 if (pass is ArendHighlightingPass) {
                     pass.lastModification = modCount

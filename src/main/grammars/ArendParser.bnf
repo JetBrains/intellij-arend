@@ -83,6 +83,8 @@
         EXTENDS_KW          = '\extends'
         INSTANCE_KW         = '\instance'
         TRUNCATED_KW        = '\truncated'
+        PRIVATE_KW          = '\private'
+        PROTECTED_KW        = '\protected'
         LP_KW               = '\lp'
         LH_KW               = '\lh'
         OO_KW               = '\oo'
@@ -117,11 +119,19 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | PLEVELS_KW | HLEVELS_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | PLEVELS_KW | HLEVELS_KW | PRIVATE_KW | PROTECTED_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
-stat ::= statCmd | definition | defModule | pLevelParams | hLevelParams | stat_recovery
+accessMod ::= PRIVATE_KW | PROTECTED_KW
+
+stat ::= statCmd | accessMod? definition | defModule | statAccessMod | pLevelParams | hLevelParams | stat_recovery
+
+statAccessMod ::= accessMod statAccessModInternal { pin = 1 }
+
+statAccessModInternal ::= LBRACE stat* RBRACE {
+    recoverWhile = statement_recover
+}
 
 private stat_recovery ::= statement_recover {
     recoverWhile = statement_recover
@@ -168,7 +178,7 @@ private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOr
     recoverWhile = statement_recover
 }
 
-classStat ::= classFieldOrImplement | definition | classFieldStat | overriddenField | defaultField | defModule { recoverWhile = classStat_recover }
+classStat ::= classFieldOrImplement | accessMod? definition | classFieldStat | overriddenField | defaultField | defModule { recoverWhile = classStat_recover }
 
 private classStatRecovery ::= {
   recoverWhile = classStat_recover
@@ -186,9 +196,13 @@ overriddenField ::= OVERRIDE_KW longName typeTele* COLON returnExpr {
     pin = 1
 }
 
-classField ::= [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
-    pin = 6
+classField ::= accessMod classFieldPrivate | classFieldPrivate {
+    pin(".*") = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
+}
+
+private classFieldPrivate ::= [CLASSIFYING_KW | COERCE_KW] prec? defIdentifier_typeTele alias? typeTele* COLON returnExpr {
+    pin = 6
 }
 
 classImplement ::= localCoClausePrivate {
@@ -276,7 +290,7 @@ defInstance ::= instanceOrCons prec? defIdentifier_func pLevelParams? hLevelPara
 
 private instanceOrCons ::= INSTANCE_KW | CONS_KW
 
-defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody? where? {
+defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody where? {
     pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
@@ -334,9 +348,11 @@ instanceBody ::= functionTermBody
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }
 
-dataBody ::= elim constructorClauses | [fat_arrow_def_pipe pipe_def? constructor] (pipe_def constructor)+ {
+dataBody ::= elim constructorClauses | fat_arrow_constructor? <<piped constructor>>* {
     recoverWhile = statement_recover
 }
+
+private fat_arrow_constructor ::= fat_arrow_def_pipe pipe_def? constructor { pin = 1 }
 
 private constructorClauses ::= LBRACE constructorClause* RBRACE | constructorClause* { pin(".*") = 1 }
 
@@ -364,7 +380,7 @@ private fat_arrow_def_pipe_lbrace ::= FAT_ARROW {
 
 private def_pipe_lbrace_recover ::= !(ID | PIPE | LBRACE | assoc) & statement_recover
 
-elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>> { pin(".*") = 1}
+elim ::= WITH_KW | ELIM_KW <<comma_separated_sequence refIdentifier>> { pin(".*") = 1 }
 
 where ::= WHERE_KW (statementList | stat) { pin = 1 }
 
@@ -409,10 +425,20 @@ implicit_pattern ::= LBRACE (atomic_pattern &RBRACE | pattern_sequence?) RBRACE 
     elementType=pattern
 }
 
-constructor ::= COERCE_KW? prec? defIdentifier_constructor alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
-    pin = 3
+constructor ::= constructorHeaderAccessMod alias? typeTele* [COLON exprWOB] [elim? clausesWithBraces] {
+    pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
+
+private constructorHeaderAccessMod ::= accessMod constructorHeaderCoerce | constructorHeaderCoerce {
+    pin(".*") = 1
+}
+
+private constructorHeaderCoerce ::= COERCE_KW constructorHeader | constructorHeader {
+    pin(".*") = 1
+}
+
+private constructorHeader ::= prec? defIdentifier_constructor
 
 private defIdentifier_constructor ::= defIdentifier {
     recoverWhile = defIdentifier_constructor_recover
@@ -798,9 +824,9 @@ private nameTele_recover ::= !(ID | UNDERSCORE | LPAREN) & expr_recover
 
 fieldTele ::= fieldTeleExplicit | fieldTeleImplicit | fieldTeleRecovery
 
-private fieldTeleExplicit ::= LPAREN [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
+private fieldTeleExplicit ::= LPAREN accessMod? [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RPAREN { pin = 1 }
 
-private fieldTeleImplicit ::= LBRACE [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 4 }
+private fieldTeleImplicit ::= LBRACE accessMod? [CLASSIFYING_KW | COERCE_KW] fieldDefIdentifier+ COLON expr RBRACE { pin = 5 }
 
 private fieldTeleRecovery ::= fieldTele_recover {
     recoverWhile = fieldTele_recover

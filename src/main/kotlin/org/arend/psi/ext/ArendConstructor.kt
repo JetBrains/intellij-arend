@@ -14,6 +14,7 @@ import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ParameterImpl
 import org.arend.resolving.util.ReferenceImpl
 import org.arend.resolving.util.getTypeOf
+import org.arend.term.group.AccessModifier
 import javax.swing.Icon
 
 class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalReferable, Abstract.Constructor, Abstract.ConstructorClause, StubBasedPsiElement<ArendConstructorStub> {
@@ -46,6 +47,8 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
 
     override fun isCoerce() = hasChildOfType(ArendElementTypes.COERCE_KW)
 
+    override fun getAccessModifier() = childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+
     private val allParameters
         get() = (ancestor<ArendDefData>()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
 
@@ -58,5 +61,5 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
         get() = ancestor<ArendDefData>()?.defIdentifier
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        DataLocatedReferable(data, this, parent)
+        DataLocatedReferable(data, accessModifier, this, parent)
 }

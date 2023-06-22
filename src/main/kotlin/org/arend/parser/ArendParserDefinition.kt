@@ -137,6 +137,8 @@ class ArendParserDefinition : ParserDefinition {
         UNIVERSE_EXPR -> ArendUniverseExpr(node)
         WHERE -> ArendWhere(node)
         WITH_BODY -> ArendWithBody(node)
+        ACCESS_MOD -> ArendAccessMod(node)
+        STAT_ACCESS_MOD -> ArendStatAccessMod(node)
         ArendExpressionCodeFragmentElementType -> ArendExpr(node)
         else -> throw AssertionError("Unknown element type: $type")
     }

@@ -2,20 +2,27 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.util.elementType
-import org.arend.psi.ArendElementTypes
-import org.arend.psi.firstRelevantChild
-import org.arend.psi.getChild
-import org.arend.psi.getChildOfType
+import org.arend.psi.*
 
 class ArendStat(node: ASTNode) : ArendSourceNodeImpl(node), ArendStatement {
     val statCmd: ArendStatCmd?
         get() = getChildOfType()
 
-    override fun getGroup() = firstRelevantChild as? ArendGroup
+    val statAccessMod: ArendStatAccessMod?
+        get() = getChildOfType()
 
-    override fun getNamespaceCommand() = firstRelevantChild as? ArendStatCmd
+    override fun getGroup(): ArendGroup? = getChildOfType()
+
+    override fun getNamespaceCommand(): ArendStatCmd? = getChildOfType()
 
     override fun getPLevelsDefinition(): ArendLevelParamsSeq? = getChild { it.elementType == ArendElementTypes.P_LEVEL_PARAMS_SEQ }
 
     override fun getHLevelsDefinition(): ArendLevelParamsSeq? = getChild { it.elementType == ArendElementTypes.H_LEVEL_PARAMS_SEQ }
+
+    companion object {
+        fun flatStatements(l: List<ArendStat>?): List<ArendStat> = l?.flatMap {
+            val accessMod = it.statAccessMod
+            if (accessMod == null) listOf(it) else flatStatements(accessMod.statList)
+        } ?: emptyList()
+    }
 }

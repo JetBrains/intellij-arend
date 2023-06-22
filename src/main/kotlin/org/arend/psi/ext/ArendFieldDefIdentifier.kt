@@ -85,5 +85,5 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
         get() = TextRange(0, text.length)
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        FieldDataLocatedReferable(data, this, parent)
+        FieldDataLocatedReferable(data, accessModifier, this, parent)
 }

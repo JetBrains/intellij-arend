@@ -14,6 +14,7 @@ import org.arend.psi.ext.ArendCoClauseDef
 import org.arend.psi.ext.ReferableBase
 import org.arend.psi.ext.moduleTextRepresentationImpl
 import org.arend.psi.ext.positionTextRepresentationImpl
+import org.arend.term.group.AccessModifier
 import org.arend.typechecking.TypeCheckingService
 
 
@@ -21,9 +22,10 @@ private data class Alias(val name: String, val precedence: Precedence)
 
 open class DataLocatedReferable(
     private var psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
+    accessModifier: AccessModifier,
     referable: LocatedReferable,
     parent: LocatedReferable?
-) : LocatedReferableImpl(if (referable is ArendCoClauseDef && referable.parentCoClause?.prec == null) null else referable.precedence, referable.textRepresentation(), parent, referable.kind), IntellijTCReferable, SourceInfo {
+) : LocatedReferableImpl(accessModifier, if (referable is ArendCoClauseDef && referable.parentCoClause?.prec == null) null else referable.precedence, referable.textRepresentation(), parent, referable.kind), IntellijTCReferable, SourceInfo {
 
     private var alias = referable.aliasName?.let { Alias(it, referable.aliasPrecedence) }
 
@@ -93,9 +95,10 @@ open class DataLocatedReferable(
 
 class FieldDataLocatedReferable(
     psiElementPointer: SmartPsiElementPointer<PsiLocatedReferable>?,
+    accessModifier: AccessModifier,
     referable: FieldReferable,
     parent: LocatedReferable?
-) : DataLocatedReferable(psiElementPointer, referable, parent), TCFieldReferable {
+) : DataLocatedReferable(psiElementPointer, accessModifier, referable, parent), TCFieldReferable {
 
     private val isExplicit = referable.isExplicitField
 

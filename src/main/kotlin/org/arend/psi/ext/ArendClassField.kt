@@ -14,14 +14,12 @@ import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.ext.concrete.definition.ClassFieldKind
 import org.arend.naming.reference.FieldReferable
+import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
-import org.arend.psi.firstRelevantChild
-import org.arend.psi.getChildOfType
-import org.arend.psi.getChildrenOfType
-import org.arend.psi.hasChildOfType
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
+import org.arend.term.group.AccessModifier
 import javax.swing.Icon
 
 class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferable, FieldReferable, Abstract.ClassField, StubBasedPsiElement<ArendClassFieldStub> {
@@ -61,6 +59,8 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
 
     override fun isCoerce() = hasChildOfType(COERCE_KW)
 
+    override fun getAccessModifier() = childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+
     override fun getTypeClassReference(): ClassReferable? {
         val type = resultType ?: return null
         return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
@@ -73,5 +73,5 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
         get() = resultType
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        FieldDataLocatedReferable(data, this, parent)
+        FieldDataLocatedReferable(data, accessModifier, this, parent)
 }

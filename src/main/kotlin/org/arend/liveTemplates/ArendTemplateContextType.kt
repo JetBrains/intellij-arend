@@ -24,7 +24,9 @@ abstract class ArendTemplateContextType(presentableName: @Nls String) : Template
     class Statement : ArendTemplateContextType("Statement") {
         override fun isInContext(templateActionContext: TemplateActionContext): Boolean {
             return super.isInContext(templateActionContext) &&
-                    jointOfStatementsCondition(ArendCompletionContributor.ArendCompletionParameters(templateActionContext.startOffset, templateActionContext.file.originalFile))
+                    jointOfStatementsCondition(ArendCompletionContributor.ArendCompletionParameters(
+                        templateActionContext.file.originalFile.findElementAt(templateActionContext.startOffset),
+                        templateActionContext.startOffset, templateActionContext.file.originalFile))
         }
 
         override fun isInContext(element: PsiElement): Boolean =
