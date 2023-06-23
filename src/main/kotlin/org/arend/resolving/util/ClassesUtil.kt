@@ -2,6 +2,7 @@ package org.arend.resolving.util
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import org.arend.ext.reference.ArendRef
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.Referable
@@ -31,8 +32,8 @@ private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: Cl
 }
 
 class ModifiedClassFieldImplScope(referable: ClassReferable, private val classRefHolder: ClassReferenceHolder?) : ClassFieldImplScope(referable, true) {
-    override fun getElements(kind: Referable.RefKind?): List<Referable> {
-        if (kind != null && kind != Referable.RefKind.EXPR) return emptyList()
+    override fun getElements(kind: ArendRef.RefKind?): List<Referable> {
+        if (kind != null && kind != ArendRef.RefKind.EXPR) return emptyList()
         val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
         val fields = getNotImplementedFields(classReference, classRefHolder, superClassesFields)
         return fields.toList() + superClassesFields.mapNotNull { entry -> if (entry.value.isEmpty()) null else entry.key }

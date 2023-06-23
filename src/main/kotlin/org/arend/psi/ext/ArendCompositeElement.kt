@@ -10,6 +10,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import org.arend.IArendFile
 import org.arend.ext.error.SourceInfo
+import org.arend.ext.reference.ArendRef
 import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
@@ -69,7 +70,7 @@ fun getArendScope(element: ArendCompositeElement): Scope {
         isExtends -> object : Scope { // exclude Array
             override fun find(pred: Predicate<Referable?>): Referable? =
                 scope.find { ref -> !(Prelude.DEP_ARRAY != null && (ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref)) && pred.test(ref) }
-            override fun resolveName(name: String, kind: Referable.RefKind?): Referable? {
+            override fun resolveName(name: String, kind: ArendRef.RefKind?): Referable? {
                 val ref = scope.resolveName(name, kind)
                 return if (Prelude.DEP_ARRAY != null && (ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref)) null else ref
             }

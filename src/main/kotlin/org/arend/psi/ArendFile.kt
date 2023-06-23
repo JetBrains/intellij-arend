@@ -16,6 +16,7 @@ import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.IArendFile
 import org.arend.ext.module.LongName
+import org.arend.ext.reference.ArendRef
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.module.ArendPreludeLibrary
@@ -27,7 +28,6 @@ import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
@@ -81,7 +81,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     val concreteDefinitions = HashMap<LongName, Concrete.ResolvableDefinition>()
 
-    fun getTCRefMap(refKind: RefKind): ConcurrentHashMap<LongName, IntellijTCReferable> {
+    fun getTCRefMap(refKind: ArendRef.RefKind): ConcurrentHashMap<LongName, IntellijTCReferable> {
         val location = moduleLocation ?: return ConcurrentHashMap<LongName, IntellijTCReferable>()
         return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { ConcurrentHashMap<LongName, IntellijTCReferable>() }
     }

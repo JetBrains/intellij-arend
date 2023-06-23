@@ -6,6 +6,7 @@ import com.intellij.psi.PsiFileFactory
 import org.arend.ArendLanguage
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.module.ModulePath
+import org.arend.ext.reference.ArendRef
 import org.arend.ext.reference.Precedence
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
@@ -107,7 +108,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         super.resetGroup(group)
         (group as? ArendFile)?.apply {
             moduleLocation?.let {
-                config.project.service<TypeCheckingService>().getTCRefMaps(Referable.RefKind.EXPR).remove(it)
+                config.project.service<TypeCheckingService>().getTCRefMaps(ArendRef.RefKind.EXPR).remove(it)
             }
         }
     }

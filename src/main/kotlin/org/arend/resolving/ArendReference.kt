@@ -10,8 +10,8 @@ import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.reference.ArendRef
 import org.arend.naming.reference.*
-import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -35,7 +35,7 @@ interface ArendReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: TextRange, private val beforeImportDot: Boolean = false, protected val refKind: RefKind = RefKind.EXPR) : PsiReferenceBase<T>(element, range), ArendReference {
+abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: TextRange, private val beforeImportDot: Boolean = false, protected val refKind: ArendRef.RefKind = ArendRef.RefKind.EXPR) : PsiReferenceBase<T>(element, range), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -173,7 +173,7 @@ object ArendIdReferableConverter : ReferableConverter {
     override fun convert(referable: Referable?) = (referable as? ArendDefMeta)?.metaRef ?: referable
 }
 
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImportDot: Boolean = false, refKind: RefKind = RefKind.EXPR) : ArendReferenceBase<T>(element, element.rangeInElement, beforeImportDot, refKind), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImportDot: Boolean = false, refKind: ArendRef.RefKind = ArendRef.RefKind.EXPR) : ArendReferenceBase<T>(element, element.rangeInElement, beforeImportDot, refKind), ArendReference {
     override fun bindToElement(element: PsiElement) = element
 
     override fun getVariants(): Array<Any> {

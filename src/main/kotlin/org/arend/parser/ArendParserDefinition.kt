@@ -10,8 +10,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
+import org.arend.ext.reference.ArendRef
 import org.arend.lexer.ArendLexerAdapter
-import org.arend.naming.reference.Referable
 import org.arend.parser.ParserMixin.*
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
@@ -87,7 +87,7 @@ class ArendParserDefinition : ParserDefinition {
         FUNCTION_CLAUSES -> ArendFunctionClauses(node)
         FUNCTION_KW -> ArendCompositeElementImpl(node)
         GOAL -> ArendGoal(node)
-        H_LEVEL_IDENTIFIER -> ArendLevelIdentifier(node, Referable.RefKind.HLEVEL)
+        H_LEVEL_IDENTIFIER -> ArendLevelIdentifier(node, ArendRef.RefKind.HLEVEL)
         H_LEVEL_PARAMS_SEQ, P_LEVEL_PARAMS_SEQ -> ArendLevelParamsSeq(node)
         IDENTIFIER_OR_UNKNOWN -> ArendIdentifierOrUnknown(node)
         IMPLICIT_ARGUMENT -> ArendImplicitArgument(node)
@@ -117,7 +117,7 @@ class ArendParserDefinition : ParserDefinition {
         PATTERN -> ArendPattern(node)
         PI_EXPR -> ArendPiExpr(node)
         PREC -> ArendPrec(node)
-        P_LEVEL_IDENTIFIER -> ArendLevelIdentifier(node, Referable.RefKind.PLEVEL)
+        P_LEVEL_IDENTIFIER -> ArendLevelIdentifier(node, ArendRef.RefKind.PLEVEL)
         REF_IDENTIFIER -> ArendRefIdentifier(node)
         REPL_LINE -> ArendReplLine(node)
         RETURN_EXPR -> ArendReturnExpr(node)

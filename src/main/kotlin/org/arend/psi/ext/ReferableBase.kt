@@ -9,6 +9,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
 import org.arend.ext.module.LongName
+import org.arend.ext.reference.ArendRef
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
@@ -58,7 +59,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         get() {
             tcRefMapCache?.let { return it }
             val file = if (isValid) containingFile as? ArendFile else null
-            return file?.getTCRefMap(Referable.RefKind.EXPR)
+            return file?.getTCRefMap(ArendRef.RefKind.EXPR)
         }
 
     fun dropTCCache() {
@@ -96,7 +97,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         val service = project.service<TypeCheckingService>()
         val tcRef = tcReferableCache ?: run {
             val location = (containingFile as? ArendFile)?.moduleLocation ?: return
-            service.getTCRefMaps(Referable.RefKind.EXPR)[location]?.get(refLongName)
+            service.getTCRefMaps(ArendRef.RefKind.EXPR)[location]?.get(refLongName)
         } ?: return
         service.dependencyListener.update(tcRef)
         (tcRef as? TCDefReferable)?.typechecked = null

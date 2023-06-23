@@ -25,6 +25,7 @@ import org.arend.ext.core.ops.CMP
 import org.arend.ext.instance.InstanceSearchParameters
 import org.arend.ext.instance.SubclassSearchParameters
 import org.arend.ext.module.LongName
+import org.arend.ext.reference.ArendRef
 import org.arend.ext.typechecking.DefinitionListener
 import org.arend.extImpl.DefinitionRequester
 import org.arend.library.Library
@@ -124,11 +125,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
     */
 
-    private val tcRefMaps = Array<MutableMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>>(Referable.RefKind.values().size) {
+    private val tcRefMaps = Array<MutableMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>>(ArendRef.RefKind.values().size) {
         ConcurrentHashMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>()
     }
 
-    fun getTCRefMaps(refKind: Referable.RefKind) = tcRefMaps[refKind.ordinal]
+    fun getTCRefMaps(refKind: ArendRef.RefKind) = tcRefMaps[refKind.ordinal]
 
     fun clearTCRefMaps() {
         for (tcRefMap in tcRefMaps) {
@@ -167,7 +168,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
 
             if (Prelude.isInitialized()) {
-                val tcRefMap = preludeLibrary.prelude?.getTCRefMap(Referable.RefKind.EXPR)
+                val tcRefMap = preludeLibrary.prelude?.getTCRefMap(ArendRef.RefKind.EXPR)
                 if (tcRefMap != null) {
                     Prelude.forEach {
                         val name = it.referable.refLongName
@@ -390,7 +391,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         val curRef = referable.underlyingReferable
         val fullName = FullName(referable)
-        val tcRefMap = fullName.modulePath?.let { getTCRefMaps(Referable.RefKind.EXPR)[it] }
+        val tcRefMap = fullName.modulePath?.let { getTCRefMaps(ArendRef.RefKind.EXPR)[it] }
         val tcReferable = tcRefMap?.get(fullName.longName)
         if (tcReferable !is TCDefReferable) {
             resetErrors(curRef)

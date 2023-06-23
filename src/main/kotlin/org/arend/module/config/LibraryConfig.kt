@@ -8,12 +8,12 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
+import org.arend.ext.reference.ArendRef
 import org.arend.library.LibraryDependency
 import org.arend.library.classLoader.ClassLoaderDelegate
 import org.arend.module.ArendRawLibrary
 import org.arend.module.IntellijClassLoaderDelegate
 import org.arend.module.ModuleLocation
-import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.util.getRelativeFile
@@ -113,7 +113,7 @@ abstract class LibraryConfig(val project: Project) {
     }
 
     fun clearAdditionalModules() {
-        val maps = project.service<TypeCheckingService>().getTCRefMaps(Referable.RefKind.EXPR)
+        val maps = project.service<TypeCheckingService>().getTCRefMaps(ArendRef.RefKind.EXPR)
         for (file in additionalModules.values) {
             maps.remove(file.moduleLocation)
         }
