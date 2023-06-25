@@ -1,6 +1,7 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.refactoring.changeSignature.MethodDescriptor
+import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.PsiLocatedReferable
 
 class ArendChangeSignatureDescriptor(private val psiReferable: PsiLocatedReferable) :
@@ -21,5 +22,5 @@ class ArendChangeSignatureDescriptor(private val psiReferable: PsiLocatedReferab
 
     override fun canChangeName() = true
 
-    override fun canChangeReturnType(): MethodDescriptor.ReadWriteOption = MethodDescriptor.ReadWriteOption.ReadWrite
+    override fun canChangeReturnType(): MethodDescriptor.ReadWriteOption = if (psiReferable !is ArendDefClass) MethodDescriptor.ReadWriteOption.ReadWrite else MethodDescriptor.ReadWriteOption.Read
 }

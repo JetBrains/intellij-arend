@@ -24,6 +24,7 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
+import org.arend.naming.reference.RedirectingReferable
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
 import org.arend.psi.getArendNameText
@@ -134,13 +135,16 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
             val caretElement = if (psiFile != null) findElementAtCaret(psiFile, editor) else null
             val caretElementText = getArendNameText(caretElement)
+            val redirectingReferable = (caretElement?.parent as? ArendCompositeElement)?.scope?.elements?.filterIsInstance<RedirectingReferable>()
+                ?.firstOrNull { it.refName == caretElementText }
 
             if (elementToRename is GlobalReferable) {
                 if (caretElement != null) {
-                    val nameUnderCaret = when (caretElementText) {
-                        elementToRename.refName -> NameUnderCaret.NORMAL_NAME
-                        elementToRename.aliasName -> NameUnderCaret.ALIAS_NAME
-                        else -> NameUnderCaret.NSID_NAME // e.g. name coming from a NsId operator in a namespace command
+                    val nameUnderCaret = when {
+                        caretElementText == elementToRename.refName && redirectingReferable == null -> NameUnderCaret.NORMAL_NAME
+                        caretElementText == elementToRename.aliasName -> NameUnderCaret.ALIAS_NAME
+                        redirectingReferable != null -> NameUnderCaret.NSID_NAME // e.g. name coming from a NsId operator in a namespace command
+                        else -> throw IllegalStateException()
                     }
                     return ArendRenameRefactoringContext(caretElementText ?: return null, nameUnderCaret, editor.caretModel.offset, psiFile)
                 }

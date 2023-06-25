@@ -414,6 +414,24 @@ class RenameTest : ArendTestBase() {
        }
     """, true)
 
+    fun testInlineRename() = doTest("foo2", """
+        \module M \where {
+          \func foo \alias bar => 101
+        }
+        \module M2 \where {
+          \open M (bar \as foo)
+          \func test => foo{-caret-}
+        }
+     """, """
+        \module M \where {
+          \func foo \alias bar => 101
+        }
+        \module M2 \where {
+          \open M (bar \as foo2)
+          \func test => foo2
+        }
+     """, true)
+
     private fun doTest(
             newName: String,
             @Language("Arend") before: String,

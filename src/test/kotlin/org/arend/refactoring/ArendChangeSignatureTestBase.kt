@@ -29,17 +29,17 @@ abstract class ArendChangeSignatureTestBase: ArendTestBase() {
                 val index = abs(element) - 1
                 val toggle = element < 0
                 val originalElement = baseParams[index]
-                ArendParameterInfo(originalElement.name, originalElement.typeText, index, originalElement.isExplicit().let { if (toggle) !it else it })
+                ArendParameterInfo(originalElement.name, originalElement.typeText, index, originalElement.isExplicit().let { if (toggle) !it else it }, correspondingReferable = originalElement.correspondingReferable)
             }
             is String -> {
                 val entry = typeMap[element]!!
-                ArendParameterInfo(element, entry.second, -1, entry.first)
+                ArendParameterInfo(element, entry.second, -1, entry.first, correspondingReferable = null)
             }
             is Pair<*, *> -> {
                 val (index, toggle) = (element.first as? Int ?: throw java.lang.IllegalArgumentException()).let { Pair(abs(it) - 1, it < 0) }
                 val tq = typeMap[element.second]
                 val originalElement = baseParams[index]
-                ArendParameterInfo(element.second as? String ?: throw java.lang.IllegalArgumentException(), tq?.second ?: originalElement.typeText, index, originalElement.isExplicit().let { tq?.first ?: if (toggle) !it else it })
+                ArendParameterInfo(element.second as? String ?: throw java.lang.IllegalArgumentException(), tq?.second ?: originalElement.typeText, index, originalElement.isExplicit().let { tq?.first ?: if (toggle) !it else it }, correspondingReferable = originalElement.correspondingReferable)
             }
             else -> throw IllegalArgumentException()
         }.let { newParams.add(it) }

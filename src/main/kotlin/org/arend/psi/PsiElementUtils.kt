@@ -69,7 +69,7 @@ fun PsiElement.navigate(requestFocus: Boolean = true) {
 
 val PsiElement.module: Module?
     get() {
-        val file = containingFile ?: return null
+        val file = (if (this is ArendExpressionCodeFragment) this.context?.containingFile else containingFile) ?: return null
         val virtualFile = file.originalFile.virtualFile ?: return getUserData(KEY_MODULE)
         return ProjectFileIndex.getInstance(project).getModuleForFile(virtualFile)
     }

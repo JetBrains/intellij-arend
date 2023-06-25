@@ -1,12 +1,18 @@
 package org.arend.refactoring.changeSignature
 
+import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterInfo
+import org.arend.term.group.AccessModifier
 
 data class ArendParameterInfo(
     private var name: String?,
     private var type: String?,
     private val oldIndex: Int, /* == -1, if does not correspond to an old parameter */
-    private var isExplicit: Boolean) : ParameterInfo {
+    private var isExplicit: Boolean,
+    val isClassifying: Boolean = false,
+    val isCoerce: Boolean = false,
+    val accessModifier: AccessModifier = AccessModifier.PUBLIC,
+    val correspondingReferable: PsiElement?) : ParameterInfo {
     override fun getName(): String = name ?: "_"
 
     override fun getOldIndex(): Int = oldIndex
@@ -34,6 +40,6 @@ data class ArendParameterInfo(
     }
 
     companion object {
-        fun createEmpty(): ArendParameterInfo = ArendParameterInfo("", "", ParameterInfo.NEW_PARAMETER, true)
+        fun createEmpty(): ArendParameterInfo = ArendParameterInfo("", "", ParameterInfo.NEW_PARAMETER, true, correspondingReferable = null)
     }
 }

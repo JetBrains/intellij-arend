@@ -36,7 +36,9 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
             value ?: return
             val items = dialog.getParameterTableItems().toHashSet(); items.remove(item)
-            if (!items.any { it.parameter.name == value } && isCorrectDefinitionName(LongName(singletonList(value)))) {
+            if ((value == "_" || !items.any { it.parameter.name == value }) && isCorrectDefinitionName(LongName(singletonList(value)))) {
+                val hasUsages = dialog.validateUsages(item, item.parameter.name)
+                if (value == "_" && hasUsages) return //TODO: We may want to additionally prohibit changing name to "_" for those parameters, which have usages inside the definition
                 dialog.refactorParameterNames(item, value)
                 super.setValue(item, value)
             }

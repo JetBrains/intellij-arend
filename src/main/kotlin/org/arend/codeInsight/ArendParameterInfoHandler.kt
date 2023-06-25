@@ -9,6 +9,7 @@ import com.intellij.psi.util.*
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.GeneralError
+import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
@@ -23,6 +24,7 @@ import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.resolving.util.parseBinOp
+import org.arend.term.abs.Abstract.ParametersHolder
 import org.arend.util.checkConcreteExprIsArendExpr
 import java.util.Collections.singletonList
 
@@ -72,7 +74,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
         val appExprInfo = findAppExpr(context.file, offset)
         val ref = appExprInfo?.second
         val referable = ref?.resolve as? Referable //ref?.referent?.let{ resolveIfNeeded(it, (ref as ArendSourceNode).scope) }
-        val params = referable?.let { getAllParametersForReferable(it) }
+        val params = referable?.let { getAllParametersForReferable(it, calledFromImportHintAction = true) }
 
         if (params != null && params.isNotEmpty()) {
             context.itemsToShow = arrayOf(params) //(referable as Abstract.ParametersHolder).parameters)
@@ -136,70 +138,89 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             return if (numExplicitsBefore == 0 && numImplicitsJustBefore <= 0) paramIndex else -1
         }
 
-        fun getAllParametersForReferable(def: Referable, needImplicitConstructorParameters: Boolean = true): List<Abstract.Parameter> {
-            val params = mutableListOf<Abstract.Parameter>()
-            val psiFactory = ArendPsiFactory(ProjectManager.getInstance().openProjects.first())
-            if (def is Abstract.ParametersHolder) {
-                params.addAll(def.parameters)
-                var resType: ArendExpr? = when(def) {
-                    is ArendClassField ->
-                    {
-                        val defClass = def.parent?.parent as? ArendDefClass
-                        val className = defClass?.name
-                        if (className != null) {
-                            params.add(0, psiFactory.createNameTele("this", className, false))
-                        }
-                        def.resultType
-                    }
-                    is ArendDefFunction -> {
-                        val defClass = def.ancestor<ArendDefClass>()
-                        val className = defClass?.name
-                        if (className != null) {
-                            params.add(0, psiFactory.createNameTele("this", className, false))
-                        }
-                        def.resultType
-                    }
-                    else -> null
-                }
-                if (def is ArendConstructor && needImplicitConstructorParameters) {
-                    val defData = def.parent?.parent as? ArendDefData
-                    if (defData != null) {
-                        for (tele in defData.parameters.reversed()) {
-                            val type = exprToString(tele.type)
-                            for (p in tele.referableList.reversed()) {
-                                params.add(0, psiFactory.createNameTele(p?.textRepresentation() ?: "_", type, false))
-                            }
-                        }
-                    } else {
-                        val constructorClause = def.parent as? ArendConstructorClause
-                        val dataBody = constructorClause?.parent as? ArendDataBody
-                        val elim = dataBody?.elim
-                        val data = dataBody?.parent as? ArendDefData
-                        val project = data?.project
-                        if (data is Abstract.Definition && elim != null && project != null) {
-                            val concreteData : Concrete.GeneralDefinition = ConcreteBuilder.convert(ArendReferableConverter, data, CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE))
-                            if (concreteData is Concrete.DataDefinition) {
-                                val clause = concreteData.constructorClauses.firstOrNull { it.constructors.map { (it.data as? DataLocatedReferable)?.data?.element }.contains(def) }
-                                val clausePatterns = clause?.patterns?.run {
-                                    val newList = ArrayList(this)
-                                    ExpressionResolveNameVisitor(ArendReferableConverter, data.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(newList, mutableMapOf())
-                                    newList
-                                }
-                                fun collectNamePatterns(pattern: Concrete.Pattern): List<Concrete.NamePattern> = if (pattern is Concrete.NamePattern) singletonList(pattern) else pattern.patterns.map { collectNamePatterns(it) }.flatten()
-                                when {
-                                    elim.withKw != null -> clausePatterns?.map { collectNamePatterns(it) }?.flatten()?.reversed()?.map {
-                                        params.add(0, ParameterImpl(false, singletonList(it.referable), null))
-                                    }
+        fun getImplicitPrefixForReferable(def: ParametersHolder, newParameters: List<Referable?>? = null, newParametersReceiver: MutableList<Referable?>? = null): MutableList<Abstract.Parameter> {
+            val params = ArrayList<Abstract.Parameter>()
 
-                                    elim.elimKw != null -> {
-                                        val dataArgs = data.parameters.map { it.referableList }.flatten().filterIsInstance<ArendDefIdentifier>()
-                                        val eliminatedArgs = elim.refIdentifierList.map { it.resolve }.filterIsInstance<ArendDefIdentifier>()
-                                        if (eliminatedArgs.size == clausePatterns?.size) {
-                                            dataArgs.map { it ->
-                                                val elimIndex = eliminatedArgs.indexOf(it)
-                                                if (elimIndex == -1) singletonList(it) else collectNamePatterns(clausePatterns[elimIndex]).map { it.referable }
-                                            }.flatten().reversed().forEach {
-                                                params.add(0, ParameterImpl(false, singletonList(it), null))
+            val defAncestors = (def as? PsiElement)?.ancestors?.toList()?.filterIsInstance<PsiReferable>()
+            val containingClass = (def as? PsiElement)?.ancestor<ArendDefClass>()?.let {defClass ->
+                if (def is ArendClassField || defAncestors != null && defAncestors.any { defClass.dynamicSubgroups.contains<PsiElement>(it) }) defClass else null
+            }
+
+            if (containingClass != null) { // constructors in patterns do not have leading {this} argument
+                val thisArg = ArendPsiFactory(containingClass.project).createNameTele("this", containingClass.name, false)
+                params.add(thisArg)
+                newParametersReceiver?.add(thisArg.childOfType<ArendDefIdentifier>())
+            }
+
+            val containingData = if (def is ArendConstructor) def.parent?.parent as? ArendDefData else null
+            if (def is ArendConstructor) {
+                if (containingData != null) {
+                    for (tele in containingData.parameters) {
+                        val type = exprToString(tele.type)
+                        for (p in tele.referableList) {
+                            params.add(ArendPsiFactory(def.project).createNameTele(p?.textRepresentation() ?: "_", type, false))
+                        }
+                    }
+                } else {
+                    val constructorClause = def.parent as? ArendConstructorClause
+                    val dataBody = constructorClause?.parent as? ArendDataBody
+                    val elim = dataBody?.elim
+                    val data = dataBody?.parent as? ArendDefData
+                    val project = data?.project
+                    if (data is Abstract.Definition && elim != null && project != null) {
+                        val concreteData: Concrete.GeneralDefinition = ConcreteBuilder.convert(
+                            ArendReferableConverter,
+                            data,
+                            CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
+                        )
+                        if (concreteData is Concrete.DataDefinition) {
+                            val clause = concreteData.constructorClauses.firstOrNull {
+                                it.constructors.map { (it.data as? DataLocatedReferable)?.data?.element }.contains(def)
+                            }
+                            val clausePatterns = clause?.patterns?.run {
+                                val newList = ArrayList(this)
+                                ExpressionResolveNameVisitor(
+                                    ArendReferableConverter,
+                                    data.scope,
+                                    mutableListOf(),
+                                    DummyErrorReporter.INSTANCE,
+                                    null
+                                ).visitPatterns(newList, mutableMapOf())
+                                newList
+                            }
+                            fun collectNamePatterns(pattern: Concrete.Pattern): List<Concrete.NamePattern> =
+                                if (pattern is Concrete.NamePattern) singletonList(pattern) else pattern.patterns.map {
+                                    collectNamePatterns(it)
+                                }.flatten()
+                            when {
+                                elim.withKw != null -> {
+                                    clausePatterns?.map { collectNamePatterns(it) }?.flatten()?.map {
+                                        params.add(ParameterImpl(false, singletonList(it.referable), null))
+                                    }
+                                    if (newParameters != null && newParametersReceiver != null) {
+                                        //TODO: Implement me
+                                    }
+                                }
+
+                                elim.elimKw != null -> {
+                                    val dataArgs = data.parameters.map { it.referableList }.flatten()
+                                        .filterIsInstance<ArendDefIdentifier>()
+                                    val eliminatedArgs =
+                                        elim.refIdentifierList.map { it.resolve }.filterIsInstance<ArendDefIdentifier>()
+
+                                    if (eliminatedArgs.size == clausePatterns?.size) {
+                                        val dataArgsMapped = dataArgs.map { it ->
+                                            val elimIndex = eliminatedArgs.indexOf(it)
+                                            if (elimIndex == -1) singletonList(it) else collectNamePatterns(clausePatterns[elimIndex]).map { it.referable }
+                                        }
+                                        dataArgsMapped.flatten().forEach {
+                                            params.add(ParameterImpl(false, singletonList(it), null))
+                                        }
+
+                                        if (newParameters != null && newParametersReceiver != null) {
+                                            newParameters.map {
+                                                val dataArgIndex = if (it != null) dataArgs.indexOf(it) else -1
+                                                if (dataArgIndex != -1) newParametersReceiver.addAll(dataArgsMapped[dataArgIndex]) else newParametersReceiver.add(it)
                                             }
                                         }
                                     }
@@ -208,19 +229,52 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                         }
                     }
                 }
-                while (resType != null) {
-                    resType = when(resType) {
-                        is ArendArrExpr -> {
-                            params.add(psiFactory.createNameTele(null, exprToString(resType.domain), true))
-                            resType.codomain
-                        }
-                        is ArendPiExpr -> {
-                            params.addAll(resType.parameters)
-                            resType.codomain
-                        }
-                        is ArendAtomFieldsAcc -> resType.atom.tuple?.tupleExprList?.firstOrNull()?.exprIfSingle
+            }
+            return params
+        }
+
+        fun getAllParametersForReferable(def: Referable, needImplicitConstructorParameters: Boolean = true, calledFromImportHintAction: Boolean = false): List<Abstract.Parameter> {
+            if (def !is ParametersHolder) return emptyList()
+            val psiFactory = ArendPsiFactory((def as PsiElement).project)
+            val params = ArrayList<Abstract.Parameter>()
+
+            if (def is ArendDefClass) {
+                ClassReferable.Helper.getNotImplementedFields(def).forEach {
+                    val isExplicit = when (it) {
+                        is ArendFieldDefIdentifier -> it.isExplicitField
+                        else -> true
+                    }
+                    val type = when (it) {
+                        is ArendFieldDefIdentifier -> it.parentFieldTele?.type
+                        is ArendClassField -> it.resultType
                         else -> null
                     }
+                    params.add(psiFactory.createNameTele(it.refName, type?.text ?: "???", isExplicit))
+                }
+
+                return params
+            }
+
+            if (needImplicitConstructorParameters) params.addAll(getImplicitPrefixForReferable(def))
+
+            params.addAll(def.parameters)
+
+            var resType: ArendExpr? = when (def) {
+                is ArendClassField -> def.resultType; is ArendDefFunction -> def.resultType; else -> null
+            }
+            while (resType != null && calledFromImportHintAction) {
+                resType = when (resType) {
+                    is ArendArrExpr -> {
+                        params.add(psiFactory.createNameTele(null, exprToString(resType.domain), true))
+                        resType.codomain
+                    }
+                    is ArendPiExpr -> {
+                        params.addAll(resType.parameters)
+                        resType.codomain
+                    }
+
+                    is ArendAtomFieldsAcc -> resType.atom.tuple?.tupleExprList?.firstOrNull()?.exprIfSingle
+                    else -> null
                 }
             }
             return params
@@ -265,22 +319,6 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 }
                 return Pair(curArgInd, curFunc)
             }
-            /*
-            if (expr is Concrete.ReferenceExpression || expr is Concrete.HoleExpression) {
-                // Rewrite in a less ad-hoc way
-                if ((expr.data as? ArendSourceNode)?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode ||
-                        (expr.data as? ArendSourceNode)?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode
-                        || (expr.data as? ArendSourceNode)?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == arg.topmostEquivalentSourceNode
-                ) {
-                    if (curFunc == null) {
-                        if (expr is Concrete.ReferenceExpression && resolveIfNeeded(expr.referent, arg.scope) is Abstract.ParametersHolder && expr.data is Abstract.Reference) {
-                            return Pair(-1, expr.data as Abstract.Reference)
-                        }
-                        return null
-                    }
-                    return Pair(curArgInd, curFunc)
-                }
-            } */
             if (expr is Concrete.AppExpression) {
                 val funcRes = findArgInParsedBinopSeq(arg, expr.function, curArgInd, curFunc)
                 if (funcRes != null) return funcRes
@@ -297,7 +335,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 for (argument in expr.arguments) {
                     argExplicitness.add(argument.isExplicit)
                     val argRes = findArgInParsedBinopSeq(arg, argument.expression,
-                        funcReferable?.let { findParamIndex(getAllParametersForReferable(it), argExplicitness) }
+                        funcReferable?.let { findParamIndex(getAllParametersForReferable(it, calledFromImportHintAction = true), argExplicitness) }
                             ?: -1, func)
                     if (argRes != null) return argRes
                 }
@@ -381,7 +419,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             val refContainer = extractRefFromSourceNode(absNode)
             if (refContainer != null) {
                 val ref = refContainer.resolve as? Referable
-                val params = ref?.let { getAllParametersForReferable(it) }
+                val params = ref?.let { getAllParametersForReferable(it, calledFromImportHintAction = true) }
                 if (params != null && params.isNotEmpty()) {
                     val isBinOp = isBinOp(ref, refContainer)
                     val parentAppExprCandidate = absNodeParent.parentSourceNode

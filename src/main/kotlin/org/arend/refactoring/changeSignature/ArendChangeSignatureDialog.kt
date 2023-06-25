@@ -42,7 +42,6 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ArendCodeFragmentController
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendExpressionCodeFragment
-import org.arend.psi.ext.ArendDefFunction
 import org.arend.psi.ext.ArendFunctionDefinition
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.listener.ArendPsiChangeService
@@ -135,10 +134,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
 
     override fun createReturnTypeCodeFragment(): PsiCodeFragment {
         val referable = myMethod.method
-        val expr = when (referable) {
-            is ArendDefFunction -> referable.returnExpr?.copy()
-            else -> null
-        }
+        val expr = ArendChangeInfo.getReturnExpr(referable)?.copy()
         return ArendExpressionCodeFragment(myProject, expr?.oneLineText ?: "", referable, this)
     }
 
@@ -168,7 +164,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
                     allPsiTargets.add(t)
             }
         }
-        (myReturnTypeCodeFragment as? ArendExpressionCodeFragment)?.let {processFragment(it) }
+        (myReturnTypeCodeFragment as? ArendExpressionCodeFragment)?.let { processFragment(it) }
         for (item in myParametersTable.items) (item.typeCodeFragment as? ArendExpressionCodeFragment)?.let{processFragment(it)}
 
         /* Validate namespace commands to be invoked upon refactoring start; purge unused namespace commands */
@@ -207,7 +203,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     override fun calculateSignature(): String =
-        evaluateChangeInfo(myParametersTableModel).signaturePreview()
+        evaluateChangeInfo(myParametersTableModel).changeSignatureProcessor.getSignature()
 
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
 
@@ -337,6 +333,24 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         }
     }
 
+    fun validateUsages(item: ArendChangeSignatureDialogParameterTableModelItem, oldName: String): Boolean {
+        var hasValidUsage = false
+        val fragments = parameterToUsages[item]?.keys ?: return false
+        for (fragment in fragments) {
+            val rangesToRename = parameterToUsages[item]!![fragment] //safe
+            val text = fragment.text
+            val invalidRanges = ArrayList<TextRange>()
+            if (rangesToRename != null) for (range in rangesToRename) {
+                if (range.endOffset <= text.length && text.substring(range.startOffset, range.endOffset) == oldName) {
+                    hasValidUsage = true
+                } else {
+                    invalidRanges.add(range)
+                }
+            }
+            rangesToRename?.removeAll(invalidRanges.toSet())
+        }
+        return hasValidUsage
+    }
     fun refactorParameterNames(item: ArendChangeSignatureDialogParameterTableModelItem, newName: String) {
         val dataToWrite = HashMap<Document, Pair<Int, String>>()
 
@@ -467,7 +481,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         }
     }
 
-    private interface RefactoringTask {
+    interface RefactoringTask {
         fun getStartOffset(): Int
         fun execute()
     }

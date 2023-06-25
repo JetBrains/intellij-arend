@@ -51,7 +51,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \data D (a b : Nat) | con
-        \func foo (a : Nat) {b{-caret-} : Nat} : D a b => con
+        \func foo (a : Nat) {b : Nat} : D a b => con
         \func test : D 0 1 => foo _
         """
     )
@@ -62,7 +62,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func f => kComb _ {\Sigma Nat Nat} 1 (4, 2)
         """,
         """
-        \func kComb {A{-caret-} : \Type} {B : \Type} => \lam (a : A) (b : B) => a
+        \func kComb {A B : \Type} => \lam (a : A) (b : B) => a
         \func f => kComb {_} {\Sigma Nat Nat} 1 (4, 2)
         """
     )
@@ -73,7 +73,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func f => k {_} 1 (2, 3) Nat.+ k 4 5
         """,
         """
-        \func k {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => a
+        \func k {A : \Type} (B : \Type) (a : A) (b : B) => a
         \func f => k _ 1 (2, 3) Nat.+ k _ 4 5
         """
     )
@@ -330,7 +330,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         """,
         """
         \open Nat (+)
-        \func f (a : Nat) {b{-caret-} : Nat} => a
+        \func f (a : Nat) {b : Nat} => a
         \func test => f 0 {1} + 2
         """
     )
@@ -362,7 +362,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func g => (Nat `mp` 42) (\lam n => n + 1)
         """,
         """
-        \func mp (A : \Type) ({-caret-}B : \Type) (a : A) (ab : A -> B) => ab a
+        \func mp (A B : \Type) (a : A) (ab : A -> B) => ab a
         \func g => (mp Nat _ 42) (\lam n => n + 1)
         """
     )
@@ -395,7 +395,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func g => 1 !+! {Nat} 2
         """,
         """
-        \func \infix 6 !+! {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
+        \func \infix 6 !+! {A : \Type} (B : \Type) (a : A) (b : B) => (a, b)
         \func g => !+! {Nat} _ 1 2
         """
     )
@@ -473,7 +473,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func g => id (f {Nat})
         """,
         """
-        \func f {A : \Type} (B{-caret-} : \Type) (a : A) (b : B) => (a, b)
+        \func f {A : \Type} (B : \Type) (a : A) (b : B) => (a, b)
         \func id {A : \Type} (a : A) => a
         \func g => id (\lam {B} => f {Nat} B)
         """
@@ -496,7 +496,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func g => f Nat
         """,
         """
-        \func f (A : \Type) {B{-caret-} : \Type} (a : A) (b : B) => (a, b)
+        \func f (A : \Type) {B : \Type} (a : A) (b : B) => (a, b)
         \func g => \lam B => f Nat {B}
         """
     )
@@ -507,7 +507,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func test (f : (Nat -> Nat -> Nat) -> Nat) => f p
         """,
         """
-        \func p (a : Nat) {b{-caret-} : Nat} => a
+        \func p (a : Nat) {b : Nat} => a
         \func test (f : (Nat -> Nat -> Nat) -> Nat) => f (\lam a b => p a {b})
         """
     )
@@ -529,7 +529,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func f => Test {Nat}
         """,
         """
-        \class Test {A  : \Type} (B : \Type) (a : A) (b : B)
+        \class Test {A : \Type} (B : \Type) (a : A) (b : B)
         \func f => Test {Nat}
         """
     )
@@ -540,7 +540,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
         \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => foo 0
         """,
         """
-        \func foo (a : Nat) {b{-caret-} : Nat} (b1 : Nat) => a
+        \func foo (a : Nat) {b : Nat} (b1 : Nat) => a
         \func test => \lam (a : Nat) (b : Nat) (b1 : Nat) => \lam b2 => foo 0 {b2}
         """
     )
@@ -1075,7 +1075,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func match (t : tree) : tree         
          | :: {nil} _ => nil
     """, """
-       \data tree | nil | \infixl 1 :: (x : tree) (y : tree)
+       \data tree | nil | \infixl 1 :: (x y : tree)
 
        \func match (t : tree) : tree         
          | nil :: _ => nil        
@@ -1089,7 +1089,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          | nil => {?}
          | :: {:: t1} t2 => {?} 
     """, """
-       \data tree | nil | \infixl 1 :: {x : tree} {y : tree}
+       \data tree | nil | \infixl 1 :: {x y : tree}
 
        \func match (t : tree) : tree
          | :: {nil} => nil
@@ -1145,7 +1145,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func f {t : tree} : tree
          | {:: {** c a1} t} => :: {** c a1} t 
     """, """
-       \data tree | nil | :: (a : tree) (b : tree) | ** (c d : tree)
+       \data tree | nil | :: (a b : tree) | ** (c d : tree)
          
        \func f {t : tree} : tree
          | {:: (** c a1) t} => :: (** c a1) t 
@@ -1158,7 +1158,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
            \func match (t : tree) : tree
              | :: {++ t {:: {t1} t3}} t2 => t3 
         """, """
-           \data tree | nil | \infixl 1 :: {x : tree} {y : tree} | \infixl 2 ++ (x : tree) {y : tree}
+           \data tree | nil | \infixl 1 :: {x y : tree} | \infixl 2 ++ (x : tree) {y : tree}
 
            \func match (t : tree) : tree
              | :: {++ t {:: {t1} {t3}}} {t2} => t3
@@ -1171,7 +1171,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        \func match (t : tree) : tree
          | ++ t => {?} 
     """, """
-       \data tree | nil | \infixl 2 ++ (x : tree) (y : tree)
+       \data tree | nil | \infixl 2 ++ (x y : tree)
 
        \func match (t : tree) : tree
          | ++ t _ => {?} 
@@ -1196,11 +1196,11 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          | suc a, 0 => 2
          | suc a, suc b => 3 
     """, """
-       \func foo {a : Nat} (b : Nat) : Nat \elim a, b
-         | 0, 0 => 0
-         | 0, suc b => 1
-         | suc a, 0 => 2
-         | suc a, suc b => 3 
+       \func foo {a : Nat} (b : Nat) : Nat \with
+         | {0}, 0 => 0
+         | {0}, suc b => 1
+         | {suc a}, 0 => 2
+         | {suc a}, suc b => 3 
     """)
 
     fun testElim2() = doTest(""" 
@@ -1210,11 +1210,11 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
          | suc a, 0 => 2
          | suc a, suc b => 3
     """, """
-        \func foo {a b : Nat} : Nat \elim a, b
-         | 0, 0 => 0
-         | 0, suc b => 1
-         | suc a, 0 => 2
-         | suc a, suc b => 3 
+        \func foo {a b : Nat} : Nat \with
+         | {0}, {0} => 0
+         | {0}, {suc b} => 1
+         | {suc a}, {0} => 2
+         | {suc a}, {suc b} => 3 
     """)
 
     fun testTqInPattern() = doTest("""
@@ -1227,5 +1227,19 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func lol {X : \Type} (l : Lol X) : Nat \elim X, l
          | X, e : Lol => 1
+    """)
+
+    fun testConstructor() = doTest("""
+       \data Foo (X : \Type)
+         | nil
+         | cons X{-caret-} (Foo X)
+
+       \func lol => cons 1 nil 
+    """, """
+       \data Foo (X : \Type)
+         | nil
+         | cons {X} (Foo X)
+
+       \func lol => cons {_} {1} nil 
     """)
 }

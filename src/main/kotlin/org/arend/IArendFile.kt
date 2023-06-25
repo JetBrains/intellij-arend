@@ -7,4 +7,6 @@ import java.util.concurrent.atomic.AtomicLong
 
 interface IArendFile: PsiFile, ArendCompositeElement {
     var lastModification: AtomicLong
+
+    fun moduleInitialized(): Boolean = true
 }
