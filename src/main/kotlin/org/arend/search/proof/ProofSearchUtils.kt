@@ -54,7 +54,9 @@ fun generateProofSearchResults(
 
     val searchScope = if (listedIdentifiers.isNotEmpty()) {
         val scopes = collectSearchScopes(listedIdentifiers, GlobalSearchScope.allScope(project), project)
-        scopes.map { GlobalSearchScope.fileScope(project, it) }.reduce(GlobalSearchScope::union)
+        runReadAction {
+            scopes.map { GlobalSearchScope.fileScope(project, it) }.reduce(GlobalSearchScope::union)
+        }
     } else {
         GlobalSearchScope.allScope(project)
     }
