@@ -1,7 +1,6 @@
 package org.arend.refactoring.changeSignature.processors
 
 import com.intellij.psi.PsiElement
-import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.psi.findPrevSibling
 import org.arend.refactoring.changeSignature.*
@@ -30,5 +29,5 @@ class ArendDefFunctionChangeSignatureProcessor(val function: ArendDefFunction, v
     }
 
     override fun getSignature(): String =
-        "${ArendElementTypes.FUNC_KW} ${changeInfo.precText}${changeInfo.name}${changeInfo.pLevelsText}${changeInfo.hLevelsText}${changeInfo.aliasText}${changeInfo.parameterText()}${changeInfo.returnPart()}"
+        "${(changeInfo.locatedReferable as ArendDefFunction).functionKw.text} ${changeInfo.precText}${changeInfo.name}${changeInfo.pLevelsText}${changeInfo.hLevelsText}${changeInfo.aliasText}${changeInfo.parameterText()}${changeInfo.returnPart()}"
 }
