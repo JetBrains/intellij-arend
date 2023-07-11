@@ -328,10 +328,10 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                             registerFix(builder, RemovePatternRightHandSideQuickFix(SmartPointerManager.createPointer(it)))
                         }
                     }
-                PATTERN_IGNORED -> if (cause is Abstract.Pattern) registerFix(info, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
-                COULD_BE_LEMMA, AXIOM_WITH_BODY -> if (cause is ArendDefFunction) registerFix(info, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
-                LEVEL_IGNORED -> registerFix(info, RemoveLevelQuickFix(SmartPointerManager.createPointer(cause)))
-                CASE_RESULT_TYPE -> registerFix(info, AddReturnKeywordQuickFix(SmartPointerManager.createPointer(cause)))
+                PATTERN_IGNORED -> if (cause is Abstract.Pattern) registerFix(builder, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
+                COULD_BE_LEMMA, AXIOM_WITH_BODY -> if (cause is ArendDefFunction) registerFix(builder, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
+                LEVEL_IGNORED -> registerFix(builder, RemoveLevelQuickFix(SmartPointerManager.createPointer(cause)))
+                CASE_RESULT_TYPE -> registerFix(builder, AddReturnKeywordQuickFix(SmartPointerManager.createPointer(cause)))
                 else -> {}
             }
 
@@ -365,53 +365,53 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
             }
 
             is DataUniverseError -> {
-                registerFix(info, DataUniverseQuickFix(SmartPointerManager.createPointer(cause), error))
+                registerFix(builder, DataUniverseQuickFix(SmartPointerManager.createPointer(cause), error))
             }
 
             is ArgumentExplicitnessError -> {
                 val message = error.message
                 if (message.contains("explicit")) {
-                    registerFix(info, ExplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                    registerFix(builder, ExplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
                 } else if (message.contains("implicit")) {
                     if (cause is ArendNameTele) {
-                        registerFix(info, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                        registerFix(builder, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
                     }
                 }
             }
 
             is LambdaInferenceError -> {
-                registerFix(info, LambdaInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
+                registerFix(builder, LambdaInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
             }
 
             is FunctionArgInferenceError -> {
                 if (error.definition != null) {
-                    registerFix(info, FunctionArgInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
+                    registerFix(builder, FunctionArgInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
                 }
             }
 
             is ElimSubstError -> {
-                registerFix(info, ElimSubstQuickFix(SmartPointerManager.createPointer(cause), error))
+                registerFix(builder, ElimSubstQuickFix(SmartPointerManager.createPointer(cause), error))
             }
 
             is SquashedDataError -> {
-                registerFix(info, SquashedDataQuickFix(SmartPointerManager.createPointer(cause)))
+                registerFix(builder, SquashedDataQuickFix(SmartPointerManager.createPointer(cause)))
             }
 
             is TruncatedDataError -> {
                 if ((error.definition as? DataLocatedReferable)?.data?.element?.childOfType<ArendReturnExpr>()?.firstChild?.text == "\\level") {
-                    registerFix(info, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
+                    registerFix(builder, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
                 }
             }
 
             is FieldDependencyError -> {
                 if (cause is ArendLocalCoClause) {
-                    registerFix(info, FieldDependencyQuickFix(SmartPointerManager.createPointer(cause), error))
+                    registerFix(builder, FieldDependencyQuickFix(SmartPointerManager.createPointer(cause), error))
                 }
             }
 
             is ImplicitLambdaError -> {
                 if (error.parameter != null) {
-                    registerFix(info, ImplicitLambdaQuickFix(SmartPointerManager.createPointer(cause), error))
+                    registerFix(builder, ImplicitLambdaQuickFix(SmartPointerManager.createPointer(cause), error))
                 }
             }
 
@@ -420,8 +420,8 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 if (sourceNode == null) {
                     val target = getTargetPsiElement(quickFix, cause)
                     when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
-                        is ArendArgument -> registerFix(info, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
-                        is ArendTupleExpr -> registerFix(info, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
+                        is ArendArgument -> registerFix(builder, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
+                        is ArendTupleExpr -> registerFix(builder, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
                     }
                 }
             }
@@ -495,6 +495,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 }
                 is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild
                 is ImplicitLambdaError -> error.parameter?.underlyingReferable as? PsiElement
+                is LambdaInferenceError -> error.parameter?.underlyingReferable as? PsiElement
                 else -> null
             }
 

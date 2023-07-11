@@ -33,16 +33,13 @@ class ImplicitLambdaQuickFix(
         val typeExpr = element.childOfType<ArendNewExpr>()?.text
 
         val psiFactory = ArendPsiFactory(project)
-        var nameTele = psiFactory.createNameTele(parameter, typeExpr, true)
-        val whiteSpace = psiFactory.createWhitespace(" ")
+        val nameTele = psiFactory.createLamTele(parameter, typeExpr, true)
 
-        val parent = element.parent
-        nameTele = parent.addAfter(nameTele, element) as ArendNameTele
+        element.parent.addAfter(nameTele, element)
 
         if (parameterIdentifiers.size == 1) {
             element.delete()
         } else {
-            parent.addBefore(whiteSpace, nameTele)
             parameterIdentifiers.find { it.text == parameter }?.delete()
         }
     }

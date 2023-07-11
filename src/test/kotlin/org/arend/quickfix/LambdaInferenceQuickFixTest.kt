@@ -14,7 +14,7 @@ class LambdaInferenceQuickFixTest : QuickFixTestBase() {
 
     fun testLambdaInference2() = typedQuickFixTest(
         ArendBundle.message("arend.argument.inference.parameter"), """
-        \func f => \lam (x : {?}){-caret-} {y} => x
+        \func f => \lam (x : {?}) {y{-caret-}} => x
     """, """
         \func f => \lam (x : {?}) {y : {?}} => x
     """

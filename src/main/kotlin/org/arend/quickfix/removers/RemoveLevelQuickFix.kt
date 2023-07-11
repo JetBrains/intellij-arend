@@ -5,11 +5,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendReturnExpr
-import org.arend.psi.prevElement
+import org.arend.refactoring.changeSignature.performTextModification
 import org.arend.util.ArendBundle
 
 class RemoveLevelQuickFix(
@@ -31,19 +29,7 @@ class RemoveLevelQuickFix(
                 return
             }
         }
-
-        element.levelKw?.delete()
-        element.typeLevel?.delete()
-
-        val psiFactory = ArendPsiFactory(project)
-        val newExpr = psiFactory.createExpression(element.text)
-
-        element.deleteChildRange(element.firstChild, element.lastChild)
-        element.add(newExpr)
-
-        val prevElement = element.prevElement
-        if (prevElement is PsiWhiteSpace) {
-            prevElement.replace(psiFactory.createWhitespace(" "))
-        }
+        val type = element.type ?: return
+        performTextModification(element, type.text)
     }
 }

@@ -51,6 +51,13 @@ class ArendPsiFactory(
                 ?: error("Failed to create name tele " + (name ?: ""))
     }
 
+    fun createLamTele(name: String?, typeExpr: String?, isExplicit: Boolean): ArendLamParam {
+        val lparen = if (isExplicit) "(" else "{"
+        val rparen = if (isExplicit) ")" else "}"
+        return createFunction("dummy", emptyList(), "\\lam $lparen${(name ?: "_") + if (typeExpr != null) " : $typeExpr" else ""}$rparen => {?}").childOfType<ArendLamParam>() ?:
+        error("Failed to create lam tele " + (name ?: ""))
+    }
+
     fun createFieldTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendFieldTele {
         val lparen = if (isExplicit) "(" else "{"
         val rparen = if (isExplicit) ")" else "}"
@@ -197,16 +204,6 @@ class ArendPsiFactory(
     fun createComma() = createFromText(",")?.firstChild?.firstChild?.firstChild ?: error("Failed to create ','")
 
     fun createReturnKeyword() = createFromText("\\return")?.firstChild?.firstChild?.firstChild ?: error("Failed to create return keyword")
-
-    fun createLevelKeyword() = createFromText("\\level")?.firstChild?.firstChild?.firstChild ?: error("Failed to create level keyword")
-
-    fun createUndefinedImplicitType() = createExpression("foo {{?}}").childOfType<ArendImplicitArgument>() ?: error("Failed to create {{?}}")
-
-    fun createDefinedImplicitType() = createExpression("foo {_}").childOfType<ArendImplicitArgument>() ?: error("Failed to create {_}")
-
-    fun createUndefinedExplicitType() = createExpression("foo {?}").childOfType<ArendAtomArgument>() ?: error("Failed to create {?}")
-
-    fun createDefinedExplicitType() = createExpression("foo _").childOfType<ArendAtomArgument>() ?: error("Failed to create _")
 
     fun createReturnExpr() = createFromText("\\func foo => \\case t \\return {?} \\with {} ")?.firstChild?.firstChild
         ?.childOfType<ArendFunctionBody>()?.childOfType<ArendCaseExpr>()?.childOfType<ArendReturnExpr>() ?: error("Failed to create ArendReturnExpr")

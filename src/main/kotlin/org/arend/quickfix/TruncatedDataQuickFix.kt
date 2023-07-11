@@ -8,7 +8,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.sort.Sort
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.typechecking.error.local.TruncatedDataError
 import org.arend.util.ArendBundle
@@ -39,11 +38,9 @@ class TruncatedDataQuickFix(
         val sfuncKeyword = psiFactory.createFunctionKeyword("\\sfunc")
 
         if (error.dataDef.sort == Sort.PROP) {
-            element.changeFuncKeyword(lemmaKeyword)
+            element.functionKw.replace(lemmaKeyword)
         } else {
-            element.changeFuncKeyword(sfuncKeyword)
+            element.functionKw.replace(sfuncKeyword)
         }
     }
-
-    private fun ArendDefFunction.changeFuncKeyword(keyword: ArendCompositeElement) = functionKw.replace(keyword)
 }

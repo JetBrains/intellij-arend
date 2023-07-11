@@ -6,30 +6,19 @@ import org.arend.psi.childOfType
 import org.arend.psi.ext.ArendCaseArg
 import org.arend.psi.ext.ArendCaseExpr
 import org.arend.psi.ext.ArendReturnExpr
-import org.arend.psi.nextElement
 
-internal fun updateReturnExpression(psiFactory: ArendPsiFactory, element: ArendCaseExpr) {
+internal fun updateReturnExpression(psiFactory: ArendPsiFactory, element: ArendCaseExpr): ArendReturnExpr? {
     if (element.childOfType<ArendReturnExpr>() != null) {
-        return
+        return null
     }
     var returnKeyword = psiFactory.createReturnKeyword()
-    var returnExpr = psiFactory.createReturnExpr()
-    val whiteSpace = psiFactory.createWhitespace(" ")
+    val returnExpr = psiFactory.createReturnExpr()
 
     val caseArg = element.childrenOfType<ArendCaseArg>().let {
-        if (it.isEmpty()) {
-            return
-        }
+        if (it.isEmpty()) return null
         it.last()
     }
-    val whiteSpaceAfterCaseArg = if (caseArg.nextElement == null) {
-        element.addAfter(whiteSpace, caseArg)
-    } else {
-        caseArg.nextElement
-    }
-    returnKeyword = element.addAfter(returnKeyword, whiteSpaceAfterCaseArg)
-    returnExpr = element.addAfter(returnExpr, returnKeyword) as ArendReturnExpr
 
-    element.addBefore(whiteSpace, returnExpr)
-    element.addAfter(whiteSpace, returnExpr)
+    returnKeyword = element.addAfter(returnKeyword, caseArg)
+    return element.addAfter(returnExpr, returnKeyword) as ArendReturnExpr
 }

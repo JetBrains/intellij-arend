@@ -30,10 +30,8 @@ class FieldDependencyQuickFix(
 
         val psiFactory = ArendPsiFactory(project)
         var localCoClause = psiFactory.createLocalCoClause(error.field.toString())
-        val whiteSpace = psiFactory.createWhitespace(" ")
 
         localCoClause = expression.addAfter(localCoClause, element) as ArendLocalCoClause
-        expression.addBefore(whiteSpace, localCoClause)
 
         moveCaretToEndOffset(editor, localCoClause)
     }

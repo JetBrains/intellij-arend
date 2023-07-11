@@ -6,12 +6,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import com.intellij.psi.util.childrenOfType
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
 import org.arend.naming.reference.DataLocalReferable
-import org.arend.psi.ArendPsiFactory
+import org.arend.psi.ancestor
 import org.arend.psi.childOfType
 import org.arend.psi.ext.*
-import org.arend.psi.nextElement
+import org.arend.refactoring.changeSignature.performTextModification
 import org.arend.typechecking.error.local.ElimSubstError
 import org.arend.util.ArendBundle
 
@@ -29,134 +30,77 @@ class ElimSubstQuickFix(
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        val psiFactory = ArendPsiFactory(project)
-        when (cause.element) {
-            is ArendCaseExpr -> solveCaseExpr(psiFactory)
-            is ArendRefIdentifier -> {
-                val infoElimArguments = solveDefIdentifier(psiFactory) ?: return
-                changePatternMatchingList(infoElimArguments, psiFactory)
-            }
-        }
-    }
+        val caseExpression = cause.element?.ancestor<ArendCaseExpr>() ?: return
+        val caseArgs = caseExpression.caseArguments
+        val existingCaseArgs = LinkedHashMap<ArendDefIdentifier, ArendCaseArg>()
+        val notEliminatedBindings = error.notEliminatedBindings.toList()
+        val notEliminatedDefIdentifiers = notEliminatedBindings.map { (it as? DataLocalReferable)?.data }.toList()
+        val bindingsToCreate = HashSet<ArendDefIdentifier>()
+        bindingsToCreate.addAll(notEliminatedDefIdentifiers.filterIsInstance<ArendDefIdentifier>())
 
-    private fun solveCaseExpr(psiFactory: ArendPsiFactory) {
-        val caseExpr = cause.element ?: return
-
-        error.notEliminatedBindings.map { argument ->
-            (argument as? DataLocalReferable?)?.refName ?: ""
-        }.filter { it != "" }.forEach {
-            val caseArg = psiFactory.createCaseArg(getElimCaseArgument(it))!!
-
-            val childElement = caseExpr.findChildByText(it)
-            if (childElement != null) {
-                val nextElement = childElement.nextElement
-                if (nextElement != null) {
-                    caseExpr.addBefore(caseArg, nextElement)
-                } else {
-                    caseExpr.add(caseArg)
-                }
-                childElement.delete()
+        val eliminationSequence = ArrayList<ArendDefIdentifier>()
+        val nonElimCaseArgs = ArrayList<ArendCaseArg>()
+        for (x in caseArgs) {
+            val dI = x.childOfType<ArendRefIdentifier>()?.resolve
+            if (dI !is ArendDefIdentifier) {
+                nonElimCaseArgs.add(x)
             } else {
-                val lastCaseArg = caseExpr.childrenOfType<ArendCaseArg>().last()
-                var comma = psiFactory.createComma()
-                var whiteSpace = psiFactory.createWhitespace(" ")
-
-                val nextElement = lastCaseArg.nextElement
-                comma = if (nextElement?.text != ",") {
-                    caseExpr.addAfter(comma, lastCaseArg)
-                } else {
-                    nextElement
-                }
-                whiteSpace = caseExpr.addAfter(whiteSpace, comma)
-                caseExpr.addAfter(caseArg, whiteSpace)
+                eliminationSequence.add(dI)
+                existingCaseArgs[dI] = x
             }
         }
-    }
+        for (b in bindingsToCreate) if (!eliminationSequence.contains(b)) {
+            eliminationSequence.add(b)
+        }
+        val sortedEliminationSequence = eliminationSequence.sortedBy { it.startOffset }
+        val clauseList = caseExpression.withBody?.clauseList ?: emptyList()
+        val clausesPatternSequences = clauseList.map { "" }.toTypedArray()
+        var elimSequence = ""
 
-    private fun solveDefIdentifier(psiFactory: ArendPsiFactory): InfoElimArguments? {
-        var element = cause.element
-        while (element !is ArendCaseArg) {
-            element = element?.parent
-            if (element == null) {
-                return null
+        fun addItem(cA: ArendCaseArg, text: String = cA.text) {
+            val index = caseArgs.indexOf(cA)
+            if (elimSequence != "") elimSequence += ", "
+
+            val dI = cA.childOfType<ArendRefIdentifier>()?.resolve
+            if (dI != null && bindingsToCreate.contains(dI)) elimSequence += "\\elim ${dI.text}" else
+                elimSequence += text
+
+            for ((i, clause) in clauseList.withIndex()) {
+                val patternText = clause.patterns.getOrNull(index)?.text ?: "_"
+                var sequence = clausesPatternSequences[i]
+                if (sequence != "") sequence += ", "
+                sequence += patternText
+                clausesPatternSequences[i] = sequence
+            }
+        }
+        fun addHole() {
+            for ((i, _) in clauseList.withIndex()) {
+                var sequence = clausesPatternSequences[i]
+                if (sequence != "") sequence += ", "
+                sequence += "_"
+                clausesPatternSequences[i] = sequence
             }
         }
 
-        val caseExpr = element.parent
-        val arguments = error.notEliminatedBindings.map { argument ->
-            (argument as? DataLocalReferable?)?.refName ?: ""
-        }.filter { it != "" }.map {
-            caseExpr.findChildByText(getElimCaseArgument(it))
+        for (d in sortedEliminationSequence) {
+            val existing = existingCaseArgs[d]
+            if (existing != null) {
+                addItem(existing)
+            } else {
+                if (elimSequence != "") elimSequence += ", "
+                elimSequence += "\\elim ${d.text}"
+                addHole()
+            }
         }
 
-        val elements = caseExpr.children.filterIsInstance<ArendCaseArg>()
-        val firstElimArgumentIndex = elements.indexOfFirst { arguments.contains(it) }
-        val elementIndex = elements.indexOf(element)
+        for (nCA in nonElimCaseArgs) addItem(nCA)
 
-        swapElements(elementIndex, elements, firstElimArgumentIndex, psiFactory)
 
-        return InfoElimArguments(
-            elementIndex,
-            firstElimArgumentIndex,
-            elements.size,
-            caseExpr as ArendCaseExpr
-        )
-    }
+        performTextModification(caseExpression, elimSequence, caseArgs.first().startOffset, caseArgs.last().endOffset)
 
-    private fun changePatternMatchingList(infoElimArguments: InfoElimArguments, psiFactory: ArendPsiFactory) {
-        val arendPatterns = infoElimArguments.caseExpr.childOfType<ArendWithBody>()?.childOfType<ArendClause>()
-            ?.childrenOfType<ArendPattern>() ?: return
-        if (infoElimArguments.elementSize != arendPatterns.size) {
-            return
-        }
-        swapElements(
-            infoElimArguments.elementIndex,
-            arendPatterns,
-            infoElimArguments.firstElimArgumentIndex,
-            psiFactory
-        )
-    }
-
-    private fun swapElements(
-        elementIndex: Int,
-        elements: List<PsiElement>,
-        firstElimArgumentIndex: Int,
-        psiFactory: ArendPsiFactory
-    ) {
-        val element = elements[elementIndex]
-        val parent = element.parent
-
-        if (elements.lastIndex == elementIndex) {
-            deleteSymbol(elements[elementIndex - 1], ",")
-        }
-
-        var comma = psiFactory.createComma()
-        val whiteSpace = psiFactory.createWhitespace(" ")
-
-        val firstElimArgument = elements[firstElimArgumentIndex]
-        val newElement = parent.addBefore(element, firstElimArgument)
-        comma = parent.addAfter(comma, newElement)
-        parent.addAfter(whiteSpace, comma)
-
-        deleteSymbol(element, " ")
-        element.delete()
-    }
-
-    private fun deleteSymbol(prevElement: PsiElement, symbol: String) {
-        val maybeSymbol = prevElement.nextElement
-        if (maybeSymbol?.text == symbol) {
-            maybeSymbol.delete()
+        for (clause in clauseList.withIndex()) {
+            performTextModification(clause.value, clausesPatternSequences[clause.index], clause.value.patterns.first().startOffset, clause.value.patterns.last().endOffset)
         }
     }
 
-    private fun PsiElement.findChildByText(text: String) = children.find { it.text == text }
-
-    private fun getElimCaseArgument(argument: String) = "\\elim $argument"
-
-    private class InfoElimArguments(
-        val elementIndex: Int,
-        val firstElimArgumentIndex: Int,
-        val elementSize: Int,
-        val caseExpr: ArendCaseExpr
-    )
 }
