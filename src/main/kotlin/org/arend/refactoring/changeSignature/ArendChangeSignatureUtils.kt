@@ -268,7 +268,7 @@ fun printAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, re
         val d = refactoringContext.identifyDescriptor(expr.referent)
         if (d != null) {
             val text = printUsageEntry(NoArgumentsEntry(expr, refactoringContext, d)).first
-            return IntermediatePrintResult("(${text})", text, null, true, null)
+            return IntermediatePrintResult("(${text})", text, null, !text.startsWith("\\lam"), null)
         } else if ((expr.referent as? GlobalReferable)?.precedence?.isInfix == true) {
             val text = refactoringContext.textGetter(expr.data as PsiElement)
             return IntermediatePrintResult("(${text})", null, null, true, null)
