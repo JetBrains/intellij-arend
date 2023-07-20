@@ -166,7 +166,7 @@
 
         <!-- Selection -->
 
-        <smartSelectProvider implementation="org.arend.actions.ArendSmartSelectProvider"/>
+        <extendWordSelectionHandler implementation="org.arend.actions.ArendExtendWordSelectionHandler"/>
 
         <!-- Support arend.yaml -->
 
