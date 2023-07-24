@@ -227,7 +227,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                                     CodeStyleManager.getInstance(file.project).reformatText(file, offset, offset + prefix.length + text.length)
                                 }
                             } else {
-                                val exprRange = expr.textRange
+                                val exprRange = cause.textRange
                                 val replacement =
                                     replaceExprSmart(editor.document, expr, null, exprRange, null, concrete, text)
                                 if (text.contains("{?}")) {
