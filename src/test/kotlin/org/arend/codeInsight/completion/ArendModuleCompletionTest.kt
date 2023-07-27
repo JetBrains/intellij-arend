@@ -39,4 +39,13 @@ class ArendModuleCompletionTest : ArendCompletionTestBase() {
                 \import Directory.MyModule{-caret-}
             """
     )
+
+    fun `test noVariantsDelegator`() = doSingleCompletionMultifile("""
+                -- ! Main.ard
+                \import Depend{-caret-}
+                -- ! Dir1/Dependency.ard
+                -- empty
+    """, """
+                \import Dir1.Dependency{-caret-}
+    """)
 }

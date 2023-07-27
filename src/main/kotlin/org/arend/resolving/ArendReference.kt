@@ -10,6 +10,7 @@ import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.*
 import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.converter.ReferableConverter
@@ -113,7 +114,9 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                     (ref as? Abstract.ParametersHolder)?.parametersText?.let {
                         builder = builder.withTailText(it, true)
                     }
-                    (ref as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.oneLineText) }
+                    (ref as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.oneLineText) } ?:
+                    (if (ref is ArendFile) ref.moduleLocation?.modulePath?.toList()?.dropLast(1)?.let { ModulePath(it).toString() }
+                    else ((ref as? PsiReferable)?.containingFile as? ArendFile)?.fullName)?.let { builder = builder.withTypeText("from $it") }
                     builder
                 }
                 is ModuleReferable -> {
