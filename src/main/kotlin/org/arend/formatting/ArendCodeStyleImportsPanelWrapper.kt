@@ -94,6 +94,6 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
     }
 
 
-    override fun getTabTitle(): String = ApplicationBundle.INSTANCE.getMessage("title.imports")
+    override fun getTabTitle(): String = ApplicationBundle.message("title.imports")
 }
 
