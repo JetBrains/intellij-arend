@@ -16,9 +16,13 @@ import org.arend.naming.scope.ScopeFactory.isGlobalScopeVisible
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
+import org.arend.psi.stubs.index.ArendFileIndex
 import org.arend.psi.stubs.index.ArendGotoClassIndex
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
+import org.arend.refactoring.isVisible
 import org.arend.resolving.ArendReferenceBase
+import org.arend.term.abs.Abstract
+import org.arend.term.group.AccessModifier
 import org.arend.typechecking.TypeCheckingService
 
 class ArendNoVariantsDelegator : CompletionContributor() {
@@ -47,26 +51,37 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         val isTestFile = (file as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
         val refElementAtCaret = file.findElementAt(parameters.offset - 1)?.parent
         val parent = refElementAtCaret?.parent
-        val allowedPosition = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName && refElementAtCaret.prevSibling == null && isGlobalScopeVisible(refElementAtCaret.topmostEquivalentSourceNode)
-        val classExtension = parent?.parent is ArendDefClass
+
+        val isInsideValidExpr = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName &&
+                refElementAtCaret.prevSibling == null && isGlobalScopeVisible(refElementAtCaret.topmostEquivalentSourceNode)
+        val isInsideValidNsCmd = refElementAtCaret is ArendRefIdentifier && parent is ArendLongName &&
+                refElementAtCaret.prevSibling == null && refElementAtCaret.topmostEquivalentSourceNode.parent is Abstract.NamespaceCommandHolder
+        val isClassExtension = parent?.parent is ArendDefClass
 
         val editor = parameters.editor
         val project = editor.project
 
-        if (project != null && allowedPosition && (tracker.variants.isEmpty() && tracker.nullPsiVariants.isEmpty() || !parameters.isAutoPopup)) {
+        if (project != null && (isInsideValidExpr || isInsideValidNsCmd) && (tracker.variants.isEmpty() && tracker.nullPsiVariants.isEmpty() || !parameters.isAutoPopup)) {
             val consumer = { name: String, refs: List<PsiLocatedReferable>? ->
                 if (BetterPrefixMatcher(result.prefixMatcher, Int.MIN_VALUE).prefixMatches(name)) {
-                    val locatedReferables = refs ?: StubIndex.getElements(if (classExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
+                    val locatedReferables = refs ?: when {
+                        isInsideValidExpr ->
+                            StubIndex.getElements(if (isClassExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
+                        else ->
+                            StubIndex.getElements(ArendFileIndex.KEY, name, project, ArendFileScope(project), ArendFile::class.java)
+                    }
                     locatedReferables.forEach {
                         val isInsideTest = (it.containingFile as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
-                        if (!tracker.variants.contains(it) && (isTestFile || !isInsideTest)) ArendReferenceBase.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
-                            result.addElement(
+                        val isImportAllowed = it.accessModifier != AccessModifier.PRIVATE && isVisible(it.containingFile as ArendFile, file as ArendFile)
+                        if (!tracker.variants.contains(it) && (isTestFile || !isInsideTest) && isImportAllowed)
+                            ArendReferenceBase.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
+                                result.addElement(
                                     run { val oldHandler = it.insertHandler
                                         it.withInsertHandler { context, item ->
                                             oldHandler?.handleInsert(context, item)
                                             val refIdentifier = context.file.findElementAt(context.tailOffset - 1)?.parent
                                             val locatedReferable = item.`object`
-                                            if (refIdentifier is ArendReferenceElement && locatedReferable is PsiLocatedReferable) {
+                                            if (refIdentifier is ArendReferenceElement && locatedReferable is PsiLocatedReferable && locatedReferable !is ArendFile) {
                                                 val fix = ResolveReferenceAction.getProposedFix(locatedReferable, refIdentifier)
                                                 val f = refIdentifier.containingFile
                                                 if (f is ArendExpressionCodeFragment) {
@@ -75,9 +90,13 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                                                 } else {
                                                     fix?.execute(editor)
                                                 }
+                                            } else if (locatedReferable is ArendFile) {
+                                                context.document.replaceString(context.startOffset, context.selectionEndOffset, locatedReferable.fullName)
+                                                context.commitDocument()
                                             }
                                         }
-                                    })
+                                    }
+                                )
                         }
                     }
                 }
@@ -90,11 +109,11 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 null
             }
 
-            for (entry in project.service<TypeCheckingService>().additionalReferables.entries) {
+            if (isInsideValidExpr) for (entry in project.service<TypeCheckingService>().additionalReferables.entries) {
                 consumer.invoke(entry.key, entry.value)
             }
 
-            StubIndex.getInstance().processAllKeys(ArendDefinitionIndex.KEY, project) { name ->
+            StubIndex.getInstance().processAllKeys(if (isInsideValidNsCmd) ArendFileIndex.KEY else ArendDefinitionIndex.KEY, project) { name ->
                 consumer.invoke(name, null)
                 true // If only a limited number (say N) of variants is needed, return false after N added lookUpElements
             }

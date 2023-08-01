@@ -24,9 +24,7 @@ abstract class BinOpEntry<ET : Concrete.SourceNode, PT>(val expr: Concrete.Sourc
     protected var isDotExpression: Boolean = false
 
     fun initialize() {
-        fun getBlocksInRange (range: TextRange): List<PsiElement> = blocks.filterIsInstance<PsiElement>().filter { range.contains(it.textRange) }
         val replacementMap = HashMap<Pair<PsiElement, PsiElement>, Int>()
-
         val functionBlock = getOperatorData()
         val argumentsWhichActuallyOccurInText = ArrayList<PT>()
         var firstExplicit : Int? = null

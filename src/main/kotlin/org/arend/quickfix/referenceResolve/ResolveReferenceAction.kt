@@ -9,6 +9,7 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendGroup
 import org.arend.refactoring.*
 import org.arend.psi.ArendExpressionCodeFragment
+import org.arend.term.group.AccessModifier
 
 class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,
@@ -29,7 +30,8 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
     companion object {
         fun checkIfAvailable(target: PsiLocatedReferable, element: ArendReferenceElement): Boolean { // should return true iff getProposedFix with the same arguments returns a nonnull value
             val containingFile = element.containingFile as? ArendFile ?: return false
-            return canCalculateReferenceName(LocationData(target), containingFile)
+            if (target.accessModifier == AccessModifier.PRIVATE) return false
+            return isVisible(target.containingFile as ArendFile, containingFile)
         }
 
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {

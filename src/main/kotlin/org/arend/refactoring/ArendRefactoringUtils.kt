@@ -85,11 +85,11 @@ private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using:
     return null
 }
 
-fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): Pair<ArrayList<ArendNsId>, Boolean /* true if success */> {
+fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>, forceUsing: Boolean = false): Pair<ArrayList<ArendNsId>, Boolean /* true if success */> {
     val insertedNsIds = ArrayList<ArendNsId>()
     val factory = ArendPsiFactory(statCmd.project)
     val insertAnchor = statCmd.longName
-    val usingBlockRequired = idList.any { it.second != null }
+    val usingBlockRequired = idList.any { it.second != null } || forceUsing
 
     val actualNsUsing: ArendNsUsing? = statCmd.nsUsing
             ?: if (usingBlockRequired && insertAnchor != null) {
@@ -99,8 +99,7 @@ fun doAddIdToUsing(statCmd: ArendStatCmd, idList: List<Pair<String, String?>>): 
                 insertedUsing as ArendNsUsing
             } else null
 
-    val actualIdList = if (actualNsUsing?.usingKw != null) idList.filter { it.second != null } else idList
-    if (actualNsUsing != null) insertedNsIds.addAll(actualIdList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
+    if (actualNsUsing != null) insertedNsIds.addAll(idList.mapNotNull { addId(it.first, it.second, factory, actualNsUsing) })
     return Pair(insertedNsIds, insertedNsIds.isNotEmpty() || !usingBlockRequired && actualNsUsing == null)
 }
 

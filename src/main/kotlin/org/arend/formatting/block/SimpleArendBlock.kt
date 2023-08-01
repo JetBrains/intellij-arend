@@ -85,10 +85,13 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if (nodePsi is ArendWithBody && (c1et == LBRACE || c2et == RBRACE)) return oneCrlf
 
-            if (nodePsi is ArendCaseExpr) {
-                if (c1et == CASE_ARG && c2et == WITH_BODY) return oneSpaceWrap
-                if (c1et == CASE_ARG && c2et == COMMA) return noWhitespace
-                if (c1et == COMMA && c2et == CASE_ARG) return oneSpaceWrap
+            if (nodePsi is ArendCaseExpr) when {
+                (c1et == CASE_ARG && c2et == WITH_BODY) -> return oneSpaceWrap
+                (c1et == CASE_ARG && c2et == COMMA) -> return noWhitespace
+                (c1et == COMMA && c2et == CASE_ARG) -> return oneSpaceWrap
+                (c1et == CASE_ARG && c2et == RETURN_KW) -> return oneSpaceWrap
+                (c1et == RETURN_KW && c2et == RETURN_EXPR) -> return oneSpaceNoWrap
+                (c1et == RETURN_EXPR && c2et == WITH_BODY) -> return oneSpaceWrap
             }
             if (nodePsi is ArendCaseArg) {
                 if ((c1et == EXPR || c1et == DEF_IDENTIFIER) && c2et == COLON) return oneSpaceWrap
@@ -97,9 +100,18 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
             if ((nodePsi is ArendNameTele || nodePsi is ArendTypedExpr) && (c1et == IDENTIFIER_OR_UNKNOWN && c2et == COLON)) return oneSpaceWrap
 
-            if (c1et == NAME_TELE && c2et == NAME_TELE || c1et == TYPE_TELE && c2et == TYPE_TELE || c1et == FIELD_TELE && c2et == FIELD_TELE) return oneSpaceWrap
+            if (c1et == NAME_TELE && c2et == NAME_TELE ||
+                c1et == TYPE_TELE && c2et == TYPE_TELE ||
+                c1et == FIELD_TELE && c2et == FIELD_TELE ||
+                c1et == LAM_TELE && c2et == LAM_TELE) return oneSpaceWrap
 
-            if (nodePsi is ArendNewExpr && c1et == ARGUMENT_APP_EXPR && c2et == WITH_BODY) return oneSpaceWrap
+            if (nodePsi is ArendNewExpr) {
+                when {
+                    c1et == ARGUMENT_APP_EXPR && c2et == WITH_BODY -> return oneSpaceWrap
+                    c1et == c2et && c2et == LOCAL_CO_CLAUSE -> return oneSpaceWrap
+                }
+            }
+
 
             if (shouldWrapLetExpression(c1et, psi2)) return oneCrlf
 

@@ -13,6 +13,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.*
 import org.arend.term.NamespaceCommand
+import org.arend.term.group.AccessModifier
 import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import org.arend.toolWindow.repl.ArendReplService
@@ -43,7 +44,8 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         override fun getStatements() = currentFile.statements.filter { it.group == null }
     }
     val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
-    val minimalImportMode = targetFile.statements.any { stat -> stat.group?.let { importedScope.resolveName(it.referable.textRepresentation()) } != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
+    val protectedAccessModifier = defaultLocation.target.accessModifier == AccessModifier.PROTECTED
+    val minimalImportMode = protectedAccessModifier || targetFile.statements.any { stat -> stat.group?.let { importedScope.resolveName(it.referable.textRepresentation()) } != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
     var targetFileAlreadyImported = false
     var preludeImportedManually = false
     val fileResolveActions = HashMap<LocationData, NsCmdRefactoringAction?>()
@@ -75,7 +77,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         fallbackImportAction = ImportFileAction(currentFile, targetFile, null) // however if long name is to be used "\import Prelude" will be added to imports
     }
 
-    if (locations.first().getReferenceNames().isEmpty()) { // target definition is inaccessible in current context
+    if (locations.first().getReferenceNames().isEmpty() || protectedAccessModifier) { // target definition is inaccessible in current context
         modifyingImportsNeeded = true
 
         defaultLocation.addLongNameAsReferenceName()
@@ -173,10 +175,9 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     return Pair(importAction, resultingName)
 }
 
-fun canCalculateReferenceName(defaultLocation: LocationData, currentFile: ArendFile): Boolean {
-    val importFile = defaultLocation.myContainingFile
+fun isVisible(importFile: ArendFile, currentFile: ArendFile): Boolean {
     val modulePath = importFile.moduleLocation?.modulePath ?: return false
-    val locationsOk = defaultLocation.myContainingFile.moduleLocation != null && importFile.moduleLocation?.modulePath != null
+    val locationsOk = importFile.moduleLocation != null && importFile.moduleLocation?.modulePath != null
 
     if (currentFile.isRepl) return locationsOk
 
@@ -192,7 +193,8 @@ fun calculateReferenceName(defaultLocation: LocationData,
                            anchor: ArendCompositeElement,
                            allowSelfImport: Boolean = false,
                            deferredImports: List<NsCmdRefactoringAction>? = null): Pair<NsCmdRefactoringAction?, List<String>>? {
-    if (!canCalculateReferenceName(defaultLocation, currentFile)) return null
+    if (defaultLocation.target.accessModifier == AccessModifier.PRIVATE) return null
+    if (!isVisible(defaultLocation.myContainingFile, currentFile)) return null
     return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport, deferredImports)
 }
 
@@ -345,7 +347,7 @@ class AddIdToUsingAction(currentFile: ArendFile,
         /* if statCmd was found -- execute refactoring action */
         val hiddenList = statCmd.refIdentifierList
         val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == myId }
-        if (hiddenRef == null) doAddIdToUsing(statCmd, singletonList(Pair(myId, null))) else doRemoveRefFromStatCmd(hiddenRef)
+        if (hiddenRef == null) doAddIdToUsing(statCmd, singletonList(Pair(myId, null)), locationData.target.accessModifier == AccessModifier.PROTECTED) else doRemoveRefFromStatCmd(hiddenRef)
     }
 
     override fun getLongName(): ModulePath = targetFile.moduleLocation?.modulePath!!

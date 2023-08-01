@@ -13,7 +13,7 @@ import org.intellij.lang.annotations.Language
 class ResolveRefQuickFixTest : QuickFixTestBase() {
     private val fixName = ArendBundle.message("arend.import.fix")
 
-    private fun simpleImportFixTest(@Language("Arend") contents: String, @Language("Arend") resultingContent: String) =
+    private fun simpleImportFixTest(contents: String, resultingContent: String) =
         simpleQuickFixTest(fixName, contents, resultingContent)
 
     private fun checkNoImport(@Language("Arend") contents: String) = checkNoQuickFixes(fixName, contents)
@@ -876,4 +876,45 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
                
                \func fubar => N.bar
             """)
+
+    fun `test accessibility modifiers 1`() =
+        simpleImportFixTest("""
+               -- ! A.ard               
+               \protected \func foo => 101
+               -- ! Main.ard
+               \import A ()
+               
+               \func fubar => foo{-caret-}
+        """, """               
+               \import A (foo)
+               
+               \func fubar => foo
+        """)
+    fun `test accessibility modifiers 2`() =
+        simpleImportFixTest("""
+               -- ! A.ard               
+               \protected \func foo => 101
+               -- ! Main.ard
+               \import A
+               
+               \func fubar => foo{-caret-}
+        """, """               
+               \import A \using (foo)
+               
+               \func fubar => foo
+        """)
+
+    fun `test accessibility modifiers 3`() =
+        simpleImportFixTest("""
+               -- ! A.ard               
+               \protected \func foo => 101
+               -- ! Main.ard
+               \import A ()
+               
+               \func fubar => foo{-caret-}
+        """, """               
+               \import A (foo)
+               
+               \func fubar => foo
+        """)
 }

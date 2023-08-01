@@ -3,6 +3,7 @@ package org.arend.refactoring.changeSignature
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
@@ -76,6 +77,10 @@ class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
 
         runWriteAction {
             changeInfo.addNamespaceCommands()
+            val documentManager = PsiDocumentManager.getInstance(project)
+            val document = documentManager.getDocument(changeInfo.method.containingFile)
+            document?.let { documentManager.doPostponedOperationsAndUnblockDocument(document) }
+
             val definition = changeInfo.method as PsiDefReferable
 
             if (changeInfo.isParameterSetOrOrderChanged)

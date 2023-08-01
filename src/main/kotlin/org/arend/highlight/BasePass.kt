@@ -61,6 +61,8 @@ import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.psi.ArendExpressionCodeFragment
+import org.arend.typechecking.error.local.inference.FunctionArgInferenceError
+import org.arend.typechecking.error.local.inference.LambdaInferenceError
 import org.arend.util.ArendBundle
 import java.util.*
 
@@ -225,7 +227,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                                     CodeStyleManager.getInstance(file.project).reformatText(file, offset, offset + prefix.length + text.length)
                                 }
                             } else {
-                                val exprRange = expr.textRange
+                                val exprRange = cause.textRange
                                 val replacement =
                                     replaceExprSmart(editor.document, expr, null, exprRange, null, concrete, text)
                                 if (text.contains("{?}")) {
@@ -328,6 +330,8 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                     }
                 PATTERN_IGNORED -> if (cause is Abstract.Pattern) registerFix(builder, ReplaceWithWildcardPatternQuickFix(SmartPointerManager.createPointer(cause)))
                 COULD_BE_LEMMA, AXIOM_WITH_BODY -> if (cause is ArendDefFunction) registerFix(builder, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
+                LEVEL_IGNORED -> registerFix(builder, RemoveLevelQuickFix(SmartPointerManager.createPointer(cause)))
+                CASE_RESULT_TYPE -> registerFix(builder, AddReturnKeywordQuickFix(SmartPointerManager.createPointer(cause)))
                 else -> {}
             }
 
@@ -358,6 +362,57 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 val isLocal = (classifyingExpression is ReferenceExpression) && DependentLink.Helper.toList((error.definition as DataLocatedReferable).typechecked.parameters).contains(classifyingExpression.binding)
                 if (isLocal) registerFix(builder, ReplaceWithLocalInstanceQuickFix(error, SmartPointerManager.createPointer(cause))) else registerFix(builder, InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
                 registerFix(builder, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
+            }
+
+            is DataUniverseError -> {
+                registerFix(builder, DataUniverseQuickFix(SmartPointerManager.createPointer(cause), error))
+            }
+
+            is ArgumentExplicitnessError -> {
+                val message = error.message
+                if (message.contains("explicit")) {
+                    registerFix(builder, ExplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                } else if (message.contains("implicit")) {
+                    if (cause is ArendNameTele) {
+                        registerFix(builder, ImplicitnessQuickFix(SmartPointerManager.createPointer(cause)))
+                    }
+                }
+            }
+
+            is LambdaInferenceError -> {
+                registerFix(builder, LambdaInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
+            }
+
+            is FunctionArgInferenceError -> {
+                if (error.definition != null) {
+                    registerFix(builder, FunctionArgInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
+                }
+            }
+
+            is ElimSubstError -> {
+                registerFix(builder, ElimSubstQuickFix(SmartPointerManager.createPointer(cause), error))
+            }
+
+            is SquashedDataError -> {
+                registerFix(builder, SquashedDataQuickFix(SmartPointerManager.createPointer(cause)))
+            }
+
+            is TruncatedDataError -> {
+                if ((error.definition as? DataLocatedReferable)?.data?.element?.childOfType<ArendReturnExpr>()?.firstChild?.text == "\\level") {
+                    registerFix(builder, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
+                }
+            }
+
+            is FieldDependencyError -> {
+                if (cause is ArendLocalCoClause) {
+                    registerFix(builder, FieldDependencyQuickFix(SmartPointerManager.createPointer(cause), error))
+                }
+            }
+
+            is ImplicitLambdaError -> {
+                if (error.parameter != null) {
+                    registerFix(builder, ImplicitLambdaQuickFix(SmartPointerManager.createPointer(cause), error))
+                }
             }
 
             is TypecheckingError -> for (quickFix in error.quickFixes) {
@@ -440,6 +495,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 }
                 is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild
                 is ImplicitLambdaError -> error.parameter?.underlyingReferable as? PsiElement
+                is LambdaInferenceError -> error.parameter?.underlyingReferable as? PsiElement
                 else -> null
             }
 

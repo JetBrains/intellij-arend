@@ -193,18 +193,33 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                                     collectNamePatterns(it)
                                 }.flatten()
                             when {
-                                elim.withKw != null -> {
-                                    clausePatterns?.map { collectNamePatterns(it) }?.flatten()?.map {
-                                        params.add(ParameterImpl(false, singletonList(it.referable), null))
+                                elim.withKw != null -> if (clausePatterns != null) {
+                                    val dataArgs = data.parameters.map { it.referableList.map { r -> Pair(r, it.isExplicit) } }.flatten()
+                                    val patternsMap = HashMap<Referable, List<Referable>>()
+                                    var i = 0; var j = 0; while (i < clausePatterns.size && j < dataArgs.size) {
+                                        val argument = dataArgs[j]
+                                        val pattern = clausePatterns[i]
+                                        if (pattern.isExplicit == argument.second) {
+                                            argument.first?.let {
+                                                val patternReferables = collectNamePatterns(pattern).mapNotNull { it.referable }
+                                                patternsMap[it] = patternReferables
+                                                patternReferables.map { params.add(ParameterImpl(false, singletonList(it), null)) }
+                                            }
+                                            i++
+                                            j++
+                                        } else if (!argument.second) {
+                                            j++
+                                        } else break
                                     }
                                     if (newParameters != null && newParametersReceiver != null) {
-                                        //TODO: Implement me
+                                        for (nP in newParameters) {
+                                            newParametersReceiver.addAll(patternsMap[nP] ?: singletonList(nP))
+                                        }
                                     }
                                 }
 
                                 elim.elimKw != null -> {
                                     val dataArgs = data.parameters.map { it.referableList }.flatten()
-                                        .filterIsInstance<ArendDefIdentifier>()
                                     val eliminatedArgs =
                                         elim.refIdentifierList.map { it.resolve }.filterIsInstance<ArendDefIdentifier>()
 

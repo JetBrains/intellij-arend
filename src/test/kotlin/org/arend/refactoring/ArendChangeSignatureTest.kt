@@ -261,10 +261,14 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
        \data Vec{-caret-} {X : \Type} (n : Nat) \with
          | {X}, zero => nullV
          | {X}, suc n => consV {X} (Vec {X} n)
+         
+       \func lol => consV {Nat} {1} {101} (consV {_} {2} {101} nullV)
     """, """
        \data Vec {X : \Type} \with
          | {X}{-, zero-} => nullV
          | {X}{-, suc n-} => consV {X} (Vec {X})
+         
+       \func lol => consV {Nat} {101} (consV {_} {101} nullV)
     """, listOf(Pair(1, "X")))
 
     fun testData4() = changeSignature("""
