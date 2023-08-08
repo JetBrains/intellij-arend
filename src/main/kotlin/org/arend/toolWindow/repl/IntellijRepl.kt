@@ -25,6 +25,7 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.Group
 import org.arend.toolWindow.repl.action.SetPromptCommand
+import org.arend.toolWindow.repl.action.ShowContextCommandIntellij
 import org.arend.typechecking.*
 import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.execution.PsiElementComparator
@@ -71,7 +72,7 @@ abstract class IntellijRepl private constructor(
     private val definitionModificationTracker = service<ArendPsiChangeService>().definitionModificationTracker
     private val psiFactory = ArendPsiFactory(project, replModulePath.libraryName)
     override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
-        ?.also { resetCurrentLineScope() }
+        ?.also { it.enforcedScope = ::resetCurrentLineScope }
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(it) }
 
@@ -93,6 +94,7 @@ abstract class IntellijRepl private constructor(
     override fun loadCommands() {
         super.loadCommands()
         registerAction("prompt", SetPromptCommand)
+        registerAction("show_context", ShowContextCommandIntellij)
         val arendFile = handler.arendFile
         arendFile.enforcedScope = ::resetCurrentLineScope
         arendFile.enforcedLibraryConfig = myLibraryConfig

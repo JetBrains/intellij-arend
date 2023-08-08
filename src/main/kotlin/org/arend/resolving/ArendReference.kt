@@ -197,7 +197,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImpor
             val newExprParent = ((argParent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr)?.parent
             if (newExprParent is ArendReplLine) {
                 val commandName = newExprParent.replCommand?.text?.drop(1)
-                return if (commandName == null) emptyArray() else getReplCompletion(commandName)
+                if (commandName != null) return getReplCompletion(commandName)
             }
             if ((newExprParent as? ArendReturnExpr)?.parent is ArendDefInstance) {
                 clazz = ArendDefClass::class.java

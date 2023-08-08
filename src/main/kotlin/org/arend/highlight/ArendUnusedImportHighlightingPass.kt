@@ -34,6 +34,8 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
     private var redundantElements: List<PsiElement> = emptyList()
 
     override fun doCollectInformation(progress: ProgressIndicator) {
+        if (file.isRepl) return
+
         val currentOptimizationResult = getOptimalImportStructure(file, progress)
         val (fileImports, openStructure, _) = currentOptimizationResult
         val toErase = mutableListOf<PsiElement>()

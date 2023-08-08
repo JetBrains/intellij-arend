@@ -311,6 +311,7 @@ class ImportFileAction(currentFile: ArendFile,
         if (currentFile.isRepl) {
             val replService = currentFile.project.getService(ArendReplService::class.java)
             replService.getRepl()?.repl(statCmdStatement.text) {""}
+            statCmdStatement.statCmd?.longName?.let { replService.getRepl()?.println("Imported ${it.text} from auto-import") }
             return
         }
 
