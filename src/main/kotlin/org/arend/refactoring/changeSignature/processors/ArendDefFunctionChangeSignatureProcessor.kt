@@ -1,12 +1,15 @@
 package org.arend.refactoring.changeSignature.processors
 
 import com.intellij.psi.PsiElement
+import org.arend.psi.ArendElementTypes.INSTANCE_KW
 import org.arend.psi.ext.ArendDefFunction
+import org.arend.psi.ext.ArendDefInstance
+import org.arend.psi.ext.ArendFunctionDefinition
 import org.arend.psi.findPrevSibling
 import org.arend.refactoring.changeSignature.*
 import java.util.*
 
-class ArendDefFunctionChangeSignatureProcessor(val function: ArendDefFunction, val changeInfo: ArendChangeInfo):
+class ArendDefFunctionChangeSignatureProcessor(val function: ArendFunctionDefinition<*>, val changeInfo: ArendChangeInfo):
     ArendChangeSignatureDefinitionProcessor(function, changeInfo) {
   override fun getRefactoringDescriptors(implicitPrefix: List<Parameter>, mainParameters: List<Parameter>,
                                          newParametersPrefix: List<NewParameter>, newParameters: List<NewParameter>,
@@ -29,5 +32,8 @@ class ArendDefFunctionChangeSignatureProcessor(val function: ArendDefFunction, v
     }
 
     override fun getSignature(): String =
-        "${(changeInfo.locatedReferable as ArendDefFunction).functionKw.text} ${changeInfo.precText}${changeInfo.name}${changeInfo.pLevelsText}${changeInfo.hLevelsText}${changeInfo.aliasText}${changeInfo.parameterText()}${changeInfo.returnPart()}"
+        "${(when (val lR = changeInfo.locatedReferable) {
+            is ArendDefFunction -> lR.functionKw.text
+            is ArendDefInstance -> INSTANCE_KW.toString()
+            else -> throw IllegalStateException()})} ${changeInfo.precText}${changeInfo.name}${changeInfo.pLevelsText}${changeInfo.hLevelsText}${changeInfo.aliasText}${changeInfo.parameterText()}${changeInfo.returnPart()}"
 }

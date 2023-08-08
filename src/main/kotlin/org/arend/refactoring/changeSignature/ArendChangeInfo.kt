@@ -178,7 +178,7 @@ data class ArendChangeInfo (
 
     companion object {
         fun getChangeInfoProcessorClass(ph: ParametersHolder) : KClass<out ArendChangeSignatureDefinitionProcessor>? = when (ph) {
-            is ArendDefFunction -> ArendDefFunctionChangeSignatureProcessor::class
+            is ArendDefFunction, is ArendDefInstance -> ArendDefFunctionChangeSignatureProcessor::class
             is ArendDefData -> ArendDefDataChangeSignatureProcessor::class
             is ArendConstructor -> ArendConstructorChangeSignatureProcessor::class
             is ArendClassField -> ArendClassFieldChangeSignatureProcessor::class
