@@ -432,6 +432,106 @@ class RenameTest : ArendTestBase() {
         }
      """, true)
 
+fun testInlineRename2() = doTest("lol3", """
+       \module N \where {
+         \func lol \alias lol2 => 101
+       }
+
+       \module M \where {
+          \open N (lol \as lol)
+
+          \func bar => lol{-caret-}
+       }
+    """, """
+       \module N \where {
+         \func lol \alias lol2 => 101
+       }
+
+       \module M \where {
+          \open N (lol \as lol3)
+
+          \func bar => lol3
+       }
+    """, true)
+
+    fun testInlineRename3() = doTest("lol3", """
+       \module N \where {
+         \func lol \alias lol2 => 101
+         
+         \func bar => lol Nat.+ lol2
+       }
+
+       \module M \where {
+          \open N (lol{-caret-} \as lol)
+
+          \func bar => lol
+       }
+    """, """
+       \module N \where {
+         \func lol3 \alias lol2 => 101
+         
+         \func bar => lol3 Nat.+ lol2
+       }
+
+       \module M \where {
+          \open N (lol3 \as lol)
+
+          \func bar => lol
+       }
+    """, true)
+
+    fun testInlineRename4() = doTest("lol3", """
+       \module N \where {
+         \func lol2 \alias lol => 101
+
+         \func bar => lol Nat.+ lol2
+       }
+
+       \module M \where {
+         \open N (lol \as lol)
+
+         \func bar => lol{-caret-}
+       }
+    """, """
+       \module N \where {
+         \func lol2 \alias lol => 101
+
+         \func bar => lol Nat.+ lol2
+       }
+
+       \module M \where {
+         \open N (lol \as lol3)
+
+         \func bar => lol3
+       }
+    """, true)
+
+    fun testInlineRename5() = doTest("lol3", """
+       \module N \where {
+         \func lol2 \alias lol => 101
+
+         \func bar => lol Nat.+ lol2
+       }
+
+       \module M \where {
+         \open N (lo{-caret-}l \as lol)
+
+         \func bar => lol
+       }
+    """, """
+       \module N \where {
+         \func lol2 \alias lol3 => 101
+
+         \func bar => lol3 Nat.+ lol2
+       }
+
+       \module M \where {
+         \open N (lol3 \as lol)
+
+         \func bar => lol
+       }
+    """, true)
+
     private fun doTest(
             newName: String,
             @Language("Arend") before: String,

@@ -25,18 +25,19 @@ import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.RedirectingReferable
+import org.arend.naming.reference.RedirectingReferableImpl
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
 import org.arend.psi.getArendNameText
-import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Companion.isMoreSpecific
+import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Util.isMoreSpecific
 import org.arend.resolving.ArendResolveCache
 
 class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
     override fun createMemberRenamer(element: PsiElement, elementToRename: PsiNameIdentifierOwner, editor: Editor): MemberInplaceRenamer {
         //Notice that element == elementToRename since currently there are no such things as inherited methods in Arend
         val project = editor.project
-        if (project != null && (elementToRename is GlobalReferable || isDefIdentifierFromNsId(elementToRename))) {
-            val context = getContext(project, elementToRename, editor)
+        if (project != null && (elementToRename is GlobalReferable || Util.isDefIdentifierFromNsId(elementToRename))) {
+            val context = Util.getContext(project, elementToRename, editor)
             if (context != null) return ArendInplaceRenamer(elementToRename, editor, context)
         }
 
@@ -44,12 +45,12 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
     }
 
     override fun isAvailable(element: PsiElement?, editor: Editor, file: PsiFile): Boolean {
-        val nameSuggestionContext = findElementAtCaret(file, editor)
+        val nameSuggestionContext = Util.findElementAtCaret(file, editor)
         var e = element
         if (e == null && LookupManager.getActiveLookup(editor) != null) {
             e = PsiTreeUtil.getParentOfType(nameSuggestionContext, PsiNamedElement::class.java)
         }
-        return e is GlobalReferable || e is ArendAliasIdentifier || (e != null && isDefIdentifierFromNsId(e))
+        return e is GlobalReferable || e is ArendAliasIdentifier || (e != null && Util.isDefIdentifierFromNsId(e))
     }
 
     override fun doRename(elementToRename: PsiElement, editor: Editor, dataContext: DataContext?): InplaceRefactoring? {
@@ -58,24 +59,26 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             if (newName != null) {
                 val project = editor.project
                 if (project != null) {
-                    val context = getContext(project, elementToRename, editor)
+                    val context = Util.getContext(project, elementToRename, editor)
                     if (context != null) ArendRenameProcessor(project, elementToRename, newName, context, null).run()
                 }
                 return null
             }
         }
-        if (elementToRename is PsiNameIdentifierOwner && (elementToRename is GlobalReferable || isDefIdentifierFromNsId(elementToRename))) {
+        if (elementToRename is PsiNameIdentifierOwner && (elementToRename is GlobalReferable || Util.isDefIdentifierFromNsId(
+                elementToRename
+            ))) {
             val renamer = createMemberRenamer(elementToRename, elementToRename, editor)
             val startedRename = renamer.performInplaceRename()
             if (!startedRename)
-                customPerformDialogRename(elementToRename, editor)
+                Util.customPerformDialogRename(elementToRename, editor)
             return null
         }
         return super.doRename(elementToRename, editor, dataContext)
     }
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile, dataContext: DataContext?) { //handles both dialog/inplace/test renames
-        val elementAtCaret = findElementAtCaret(file, editor)
+        val elementAtCaret = Util.findElementAtCaret(file, editor)
         val isIDinAlias = elementAtCaret is LeafPsiElement && elementAtCaret.elementType == ID && elementAtCaret.psi.parent is ArendAliasIdentifier
         if (isIDinAlias) {
             val globalReferable = (elementAtCaret as? LeafPsiElement)?.psi?.parent?.parent?.parent as? GlobalReferable
@@ -84,9 +87,8 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             super.invoke(project, editor, file, dataContext)
     }
 
-    companion object {
+    object Util {
         fun isDefIdentifierFromNsId(element: PsiElement) = element is ArendDefIdentifier && (element.parent?.let { it is ArendNsId && it.parent is ArendNsUsing } ?: false)
-
         fun isMoreSpecific(a: ArendNsId, b: ArendNsId): Boolean? {
             val scopeA = a.defIdentifier?.useScope as? LocalSearchScope
             val scopeB = b.defIdentifier?.useScope as? LocalSearchScope
@@ -98,7 +100,8 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             if (aInB && bInA) return a.startOffset >= b.startOffset
             return null
         }
-        private fun customPerformDialogRename(elementToRename: PsiElement, editor: Editor) {
+
+        fun customPerformDialogRename(elementToRename: PsiElement, editor: Editor) {
             val project = editor.project
             if (project != null && (elementToRename is ReferableBase<*> || isDefIdentifierFromNsId(elementToRename))) {
                 val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
@@ -106,10 +109,10 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
 
                 val context = getContext(project, elementToRename, editor)
                 if (context != null) {
-                    val nameInDialog = when (context.nameUnderCaret) {
-                        NameUnderCaret.ALIAS_NAME -> (elementToRename as? ReferableBase<*>)?.alias?.aliasIdentifier?.text
-                        NameUnderCaret.NORMAL_NAME -> (elementToRename as? ReferableBase<*>)?.defIdentifier?.name
-                        NameUnderCaret.NSID_NAME -> elementAtCaret?.text
+                    val nameInDialog = when (context.nameKind) {
+                        ArendNameKind.ALIAS_NAME -> (elementToRename as? ReferableBase<*>)?.alias?.aliasIdentifier?.text
+                        ArendNameKind.NORMAL_NAME -> (elementToRename as? ReferableBase<*>)?.defIdentifier?.name
+                        ArendNameKind.NSID_NAME -> elementAtCaret?.text
                     } ?: "???"
 
                     val dialog = object: RenameDialog(project, elementToRename, elementToRename, editor) {
@@ -141,25 +144,29 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             if (elementToRename is GlobalReferable) {
                 if (caretElement != null) {
                     val nameUnderCaret = when {
-                        caretElementText == elementToRename.refName && redirectingReferable == null -> NameUnderCaret.NORMAL_NAME
-                        caretElementText == elementToRename.aliasName -> NameUnderCaret.ALIAS_NAME
-                        redirectingReferable != null -> NameUnderCaret.NSID_NAME // e.g. name coming from a NsId operator in a namespace command
+                        redirectingReferable is RedirectingReferableImpl -> ArendNameKind.NSID_NAME // e.g. name coming from a NsId operator in a namespace command
+                        caretElementText == elementToRename.aliasName -> ArendNameKind.ALIAS_NAME
+                        caretElementText == elementToRename.refName -> ArendNameKind.NORMAL_NAME
                         else -> throw IllegalStateException()
                     }
                     return ArendRenameRefactoringContext(caretElementText ?: return null, nameUnderCaret, editor.caretModel.offset, psiFile)
                 }
             } else if (isDefIdentifierFromNsId(elementToRename) && psiFile != null) {
-                return ArendRenameRefactoringContext(caretElementText ?: return null, NameUnderCaret.NSID_NAME, editor.caretModel.offset, psiFile)
+                return ArendRenameRefactoringContext(caretElementText ?: return null, ArendNameKind.NSID_NAME, editor.caretModel.offset, psiFile)
             }
             return null
         }
     }
 
+    companion object {
+
+    }
+
 }
 
-enum class NameUnderCaret{ NORMAL_NAME, ALIAS_NAME, NSID_NAME }
-data class ArendRenameRefactoringContext(val caretElementText: String, val nameUnderCaret: NameUnderCaret, val offset: Int, val file: PsiFile?) {
-    constructor(name: String) : this (name, NameUnderCaret.NORMAL_NAME, 0, null) // two last parameters will be unused anyway
+enum class ArendNameKind{ NORMAL_NAME, ALIAS_NAME, NSID_NAME }
+data class ArendRenameRefactoringContext(val caretElementText: String, val nameKind: ArendNameKind, val offset: Int, val file: PsiFile?) {
+    constructor(name: String) : this (name, ArendNameKind.NORMAL_NAME, 0, null) // two last parameters will be unused anyway
 }
 
 class ArendInplaceRenamer(elementToRename: PsiNamedElement,
@@ -173,28 +180,18 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
         val file = PsiDocumentManager.getInstance(myProject).getPsiFile(myEditor.document)
 
         val elementToRename = myElementToRename
-        if (context.nameUnderCaret == NameUnderCaret.ALIAS_NAME && elementToRename is ReferableBase<*>) {
+        if (context.nameKind == ArendNameKind.ALIAS_NAME && elementToRename is ReferableBase<*>) {
             val alias = elementToRename.alias
             val aliasIdentifier = alias?.aliasIdentifier
             if (aliasIdentifier != null) collection.add(object: PsiReferenceBase<ArendAlias>(alias, aliasIdentifier.textRangeInParent) {
                 override fun resolve() = elementToRename
             })
         }
-        if (context.nameUnderCaret == NameUnderCaret.NSID_NAME) {
-            var relevantNsId : ArendNsId? = null
-            for (ref in collection) {
-                val element = ref.element
-                (element.parent as? ArendNsId)?.let {
-                    val scope = it.defIdentifier?.useScope as? LocalSearchScope
-                    if (file != null && scope?.containsRange(file, TextRange(caretPosition, caretPosition)) == true && (it.defIdentifier?.text == myOldName) && (relevantNsId?.let{ rNI -> isMoreSpecific(it, rNI) == true} != false)) relevantNsId = it
-                }
-            }
 
-            collection = collection.filter { ref ->
-                val element = ref.element
-                (relevantNsId?.defIdentifier?.useScope as? LocalSearchScope)?.containsRange(element.containingFile, element.textRange) ?: false
-            }
+        val relevantNsId = calculateRelevantNsId(caretPosition, myOldName, file, collection)
+        if (relevantNsId != null) collection = collection.filter { shouldBeIncluded(it, relevantNsId, context.nameKind) }
 
+        if (context.nameKind == ArendNameKind.NSID_NAME) {
             relevantNsId?.defIdentifier?.let { collection.add(it.reference) }
         }
 
@@ -207,7 +204,7 @@ class ArendInplaceRenamer(elementToRename: PsiNamedElement,
     override fun acceptReference(reference: PsiReference?): Boolean = true
 
     override fun getNameIdentifier(): PsiElement? =
-            if (context.nameUnderCaret != NameUnderCaret.NORMAL_NAME) null else super.getNameIdentifier()
+            if (context.nameKind != ArendNameKind.NORMAL_NAME) null else super.getNameIdentifier()
 
     override fun createInplaceRenamerToRestart(variable: PsiNamedElement, editor: Editor, initialName: String?): VariableInplaceRenamer =
             ArendInplaceRenamer(variable, editor, context)
@@ -239,24 +236,11 @@ class ArendRenameProcessor(project: Project,
 
     override fun findUsages(): Array<UsageInfo> {
         myProject.service<ArendResolveCache>().clear()
-        var collection = super.findUsages().toMutableList()
+        var collection: List<UsageInfo> = super.findUsages().toMutableList()
 
-        if (context.nameUnderCaret == NameUnderCaret.NSID_NAME) {
-            for (usage in collection) {
-                val element = usage.element
-                (element?.parent as? ArendNsId)?.let {
-                    val scope = it.defIdentifier?.useScope as? LocalSearchScope
-                    val file = context.file
-                    if (file != null && scope?.containsRange(file, TextRange(context.offset, context.offset)) == true && it.defIdentifier?.name == context.caretElementText && (relevantNsId?.let{ rNI -> isMoreSpecific(it, rNI) == true} != false)) relevantNsId = it
-                }
-            }
-
-            collection = collection.filter { ref ->
-                val element = ref.element
-                if (element != null) (relevantNsId?.defIdentifier?.useScope as? LocalSearchScope)?.containsRange(element.containingFile, element.textRange) ?: false else false
-            }.toMutableList()
-
-        }
+        val nsId = calculateRelevantNsId(context.offset, context.caretElementText, context.file, collection.map { it.reference })
+        if (nsId != null) collection = collection.filter { usageInfo -> usageInfo.reference?.let { shouldBeIncluded(it, nsId, context.nameKind) } ?: false }
+        relevantNsId = nsId
 
         return collection.filter {
             getArendNameText(it.element) == context.caretElementText
@@ -267,13 +251,38 @@ class ArendRenameProcessor(project: Project,
         val oldRefName = (element as? GlobalReferable)?.refName
         val newName = getNewName(element)
         super.performRefactoring(usages)
-        if (context.nameUnderCaret == NameUnderCaret.ALIAS_NAME) {
+        println(element.containingFile.text)
+        if (context.nameKind == ArendNameKind.ALIAS_NAME) {
             if (oldRefName != null) (element as? PsiNamedElement)?.setName(oldRefName) // restore old refName
             (element as? ReferableBase<*>)?.alias?.aliasIdentifier?.setName(newName)
-        } else if (context.nameUnderCaret == NameUnderCaret.NSID_NAME) {
+        } else if (context.nameKind == ArendNameKind.NSID_NAME) {
             if (oldRefName != null) (element as? PsiNamedElement)?.setName(oldRefName)
             relevantNsId?.defIdentifier?.setName(newName)
         }
         restoreCaretCallBack?.run()
     }
+}
+
+fun calculateRelevantNsId(caretPosition: Int, myOldName: String, file: PsiFile?, collection: Collection<PsiReference?>): ArendNsId? {
+    var relevantNsId: ArendNsId? = null
+    for (ref in collection) {
+        val element = ref?.element ?: continue
+        (element.parent as? ArendNsId)?.let {
+            val scope = it.defIdentifier?.useScope as? LocalSearchScope
+            if (file != null && scope?.containsRange(file, TextRange(caretPosition, caretPosition)) == true && (it.defIdentifier?.text == myOldName) &&
+                (relevantNsId?.let{ rNI -> isMoreSpecific(it, rNI) == true} != false)) relevantNsId = it
+        }
+    }
+    return relevantNsId
+}
+
+fun shouldBeIncluded(ref: PsiReference, relevantNsId: ArendNsId, kind: ArendNameKind): Boolean {
+    val element = ref.element
+    val isRefInsideRelevantNsId = element.parent == relevantNsId
+    val isUsageInsideRelevantNsIdScope = (relevantNsId.defIdentifier?.useScope as? LocalSearchScope)?.containsRange(element.containingFile, element.textRange) == true
+    val decision = when (kind) {
+        ArendNameKind.NSID_NAME -> !isRefInsideRelevantNsId && isUsageInsideRelevantNsIdScope
+        else -> isRefInsideRelevantNsId || !isUsageInsideRelevantNsIdScope
+    }
+    return decision
 }

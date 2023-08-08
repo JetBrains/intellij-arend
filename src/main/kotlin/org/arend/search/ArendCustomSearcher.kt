@@ -18,7 +18,7 @@ import com.intellij.util.containers.mapSmartSet
 import com.intellij.util.indexing.FileBasedIndex
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
-import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Companion.isDefIdentifierFromNsId
+import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Util.isDefIdentifierFromNsId
 import org.arend.typechecking.TypeCheckingService
 
 class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>() {
