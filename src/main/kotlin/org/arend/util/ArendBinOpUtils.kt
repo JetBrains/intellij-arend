@@ -111,6 +111,7 @@ fun checkConcreteExprIsArendExpr(aExpr: Abstract.SourceNode, cExpr: Concrete.Exp
         if (cData?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode ||
                 cData?.topmostEquivalentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
                 || cData?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
+                || cData?.parentSourceNode?.parentSourceNode?.parentSourceNode?.topmostEquivalentSourceNode == aNode.topmostEquivalentSourceNode
         ) {
             return@ret true
         }
@@ -119,10 +120,10 @@ fun checkConcreteExprIsArendExpr(aExpr: Abstract.SourceNode, cExpr: Concrete.Exp
     if (cExpr is Concrete.AppExpression) {
         return false
     }
-    if (aExpr is ArendImplicitArgument) {
+    /*if (aExpr is ArendImplicitArgument) {
         val expr = aExpr.tupleExprList.firstOrNull()?.let { it.type ?: it.expr } ?: return false
         return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), expr)
-    }
+    }*/
     return checkConcreteExprDataIsArendNode(concreteDataToSourceNode(cExpr.data), aExpr)
 }
 

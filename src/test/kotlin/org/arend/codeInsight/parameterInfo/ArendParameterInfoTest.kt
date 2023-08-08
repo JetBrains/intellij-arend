@@ -78,6 +78,13 @@ class ArendParameterInfoTest : ArendTestBase() {
         checkParameterInfo(code, expectedHint)
     }
 
+    fun `test new arg position implicit variation 1`() {
+        val code = "\\func foo {A : \\Type} {f : A -> A} {a : A} => a\n" +
+                "\\func bar => foo {Nat} {\\lam x => x} {-caret-}"
+        val expectedHint = "{A : \\Type}, {f : A -> A}, <highlight>{a : A}</highlight>"
+        checkParameterInfo(code, expectedHint)
+    }
+
     fun `test no hint in lam`() {
         val code = "\\func f (x y : Nat) => 0\n" +
                 "\\func h => f (\\lam x => {-caret-}x)"
@@ -253,5 +260,14 @@ class ArendParameterInfoTest : ArendTestBase() {
 
        \func lol => ::{-caret-} 
     """, "{A : \\Type}, {_ : \\Type}, _ : A, _ : List A A")
+
+    fun `test constructors with patterns`() = checkParameterInfo("""
+       \data Vec {X : \Type} (n : Nat) \elim n
+         | zero => nullV
+         | suc n => consV {X} (Vec {X} n)
+  
+
+       \func lol => consV {Nat} {0} {101}{-caret-} nullV 
+    """, "{X}, {n}, <highlight>{_ : X}</highlight>, _ : Vec {X} n")
 
 }
