@@ -1,8 +1,8 @@
 package org.arend.inspection
 
+import org.arend.fileTreeFromText
 import org.arend.quickfix.QuickFixTestBase
 import org.arend.util.ArendBundle
-import org.intellij.lang.annotations.Language
 
 class RedundantParensInspectionTest : QuickFixTestBase() {
     override fun setUp() {
@@ -10,33 +10,194 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
         myFixture.enableInspections(RedundantParensInspection::class.java)
     }
 
-    fun testNeverNeedsParens() = doTest()
+    fun testNeverNeedsParens() = doWeakWarningsCheck("""
+       \open Nat (+)
 
-    fun testNewExpression() = doTest()
+       \func f2 {A : \Type} {B : \Type} (a : A) (b : B) => {?}
 
-    fun testReturnExpression() = doTest()
+       \func test0 : \Sigma => ()
 
-    fun testParameterType() = doTest()
+       \func test1 => 1 + ${rp("(2)")}
+       \func test2 => ${rp("(2)")}
+       \func test3 => f2 {Nat} ${rp("(1)")} 2
 
-    fun testBodyAndClauseAndCoClause() = doTest()
+       \data Empty
+       \lemma p => Path.inProp {Empty}
+       \func test4 : $LEVEL ${rp("(Empty)")} ${rp("(p)")} => {?}
+       \func test5 : $LEVEL Empty (Path.inProp {Empty}) => {?}
 
-    fun testClausePattern() = doTest()
+       \class Unit
+       \func test6 => f2 (\new Unit) 1
 
-    fun testArrowExpression() = doTest()
+       \class Pair (x y : Nat)
+       \func test7 => f2 (Pair { | x => 1 }) 1
 
-    fun testSigmaExpression() = doTest()
+       \func test8 => f2 (\Set 0) 1
 
-    fun testPiExpression() = doTest()
+       \func test9 => f2 (Path \levels 0 0) 1
+       \func test10 {A : \Type \lp \lh} => f2 (Path \lp \lh) 1
 
-    fun testLambdaExpression() = doTest()
+       \func test11 => f2 (\Sigma) 1
+       \func test12 => f2 (\Pi (n : Nat) -> Nat) 1
+       \func test13 (e : Empty) => f2 {Empty} (\case e \with {}) 1
 
-    fun testLetExpression() = doTest()
+       \func test14 => f2 (+) 1 
+    """)
 
-    fun testTupleExpression() = doTest()
+    fun testNewExpression() = doWeakWarningsCheck("""
+       \class Pair (x y : Nat)
 
-    fun testMetaDefCallWithClauses() = doTest()
+       \func test1 => \new ${rp("(Pair 1 2)")}
+       \func test2 => ${rp("(Pair 1)")} { | y => 2 }
 
-    fun testApplicationUsedAsBinOpArgument() = doTest()
+       \func pair (n : Nat) => (n, n)
+       \func test3 => (pair 0).1 
+    """)
+
+    fun testReturnExpression() = doWeakWarningsCheck("""
+       \data Empty
+
+       \func test1 : ${rp("(1 = 1)")} => idp
+       \func test2 : Empty $LEVEL ${rp("(Path.inProp {Empty})")} => {?} 
+    """)
+
+    fun testParameterType() = doWeakWarningsCheck("""
+       \func test1 {a : ${rp("(0 = 0)")}} (b : ${rp("(0 = 0)")}) => 1
+
+       \record A (f : (0 = 0) -> Nat)
+       \record test2 (a : ${rp("(0 = 0)")}) \extends A {
+         | b (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) : Nat
+         \field c (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) : Nat
+         \override f (a : ${rp("(0 = 0)")}) : Nat
+         \default f (a : ${rp("(0 = 0)")}) : Nat => 1
+       }
+
+       \class test3 (a : ${rp("(0 = 0)")})
+         | test4 (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) : Nat
+
+       \data test5 (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")})
+         | test6 (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) 
+    """)
+
+    fun testBodyAndClauseAndCoClause() = doWeakWarningsCheck("""
+       \open Nat (+)
+
+       \class Pair (x y : Nat)
+
+       \func test1 => ${rp("(1 = 1)")}
+       \func test2 (n : Nat) : Nat
+         | n => ${rp("(0 + 0)")}
+
+       \meta test3 => ${rp("(1 = 1)")}
+
+       \instance test4 : Pair => ${rp("(\\new Pair { | x => 0 | y => 0 })")}
+       \instance test5 : Pair
+         | x => ${rp("(0 + 0)")}
+         | y : Nat => ${rp("(0 + 0)")}
+
+       \record B (n : Nat)
+       \record test6 \extends B
+         | n => ${rp("(1 + 2)")}
+
+       \func test7 => \new Pair 0 { | y => ${rp("(0 + 0)")} } 
+    """)
+
+    fun testClausePattern() = doWeakWarningsCheck("""
+       \func test1 (p : 1 = 1) : Nat
+         | p : ${rp("(1 = 1)")} => 1
+
+       \func test2 (p : 1 = 1) : Nat
+         | p \as p' : ${rp("(1 = 1)")} => 1 
+    """)
+
+    fun testArrowExpression() = doWeakWarningsCheck("""
+       \func test1 => (Nat -> Nat) -> Nat
+       -- False negatives. But removing parens might hurt readability, especially in the second case.
+       \func test2 => (0 = 1) -> Nat
+       \func test3 => (\Sigma Nat Nat) -> Nat 
+    """)
+
+    fun testSigmaExpression() = doWeakWarningsCheck("""
+       \func test1 => \Sigma Nat (Nat -> Nat) -- Without parens this Sigma turns into Arrow
+       \func test2 => \Sigma (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) 
+    """)
+
+    fun testPiExpression() = doWeakWarningsCheck("""
+       \func test1 => \Pi (n : Nat) -> ${rp("(Nat -> Nat)")}
+       \func test2 => \Pi (n : Nat) -> ${rp("(0 = 0)")}
+       \func test3 => \Pi (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) -> Nat 
+    """)
+
+    fun testLambdaExpression() = doWeakWarningsCheck("""
+       \func test1 => \lam (x : Nat) => ${rp("(0 = 0)")}
+       \func test2 => \lam {a : ${rp("(0 = 0)")}} (b : ${rp("(0 = 0)")}) => 1 
+    """)
+
+    fun testLetExpression() = doWeakWarningsCheck("""
+       \func test1 => \let N => Nat \in ${rp("(N -> N)")}
+       \func test2 => \let p => ${rp("(0 = 0)")} \in p
+       \func test3 => \let p : ${rp("(1 = 1)")} => idp \in p 
+    """)
+
+    fun testTupleExpression() = doWeakWarningsCheck("""
+       \open Nat (+)
+
+       \func test1 => (${rp("(1 + 2)")} : Nat, ${rp("(3 + 4)")})
+
+       \func f {A : \Type} => 1
+       \func test2 => f {${rp("(1 = 1)")} : ${rp("(\\Type 0)")}}
+
+       \func test3 : \Sigma (0 = 1 -> Nat) Nat => ((\case __), 2)
+       \func test4 : \Sigma (0 = 1 -> Nat) Nat => (${rp("(\\case __ \\with {})")}, 2)
+       \func test5 : \Sigma (0 = 1 -> Nat) Nat => (${rp("(\\case __ \\return Nat)")}, 2) 
+    """)
+
+    fun testMetaDefCallWithClauses() = doWeakWarningsCheck("""
+       \func f2 {A : \Type} {B : \Type} (a : A) (b : B) => {?}
+
+       \meta mcases => 1
+       \func test15 => f2 (mcases <error descr="Clauses are not allowed here">\with {}</error>) 1 
+    """)
+
+    fun testApplicationUsedAsBinOpArgument() = doWeakWarningsCheck("""
+       \open Nat (+)
+
+       \func test1 => ${rp("(f 1 2)")} + 3
+       \func test2 => 3 + ${rp("(f 1 2)")}
+       \func test3 => 3 `f2` ${rp("(f 1 2)")}
+       \func test5 => 3 `f2` (pair 0).1
+       \func test4 => 3 `f2` (\new Unit)
+
+       \func pair (n : Nat) => (n, n)
+       \record Unit
+
+       \func f (_ _ : Nat) : Nat => 0
+       \func f2 {A : \Type} {B : \Type} (_ : A) (_ : B) => {?}
+
+       \func test6 => ${rp("(suc 0)")} + 1 + 2
+       \func test7 => 0 + ${rp("(suc 1)")} + 2
+       \func test8 => 0 + 1 + ${rp("(suc 2)")}
+
+       \func test9 => suc (suc 0) + 1
+       \func test10 => 0 + suc (suc 1)
+
+       \func test12 => suc (suc 0) + 1 + 2
+       \func test13 => 0 + suc (suc 1) + 2
+       \func test14 => 0 + 1 + suc (suc 2)
+
+       \func test15 {A : \Type} (l : Array A) (a : A) => a :: (:: \levels \lp \lh a l)
+       \func test16 {A : \Type} (l : Array A) (a : A) => a :: (:: \lp \lh a l)
+
+       \func test17 => + (suc 0) (suc 1)
+       \func test18 => +(suc 0) (suc 1)
+
+       \func test19 => (`+ 2) 1 = 3
+
+       \func \infixl 5 +++ (a b : Nat -> Nat) => a 1 + b 1
+
+       -- The first parens is actually redundant, this is false negative.
+       \func test20 => (+ 1) +++ (+ 3) 
+    """)
 
     fun `test fix for atomic expression in function body`() = doTypedQuickFixTest("""
       \func test => (2){-caret-}
@@ -50,13 +211,20 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
       \func test : 0 = 0 => idp
     """)
 
-    private fun doTest() {
-        myFixture.configureByFile(fileName)
-        myFixture.checkHighlighting()
+    private fun doWeakWarningsCheck(contents: String) {
+        val fileTree = fileTreeFromText(contents)
+        fileTree.create(myFixture.project, myFixture.findFileInTempDir("."))
+        myFixture.configureFromTempProjectFile("Main.ard")
+        myFixture.checkHighlighting(false, false, true)
     }
 
-    private fun doTypedQuickFixTest(@Language("Arend") before: String, @Language("Arend") after: String) =
+    private fun doTypedQuickFixTest(before: String, after: String) =
             typedQuickFixTest(ArendBundle.message("arend.unwrap.parentheses.fix"), before, after)
 
-    override val dataPath = "org/arend/inspections/redundant_parens"
+    companion object {
+
+        fun rp(text: String): String = "<weak_warning descr=\"Redundant parentheses\">$text</weak_warning>"
+
+        val LEVEL = "<weak_warning descr=\"\\level is ignored\">\\level</weak_warning>"
+    }
 }

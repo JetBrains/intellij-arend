@@ -1,4 +1,0 @@
-\func f2 {A : \Type} {B : \Type} (a : A) (b : B) => <warning descr="Goal">{?}</warning>
-
-\meta mcases => 1
-\func test15 => f2 (mcases <error descr="Clauses are not allowed here">\with {}</error>) 1

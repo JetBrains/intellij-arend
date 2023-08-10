@@ -1,2 +1,0 @@
-\func test1 => \Sigma Nat (Nat -> Nat) -- Without parens this Sigma turns into Arrow
-\func test2 => \Sigma (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) (<weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>)

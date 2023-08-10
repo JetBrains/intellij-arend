@@ -1,3 +1,0 @@
-\func test1 => \Pi (n : Nat) -> <weak_warning descr="Redundant parentheses">(Nat -> Nat)</weak_warning>
-\func test2 => \Pi (n : Nat) -> <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>
-\func test3 => \Pi (a : <weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) (<weak_warning descr="Redundant parentheses">(0 = 0)</weak_warning>) -> Nat

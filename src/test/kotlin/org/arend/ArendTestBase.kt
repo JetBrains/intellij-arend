@@ -206,7 +206,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         }
     }
 
-    private fun FileTree.create(): TestProject =
+    protected fun FileTree.create(): TestProject =
             create(myFixture.project, myFixture.findFileInTempDir("."))
 
     protected fun FileTree.createAndOpenFileWithCaretMarker(): TestProject {

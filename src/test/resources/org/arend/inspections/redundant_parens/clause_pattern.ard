@@ -1,5 +1,0 @@
-\func test1 (p : 1 = 1) : Nat
-  | p : <weak_warning descr="Redundant parentheses">(1 = 1)</weak_warning> => 1
-
-\func test2 (p : 1 = 1) : Nat
-  | p \as p' : <weak_warning descr="Redundant parentheses">(1 = 1)</weak_warning> => 1

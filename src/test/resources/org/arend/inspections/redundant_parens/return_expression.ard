@@ -1,4 +1,0 @@
-\data Empty
-
-\func test1 : <weak_warning descr="Redundant parentheses">(1 = 1)</weak_warning> => idp
-\func test2 : Empty <weak_warning descr="\level is ignored">\level</weak_warning> <weak_warning descr="Redundant parentheses">(Path.inProp {Empty})</weak_warning> => <warning descr="Goal">{?}</warning>
