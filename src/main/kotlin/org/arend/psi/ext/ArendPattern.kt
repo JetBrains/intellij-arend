@@ -14,9 +14,9 @@ class ArendPattern(node: ASTNode) : ArendLamParam(node), Abstract.Pattern {
 
     override fun getSequence(): List<ArendPattern> = getChildrenOfType()
 
-    override fun getType(): ArendExpr? = getChildOfType()
+    override fun getType(): ArendExpr? = childOfType()
 
-    override fun getAsPattern(): ArendAsPattern? = getChildOfType()
+    override fun getAsPattern(): ArendAsPattern? = childOfType()
 
     override fun getData() = this
 
@@ -41,9 +41,9 @@ class ArendPattern(node: ASTNode) : ArendLamParam(node), Abstract.Pattern {
         }
     }
 
-    override fun getFixity() = if (singleReferable == null) null else getChildOfType<ArendIPName>()?.fixity ?: Fixity.NONFIX
+    override fun getFixity() = if (singleReferable == null) null else childOfType<ArendIPName>()?.fixity ?: Fixity.NONFIX
 
-    override fun getSingleReferable(): ArendDefIdentifier? = getChildOfType()
+    override fun getSingleReferable(): ArendDefIdentifier? = childOfType()
 
     override fun getConstructorReference() = singleReferable ?: referenceElement?.unresolvedReference
 

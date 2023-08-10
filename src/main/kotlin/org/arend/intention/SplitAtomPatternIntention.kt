@@ -376,7 +376,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val expressionString = splitPatternEntry.expressionString(localClause)
 
                     if (first) {
-                        doSubstituteUsages(project, element.childOfType(), currAnchor, expressionString)
+                        doSubstituteUsages(project, element.descendantOfType(), currAnchor, expressionString)
 
                         var inserted = false
                         if (splitPatternEntry is ConstructorSplitPatternEntry && (splitPatternEntry.constructor == Prelude.ZERO || splitPatternEntry.constructor == Prelude.FIN_ZERO)) {
@@ -413,7 +413,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                             val elementCopy = currAnchor.findElementAt(relativeOffsetOfReplaceablePsi)?.parentOfType<ArendPattern>()/*?.goUpIfImplicit()*/
 
                             if (elementCopy != null) {
-                                doSubstituteUsages(project, elementCopy.childOfType(), currAnchor, expressionString)
+                                doSubstituteUsages(project, elementCopy.descendantOfType(), currAnchor, expressionString)
                                 val referable = (splitPatternEntry as? ConstructorSplitPatternEntry)?.constructor?.referable
                                 doReplacePattern(factory, elementCopy, patternString, splitPatternEntry.requiresParentheses(), insertedReferable = referable)
                             }
@@ -593,7 +593,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
                     val substitutedExpression = factory.createExpression(expressionToInsert) as ArendNewExpr
                     val substitutedAtom = if (needParentheses(element, element.textRange, substitutedExpression, null))
-                        factory.createExpression("($expressionToInsert)").childOfType() else substitutedExpression.childOfType<ArendAtom>()
+                        factory.createExpression("($expressionToInsert)").descendantOfType() else substitutedExpression.descendantOfType<ArendAtom>()
 
                     if (arendNewExpr != null && atomFieldsAcc.numberList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
                             arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {

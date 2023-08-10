@@ -10,7 +10,7 @@ import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.naming.reference.DataLocalReferable
 import org.arend.psi.ancestor
-import org.arend.psi.childOfType
+import org.arend.psi.descendantOfType
 import org.arend.psi.ext.*
 import org.arend.refactoring.changeSignature.performTextModification
 import org.arend.typechecking.error.local.ElimSubstError
@@ -41,7 +41,7 @@ class ElimSubstQuickFix(
         val eliminationSequence = ArrayList<ArendDefIdentifier>()
         val nonElimCaseArgs = ArrayList<ArendCaseArg>()
         for (x in caseArgs) {
-            val dI = x.childOfType<ArendRefIdentifier>()?.resolve
+            val dI = x.descendantOfType<ArendRefIdentifier>()?.resolve
             if (dI !is ArendDefIdentifier) {
                 nonElimCaseArgs.add(x)
             } else {
@@ -61,9 +61,8 @@ class ElimSubstQuickFix(
             val index = caseArgs.indexOf(cA)
             if (elimSequence != "") elimSequence += ", "
 
-            val dI = cA.childOfType<ArendRefIdentifier>()?.resolve
-            if (dI != null && bindingsToCreate.contains(dI)) elimSequence += "\\elim ${dI.text}" else
-                elimSequence += text
+            val dI = cA.descendantOfType<ArendRefIdentifier>()?.resolve
+            elimSequence += if (dI != null && bindingsToCreate.contains(dI)) "\\elim ${dI.text}" else text
 
             for ((i, clause) in clauseList.withIndex()) {
                 val patternText = clause.patterns.getOrNull(index)?.text ?: "_"

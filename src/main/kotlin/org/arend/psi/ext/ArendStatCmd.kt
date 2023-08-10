@@ -18,10 +18,10 @@ class ArendStatCmd(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Namespac
     }
 
     val longName: ArendLongName?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val nsUsing: ArendNsUsing?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val refIdentifierList: List<ArendRefIdentifier>
         get() = getChildrenOfType()

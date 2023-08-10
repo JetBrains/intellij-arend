@@ -4,7 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.util.elementType
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.firstRelevantChild
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractLevelExpressionVisitor
 
@@ -18,7 +18,7 @@ class ArendAtomOnlyLevelExpr(node: ASTNode) : ArendOnlyLevelExpr(node), ArendTop
             LH_KW -> visitor.visitLH(this, params)
             OO_KW -> visitor.visitInf(this, params)
             else -> {
-                val child = getChildOfType<ArendOnlyLevelExpr>()
+                val child = childOfType<ArendOnlyLevelExpr>()
                 if (child != null) child.accept(visitor, params) else visitor.visitError(this, params)
             }
         }

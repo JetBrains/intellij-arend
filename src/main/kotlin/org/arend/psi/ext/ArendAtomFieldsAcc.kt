@@ -3,14 +3,14 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendElementTypes
-import org.arend.psi.getChildOfTypeStrict
+import org.arend.psi.childOfTypeStrict
 import org.arend.psi.getChildrenOfType
 import org.arend.term.abs.AbstractExpressionVisitor
 
 
 class ArendAtomFieldsAcc(node: ASTNode) : ArendExpr(node) {
     val atom: ArendAtom
-        get() = getChildOfTypeStrict()
+        get() = childOfTypeStrict()
 
     val numberList: List<PsiElement>
         get() = getChildrenOfType(ArendElementTypes.NUMBER)

@@ -5,19 +5,19 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.firstRelevantChild
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 import org.arend.term.abs.AbstractExpressionVisitor
 
 
 class ArendLiteral(node: ASTNode) : ArendExpr(node) {
     val goal: ArendGoal?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val longName: ArendLongName?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val ipName: ArendIPName?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val dot: PsiElement?
         get() = findChildByType(DOT)

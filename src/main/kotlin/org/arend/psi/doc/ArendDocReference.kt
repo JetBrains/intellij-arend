@@ -7,15 +7,15 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElementImpl
 import org.arend.psi.ext.ArendGroup
 import org.arend.psi.ext.ArendLongName
-import org.arend.psi.getChildOfType
-import org.arend.psi.getChildOfTypeStrict
+import org.arend.psi.childOfType
+import org.arend.psi.childOfTypeStrict
 
 class ArendDocReference(node: ASTNode) : ArendCompositeElementImpl(node) {
     val docReferenceText: ArendDocReferenceText?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val longName: ArendLongName
-        get() = getChildOfTypeStrict()
+        get() = childOfTypeStrict()
 
     override val scope: Scope =
         ArendDocComment.getScope(ancestor<ArendDocComment>()?.owner) ?: ancestor<ArendGroup>()?.scope ?: EmptyScope.INSTANCE

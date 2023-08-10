@@ -6,7 +6,7 @@ import com.intellij.psi.util.elementType
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.firstRelevantChild
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 import org.arend.term.abs.AbstractLevelExpressionVisitor
 import org.arend.term.abs.Abstract
 
@@ -15,10 +15,10 @@ class ArendAtomLevelExpr(node: ASTNode) : ArendLevelExpr(node), Abstract.LevelEx
     override fun getData() = this
 
     val levelExpr: ArendLevelExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val refIdentifier: ArendRefIdentifier?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val lparen: PsiElement?
         get() = findChildByType(LPAREN)

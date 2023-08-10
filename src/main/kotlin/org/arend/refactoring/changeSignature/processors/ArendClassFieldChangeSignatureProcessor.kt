@@ -1,6 +1,6 @@
 package org.arend.refactoring.changeSignature.processors
 
-import org.arend.psi.childOfType
+import org.arend.psi.descendantOfType
 import org.arend.psi.ext.ArendAccessMod
 import org.arend.psi.ext.ArendClassField
 import org.arend.refactoring.changeSignature.ArendChangeInfo
@@ -23,6 +23,6 @@ class ArendClassFieldChangeSignatureProcessor(val classField: ArendClassField, v
             )
         ).toSet()
 
-    override fun getSignature(): String = "${(classField.childOfType<ArendAccessMod>())?.let { it.text + " " } ?: ""}${changeInfo.precText}${changeInfo.name}${changeInfo.aliasText}${changeInfo.parameterText()}${changeInfo.returnPart()}"
+    override fun getSignature(): String = "${(classField.descendantOfType<ArendAccessMod>())?.let { it.text + " " } ?: ""}${changeInfo.precText}${changeInfo.name}${changeInfo.aliasText}${changeInfo.parameterText()}${changeInfo.returnPart()}"
 
 }

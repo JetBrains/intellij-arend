@@ -11,10 +11,10 @@ import org.arend.term.abs.AbstractExpressionVisitor
 
 class ArendCaseExpr(node: ASTNode) : ArendExpr(node), Abstract.CaseArgumentsHolder {
     val returnExpr: ArendReturnExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val withBody: ArendWithBody?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val caseKw: PsiElement?
         get() = getChild { it.elementType == CASE_KW || it.elementType == SCASE_KW }

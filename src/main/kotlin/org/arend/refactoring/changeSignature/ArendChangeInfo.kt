@@ -29,10 +29,10 @@ data class ArendChangeInfo (
     private val parameterToTeleWhitespaceData = HashMap<Int, TeleWhitespaceData>()
     private val parameterWhitespaceData = HashMap<Int, String>()
 
-    private val pLevelsKw = locatedReferable.childrenWithLeaves.firstOrNull {it.elementType == ArendElementTypes.PLEVELS_KW}
+    private val pLevelsKw = locatedReferable.childrenWithLeaves.firstOrNull {it.elementType == PLEVELS_KW}
     private val pLevelParam = (locatedReferable as? ArendDefinition<*>)?.pLevelParameters
     val pLevelsText = if (pLevelsKw != null && pLevelParam is PsiElement) " ${pLevelsKw.text} ${pLevelParam.text}" else ""
-    private val hLevelsKw = locatedReferable.childrenWithLeaves.firstOrNull {it.elementType == ArendElementTypes.HLEVELS_KW}
+    private val hLevelsKw = locatedReferable.childrenWithLeaves.firstOrNull {it.elementType == HLEVELS_KW}
     private val hLevelParam = (locatedReferable as? ArendDefinition<*>)?.hLevelParameters
     val hLevelsText = if (hLevelsKw != null && hLevelParam is PsiElement) " ${hLevelsKw.text} ${hLevelParam.text}" else ""
     val precText = (locatedReferable as? ReferableBase<*>)?.prec?.let { "${it.text} " } ?: ""
@@ -217,7 +217,7 @@ data class ArendChangeInfo (
 
                 is ArendFieldTele -> {
                     for (fdI in t.referableList) {
-                        result.add(ArendParameterInfo(fdI.name, t.type?.text ?: "", index, t.isExplicit, t.isClassifying, t.isCoerce, t.childOfType<ArendAccessMod>()?.accessModifier ?: org.arend.term.group.AccessModifier.PUBLIC, correspondingReferable = fdI))
+                        result.add(ArendParameterInfo(fdI.name, t.type?.text ?: "", index, t.isExplicit, t.isClassifying, t.isCoerce, t.descendantOfType<ArendAccessMod>()?.accessModifier ?: org.arend.term.group.AccessModifier.PUBLIC, correspondingReferable = fdI))
                         index++
                     }
                 }

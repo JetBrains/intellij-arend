@@ -4,20 +4,20 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes
-import org.arend.psi.getChildOfType
-import org.arend.psi.getChildOfTypeStrict
+import org.arend.psi.childOfType
+import org.arend.psi.childOfTypeStrict
 import org.arend.term.NameRenaming
 
 
 class ArendNsId(node: ASTNode) : ArendCompositeElementImpl(node), NameRenaming {
     val refIdentifier: ArendRefIdentifier
-        get() = getChildOfTypeStrict()
+        get() = childOfTypeStrict()
 
     val defIdentifier: ArendDefIdentifier?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val prec: ArendPrec?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val asKw: PsiElement?
         get() = findChildByType(ArendElementTypes.AS_KW)

@@ -88,11 +88,11 @@ inline fun <reified T : PsiElement> PsiElement.parentOfType(
         minStartOffset: Int = -1
 ): T? = PsiTreeUtil.getParentOfType(this, T::class.java, strict, minStartOffset)
 
-inline fun <reified T : PsiElement> PsiElement.childOfType(
+inline fun <reified T : PsiElement> PsiElement.descendantOfType(
         strict: Boolean = true
 ): T? = PsiTreeUtil.findChildOfType(this, T::class.java, strict)
 
-fun <T : PsiElement> PsiElement.getChildOfType(clazz: Class<T>, index: Int): T? {
+fun <T : PsiElement> PsiElement.childOfType(clazz: Class<T>, index: Int): T? {
     var i = 0
     var child = firstChild
     while (child != null) {
@@ -104,17 +104,17 @@ fun <T : PsiElement> PsiElement.getChildOfType(clazz: Class<T>, index: Int): T? 
     return null
 }
 
-inline fun <reified T : PsiElement> PsiElement.getChildOfType(index: Int): T? = getChildOfType(T::class.java, index)
+inline fun <reified T : PsiElement> PsiElement.childOfType(index: Int): T? = childOfType(T::class.java, index)
 
-inline fun <reified T : PsiElement> PsiElement.getChildOfType(): T? = PsiTreeUtil.getChildOfType(this, T::class.java)
+inline fun <reified T : PsiElement> PsiElement.childOfType(): T? = PsiTreeUtil.getChildOfType(this, T::class.java)
 
-inline fun <reified T : PsiElement> PsiElement.getChildOfTypeStrict(): T = PsiTreeUtil.getChildOfType(this, T::class.java)!!
+inline fun <reified T : PsiElement> PsiElement.childOfTypeStrict(): T = PsiTreeUtil.getChildOfType(this, T::class.java)!!
 
 inline fun <reified T : PsiElement> PsiElement.getChildrenOfType(): List<T> = PsiTreeUtil.getChildrenOfTypeAsList(this, T::class.java)
 
-fun PsiElement.getChildOfType(type: IElementType): PsiElement? = node.findChildByType(type)?.psi
+fun PsiElement.childOfType(type: IElementType): PsiElement? = node.findChildByType(type)?.psi
 
-fun PsiElement.getChildOfTypeStrict(type: IElementType): PsiElement = node.findChildByType(type)!!.psi
+fun PsiElement.childOfTypeStrict(type: IElementType): PsiElement = node.findChildByType(type)!!.psi
 
 fun PsiElement?.hasChildOfType(type: IElementType): Boolean = this?.node?.findChildByType(type)?.psi != null
 

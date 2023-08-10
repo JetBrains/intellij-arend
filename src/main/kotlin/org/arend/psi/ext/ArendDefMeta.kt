@@ -26,7 +26,7 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
     constructor(stub: ArendDefMetaStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     val expr: ArendExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     var metaRef: MetaReferable?
         get() = tcReferableCache as MetaReferable?

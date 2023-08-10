@@ -10,7 +10,7 @@ import org.arend.term.abs.AbstractExpressionVisitor
 
 class ArendLetExpr(node: ASTNode) : ArendExpr(node), Abstract.LetClausesHolder {
     val expr: ArendExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val inKw: PsiElement?
         get() = findChildByType(IN_KW)

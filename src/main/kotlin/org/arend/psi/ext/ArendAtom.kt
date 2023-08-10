@@ -5,17 +5,17 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.firstRelevantChild
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 import org.arend.term.abs.AbstractExpressionVisitor
 import java.math.BigInteger
 
 
 class ArendAtom(node: ASTNode) : ArendExpr(node) {
     val literal: ArendLiteral?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val tuple: ArendTuple?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val thisKw: PsiElement?
         get() = findChildByType(THIS_KW)

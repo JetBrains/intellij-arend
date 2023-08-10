@@ -2,13 +2,13 @@ package org.arend.quickfix
 
 import com.intellij.psi.util.childrenOfType
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.childOfType
+import org.arend.psi.descendantOfType
 import org.arend.psi.ext.ArendCaseArg
 import org.arend.psi.ext.ArendCaseExpr
 import org.arend.psi.ext.ArendReturnExpr
 
 internal fun updateReturnExpression(psiFactory: ArendPsiFactory, element: ArendCaseExpr): ArendReturnExpr? {
-    if (element.childOfType<ArendReturnExpr>() != null) {
+    if (element.descendantOfType<ArendReturnExpr>() != null) {
         return null
     }
     var returnKeyword = psiFactory.createReturnKeyword()

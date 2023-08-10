@@ -11,7 +11,7 @@ class ArendLamExpr(node: ASTNode) : ArendExpr(node), Abstract.LamParametersHolde
         get() = getChildrenOfType()
 
     val body: ArendExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val fatArrow: PsiElement?
         get() = findChildByType(ArendElementTypes.FAT_ARROW)

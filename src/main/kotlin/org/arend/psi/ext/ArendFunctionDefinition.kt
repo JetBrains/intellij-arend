@@ -25,10 +25,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         get() = super.tcReferable as TCDefReferable?
 
     val body: ArendFunctionBody?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val returnExpr: ArendReturnExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun getParameters(): List<ArendNameTele> = getChildrenOfType()
 

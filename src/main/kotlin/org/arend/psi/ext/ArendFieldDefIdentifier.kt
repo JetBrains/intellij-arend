@@ -27,7 +27,7 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
         get() = parent as? ArendFieldTele
 
     override val defIdentifier: ArendDefIdentifier?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun getKind() = GlobalReferable.Kind.FIELD
 

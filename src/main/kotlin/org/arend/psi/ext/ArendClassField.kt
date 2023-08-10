@@ -28,7 +28,7 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
     constructor(stub: ArendClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     val returnExpr: ArendReturnExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun getKind() = GlobalReferable.Kind.FIELD
 
@@ -59,7 +59,7 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
 
     override fun isCoerce() = hasChildOfType(COERCE_KW)
 
-    override fun getAccessModifier() = getChildOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+    override fun getAccessModifier() = childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
 
     override fun getTypeClassReference(): ClassReferable? {
         val type = resultType ?: return null

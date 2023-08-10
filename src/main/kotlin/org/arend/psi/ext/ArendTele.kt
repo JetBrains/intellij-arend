@@ -24,7 +24,7 @@ class ArendNameTele(node: ASTNode): ArendLamParam(node), Abstract.Parameter {
 
     override fun getReferableList(): List<Referable?> = identifierOrUnknownList.map { it.defIdentifier }
 
-    override fun getType(): ArendExpr? = getChildOfType()
+    override fun getType(): ArendExpr? = childOfType()
 
     override fun isStrict() = hasChildOfType(STRICT_KW)
 
@@ -33,7 +33,7 @@ class ArendNameTele(node: ASTNode): ArendLamParam(node), Abstract.Parameter {
 
 class ArendNameTeleUntyped(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Parameter {
     val defIdentifier: ArendDefIdentifier
-        get() = getChildOfTypeStrict()
+        get() = childOfTypeStrict()
 
     override fun getData() = this
 
@@ -50,7 +50,7 @@ class ArendNameTeleUntyped(node: ASTNode): ArendSourceNodeImpl(node), Abstract.P
 
 class ArendTypeTele(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Parameter {
     val typedExpr: ArendTypedExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val lparen: PsiElement?
         get() = findChildByType(LPAREN)
@@ -88,7 +88,7 @@ class ArendFieldTele(node: ASTNode): ArendSourceNodeImpl(node), FieldParameter {
 
     override fun getReferableList(): List<ArendFieldDefIdentifier> = getChildrenOfType()
 
-    override fun getType(): ArendExpr? = getChildOfType()
+    override fun getType(): ArendExpr? = childOfType()
 
     override fun isStrict() = false
 

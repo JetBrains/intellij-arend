@@ -1,12 +1,12 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 
 class ArendAlias(node: ASTNode) : ArendCompositeElementImpl(node) {
     val aliasIdentifier: ArendAliasIdentifier?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val prec: ArendPrec?
-        get() = getChildOfType()
+        get() = childOfType()
 }

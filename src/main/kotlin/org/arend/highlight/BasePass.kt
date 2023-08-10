@@ -152,8 +152,8 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
             val refElement = cause.referenceElement
             val references = when {
                 singleRef != null -> listOf(singleRef)
-                refElement != null -> listOfNotNull(refElement.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>())
-                else -> cause.sequence.mapNotNull { subpattern -> subpattern.singleReferable ?: subpattern.referenceElement?.takeIf { it.longName.size == 1 }?.childOfType<ArendReferenceElement>() }
+                refElement != null -> listOfNotNull(refElement.takeIf { it.longName.size == 1 }?.descendantOfType<ArendReferenceElement>())
+                else -> cause.sequence.mapNotNull { subpattern -> subpattern.singleReferable ?: subpattern.referenceElement?.takeIf { it.longName.size == 1 }?.descendantOfType<ArendReferenceElement>() }
             }
             var fixRegistered = false
             for (referenceElement in references) {
@@ -398,7 +398,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
             }
 
             is TruncatedDataError -> {
-                if ((error.definition as? DataLocatedReferable)?.data?.element?.childOfType<ArendReturnExpr>()?.firstChild?.text == "\\level") {
+                if ((error.definition as? DataLocatedReferable)?.data?.element?.descendantOfType<ArendReturnExpr>()?.firstChild?.text == "\\level") {
                     registerFix(builder, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
                 }
             }
@@ -612,7 +612,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 withAncestors(*(GOAL_IN_COPATTERN_PREFIX + arrayOf(ArendCoClause::class.java))))
 
         fun isEmptyGoal(element: PsiElement): Boolean {
-            val goal: ArendGoal? = element.childOfType()
+            val goal: ArendGoal? = element.descendantOfType()
             return goal != null && GOAL_IN_COPATTERN.accepts(goal)
         }
     }

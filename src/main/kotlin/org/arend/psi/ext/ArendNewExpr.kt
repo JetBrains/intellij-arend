@@ -11,7 +11,7 @@ import org.arend.resolving.util.ReferableExtractVisitor
 
 class ArendNewExpr(node: ASTNode) : ArendExpr(node), ClassReferenceHolder, ArendArgument {
     val appPrefix: ArendAppPrefix?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val lbrace: PsiElement?
         get() = findChildByType(ArendElementTypes.LBRACE)
@@ -20,10 +20,10 @@ class ArendNewExpr(node: ASTNode) : ArendExpr(node), ClassReferenceHolder, Arend
         get() = findChildByType(ArendElementTypes.RBRACE)
 
     val argumentAppExpr: ArendArgumentAppExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val appExpr: ArendAppExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val argumentList: List<ArendArgument>
         get() = getChildrenOfType()
@@ -32,7 +32,7 @@ class ArendNewExpr(node: ASTNode) : ArendExpr(node), ClassReferenceHolder, Arend
         get() = getChildrenOfType()
 
     val withBody: ArendWithBody?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun isVariable() = false
 

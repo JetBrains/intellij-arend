@@ -120,7 +120,7 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                     val coClauseBody = cause.body
                             ?: (cause.addAfter(psiFactory.createCoClauseBody(), cause.lastChild) as ArendFunctionBody)
                     val elim = coClauseBody.elim
-                            ?: coClauseBody.add(psiFactory.createCoClauseBody().childOfType<ArendElim>()!!)
+                            ?: coClauseBody.add(psiFactory.createCoClauseBody().descendantOfType<ArendElim>()!!)
                     if (coClauseBody.lbrace == null)
                         insertPairOfBraces(psiFactory, elim)
 

@@ -2,22 +2,22 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import org.arend.term.abs.AbstractExpressionVisitor
-import org.arend.psi.getChildOfType
-import org.arend.psi.getChildOfTypeStrict
+import org.arend.psi.childOfType
+import org.arend.psi.childOfTypeStrict
 
 
 class ArendLongNameExpr(node: ASTNode) : ArendExpr(node) {
     val longName: ArendLongName
-        get() = getChildOfTypeStrict()
+        get() = childOfTypeStrict()
 
     val levelsExpr: ArendLevelsExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val pLevelExpr: ArendAtomOnlyLevelExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val hLevelExpr: ArendAtomOnlyLevelExpr?
-        get() = getChildOfType(1)
+        get() = childOfType(1)
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
         val name = longName

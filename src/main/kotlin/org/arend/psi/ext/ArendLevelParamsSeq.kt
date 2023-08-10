@@ -1,7 +1,7 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 import org.arend.psi.getChildrenOfType
 import org.arend.term.abs.Abstract
 
@@ -14,5 +14,5 @@ class ArendLevelParamsSeq(node: ASTNode) : ArendCompositeElementImpl(node), Abst
         if (it.isIncreasing) Abstract.Comparison.LESS_OR_EQUALS else Abstract.Comparison.GREATER_OR_EQUALS
     }
 
-    override fun isIncreasing() = getChildOfType<ArendLevelCmp>()?.isIncreasing != false
+    override fun isIncreasing() = childOfType<ArendLevelCmp>()?.isIncreasing != false
 }

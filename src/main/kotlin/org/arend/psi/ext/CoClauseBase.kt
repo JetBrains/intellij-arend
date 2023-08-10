@@ -16,7 +16,7 @@ interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCom
         get() = getChildrenOfType()
 
     val longName: ArendLongName?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val lamParamList: List<ArendLamParam>
         get() = getChildrenOfType()
@@ -25,16 +25,16 @@ interface CoClauseBase : ClassReferenceHolder, Abstract.ClassFieldImpl, ArendCom
         get() = longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? Referable
 
     val expr: ArendExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val lbrace: PsiElement?
-        get() = getChildOfType(LBRACE)
+        get() = childOfType(LBRACE)
 
     val rbrace: PsiElement?
-        get() = getChildOfType(RBRACE)
+        get() = childOfType(RBRACE)
 
     val fatArrow: PsiElement?
-        get() = getChildOfType(FAT_ARROW)
+        get() = childOfType(FAT_ARROW)
 
     companion object {
         fun getClassReference(coClauseBase: CoClauseBase): ClassReferable? {

@@ -3,14 +3,14 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendElementTypes.*
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 import org.arend.psi.getChildrenOfType
 
 class ArendFunctionBody(node: ASTNode, val kind: Kind) : ArendCompositeElementImpl(node) {
     enum class Kind { FUNCTION, INSTANCE, COCLAUSE }
 
     val functionClauses: ArendFunctionClauses?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val clauseList: List<ArendClause>
         get() = if (kind == Kind.COCLAUSE) getChildrenOfType() else functionClauses?.clauseList ?: emptyList()
@@ -28,8 +28,8 @@ class ArendFunctionBody(node: ASTNode, val kind: Kind) : ArendCompositeElementIm
         get() = findChildByType(COWITH_KW)
 
     val elim: ArendElim?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val expr: ArendExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 }

@@ -113,5 +113,5 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         getChild { it.elementType == H_LEVEL_PARAMS_SEQ }
 
     override val where: ArendWhere?
-        get() = getChildOfType()
+        get() = childOfType()
 }

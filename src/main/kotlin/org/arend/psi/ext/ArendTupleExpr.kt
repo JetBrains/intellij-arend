@@ -4,17 +4,17 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendElementTypes
 import org.arend.term.abs.AbstractExpressionVisitor
-import org.arend.psi.getChildOfType
-import org.arend.psi.getChildOfTypeStrict
+import org.arend.psi.childOfType
+import org.arend.psi.childOfTypeStrict
 import org.arend.term.abs.Abstract
 
 
 class ArendTupleExpr(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Expression {
     val expr: ArendExpr
-        get() = getChildOfTypeStrict()
+        get() = childOfTypeStrict()
 
     val type: ArendExpr?
-        get() = getChildOfType(1)
+        get() = childOfType(1)
 
     val colon: PsiElement?
         get() = findChildByType(ArendElementTypes.COLON)

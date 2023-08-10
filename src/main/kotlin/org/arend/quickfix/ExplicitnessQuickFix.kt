@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.childOfType
+import org.arend.psi.descendantOfType
 import org.arend.psi.ext.ArendArgumentAppExpr
 import org.arend.psi.ext.ArendAtomArgument
 import org.arend.psi.ext.ArendImplicitArgument
@@ -38,7 +38,7 @@ class ExplicitnessQuickFix(private val cause: SmartPsiElementPointer<PsiElement>
         val atom = psiFactory.createExpression(
             if (isArendArgumentAppExpr) "foo ($text)"
             else "foo $text"
-        ).childOfType<ArendAtomArgument>()!!
+        ).descendantOfType<ArendAtomArgument>()!!
 
         element.replace(atom)
     }

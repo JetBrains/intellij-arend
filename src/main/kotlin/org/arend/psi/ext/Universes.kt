@@ -30,7 +30,7 @@ private fun <P : Any?, R : Any?> acceptTruncated(data: ArendCompositeElement, tr
 
 class ArendSetUniverseAppExpr(node: ASTNode) : ArendAppExpr(node) {
     val maybeAtomLevelExpr: ArendMaybeAtomLevelExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         acceptSet(this, notNullChild(firstRelevantChild), maybeAtomLevelExpr?.atomLevelExpr, visitor, params)
@@ -38,14 +38,14 @@ class ArendSetUniverseAppExpr(node: ASTNode) : ArendAppExpr(node) {
 
 class ArendTruncatedUniverseAppExpr(node: ASTNode) : ArendAppExpr(node) {
     val maybeAtomLevelExpr: ArendMaybeAtomLevelExpr?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         acceptTruncated(this, notNullChild(firstRelevantChild), maybeAtomLevelExpr?.atomLevelExpr, visitor, params)
 }
 
 class ArendUniverseAppExpr(node: ASTNode) : ArendAppExpr(node) {
-    fun getMaybeAtomLevelExpr(index: Int): ArendMaybeAtomLevelExpr? = getChildOfType(index)
+    fun getMaybeAtomLevelExpr(index: Int): ArendMaybeAtomLevelExpr? = childOfType(index)
 
     override fun <P : Any?, R : Any?> accept(visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R =
         acceptUniverse(this, notNullChild(firstRelevantChild), getMaybeAtomLevelExpr(0)?.atomLevelExpr, getMaybeAtomLevelExpr(1)?.atomLevelExpr, visitor, params)

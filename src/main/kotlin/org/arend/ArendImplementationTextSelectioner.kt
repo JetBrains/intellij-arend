@@ -6,7 +6,7 @@ import com.intellij.psi.PsiWhiteSpace
 import org.arend.psi.ext.ArendDefIdentifier
 import org.arend.psi.ext.ArendWhere
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 
 class ArendImplementationTextSelectioner : ImplementationTextSelectioner {
     override fun getTextStartOffset(element: PsiElement): Int {
@@ -23,7 +23,7 @@ class ArendImplementationTextSelectioner : ImplementationTextSelectioner {
         if (element is ArendDefIdentifier) {
             val parent = element.parent
             if (parent is PsiLocatedReferable) {
-                var elem = parent.getChildOfType<ArendWhere>()?.prevSibling
+                var elem = parent.childOfType<ArendWhere>()?.prevSibling
                 while (elem is PsiWhiteSpace) {
                     elem = elem.prevSibling ?: break
                 }

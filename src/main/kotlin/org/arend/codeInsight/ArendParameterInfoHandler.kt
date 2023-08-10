@@ -1,7 +1,6 @@
 package org.arend.codeInsight
 
 import com.intellij.lang.parameterInfo.*
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
@@ -149,7 +148,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             if (containingClass != null) { // constructors in patterns do not have leading {this} argument
                 val thisArg = ArendPsiFactory(containingClass.project).createNameTele("this", containingClass.name, false)
                 params.add(thisArg)
-                newParametersReceiver?.add(thisArg.childOfType<ArendDefIdentifier>())
+                newParametersReceiver?.add(thisArg.descendantOfType<ArendDefIdentifier>())
             }
 
             val containingData = if (def is ArendConstructor) def.parent?.parent as? ArendDefData else null
@@ -342,7 +341,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 var funcReferable = func?.resolve as? Referable // resolvedInScope //func?.referent?.let{ resolveIfNeeded(it, arg.scope)}
                 val argExplicitness = mutableListOf<Boolean>()
 
-                if (funcReferable !is Abstract.ParametersHolder) {
+                if (funcReferable !is ParametersHolder) {
                     func = null
                     funcReferable = null
                 }

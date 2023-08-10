@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.childOfType
+import org.arend.psi.descendantOfType
 import org.arend.psi.ext.ArendUniverseExpr
 import org.arend.typechecking.error.local.DataUniverseError
 import org.arend.util.ArendBundle
@@ -26,7 +26,7 @@ class DataUniverseQuickFix(
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val psiFactory = ArendPsiFactory(project)
-        val actualSort = psiFactory.createFromText("\\data D : ${error.actualSort}")?.childOfType<ArendUniverseExpr>()!!
+        val actualSort = psiFactory.createFromText("\\data D : ${error.actualSort}")?.descendantOfType<ArendUniverseExpr>()!!
 
         cause.element?.parent?.replace(actualSort)
     }

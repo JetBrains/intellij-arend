@@ -313,7 +313,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         for (clauseExpression in clauseExpressionList) if (clauseExpression != null)
                             for (mismatchedEntry in mismatchedPatterns) {
                                 for (varToRemove in mismatchedEntry.value.second) {
-                                    val defIdentifier = varToRemove.childOfType<ArendDefIdentifier>()
+                                    val defIdentifier = varToRemove.descendantOfType<ArendDefIdentifier>()
                                     if (defIdentifier != null) SplitAtomPatternIntention.doSubstituteUsages(project, defIdentifier, clauseExpression, "{?${defIdentifier.name}}")
                                 }
                             }
@@ -333,8 +333,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             var printData = computePrintData()
                             val namePatternToReplace = substEntry.key as ArendPattern
 
-                            val idOrUnderscore = namePatternToReplace.childOfType<ArendDefIdentifier>() ?: namePatternToReplace.underscore
-                            val asPiece = namePatternToReplace.parent.childOfType<ArendAsPattern>()
+                            val idOrUnderscore = namePatternToReplace.descendantOfType<ArendDefIdentifier>() ?: namePatternToReplace.underscore
+                            val asPiece = namePatternToReplace.parent.descendantOfType<ArendAsPattern>()
                             val asDefIdentifier = asPiece?.referable
 
                             if (idOrUnderscore is ArendDefIdentifier) (substEntry.value.toExpression().type as? DataCallExpression)?.definition?.let{ renamer.setParameterName(it, idOrUnderscore.name) }
@@ -1036,7 +1036,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
         private fun doInsertPattern(psiFactory: ArendPsiFactory, anchor: PsiElement?, param: Binding,
                                     clause: PsiElement, patternPrimers: HashMap<Variable, ArendPattern>?,
                                     nameCalculator: (Binding) -> String): PsiElement {
-            val template = psiFactory.createClause("${nameCalculator.invoke(param)}, dummy").childOfType<ArendPattern>()!!
+            val template = psiFactory.createClause("${nameCalculator.invoke(param)}, dummy").descendantOfType<ArendPattern>()!!
             val comma = template.nextSibling
             var commaInserted = false
             var insertedPsi : PsiElement?

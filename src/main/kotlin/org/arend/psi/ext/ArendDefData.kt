@@ -23,7 +23,7 @@ class ArendDefData : ArendDefinition<ArendDefDataStub>, TCDefinition, Abstract.D
     constructor(stub: ArendDefDataStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     val dataBody: ArendDataBody?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val truncatedKw: PsiElement?
         get() = findChildByType(ArendElementTypes.TRUNCATED_KW)
@@ -44,7 +44,7 @@ class ArendDefData : ArendDefinition<ArendDefDataStub>, TCDefinition, Abstract.D
 
     override fun isTruncated(): Boolean = hasChildOfType(ArendElementTypes.TRUNCATED_KW)
 
-    override fun getUniverse(): ArendExpr? = getChildOfType()
+    override fun getUniverse(): ArendExpr? = childOfType()
 
     override fun getClauses(): List<Abstract.ConstructorClause> {
         val body = dataBody ?: return emptyList()

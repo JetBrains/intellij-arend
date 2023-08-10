@@ -4,13 +4,13 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.util.elementType
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.firstRelevantChild
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractLevelExpressionVisitor
 
 
 open class ArendOnlyLevelExpr(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.LevelExpression {
-    fun getAtomLevelExpr(index: Int): ArendAtomLevelExpr? = getChildOfType(index)
+    fun getAtomLevelExpr(index: Int): ArendAtomLevelExpr? = childOfType(index)
 
     override fun getData() = this
 

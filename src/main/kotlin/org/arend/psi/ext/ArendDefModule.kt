@@ -22,7 +22,7 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
         get() = groupScope
 
     override val where: ArendWhere?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun getStatements(): List<ArendStat> = ArendStat.flatStatements(where?.statList)
 

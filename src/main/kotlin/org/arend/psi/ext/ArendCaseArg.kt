@@ -19,11 +19,11 @@ class ArendCaseArg(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.CaseArgu
 
     override fun getApplyHoleData(): PsiElement? = findChildByType(APPLY_HOLE)
 
-    override fun getExpression(): ArendExpr? = getChildOfType()
+    override fun getExpression(): ArendExpr? = childOfType()
 
-    override fun getReferable(): ArendDefIdentifier? = getChildOfType()
+    override fun getReferable(): ArendDefIdentifier? = childOfType()
 
     override fun getType(): ArendExpr? = colon?.findNextSibling() as? ArendExpr
 
-    override fun getEliminatedReference(): ArendRefIdentifier? = getChildOfType()
+    override fun getEliminatedReference(): ArendRefIdentifier? = childOfType()
 }

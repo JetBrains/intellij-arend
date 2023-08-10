@@ -3,27 +3,27 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendElementTypes
-import org.arend.psi.getChildOfType
+import org.arend.psi.childOfType
 import org.arend.psi.hasChildOfType
 
 class ArendClassStat(node: ASTNode) : ArendCompositeElementImpl(node) {
     val classField: ArendClassField?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val classImplement: ArendClassImplement?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val overriddenField: ArendOverriddenField?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val coClause: ArendCoClause?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val definition: ArendDefinition<*>?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val group: ArendGroup?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val isDefault: Boolean
         get() = hasChildOfType(ArendElementTypes.DEFAULT_KW)

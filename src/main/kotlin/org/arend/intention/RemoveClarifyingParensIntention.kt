@@ -88,7 +88,7 @@ private fun hasClarifyingParens(binOpSeq: Concrete.AppExpression): Boolean {
 }
 
 private fun findBinOpInParens(expression: Concrete.HoleExpression): Concrete.AppExpression? {
-    val tuple = (expression.data as? ArendAtomFieldsAcc)?.childOfType<ArendTuple>() ?: return null
+    val tuple = (expression.data as? ArendAtomFieldsAcc)?.descendantOfType<ArendTuple>() ?: return null
     val appExprPsi = unwrapAppExprInParens(tuple) ?: return null
     return BinOpIntentionUtil.toConcreteBinOpInfixApp(appExprPsi)
 }

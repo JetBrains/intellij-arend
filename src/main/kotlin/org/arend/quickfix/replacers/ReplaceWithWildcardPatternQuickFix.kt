@@ -25,7 +25,7 @@ class ReplaceWithWildcardPatternQuickFix(private val patternRef: SmartPsiElement
         val factory = ArendPsiFactory(project)
         val patternLine = if (pattern.isExplicit) "_" else "{_}"
         val wildcardPattern: PsiElement? = when (pattern) {
-            is ArendPattern -> factory.createClause(patternLine).childOfType<ArendPattern>()!!
+            is ArendPattern -> factory.createClause(patternLine).descendantOfType<ArendPattern>()!!
             else -> null
         }
 

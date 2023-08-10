@@ -23,7 +23,7 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
     constructor(stub: ArendConstructorStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     val elim: ArendElim?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun getKind() = GlobalReferable.Kind.CONSTRUCTOR
 
@@ -43,11 +43,11 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
 
     override fun isVisible(): Boolean = true
 
-    override fun getResultType(): ArendExpr? = getChildOfType()
+    override fun getResultType(): ArendExpr? = childOfType()
 
     override fun isCoerce() = hasChildOfType(ArendElementTypes.COERCE_KW)
 
-    override fun getAccessModifier() = getChildOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+    override fun getAccessModifier() = childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
 
     private val allParameters
         get() = (ancestor<ArendDefData>()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters

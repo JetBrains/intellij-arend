@@ -8,7 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.childrenOfType
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.childOfType
+import org.arend.psi.descendantOfType
 import org.arend.psi.ext.*
 import org.arend.typechecking.error.local.ImplicitLambdaError
 import org.arend.util.ArendBundle
@@ -30,7 +30,7 @@ class ImplicitLambdaQuickFix(
         val parameter = error.parameter.textRepresentation()
 
         val parameterIdentifiers = element.childrenOfType<ArendIdentifierOrUnknown>()
-        val typeExpr = element.childOfType<ArendNewExpr>()?.text
+        val typeExpr = element.descendantOfType<ArendNewExpr>()?.text
 
         val psiFactory = ArendPsiFactory(project)
         val nameTele = psiFactory.createLamTele(parameter, typeExpr, true)

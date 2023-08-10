@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import org.arend.psi.ArendPsiFactory
-import org.arend.psi.childOfType
+import org.arend.psi.descendantOfType
 import org.arend.psi.ext.ArendIdentifierOrUnknown
 import org.arend.psi.ext.ArendNameTele
 import org.arend.typechecking.error.local.inference.LambdaInferenceError
@@ -45,7 +45,7 @@ class LambdaInferenceQuickFix(
             if (it.isExplicit) {
                 it.text == text
             } else {
-                it.childOfType<ArendIdentifierOrUnknown>()?.text == text
+                it.descendantOfType<ArendIdentifierOrUnknown>()?.text == text
             }
         }
 }

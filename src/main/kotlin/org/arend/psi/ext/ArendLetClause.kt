@@ -9,15 +9,15 @@ import org.arend.term.abs.Abstract
 
 
 class ArendLetClause(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.LetClause {
-    override fun getReferable(): ArendDefIdentifier? = getChildOfType()
+    override fun getReferable(): ArendDefIdentifier? = childOfType()
 
-    override fun getPattern(): ArendPattern? = getChildOfType()
+    override fun getPattern(): ArendPattern? = childOfType()
 
     override fun getParameters(): List<ArendNameTele> = getChildrenOfType()
 
-    override fun getResultType(): ArendExpr? = getChildOfType(ArendElementTypes.COLON)?.findNextSibling() as? ArendExpr
+    override fun getResultType(): ArendExpr? = childOfType(ArendElementTypes.COLON)?.findNextSibling() as? ArendExpr
 
-    override fun getTerm(): ArendExpr? = getChildOfType(ArendElementTypes.FAT_ARROW)?.findNextSibling() as? ArendExpr
+    override fun getTerm(): ArendExpr? = childOfType(ArendElementTypes.FAT_ARROW)?.findNextSibling() as? ArendExpr
 
     override fun getUseScope() = LocalSearchScope(parent)
 

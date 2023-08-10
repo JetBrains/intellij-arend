@@ -26,10 +26,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     open val prec: ArendPrec?
-        get() = getChildOfType()
+        get() = childOfType()
 
     open val alias: ArendAlias?
-        get() = getChildOfType()
+        get() = childOfType()
 
     override fun hasAlias() = alias != null
 
@@ -46,10 +46,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
 
     override fun getAccessModifier() =
-        parent?.getChildOfType<ArendAccessMod>()?.accessModifier ?: ancestor<ArendStatAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+        parent?.childOfType<ArendAccessMod>()?.accessModifier ?: ancestor<ArendStatAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
 
     override val defIdentifier: ArendDefIdentifier?
-        get() = getChildOfType()
+        get() = childOfType()
 
     protected var tcReferableCache: TCReferable? = null
     private var tcRefMapCache: ConcurrentHashMap<LongName, IntellijTCReferable>? = null

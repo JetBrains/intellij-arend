@@ -62,9 +62,9 @@ class ArendFoldingBuilder : FoldingBuilderEx(), DumbAware {
         }
 
         private fun foldBraces(element: PsiElement) {
-            val left = element.getChildOfType(LBRACE)
+            val left = element.childOfType(LBRACE)
             if (left != null) {
-                val range = TextRange(left.textOffset, element.getChildOfType(RBRACE)?.textOffset?.let { it + 1 } ?: element.textRange.endOffset)
+                val range = TextRange(left.textOffset, element.childOfType(RBRACE)?.textOffset?.let { it + 1 } ?: element.textRange.endOffset)
                 if (!range.isEmpty) {
                     descriptors += FoldingDescriptor(element.node, range)
                 }

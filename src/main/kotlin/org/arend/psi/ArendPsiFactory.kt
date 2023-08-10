@@ -26,18 +26,18 @@ class ArendPsiFactory(
             ?: error("Failed to create identifier: $name")
 
     fun createAliasIdentifier(name: String): ArendAliasIdentifier =
-        createFromText("\\func foo \\alias $name")?.childOfType()
+        createFromText("\\func foo \\alias $name")?.descendantOfType()
             ?: error("Failed to create alias identifier: `$name`")
 
     fun createLongName(name: String): ArendLongName =
         createImportCommand(name, StatCmdKind.IMPORT).namespaceCommand?.longName ?: error("Failed to create long name: `$name`")
 
     fun createLetExpression(letClause : String, expressionToWrap : String) : ArendLetExpr =
-        createFromText("\\func foo => \\let \n $letClause \n\\in $expressionToWrap")?.childOfType()
+        createFromText("\\func foo => \\let \n $letClause \n\\in $expressionToWrap")?.descendantOfType()
                 ?: error("Failed to create let expression: `$letClause`, `$expressionToWrap`")
 
     private fun createIPName(name: String): ArendIPName =
-        createFunction("dummy", emptyList(), name).childOfType()
+        createFunction("dummy", emptyList(), name).descendantOfType()
             ?: error("Failed to create identifier: $name")
 
     fun createInfixName(name: String) = createIPName("`$name`")
@@ -54,20 +54,20 @@ class ArendPsiFactory(
     fun createLamTele(name: String?, typeExpr: String?, isExplicit: Boolean): ArendLamParam {
         val lparen = if (isExplicit) "(" else "{"
         val rparen = if (isExplicit) ")" else "}"
-        return createFunction("dummy", emptyList(), "\\lam $lparen${(name ?: "_") + if (typeExpr != null) " : $typeExpr" else ""}$rparen => {?}").childOfType<ArendLamParam>() ?:
+        return createFunction("dummy", emptyList(), "\\lam $lparen${(name ?: "_") + if (typeExpr != null) " : $typeExpr" else ""}$rparen => {?}").descendantOfType<ArendLamParam>() ?:
         error("Failed to create lam tele " + (name ?: ""))
     }
 
     fun createFieldTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendFieldTele {
         val lparen = if (isExplicit) "(" else "{"
         val rparen = if (isExplicit) ")" else "}"
-        return createFromText("\\class Dummy $lparen${name ?: "_"} : $typeExpr $rparen")!!.childOfType()!!
+        return createFromText("\\class Dummy $lparen${name ?: "_"} : $typeExpr $rparen")!!.descendantOfType()!!
     }
 
     fun createTypeTele(name: String?, typeExpr: String, isExplicit: Boolean): ArendTypeTele {
         val lparen = if (isExplicit) "(" else "{"
         val rparen = if (isExplicit) ")" else "}"
-        return createFromText("\\data Dummy $lparen${name ?: "_"}${if (name?.isEmpty() == true) "" else " : "}$typeExpr $rparen")!!.childOfType()!!
+        return createFromText("\\data Dummy $lparen${name ?: "_"}${if (name?.isEmpty() == true) "" else " : "}$typeExpr $rparen")!!.descendantOfType()!!
     }
 
     private fun createFunction(
@@ -81,22 +81,22 @@ class ArendPsiFactory(
             append(teles.joinToString(" ", " "))
             expr?.let { append(" : $expr") }
         }.trimEnd()
-        return createFromText(code)?.childOfType() ?: error("Failed to create function: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create function: `$code`")
     }
 
     fun createFunctionKeyword(keyword: String): ArendCompositeElement =
-        createFromText("$keyword foo => 0")?.childOfType<ArendDefFunction>()?.functionKw ?: error("Failed to create keyword $keyword")
+        createFromText("$keyword foo => 0")?.descendantOfType<ArendDefFunction>()?.functionKw ?: error("Failed to create keyword $keyword")
 
     fun createInstanceKeyword(keyword: String): PsiElement =
-        createFromText("$keyword foo => 0")?.childOfType<ArendDefInstance>()?.firstChild ?: error("Failed to create keyword $keyword")
+        createFromText("$keyword foo => 0")?.descendantOfType<ArendDefInstance>()?.firstChild ?: error("Failed to create keyword $keyword")
 
     fun createClause(expr: String, createWithEmptyExpression: Boolean = false): ArendClause {
         val code = "\\func foo => \\case goo \\with { | $expr ${if (createWithEmptyExpression) "" else "=> {?}"} }"
-        return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create clause: `$code`")
     }
 
     fun createExpressionMaybe(expr: String): ArendExpr? =
-        createFromText("\\func foo => $expr")?.childOfType()
+        createFromText("\\func foo => $expr")?.descendantOfType()
 
     fun createExpression(expr: String) =
         createExpressionMaybe(expr) ?: error("Failed to create expr: `$expr`")
@@ -106,12 +106,12 @@ class ArendPsiFactory(
 
     fun createFunctionClauses(instance: Boolean = false): ArendFunctionClauses {
         val code = "\\${if (instance) "instance" else "func"} foo (a : Nat) : Nat\n  | 0 => {?}"
-        return createFromText(code)?.childOfType() ?: error("Failed to create clause: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create clause: `$code`")
     }
 
     fun createPattern(expr: String): ArendPattern {
         val code = "\\func foo (n : Nat) => \\case n \\with { | $expr => {?} }"
-        return createFromText(code)?.childOfType() ?: error("Failed to create pattern: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create pattern: `$code`")
     }
 
     fun createCoClause(name: String, expr: String = "{?}"): ArendCoClause {
@@ -119,7 +119,7 @@ class ArendPsiFactory(
             append("\\instance Dummy : Dummy\n")
             append("| $name => $expr")
         }
-        return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create instance: `$code`")
     }
 
     fun createLocalCoClause(name: String, expr: String? = "{?}"): ArendLocalCoClause {
@@ -127,7 +127,7 @@ class ArendPsiFactory(
             append("\\func foo => \\new Foo {\n")
             append("| $name => $expr\n }")
         }
-        return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create instance: `$code`")
     }
 
     fun createCoClauseInFunction(name: String, expr: String = "{?}"): ArendCoClause {
@@ -135,7 +135,7 @@ class ArendPsiFactory(
             append("\\func Dummy : Dummy \\cowith\n")
             append("| $name => $expr")
         }
-        return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create instance: `$code`")
     }
 
     fun createNestedCoClause(name: String): ArendCoClause {
@@ -143,7 +143,7 @@ class ArendPsiFactory(
             append("\\instance Dummy : Dummy\n")
             append("| $name { }")
         }
-        return createFromText(code)?.childOfType() ?: error("Failed to create instance: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create instance: `$code`")
     }
 
     fun createLam(teles: List<String>, expr: String): ArendLamExpr {
@@ -153,7 +153,7 @@ class ArendPsiFactory(
             append(" => ")
             append(expr)
         }.trimEnd()
-        return createFromText(code)?.childOfType() ?: error("Failed to create lambda: `$code`")
+        return createFromText(code)?.descendantOfType() ?: error("Failed to create lambda: `$code`")
     }
 
     fun createPairOfBraces(): Pair<PsiElement, PsiElement> {
@@ -167,7 +167,7 @@ class ArendPsiFactory(
     }
 
     fun createStatCmd(name: String): ArendStatCmd =
-        createFromText("\\open X \\hiding ($name)")?.childOfType() ?: error("Failed to create stat cmd: `$name`")
+        createFromText("\\open X \\hiding ($name)")?.descendantOfType() ?: error("Failed to create stat cmd: `$name`")
 
     fun createImportCommand(command : String, cmdKind: StatCmdKind): ArendStat {
         val prefix = when (cmdKind) {
@@ -189,15 +189,15 @@ class ArendPsiFactory(
     fun createWhitespace(symbol: String): PsiElement =
         PsiParserFacade.getInstance(project).createWhiteSpaceFromText(symbol)
 
-    fun createPipe(): PsiElement = createFromText("\\data D | con")?.childOfType<ArendDataBody>()?.firstChild ?: error("Failed to create '|'")
+    fun createPipe(): PsiElement = createFromText("\\data D | con")?.descendantOfType<ArendDataBody>()?.firstChild ?: error("Failed to create '|'")
 
-    fun createWhere(): ArendWhere = createFromText("\\module Test \\where { }")?.childOfType() ?: error("Failed to create '\\where'")
+    fun createWhere(): ArendWhere = createFromText("\\module Test \\where { }")?.descendantOfType() ?: error("Failed to create '\\where'")
 
-    fun createCoClauseBody(): ArendFunctionBody = createFromText("\\func foo (n : Nat) : R \\cowith\n | f{-caret-} x \\with")?.childOfType<ArendFunctionBody>()?.childOfType(true) ?: error("Failed to create coClauseBody keyword")
+    fun createCoClauseBody(): ArendFunctionBody = createFromText("\\func foo (n : Nat) : R \\cowith\n | f{-caret-} x \\with")?.descendantOfType<ArendFunctionBody>()?.descendantOfType(true) ?: error("Failed to create coClauseBody keyword")
 
-    fun createClassStat(): ArendClassStat = createFromText("\\class C { \\func bar => 101 }")?.childOfType() ?: error("Failed to create classStat")
+    fun createClassStat(): ArendClassStat = createFromText("\\class C { \\func bar => 101 }")?.descendantOfType() ?: error("Failed to create classStat")
 
-    fun createCaseArg(caseArg: String): ArendCaseArg? = createFromText("\\func foo => \\case $caseArg, lol \\with {} ")?.childOfType()
+    fun createCaseArg(caseArg: String): ArendCaseArg? = createFromText("\\func foo => \\case $caseArg, lol \\with {} ")?.descendantOfType()
 
     fun createColon() = createCaseArg("dummy : Nat")?.colon ?: error("Failed to create ':'")
 
@@ -206,5 +206,5 @@ class ArendPsiFactory(
     fun createReturnKeyword() = createFromText("\\return")?.firstChild?.firstChild?.firstChild ?: error("Failed to create return keyword")
 
     fun createReturnExpr() = createFromText("\\func foo => \\case t \\return {?} \\with {} ")?.firstChild?.firstChild
-        ?.childOfType<ArendFunctionBody>()?.childOfType<ArendCaseExpr>()?.childOfType<ArendReturnExpr>() ?: error("Failed to create ArendReturnExpr")
+        ?.descendantOfType<ArendFunctionBody>()?.descendantOfType<ArendCaseExpr>()?.descendantOfType<ArendReturnExpr>() ?: error("Failed to create ArendReturnExpr")
 }

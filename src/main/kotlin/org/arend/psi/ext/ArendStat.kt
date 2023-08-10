@@ -6,14 +6,14 @@ import org.arend.psi.*
 
 class ArendStat(node: ASTNode) : ArendSourceNodeImpl(node), ArendStatement {
     val statCmd: ArendStatCmd?
-        get() = getChildOfType()
+        get() = childOfType()
 
     val statAccessMod: ArendStatAccessMod?
-        get() = getChildOfType()
+        get() = childOfType()
 
-    override fun getGroup(): ArendGroup? = getChildOfType()
+    override fun getGroup(): ArendGroup? = childOfType()
 
-    override fun getNamespaceCommand(): ArendStatCmd? = getChildOfType()
+    override fun getNamespaceCommand(): ArendStatCmd? = childOfType()
 
     override fun getPLevelsDefinition(): ArendLevelParamsSeq? = getChild { it.elementType == ArendElementTypes.P_LEVEL_PARAMS_SEQ }
 

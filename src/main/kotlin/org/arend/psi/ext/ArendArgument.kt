@@ -31,7 +31,7 @@ class ArendLamArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgument
 
     override fun isExplicit() = true
 
-    override fun getExpression(): ArendExpr = getChildOfTypeStrict()
+    override fun getExpression(): ArendExpr = childOfTypeStrict()
 }
 
 class ArendCaseArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgument {
@@ -39,7 +39,7 @@ class ArendCaseArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgumen
 
     override fun isExplicit() = true
 
-    override fun getExpression(): ArendExpr = getChildOfTypeStrict()
+    override fun getExpression(): ArendExpr = childOfTypeStrict()
 }
 
 class ArendLetArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgument {
@@ -47,7 +47,7 @@ class ArendLetArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgument
 
     override fun isExplicit() = true
 
-    override fun getExpression(): ArendExpr = getChildOfTypeStrict()
+    override fun getExpression(): ArendExpr = childOfTypeStrict()
 }
 
 internal fun <P : Any?, R : Any?> acceptTupleExpression(data: Any?, exprList: List<ArendTupleExpr>, visitor: AbstractExpressionVisitor<in P, out R>, params: P?): R {
@@ -62,7 +62,7 @@ internal fun <P : Any?, R : Any?> acceptTupleExpression(data: Any?, exprList: Li
 
 class ArendAtomArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgument {
     val atomFieldsAcc: ArendAtomFieldsAcc
-        get() = getChildOfTypeStrict()
+        get() = childOfTypeStrict()
 
     override fun isExplicit() = true
 

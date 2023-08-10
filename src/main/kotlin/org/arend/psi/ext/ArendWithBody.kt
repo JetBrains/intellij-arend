@@ -3,13 +3,13 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendElementTypes
-import org.arend.psi.getChildOfTypeStrict
+import org.arend.psi.childOfTypeStrict
 import org.arend.psi.getChildrenOfType
 import org.arend.term.abs.Abstract
 
 class ArendWithBody(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.FunctionClauses {
     val withKw: PsiElement
-        get() = getChildOfTypeStrict(ArendElementTypes.WITH_KW)
+        get() = childOfTypeStrict(ArendElementTypes.WITH_KW)
 
     val lbrace: PsiElement?
         get() = findChildByType(ArendElementTypes.LBRACE)
