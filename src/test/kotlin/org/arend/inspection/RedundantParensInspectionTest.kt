@@ -211,6 +211,42 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
       \func test : 0 = 0 => idp
     """)
 
+    fun `test issues`() = doWeakWarningsCheck("""
+       \module Issue302 \where
+         \func foo (F : Nat -> \Type) => ${rp("(F 0)")} -> ${rp("(F 0)")} 
+       \module Issue326 \where {
+         \func bar {x : \Sigma Nat Nat} => x.1
+         \func foo => bar {${rp("(1,2)")}}
+       }
+       \module Issue339 \where {
+         \func test => \Sigma ${rp("(Nat)")} ${rp("(Nat)")}
+       }
+       \module Issue349 \where {
+         \func a : 1 = 1 => idp \levels _ ${rp("(0)")}
+       }
+       \module Issue350 \where {
+       \func test (f : Nat -> Nat) : Nat => \case ${rp("(f 0)")} \with {
+         | 0 => 0
+         | suc n => n
+         }
+       }
+       \module Issue375 \where {
+         \class Ring (E : \Set)
+           | \infixl 6 + : E -> E -> E
+           | \infixl 7 * : E -> E -> E
+
+         \func test {R : Ring} (x y z : R) (p : (x R.+ y) * z = x) => p
+       }       
+    """)
+
+    fun test360() = doTypedQuickFixTest("""
+       \func foo : Nat -> Nat => {?}
+       \func bar => foo(1{-caret-})
+    """, """
+       \func foo : Nat -> Nat => {?}
+       \func bar => foo 1
+    """)
+
     private fun doWeakWarningsCheck(contents: String) {
         val fileTree = fileTreeFromText(contents)
         fileTree.create(myFixture.project, myFixture.findFileInTempDir("."))
