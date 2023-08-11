@@ -3,12 +3,10 @@ package org.arend.inspection
 import com.intellij.codeInspection.LocalQuickFixOnPsiElement
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
-import com.intellij.refactoring.suggested.endOffset
-import com.intellij.refactoring.suggested.startOffset
+import org.arend.codeInsight.completion.withAncestors
 import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
@@ -159,7 +157,11 @@ private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tup
     override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
         val tuple = startElement as ArendTuple
         val unwrapped = unwrapParens(tuple) ?: return
-        val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return
-        document.replaceString(tuple.startOffset, tuple.endOffset, unwrapped.text)
+        if (unwrapped is ArendNewExpr && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java).accepts(tuple) &&
+            tuple.parent.parent.parent.parent.textRange == tuple.textRange) tuple.parent.parent.parent.parent.replace(unwrapped)
+        else if (unwrapped.descendantOfType<ArendAtomFieldsAcc>()?.let { it.textRange == unwrapped.textRange } == true && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java).accepts(tuple))
+            tuple.parent.parent.replace(unwrapped.descendantOfType<ArendAtomFieldsAcc>()!!)
+        else
+            tuple.replace(unwrapped)
     }
 }

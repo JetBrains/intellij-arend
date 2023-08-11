@@ -9,6 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings
+import org.arend.formatting.block.SimpleArendBlock.Companion.oneSpaceWrap
 import org.arend.psi.ext.ArendExpr
 import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
@@ -27,6 +28,8 @@ class ArgumentAppExprBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wr
 
         return ArrayList()
     }
+
+    override fun getSpacing(child1: Block?, child2: Block): Spacing = oneSpaceWrap
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
         printChildAttributesContext(newChildIndex)
