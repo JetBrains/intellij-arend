@@ -61,9 +61,16 @@ class ArendNoVariantsDelegator : CompletionContributor() {
         val editor = parameters.editor
         val project = editor.project
 
+        val bpm = object: BetterPrefixMatcher(result.prefixMatcher, Int.MIN_VALUE) {
+            override fun prefixMatchesEx(name: String?): MatchingOutcome {
+                if (name?.startsWith(myPrefix) == true) return MatchingOutcome.BETTER_MATCH
+                return if (super.prefixMatchesEx(name) == MatchingOutcome.BETTER_MATCH) MatchingOutcome.WORSE_MATCH else MatchingOutcome.NON_MATCH
+            }
+        }
+
         if (project != null && (isInsideValidExpr || isInsideValidNsCmd) && (tracker.variants.isEmpty() && tracker.nullPsiVariants.isEmpty() || !parameters.isAutoPopup)) {
             val consumer = { name: String, refs: List<PsiLocatedReferable>? ->
-                if (BetterPrefixMatcher(result.prefixMatcher, Int.MIN_VALUE).prefixMatches(name)) {
+                if (bpm.prefixMatches(name)) {
                     val locatedReferables = refs ?: when {
                         isInsideValidExpr ->
                             StubIndex.getElements(if (isClassExtension) ArendGotoClassIndex.KEY else ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>()
