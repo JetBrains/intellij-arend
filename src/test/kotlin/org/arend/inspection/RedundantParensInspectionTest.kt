@@ -236,6 +236,13 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
            | \infixl 7 * : E -> E -> E
 
          \func test {R : Ring} (x y z : R) (p : (x R.+ y) * z = x) => p
+         
+         \data Bool | true | false
+         
+         \func lol (a : Bool) : Bool -> Bool => \case a \return (Bool -> Bool) \with { 
+           | true => \lam y => true
+           | false => \lam z => true
+         }
        }       
     """)
 

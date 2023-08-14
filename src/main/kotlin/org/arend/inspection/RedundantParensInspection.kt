@@ -30,6 +30,7 @@ class RedundantParensInspection : ArendInspectionBase() {
                     holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
                 }
                 val expression = unwrapParens(tuple) ?: return
+                if (expression is ArendArrExpr && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java, ArendCaseExpr::class.java).accepts(tuple)) return
                 if (neverNeedsParens(expression) ||
                     isCommonRedundantParensPattern(tuple, expression) ||
                     isApplicationUsedAsBinOpArgument(tuple, expression)
