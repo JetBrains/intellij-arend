@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.elementType
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
@@ -24,6 +25,10 @@ class RedundantParensInspection : ArendInspectionBase() {
             override fun visitElement(element: PsiElement) {
                 super.visitElement(element)
                 val tuple = element as? ArendTuple ?: return
+                if (tuple.tupleExprList.size > 1 && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendImplicitArgument::class.java).accepts(tuple)) {
+                    val message = ArendBundle.message("arend.inspection.redundant.parentheses.message")
+                    holder.registerProblem(tuple, message, UnwrapParensFix(tuple))
+                }
                 val expression = unwrapParens(tuple) ?: return
                 if (neverNeedsParens(expression) ||
                     isCommonRedundantParensPattern(tuple, expression) ||
@@ -157,12 +162,19 @@ private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tup
 
     override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
         val tuple = startElement as ArendTuple
-        val unwrapped = unwrapParens(tuple) ?: return
-        if (withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java).accepts(tuple) &&
-            tuple.parent.parent.parent.parent.textRange == tuple.textRange) tuple.parent.parent.parent.parent.replace(unwrapped)
-        else if (unwrapped.descendantOfType<ArendAtomFieldsAcc>()?.let { it.textRange == unwrapped.textRange } == true && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java).accepts(tuple))
-            tuple.parent.parent.replace(unwrapped.descendantOfType<ArendAtomFieldsAcc>()!!)
-        else
-            tuple.replace(unwrapped)
+        if (tuple.tupleExprList.size > 1 && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendImplicitArgument::class.java).accepts(tuple)) {
+            tuple.parent.parent.parent.parent.parent.delete()
+            val implicitArg = (tuple.parent as ArendImplicitArgument)
+            val lbrace = implicitArg.childrenWithLeaves.first { it.elementType == ArendElementTypes.LBRACE }
+            implicitArg.addRangeAfter(tuple.tupleExprList.first(), tuple.tupleExprList.last(), lbrace)
+        } else {
+            val unwrapped = unwrapParens(tuple) ?: return
+            if (withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java).accepts(tuple) &&
+                tuple.parent.parent.parent.parent.textRange == tuple.textRange) tuple.parent.parent.parent.parent.replace(unwrapped)
+            else if (unwrapped.descendantOfType<ArendAtomFieldsAcc>()?.let { it.textRange == unwrapped.textRange } == true && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java).accepts(tuple))
+                tuple.parent.parent.replace(unwrapped.descendantOfType<ArendAtomFieldsAcc>()!!)
+            else
+                tuple.replace(unwrapped)
+        }
     }
 }

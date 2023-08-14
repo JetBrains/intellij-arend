@@ -64,7 +64,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
     fun testParameterType() = doWeakWarningsCheck("""
        \func test1 {a : ${rp("(0 = 0)")}} (b : ${rp("(0 = 0)")}) => 1
 
-       \record A (f : (0 = 0) -> Nat)
+       \record A (f : ${rp("(0 = 0)")} -> Nat)
        \record test2 (a : ${rp("(0 = 0)")}) \extends A {
          | b (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) : Nat
          \field c (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) : Nat
@@ -113,7 +113,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
     fun testArrowExpression() = doWeakWarningsCheck("""
        \func test1 => (Nat -> Nat) -> Nat
        -- False negatives. But removing parens might hurt readability, especially in the second case.
-       \func test2 => (0 = 1) -> Nat
+       \func test2 => ${rp("(0 = 1)")} -> Nat
        \func test3 => (\Sigma Nat Nat) -> Nat 
     """)
 
