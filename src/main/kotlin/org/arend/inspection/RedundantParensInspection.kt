@@ -78,7 +78,8 @@ private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendE
     // Examples of the parent new expression: (f a), \new (f a), (f a) { x => 1 }
     val parent = parentNewExpr?.parent
     return isRedundantParensForAnyChild(parent) ||
-            parent is ArendTupleExpr && isRedundantParensInTupleParent(parent, expression)
+            parent is ArendTupleExpr && isRedundantParensInTupleParent(parent, expression) ||
+            parent is ArendArrExpr && (parent.codomain == parentNewExpr || tuple.tupleExprList.size == 1 && tuple.tupleExprList.first().expr is ArendNewExpr)
 }
 
 private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
@@ -157,7 +158,7 @@ private class UnwrapParensFix(tuple: ArendTuple) : LocalQuickFixOnPsiElement(tup
     override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
         val tuple = startElement as ArendTuple
         val unwrapped = unwrapParens(tuple) ?: return
-        if (unwrapped is ArendNewExpr && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java).accepts(tuple) &&
+        if (withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java).accepts(tuple) &&
             tuple.parent.parent.parent.parent.textRange == tuple.textRange) tuple.parent.parent.parent.parent.replace(unwrapped)
         else if (unwrapped.descendantOfType<ArendAtomFieldsAcc>()?.let { it.textRange == unwrapped.textRange } == true && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java).accepts(tuple))
             tuple.parent.parent.replace(unwrapped.descendantOfType<ArendAtomFieldsAcc>()!!)

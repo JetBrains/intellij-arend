@@ -247,6 +247,12 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \func bar => foo 1
     """)
 
+    fun test302() = doTypedQuickFixTest("""
+       \func test : Nat -> (Nat -> Nat){-caret-} => {?} 
+    """, """
+       \func test : Nat -> Nat -> Nat => {?} 
+    """)
+
     private fun doWeakWarningsCheck(contents: String) {
         val fileTree = fileTreeFromText(contents)
         fileTree.create(myFixture.project, myFixture.findFileInTempDir("."))
