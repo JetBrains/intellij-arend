@@ -8,8 +8,6 @@ import com.intellij.codeInsight.completion.impl.BetterPrefixMatcher
 import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.StubIndex
-import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.Consumer
 import org.arend.module.ModuleLocation
 import org.arend.naming.scope.ScopeFactory.isGlobalScopeVisible
@@ -38,8 +36,10 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                     val elementIsWithinFileBeingEdited = elementPsi.containingFile == parameters.position.containingFile
                     if (!elementIsWithinFileBeingEdited) variants.add(elementPsi) else {
                         val originalPosition = parameters.originalPosition
-                        if (originalPosition != null) parameters.originalFile.findElementAt(elementPsi.startOffset - parameters.position.startOffset + originalPosition.startOffset)?.ancestors?.
-                        firstOrNull {it.elementType == elementPsi.elementType }?.let { variants.add(it) }
+                        if (originalPosition != null) {
+                            if (!parameters.position.ancestors.contains(elementPsi))
+                                variants.add(elementPsi)
+                        }
                     }
                 } else {
                     nullPsiVariants.add(str)
