@@ -43,6 +43,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteExpressionVisitor
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.getBounds
+import java.lang.IllegalArgumentException
 import java.math.BigInteger
 import java.util.Collections.singletonList
 import kotlin.math.max
@@ -610,7 +611,13 @@ fun surroundingTupleExpr(baseExpr: ArendExpr): ArendTupleExpr? =
                 newExpr.parent as? ArendTupleExpr else null
         }
 
-fun unwrapParens(tuple: ArendTuple): ArendExpr? = tuple.tupleExprList.singleOrNull()?.exprIfSingle
+fun unwrapParens(tuple: PsiElement?): ArendExpr? =
+    when (tuple) {
+        is ArendTuple -> tuple.tupleExprList.singleOrNull()?.exprIfSingle
+        is ArendTypeTele -> tuple.type
+        else -> throw IllegalArgumentException()
+    }
+
 
 fun transformPostfixToPrefix1(argumentOrFieldsAcc: PsiElement,
                               ipName: ArendIPName,
