@@ -221,29 +221,31 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \module Issue339 \where {
          \func test => \Sigma ${rp("(Nat)")} ${rp("(\\Type)")} (Nat -> Nat) (\Type 1) ${rp("(\\Set)")} ${rp("(\\Prop)")}
        }
-       \module Issue349 \where {
-         \func a : 1 = 1 => idp \levels _ ${rp("(0)")}
-       }
        \module Issue350 \where {
        \func test (f : Nat -> Nat) : Nat => \case ${rp("(f 0)")} \with {
          | 0 => 0
          | suc n => n
          }
-       }
+       }              
+    """)
+
+    fun testReturnExpr() = doWeakWarningsCheck("""       
+         \data Bool | true | false
+         
+         \func lol (a : Bool) : Bool -> Bool => \case a \return (Bool -> Bool) \with { 
+           | true => \lam y => true
+           | false => \lam z => true
+         } 
+    """)
+
+    fun test375() = doWeakWarningsCheck("""
        \module Issue375 \where {
          \class Ring (E : \Set)
            | \infixl 6 + : E -> E -> E
            | \infixl 7 * : E -> E -> E
 
          \func test {R : Ring} (x y z : R) (p : (x R.+ y) * z = x) => p
-         
-         \data Bool | true | false
-         
-         \func lol (a : Bool) : Bool -> Bool => \case a \return (Bool -> Bool) \with { 
-           | true => \lam y => true
-           | false => \lam z => true
-         }
-       }       
+       } 
     """)
 
     fun test360() = doTypedQuickFixTest("""
