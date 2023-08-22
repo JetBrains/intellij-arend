@@ -219,7 +219,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
          \func foo => bar {${rp("(1,2)")}}
        }
        \module Issue339 \where {
-         \func test => \Sigma ${rp("(Nat)")} ${rp("(\\Type)")} (Nat -> Nat) (\Type 1)
+         \func test => \Sigma ${rp("(Nat)")} ${rp("(\\Type)")} (Nat -> Nat) (\Type 1) ${rp("(\\Set)")} ${rp("(\\Prop)")}
        }
        \module Issue349 \where {
          \func a : 1 = 1 => idp \levels _ ${rp("(0)")}
@@ -270,6 +270,18 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
         \func test => \Sigma (\Type){-caret-} (Nat -> Nat)
     """, """
         \func test => \Sigma \Type (Nat -> Nat)
+    """)
+
+    fun test339_3() = doTypedQuickFixTest("""       
+        \func test => \Sigma (\Set){-caret-} (Nat -> Nat)
+    """, """
+        \func test => \Sigma \Set (Nat -> Nat)
+    """)
+
+    fun test339_4() = doTypedQuickFixTest("""       
+        \func test => \Sigma (\Prop){-caret-} (Nat -> Nat)
+    """, """
+        \func test => \Sigma \Prop (Nat -> Nat)
     """)
 
     private fun doWeakWarningsCheck(contents: String) {

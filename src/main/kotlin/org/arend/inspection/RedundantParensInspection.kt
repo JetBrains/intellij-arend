@@ -55,7 +55,8 @@ private fun neverNeedsParens(expression: ArendExpr): Boolean {
 
 private fun typeTeleDoesntNeedParens(expression: ArendExpr): Boolean {
     return expression.descendantOfType<ArendLiteral>()?.textRange == expression.textRange ||
-           expression.descendantOfType<ArendUniverseAppExpr>()?.let { it.childOfType(UNIVERSE)?.textRange == expression.textRange } == true
+           expression.descendantOfType<ArendUniverseAppExpr>()?.let { it.childOfType(UNIVERSE)?.textRange == expression.textRange } == true ||
+           expression.descendantOfType<ArendSetUniverseAppExpr>()?.let { it.childOfType(SET)?.textRange == expression.textRange } == true
 }
 
 private fun isAtomic(expression: ArendNewExpr) =
@@ -177,7 +178,7 @@ private class UnwrapParensFix(tuple: PsiElement) : LocalQuickFixOnPsiElement(tup
             is ArendTypeTele -> {
                 val unwrapped = unwrapParens(startElement) ?: return
                 val literal = unwrapped.descendantOfType<ArendLiteral>()
-                val universeAppExpr = unwrapped.descendantOfType<ArendUniverseAppExpr>()
+                val universeAppExpr = unwrapped.descendantOfType<ArendUniverseAppExpr>() ?: unwrapped.descendantOfType<ArendSetUniverseAppExpr>()
                 if (literal != null && literal.textRange == unwrapped.textRange) {
                     startElement.childrenWithLeaves.firstOrNull { it.elementType == RPAREN }?.delete()
                     startElement.lparen?.delete()
