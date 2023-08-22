@@ -122,7 +122,8 @@ private fun isRedundantParensForAnyChild(parent: PsiElement?) =
             parent is ArendPiExpr ||
             parent is ArendLamExpr ||
             parent is ArendLetExpr ||
-            parent is ArendLetClause
+            parent is ArendLetClause ||
+            parent is ArendCaseArg
 
 private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: ArendExpr): Boolean {
     if (parent.colon != null) {
