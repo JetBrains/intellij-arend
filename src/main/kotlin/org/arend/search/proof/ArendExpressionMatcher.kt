@@ -41,7 +41,6 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
         return ProofSearchMatchingResult(parameterResults, codomainResult)
     }
 
-    @Suppress("RedundantNullableReturnType")
     private fun matchDisjunct(jointPattern: ProofSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>) : List<Concrete.Expression>? {
         return jointPattern.patterns.flatMap {
             val patternConcrete = reassembleConcrete(it, scope, referables) ?: return@matchDisjunct null
@@ -142,11 +141,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
                 for (i in tree.subNodes.indices) {
                     val expr = reassembleConcrete(tree.subNodes[i].first, scope, references) ?: break
                     val explicitness = tree.subNodes[i].second.toBoolean()
-                    val binOp = if (i == 0) {
-                        Concrete.BinOpSequenceElem(expr, Fixity.NONFIX, explicitness)
-                    } else {
-                        Concrete.BinOpSequenceElem(expr, Fixity.UNKNOWN, explicitness)
-                    }
+                    val binOp = Concrete.BinOpSequenceElem(expr, if (i == 0 || expr !is Concrete.ReferenceExpression) Fixity.NONFIX else Fixity.UNKNOWN, explicitness)
                     binOpList.add(binOp)
                 }
                 if (binOpList.size != tree.subNodes.size) {
