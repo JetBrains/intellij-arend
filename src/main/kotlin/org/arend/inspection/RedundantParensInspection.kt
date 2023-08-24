@@ -8,12 +8,15 @@ import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.descendantsOfType
 import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
+import org.arend.refactoring.changeSignature.performTextModification
 import org.arend.refactoring.psiOfConcrete
 import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
@@ -174,38 +177,42 @@ private class UnwrapParensFix(tuple: PsiElement) : LocalQuickFixOnPsiElement(tup
     override fun getText(): String = ArendBundle.message("arend.unwrap.parentheses.fix")
 
     override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
-        when (startElement) {
-            is ArendTypeTele -> {
-                val unwrapped = unwrapParens(startElement) ?: return
-                val literal = unwrapped.descendantOfType<ArendLiteral>()
-                val universeAppExpr = unwrapped.descendantOfType<ArendUniverseAppExpr>() ?: unwrapped.descendantOfType<ArendSetUniverseAppExpr>()
-                if (literal != null && literal.textRange == unwrapped.textRange) {
-                    startElement.childrenWithLeaves.firstOrNull { it.elementType == RPAREN }?.delete()
-                    startElement.lparen?.delete()
-                    startElement.typedExpr?.replace(literal)
-                } else if (universeAppExpr != null && universeAppExpr.textRange == unwrapped.textRange) {
-                    val factory = ArendPsiFactory(project)
-                    val typeTele = factory.createFromText("\\func test => \\Sigma ${universeAppExpr.text}")?.descendantOfType<ArendTypeTele>()
-                    if (typeTele != null) startElement.replace(typeTele)
-                }
+        var parent: PsiElement? = startElement
+        var spaceLeft = ""
+        var spaceRight = ""
+        var contents: String
+
+        while (parent?.textRange?.startOffset == startElement.startOffset) {
+            val w = parent.getWhitespace(SpaceDirection.LeadingSpace)
+            if (w != null && w != "") {
+                spaceLeft = w
+                break
             }
-            is ArendTuple -> {
-                if (startElement.tupleExprList.size > 1 && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendImplicitArgument::class.java).accepts(startElement)) {
-                    startElement.parent.parent.parent.parent.parent.delete()
-                    val implicitArg = (startElement.parent as ArendImplicitArgument)
-                    val lbrace = implicitArg.childrenWithLeaves.first { it.elementType == ArendElementTypes.LBRACE }
-                    implicitArg.addRangeAfter(startElement.tupleExprList.first(), startElement.tupleExprList.last(), lbrace)
-                } else {
-                    val unwrapped = unwrapParens(startElement) ?: return
-                    if (withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java).accepts(startElement) &&
-                        startElement.parent.parent.parent.parent.textRange == startElement.textRange) startElement.parent.parent.parent.parent.replace(unwrapped)
-                    else if (unwrapped.descendantOfType<ArendAtomFieldsAcc>()?.let { it.textRange == unwrapped.textRange } == true && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java).accepts(startElement))
-                        startElement.parent.parent.replace(unwrapped.descendantOfType<ArendAtomFieldsAcc>()!!)
-                    else
-                        startElement.replace(unwrapped)
-                }
-            }
+            parent = parent.parent
         }
 
+        parent = startElement
+
+        while (parent?.textRange?.endOffset == startElement.endOffset) {
+            val v = parent.getWhitespace(SpaceDirection.TrailingSpace)
+            if (v != null && v != "") {
+                spaceRight = v
+                break
+            }
+            parent = parent.parent
+        }
+
+        if (startElement is ArendTuple) {
+            spaceLeft += startElement.tupleExprList.first().getWhitespace(SpaceDirection.LeadingSpace)
+            spaceRight = startElement.tupleExprList.last().getWhitespace(SpaceDirection.TrailingSpace) + spaceRight
+            contents = startElement.containingFile.text.substring(startElement.tupleExprList.first().startOffset, startElement.tupleExprList.last().endOffset)
+        } else {
+            contents = unwrapParens(startElement)?.text ?: ""
+        }
+
+        if (spaceLeft == "") contents = " $contents"
+        if (spaceRight == "") contents += " "
+
+        performTextModification(startElement,  contents)
     }
 }
