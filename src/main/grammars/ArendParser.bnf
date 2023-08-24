@@ -290,7 +290,7 @@ defInstance ::= instanceOrCons prec? defIdentifier_func pLevelParams? hLevelPara
 
 private instanceOrCons ::= INSTANCE_KW | CONS_KW
 
-defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody where? {
+defData ::= dataKw prec? defIdentifier_top pLevelParams? hLevelParams? alias? typeTele* dataUniverse? dataBody? where? {
     pin = 1
     elementTypeFactory = "org.arend.psi.stubs.StubImplementationsKt.factory"
 }
@@ -348,7 +348,7 @@ instanceBody ::= functionTermBody
 
 private functionTermBody ::= FAT_ARROW expr { pin = 1 }
 
-dataBody ::= elim constructorClauses | fat_arrow_constructor? <<piped constructor>>* {
+dataBody ::= elim constructorClauses | fat_arrow_constructor? <<piped constructor>>+ {
     recoverWhile = statement_recover
 }
 
