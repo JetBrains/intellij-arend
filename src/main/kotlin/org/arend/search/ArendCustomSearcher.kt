@@ -71,15 +71,11 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
                             !(element is ArendRefIdentifier && !consumer.process(element.reference))
                         }, dI.useScope, dI.name, searchContext, true)
                     }
-                    var isGoodRef = false
                     for (ref in PsiReferenceService.getService().getReferences(element, PsiReferenceService.Hints(elementToSearch, offsetInElement))) { // Copypasted from SingleTargetRequestResultProcessor
                         ProgressManager.checkCanceled()
-                        if (ReferenceRange.containsOffsetInElement(ref, offsetInElement) && ref.isReferenceTo(elementToSearch)) {
-                            isGoodRef = true
-                            if (!consumer.process(ref)) return false
-                        }
+                        if (ReferenceRange.containsOffsetInElement(ref, offsetInElement) && ref.isReferenceTo(elementToSearch) && !consumer.process(ref)) return false
                     }
-                    return isGoodRef
+                    return true
                 }
             })
         }
