@@ -32,7 +32,7 @@ object BinOpIntentionUtil {
             if (element is PsiWhiteSpace) PsiTreeUtil.prevCodeLeaf(element) else element
 
     private fun isPrefixForm(expression: Concrete.AppExpression): Boolean {
-        val firstArg = expression.arguments.first { it.isExplicit }?.expression ?: return false
+        val firstArg = expression.arguments.firstOrNull { it.isExplicit }?.expression ?: return false
         return rangeOfConcrete(expression.function).endOffset <= rangeOfConcrete(firstArg).startOffset
     }
 }
