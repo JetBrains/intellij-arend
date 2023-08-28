@@ -73,7 +73,6 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
                     }
                     for (ref in PsiReferenceService.getService().getReferences(element, PsiReferenceService.Hints(elementToSearch, offsetInElement))) { // Copypasted from SingleTargetRequestResultProcessor
                         ProgressManager.checkCanceled()
-                        println(consumer.javaClass.name)
                         if (ReferenceRange.containsOffsetInElement(ref, offsetInElement) && ref.isReferenceTo(elementToSearch)) {
                             if (!consumer.process(ref))
                                 return false
