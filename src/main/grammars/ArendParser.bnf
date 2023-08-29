@@ -129,7 +129,7 @@ stat ::= statCmd | accessMod? definition | defModule | statAccessMod | pLevelPar
 
 statAccessMod ::= accessMod statAccessModInternal { pin = 1 }
 
-statAccessModInternal ::= LBRACE stat* RBRACE {
+private statAccessModInternal ::= LBRACE stat* RBRACE {
     recoverWhile = statement_recover
 }
 
