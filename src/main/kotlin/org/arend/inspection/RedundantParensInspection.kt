@@ -6,18 +6,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.descendantsOfType
 import com.intellij.psi.util.elementType
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.codeInsight.completion.withAncestors
-import org.arend.ext.concrete.ConcreteSourceNode
-import org.arend.intention.binOp.BinOpIntentionUtil
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.changeSignature.performTextModification
-import org.arend.refactoring.psiOfConcrete
 import org.arend.refactoring.unwrapParens
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
@@ -42,7 +38,7 @@ class RedundantParensInspection : ArendInspectionBase() {
                 }
                 val expression = unwrapParens(element) ?: return
                 if (expression is ArendArrExpr && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendReturnExpr::class.java, ArendCaseExpr::class.java).accepts(element)) return
-                if (element is ArendTuple && (neverNeedsParens(expression) || isCommonRedundantParensPattern(element, expression) || isApplicationUsedAsBinOpArgument(element, expression)) ||
+                if (element is ArendTuple && (neverNeedsParens(expression) || isCommonRedundantParensPattern(element, expression)/* || isApplicationUsedAsBinOpArgument(element, expression)*/) ||
                     element is ArendTypeTele && typeTeleDoesntNeedParens(expression)) {
                     registerFix(element)
                 }
@@ -62,7 +58,7 @@ private fun typeTeleDoesntNeedParens(expression: ArendExpr): Boolean {
            expression.descendantOfType<ArendSetUniverseAppExpr>()?.let { it.childOfType(SET)?.textRange == expression.textRange } == true
 }
 
-private fun isAtomic(expression: ArendNewExpr) =
+fun isAtomic(expression: ArendNewExpr) =
     // Excludes cases like `f (\new Unit) 1`
     expression.appPrefix == null &&
             // Excludes cases like `f (Pair { | x => 1 }) 1`
@@ -75,7 +71,7 @@ private fun isAtomic(argumentAppExpr: ArendArgumentAppExpr): Boolean =
             hasNoLevelArguments(argumentAppExpr) &&
             argumentAppExpr.atomFieldsAcc != null
 
-private fun hasNoLevelArguments(argumentAppExpr: ArendArgumentAppExpr): Boolean {
+fun hasNoLevelArguments(argumentAppExpr: ArendArgumentAppExpr): Boolean {
     val longNameExpr = argumentAppExpr.longNameExpr
     // Excludes cases like `f (Path \levels 0 0) 1`, `f (Path \lp \lh) 1`
     return longNameExpr == null || longNameExpr.levelsExpr == null && longNameExpr.pLevelExpr == null
@@ -102,7 +98,7 @@ private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendE
             parent is ArendArrExpr && (parent.codomain == parentNewExpr || tuple.tupleExprList.size == 1 && tuple.tupleExprList.first().expr is ArendNewExpr)
 }
 
-private fun getParentAtomFieldsAcc(tuple: ArendTuple) =
+fun getParentAtomFieldsAcc(tuple: ArendTuple) =
     ((tuple.parent as? ArendAtom)
         ?.parent as? ArendAtomFieldsAcc)
         // Excludes cases like `(f a).1`
@@ -139,33 +135,6 @@ private fun isRedundantParensInTupleParent(parent: ArendTupleExpr, expression: A
             grand is ArendImplicitArgument
 }
 
-private fun isApplicationUsedAsBinOpArgument(tuple: ArendTuple, tupleExpression: ArendExpr): Boolean {
-    val parentAtomFieldsAcc = getParentAtomFieldsAcc(tuple) ?: return false
-    val parentAppExprPsi = parentArgumentAppExpr(parentAtomFieldsAcc) ?: return false
-    val parentAppExpr = appExprToConcrete(parentAppExprPsi, true) ?: return false
-    var result = false
-    parentAppExpr.accept(object : ArendInspectionConcreteVisitor() {
-        override fun visitHole(expr: Concrete.HoleExpression?, params: Void?): Void? {
-            super.visitHole(expr, params)
-            if (expr != null && psiOfConcrete(expr) == tuple) {
-                result = isApplicationUsedAsBinOpArgument(parent, tupleExpression)
-            }
-            return null
-        }
-    }, null)
-    return result
-}
-
-private fun isApplicationUsedAsBinOpArgument(tupleParent: ConcreteSourceNode?, tupleExpression: ArendExpr): Boolean {
-    if (tupleParent is Concrete.AppExpression && BinOpIntentionUtil.isBinOpInfixApp(tupleParent)) {
-        val childAppExpr =
-            if (tupleExpression is ArendNewExpr && isAtomic(tupleExpression)) tupleExpression.argumentAppExpr
-            else null
-        return childAppExpr != null && hasNoLevelArguments(childAppExpr) && !isBinOpApp(childAppExpr)
-    }
-    return false
-}
-
 internal fun isBinOpApp(app: ArendArgumentAppExpr): Boolean {
     val binOpSeq = appExprToConcrete(app, true)
     return binOpSeq is Concrete.AppExpression && isBinOp(binOpSeq.function.data as? ArendReferenceContainer)
@@ -177,42 +146,50 @@ private class UnwrapParensFix(tuple: PsiElement) : LocalQuickFixOnPsiElement(tup
     override fun getText(): String = ArendBundle.message("arend.unwrap.parentheses.fix")
 
     override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
-        var parent: PsiElement? = startElement
-        var spaceLeft = ""
-        var spaceRight = ""
-        var contents: String
-
-        while (parent?.textRange?.startOffset == startElement.startOffset) {
-            val w = parent.getWhitespace(SpaceDirection.LeadingSpace)
-            if (w != null && w != "") {
-                spaceLeft = w
-                break
-            }
-            parent = parent.parent
-        }
-
-        parent = startElement
-
-        while (parent?.textRange?.endOffset == startElement.endOffset) {
-            val v = parent.getWhitespace(SpaceDirection.TrailingSpace)
-            if (v != null && v != "") {
-                spaceRight = v
-                break
-            }
-            parent = parent.parent
-        }
-
-        if (startElement is ArendTuple) {
-            spaceLeft += startElement.tupleExprList.first().getWhitespace(SpaceDirection.LeadingSpace)
-            spaceRight = startElement.tupleExprList.last().getWhitespace(SpaceDirection.TrailingSpace) + spaceRight
-            contents = startElement.containingFile.text.substring(startElement.tupleExprList.first().startOffset, startElement.tupleExprList.last().endOffset)
-        } else {
-            contents = unwrapParens(startElement)?.text ?: ""
-        }
-
-        if (spaceLeft == "") contents = " $contents"
-        if (spaceRight == "") contents += " "
-
-        performTextModification(startElement,  contents)
+        doUnwrapParens(startElement)
     }
+}
+
+fun doUnwrapParens(startElement: PsiElement) {
+    var parent: PsiElement? = startElement
+    var spaceLeft = ""
+    var parenLeft = false
+    var spaceRight = ""
+    var parenRight = false
+    var contents: String
+
+    while (parent?.textRange?.startOffset == startElement.startOffset) {
+        parenLeft = parenLeft || parent.findPrevSibling()?.elementType in listOf(LPAREN, LBRACE)
+        val w = parent.getWhitespace(SpaceDirection.LeadingSpace)
+        if (w != null && w != "") {
+            spaceLeft = w
+            break
+        }
+        parent = parent.parent
+    }
+
+    parent = startElement
+
+    while (parent?.textRange?.endOffset == startElement.endOffset) {
+        parenRight = parenRight || parent.findNextSibling()?.elementType in listOf(RPAREN, RBRACE)
+        val v = parent.getWhitespace(SpaceDirection.TrailingSpace)
+        if (v != null && v != "") {
+            spaceRight = v
+            break
+        }
+        parent = parent.parent
+    }
+
+    if (startElement is ArendTuple) {
+        spaceLeft += startElement.tupleExprList.first().getWhitespace(SpaceDirection.LeadingSpace)
+        spaceRight = startElement.tupleExprList.last().getWhitespace(SpaceDirection.TrailingSpace) + spaceRight
+        contents = startElement.containingFile.text.substring(startElement.tupleExprList.first().startOffset, startElement.tupleExprList.last().endOffset)
+    } else {
+        contents = unwrapParens(startElement)?.text ?: ""
+    }
+
+    if (spaceLeft == "" && !parenLeft) contents = " $contents"
+    if (spaceRight == "" && !parenRight) contents += " "
+
+    performTextModification(startElement,  contents)
 }

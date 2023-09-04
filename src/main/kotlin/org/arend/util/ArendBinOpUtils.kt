@@ -25,16 +25,16 @@ import org.arend.term.concrete.Concrete
 fun appExprToConcrete(appExpr: ArendExpr): Concrete.Expression? = appExprToConcrete(appExpr, false)
 
 fun appExprToConcrete(appExpr: ArendExpr, setData: Boolean, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE): Concrete.Expression? {
-    val scope = CachingScope.make(appExpr.scope)
+    //val scope = CachingScope.make(appExpr.scope)
     return appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
         override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Concrete.Expression =
-                parseBinOp(if (setData) data else null, left, sequence, errorReporter, scope)
+                parseBinOp(if (setData) data else null, left, sequence, errorReporter/*, scope*/)
 
         override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) =
-                resolveReference(data, referent, null, scope)
+                resolveReference(data, referent, null/*, scope*/)
 
         override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) =
-                resolveReference(data, referent, fixity, scope)
+                resolveReference(data, referent, fixity/*, scope*/)
     }, null)
 }
 

@@ -93,7 +93,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
         }, if (file is ArendExpressionCodeFragment) ModalityState.defaultModalityState() else ModalityState.stateForComponent(editor.component))
     }
 
-    private fun addHighlightInfo(builder: HighlightInfo.Builder) {
+    fun addHighlightInfo(builder: HighlightInfo.Builder) {
         val info = builder.create()
         if (info != null) {
             highlights.add(info)
@@ -114,7 +114,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
             .escapedToolTip(XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
     }
 
-    private fun registerFix(builder: HighlightInfo.Builder, fix: IntentionAction) {
+    fun registerFix(builder: HighlightInfo.Builder, fix: IntentionAction) {
         builder.registerFix(fix, null, fix.text, null, null)
     }
 

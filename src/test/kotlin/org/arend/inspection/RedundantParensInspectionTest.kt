@@ -197,7 +197,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
 
        -- The first parens is actually redundant, this is false negative.
        \func test20 => (+ 1) +++ (+ 3) 
-    """)
+    """, true)
 
     fun `test fix for atomic expression in function body`() = doTypedQuickFixTest("""
       \func test => (2){-caret-}
@@ -286,10 +286,14 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
         \func test => \Sigma \Prop (Nat -> Nat)
     """)
 
-    private fun doWeakWarningsCheck(contents: String) {
+    private fun doWeakWarningsCheck(contents: String, typecheck: Boolean = false) {
         val fileTree = fileTreeFromText(contents)
         fileTree.create(myFixture.project, myFixture.findFileInTempDir("."))
         myFixture.configureFromTempProjectFile("Main.ard")
+        if (typecheck) {
+            //typecheck(fileTree.fileNames)
+            myFixture.doHighlighting()
+        }
         myFixture.checkHighlighting(false, false, true)
     }
 

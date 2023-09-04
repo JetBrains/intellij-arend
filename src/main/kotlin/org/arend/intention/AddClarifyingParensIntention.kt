@@ -1,5 +1,6 @@
 package org.arend.intention
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -8,6 +9,7 @@ import org.arend.intention.binOp.BinOpSeqProcessor
 import org.arend.intention.binOp.CaretHelper
 import org.arend.psi.ext.ArendArgumentAppExpr
 import org.arend.psi.parentOfType
+import org.arend.resolving.ArendResolveCache
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
 
