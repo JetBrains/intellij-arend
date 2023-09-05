@@ -72,8 +72,6 @@ class FunctionArgInferenceQuickFix(
             var i = 0
             var j = 0
             textPieceToReplace = (rangeData[subExpr.function]?.endOffset ?: -1).let{ startPosition -> TextRange(startPosition, startPosition) }
-            for (a in subExpr.arguments)
-                println((a.expression.data as PsiElement).text)
             var param: Pair<Boolean, Referable>? = null
             var argument: Concrete.Argument? = null
 

@@ -251,7 +251,6 @@ class ArendRenameProcessor(project: Project,
         val oldRefName = (element as? GlobalReferable)?.refName
         val newName = getNewName(element)
         super.performRefactoring(usages)
-        println(element.containingFile.text)
         if (context.nameKind == ArendNameKind.ALIAS_NAME) {
             if (oldRefName != null) (element as? PsiNamedElement)?.setName(oldRefName) // restore old refName
             (element as? ReferableBase<*>)?.alias?.aliasIdentifier?.setName(newName)
