@@ -151,9 +151,11 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit,
         val importedPattern = qualifiedReferences.flatMapTo(HashSet()) { pattern[it] ?: emptySet() }
         val deepPatterns = qualifiedReferences.flatMapTo(HashSet()) { hierarchy.getDeeplyImportedNames(it) }
         val importedHere = statCmd.nsUsing?.nsIdList ?: emptyList()
-        val importedNamesHere = importedHere.map { ImportedName(it.refIdentifier.text, it.defIdentifier?.text) }
+        val importedNamesHere = importedHere.map { ImportedName(it.refIdentifier.text, it.defIdentifier?.text, it.refIdentifier.resolve) }
         val importedTopLevelButUsedDeeply = deepPatterns intersect importedNamesHere.toSet()
-        if ((importedPattern.isEmpty() && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref -> ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text) !in (importedPattern + deepPatterns) } } == true)  {
+        if ((importedPattern.isEmpty() && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref ->
+            ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text, ref.refIdentifier.resolve) !in (importedPattern + deepPatterns)
+        } } == true)  {
             action(import)
             continue
         }
@@ -268,10 +270,16 @@ private fun doAddNamespaceCommands(
 
 fun getScopeProvider(isForModule: Boolean, group: ArendGroup): ScopeProvider {
     return if (isForModule) {
-        { group.scope.resolveNamespace(it.toList()) }
+        {
+            group.scope.resolveNamespace(it.toList())
+        }
     } else {
         val libraryManager = group.project.service<TypeCheckingService>().libraryManager
-        { path -> libraryManager.registeredLibraries.firstNotNullOfOrNull { libraryManager.getAvailableModuleScopeProvider(it).forModule(path) } }
+        { path ->
+            val result = libraryManager.registeredLibraries.firstNotNullOfOrNull { libraryManager.getAvailableModuleScopeProvider(it).forModule(path) }
+            if (result == null) println("FOO")
+            result
+        }
     }
 }
 
@@ -315,6 +323,8 @@ private fun eraseNamespaceCommands(group: ArendGroup) {
 }
 
 internal data class ImportedName(val original: String, val renamed: String?) {
+    constructor(original: String, renamed: String?, psi: PsiElement?): this ((psi as? Referable)?.refName ?: original, renamed)
+
     val visibleName = renamed ?: original
     override fun toString(): String = if (renamed == null) original else "$original \\as $renamed"
 }
@@ -442,10 +452,10 @@ private class ImportStructureCollector(
         ) ?: return // if reference is 'A.B.c' from File1.X.A.B.c, then it's splitted to ([X], A)
         val characteristics = if (preCharacteristics == importedAs) resolved.refName else preCharacteristics
         val identifierImportedFromFile = groupPath.firstName ?: characteristics
-        fileImports.computeIfAbsent(importedFilePath) { HashSet() }.add(ImportedName(identifierImportedFromFile, importedAs?.takeIf { identifierImportedFromFile == characteristics }))
+        fileImports.computeIfAbsent(importedFilePath) { HashSet() }.add(ImportedName(identifierImportedFromFile, importedAs?.takeIf { identifierImportedFromFile == characteristics }, null))
         val shortenedOpeningPath = openingPath.shorten(groupStack)
         if (shortenedOpeningPath.isNotEmpty() || importedAs != null) {
-            currentFrame.usages[ImportedName(characteristics, importedAs)] = ModulePath(openingPath)
+            currentFrame.usages[ImportedName(characteristics, importedAs, null)] = ModulePath(openingPath)
         }
     }
 
@@ -560,8 +570,8 @@ private data class MutableFrame(
         for (instance in instanceSource) {
             val (importedFile, qualifier) = collectQualifier(instance) ?: continue
             additionalFiles.computeIfAbsent(importedFile) { HashSet() }
-                .add(ImportedName(qualifier.firstName ?: instance.refName, null))
-            usages[ImportedName(instance.refName, null)] =
+                .add(ImportedName(qualifier.firstName ?: instance.refName, null, instance))
+            usages[ImportedName(instance.refName, null, instance)] =
                 qualifier.takeIf { this@MutableFrame.name == "" || it.toList().isNotEmpty() } ?: importedFile
         }
         subgroups.removeAll { it.usages.isEmpty() && it.subgroups.isEmpty() }

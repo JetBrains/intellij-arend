@@ -2,13 +2,16 @@ package org.arend.intention
 
 import com.intellij.application.options.CodeStyle
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.project.DumbService
 import org.arend.*
 import org.arend.codeInsight.ArendImportOptimizer
+import org.arend.quickfix.QuickFixTestBase
 import org.arend.settings.ArendCustomCodeStyleSettings
 import org.arend.settings.ArendCustomCodeStyleSettings.*
-import org.intellij.lang.annotations.Language
+import org.arend.util.ArendBundle
+import org.arend.util.arendModules
 
-class OptimizeImportsTest : ArendTestBase() {
+class OptimizeImportsTest : QuickFixTestBase() {
 
     private fun FileTree.prepareFileSystem(): TestProject {
         val testProject = create(myFixture.project, myFixture.findFileInTempDir("."))
@@ -29,36 +32,27 @@ class OptimizeImportsTest : ArendTestBase() {
         }
     }
 
-    private fun doTest(
-        @Language("Arend") before: String,
-        @Language("Arend") after: String,
-        typecheck: Boolean = false
-    ) {
+    private fun doTest(before: String, after: String) {
         val fileTree = fileTreeFromText(before)
         fileTree.prepareFileSystem()
-        if (typecheck) {
-            typecheck(fileTree.fileNames)
-        }
+        typecheck(fileTree.fileNames) //
+
         val optimizer = ArendImportOptimizer()
         WriteCommandAction.runWriteCommandAction(myFixture.project, optimizer.processFile(myFixture.file))
         myFixture.checkResult(replaceCaretMarker(after.trimIndent()))
     }
 
     private fun doExplicitTest(
-        @Language("Arend") before: String,
-        @Language("Arend") after: String,
-        typecheck: Boolean = false
-    ) = doWithSettings(OptimizeImportsPolicy.ONLY_EXPLICIT) { doTest(before, after, typecheck) }
+        before: String,
+        after: String) = doWithSettings(OptimizeImportsPolicy.ONLY_EXPLICIT) { doTest(before, after) }
 
     private fun doImplicitTest(
-        @Language("Arend") before: String,
-        @Language("Arend") after: String,
-        typecheck: Boolean = false) = doWithSettings(OptimizeImportsPolicy.ONLY_IMPLICIT) { doTest(before, after, typecheck) }
+        before: String,
+        after: String) = doWithSettings(OptimizeImportsPolicy.ONLY_IMPLICIT) { doTest(before, after) }
 
     private fun doSoftTest(
-        @Language("Arend") before: String,
-        @Language("Arend") after: String,
-        typecheck: Boolean = false) = doWithSettings(OptimizeImportsPolicy.SOFT) { doTest(before, after, typecheck) }
+        before: String,
+        after: String) = doWithSettings(OptimizeImportsPolicy.SOFT) { doTest(before, after) }
 
     fun `test prelude`() {
         doExplicitTest("""
@@ -604,7 +598,7 @@ class OptimizeImportsTest : ArendTestBase() {
             \import Foo (nat, t)
 
             \func p : Nat => t
-        """, true
+        """
         )
     }
 
@@ -1293,5 +1287,45 @@ class OptimizeImportsTest : ArendTestBase() {
             }
         """)
     }
+
+    fun testOptimizeImports() = checkNoQuickFixes(
+        ArendBundle.message("arend.optimize.imports.intention.name"), """
+       \module M \where {
+         \func foo \alias fu (a : Nat) => a
+       }
+
+       \module M1 \where {
+         \open {-caret-}M (fu \as foobar)
+
+         \func lol => 1 Nat.+ foobar 2
+       }
+    """)
+
+    fun testOptimizeImports2() = checkNoQuickFixes(
+        ArendBundle.message("arend.optimize.imports.intention.name"), """
+       \module N \where \data Bool | true | false
+
+       \module N2 \where {
+         \open N (Bool, true{-caret-}, false)
+
+          \func mcas (b : Bool) : Nat => \case b \with {
+            | true => 1
+            | false => 0
+          }
+       } 
+    """)
+
+    fun testOptimizeImports3() = checkNoQuickFixes(ArendBundle.message("arend.optimize.imports.intention.name"), """
+       \module M \where {
+         \func foo \alias fu (a : Nat) => a \where
+           \func lol => 101
+       }
+
+       \module M1 \where {
+         \open {-caret-}M (fu \as foobar)
+
+         \func lol => 1 Nat.+ foobar.lol
+       }
+    """)
 
 }
