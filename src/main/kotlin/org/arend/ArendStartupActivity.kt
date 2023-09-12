@@ -13,9 +13,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.ArendBundle
 import org.arend.util.arendModules
+import org.arend.util.refreshLibrariesDirectory
 import org.arend.util.register
 
 
@@ -23,11 +25,11 @@ class ArendStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         val service = project.service<TypeCheckingService>()
         val libraryManager = service.libraryManager
-
         project.messageBus.connect(service).subscribe(ProjectTopics.MODULES, object : ModuleListener {
             override fun modulesAdded(project: Project, modules: List<Module>) {
                 for (module in modules) {
                     if (ArendModuleType.has(module)) {
+                        refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
                         module.register()
                     }
                 }

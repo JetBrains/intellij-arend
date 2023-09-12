@@ -2,14 +2,12 @@ package org.arend.intention
 
 import com.intellij.application.options.CodeStyle
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.project.DumbService
 import org.arend.*
 import org.arend.codeInsight.ArendImportOptimizer
 import org.arend.quickfix.QuickFixTestBase
 import org.arend.settings.ArendCustomCodeStyleSettings
 import org.arend.settings.ArendCustomCodeStyleSettings.*
 import org.arend.util.ArendBundle
-import org.arend.util.arendModules
 
 class OptimizeImportsTest : QuickFixTestBase() {
 
