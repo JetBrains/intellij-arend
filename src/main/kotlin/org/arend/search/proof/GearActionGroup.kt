@@ -21,10 +21,10 @@ class GearActionGroup(private val searchUI: ProofSearchUI, val project: Project)
     private val myPopupState = PopupState.forPopupMenu()
 
     override fun actionPerformed(e: AnActionEvent) {
+        val inputEvent = e.inputEvent ?: return
         if (myPopupState.isRecentlyHidden) return // do not show new popup
         val popup = ActionManager.getInstance()
             .createActionPopupMenu(ActionPlaces.TOOLWINDOW_POPUP, ActualGearActionGroup(searchUI, project))
-        val inputEvent = e.inputEvent
         val x = if (inputEvent is MouseEvent) inputEvent.x else 0
         val y = if (inputEvent is MouseEvent) inputEvent.y else 0
         myPopupState.prepareToShow(popup.component)

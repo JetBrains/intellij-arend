@@ -49,7 +49,7 @@ class ArendToolWindowSession(project: Project) : ComponentSession() {
             val insets = button.insets
             buttonsPanel.add(button)
             if (i < buttons.size - 1) {
-                val gap = if (StartupUiUtil.isUnderDarcula() || UIUtil.isUnderIntelliJLaF()) JBUIScale.scale(if (UIUtil.isUnderWin10LookAndFeel()) 8 else 12) - insets.left - insets.right else JBUIScale.scale(8)
+                val gap = if (StartupUiUtil.isUnderDarcula || UIUtil.isUnderIntelliJLaF()) JBUIScale.scale(if (UIUtil.isUnderWin10LookAndFeel()) 8 else 12) - insets.left - insets.right else JBUIScale.scale(8)
                 buttonsPanel.add(Box.createRigidArea(Dimension(gap, 0)))
             }
         }

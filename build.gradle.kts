@@ -11,8 +11,8 @@ version = "1.9.0.2"
 
 plugins {
     idea
-    kotlin("jvm") version "1.8.21"
-    id("org.jetbrains.intellij") version "1.13.3"
+    kotlin("jvm") version "1.9.0"
+    id("org.jetbrains.intellij") version "1.15.0"
     id("org.jetbrains.grammarkit") version "2022.3.1"
 }
 
@@ -56,14 +56,14 @@ idea {
 
 tasks {
     val test by getting(Test::class) {
-        setScanForTestClasses(false)
+        isScanForTestClasses = false
         // Only run tests from classes that end with "Test"
         include("**/*Test.class")
     }
 }
 
 intellij {
-    version.set("2023.1")
+    version.set("2023.2.1")
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)

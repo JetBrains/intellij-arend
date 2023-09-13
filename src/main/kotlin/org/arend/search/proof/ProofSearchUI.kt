@@ -134,11 +134,10 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
     }
 
     private fun doCreateTopLeftPanel(): JPanel {
-        @Suppress("DialogTitleCapitalization")
         val title = JBLabel(ArendBundle.message("arend.proof.search.title"))
         val topPanel = JPanel(MigLayout("flowx, ins 0, gap 0, fillx, filly"))
         val foregroundColor = when {
-            StartupUiUtil.isUnderDarcula() -> when {
+            StartupUiUtil.isUnderDarcula -> when {
                 UIUtil.isUnderWin10LookAndFeel() -> JBColor.WHITE
                 else -> JBColor(Gray._240, Gray._200)
             }
