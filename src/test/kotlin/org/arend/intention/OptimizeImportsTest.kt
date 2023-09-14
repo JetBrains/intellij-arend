@@ -1326,4 +1326,20 @@ class OptimizeImportsTest : QuickFixTestBase() {
        }
     """)
 
+    fun testOptimizeImports4() = checkNoQuickFixes(ArendBundle.message("arend.optimize.imports.intention.name"), """
+       \module A \where {
+         \func foo => 101
+
+         \func bar => 42
+       }
+
+       \func foo => 102
+
+       \module B \where {
+         \open A (foo, bar{-caret-})
+
+         \func fubar => foo + bar
+       } 
+    """)
+
 }
