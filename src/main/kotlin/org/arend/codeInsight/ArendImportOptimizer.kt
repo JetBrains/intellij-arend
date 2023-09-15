@@ -102,7 +102,7 @@ class ArendImportOptimizer : ImportOptimizer {
             optimalTree: OptimalModuleStructure
         ) {
             processRedundantImportedDefinitions(file, fileImports, optimalTree) { element ->
-                if (element is ArendNsId) {
+                if (element is ArendNsId) { // TODO: We could reuse existing code for this
                     val nextComma = element.findNextSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
                     val prevComma = element.findPrevSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
                     if (nextComma != null) {
@@ -349,9 +349,10 @@ internal fun getOptimalImportStructure(file: ArendFile, progressIndicator: Progr
     val rootFrame = MutableFrame("")
     val forbiddenFilesToImport = setOfNotNull(file.moduleLocation?.modulePath, Prelude.MODULE_PATH)
     val collector = ImportStructureCollector(rootFrame, progressIndicator)
+    val settings = CodeStyle.getCustomSettings(file, ArendCustomCodeStyleSettings::class.java)
 
     file.accept(collector)
-    rootFrame.contract(collector.allDefinitionsTypechecked, collector.fileImports.values.flatMapTo(HashSet()) { it })
+    rootFrame.contract(collector.allDefinitionsTypechecked, collector.fileImports.values.flatMapTo(HashSet()) { it }, settings)
         .forEach { (file, ids) -> collector.fileImports.computeIfAbsent(file) { HashSet() }.addAll(ids) }
     return OptimizationResult(collector.fileImports.filter { it.key !in forbiddenFilesToImport }, rootFrame.asOptimalTree(), collector.allDefinitionsTypechecked)
 }
@@ -521,8 +522,8 @@ private data class MutableFrame(
         })
 
     @Contract(mutates = "this")
-    fun contract(useTypecheckedInstances: Boolean, fileImports: Set<ImportedName>): Map<ModulePath, Set<ImportedName>> {
-        val submaps = subgroups.map { it.contract(useTypecheckedInstances, fileImports) }
+    fun contract(useTypecheckedInstances: Boolean, fileImports: Set<ImportedName>, settings: ArendCustomCodeStyleSettings): Map<ModulePath, Set<ImportedName>> {
+        val submaps = subgroups.map { it.contract(useTypecheckedInstances, fileImports, settings) }
         val additionalFiles = mutableMapOf<FilePath, MutableSet<ImportedName>>()
         submaps.forEach {
             it.forEach { (filePath, ids) ->
@@ -537,14 +538,14 @@ private data class MutableFrame(
                 subgroups.forEach {
                     // the 'open' of parent group will be inherited
                     if (it.usages.containsKey(identifier)) {
-                        it.usages.remove(identifier)
+                        if (settings.OPTIMIZE_IMPORTS_POLICY != OptimizeImportsPolicy.SOFT) it.usages.remove(identifier)
                     }
                 }
             }
             if (definitions.contains(identifier.visibleName) || (name == "" && fileImports.contains(identifier))) {
                 subgroups.forEach {
                     if (it.usages[identifier] == usages[identifier]) {
-                        it.usages.remove(identifier)
+                        if (settings.OPTIMIZE_IMPORTS_POLICY != OptimizeImportsPolicy.SOFT) it.usages.remove(identifier)
                     }
                 }
                 continue
@@ -558,7 +559,7 @@ private data class MutableFrame(
             } else {
                 // identifier is unique for each of the submodules, import for it can be lifted
                 usages[identifier] = paths.first()
-                subgroups.forEach { it.usages.remove(identifier) }
+                if (settings.OPTIMIZE_IMPORTS_POLICY != OptimizeImportsPolicy.SOFT) subgroups.forEach { it.usages.remove(identifier) }
             }
         }
         // the order is important. Implicitly used instances are not inherited, so they should be adder after erasing unnecessary usages
