@@ -101,22 +101,7 @@ class ArendImportOptimizer : ImportOptimizer {
             fileImports: Map<FilePath, Set<ImportedName>>,
             optimalTree: OptimalModuleStructure
         ) {
-            processRedundantImportedDefinitions(file, fileImports, optimalTree) { element ->
-                if (element is ArendNsId) { // TODO: We could reuse existing code for this
-                    val nextComma = element.findNextSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
-                    val prevComma = element.findPrevSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
-                    if (nextComma != null) {
-                        nextComma.delete()
-                    } else if (prevComma != null) {
-                        prevComma.delete()
-                    } else {
-                        // if this function was called, then at least two nsId was imported, and one of them is used
-                    }
-                }
-                val singularWhere = element.parentOfType<ArendWhere>()?.takeIf { it.statList.singleOrNull() == element }
-                element.delete()
-                singularWhere?.delete()
-            }
+            processRedundantImportedDefinitions(file, fileImports, optimalTree, softOptimizer)
             val factory = ArendPsiFactory(file.project)
             val allImports = file.statements.filter { it.statCmd?.kind == NamespaceCommand.Kind.IMPORT }.map {
                 val text = it.text
@@ -132,9 +117,26 @@ class ArendImportOptimizer : ImportOptimizer {
     }
 }
 
-internal fun processRedundantImportedDefinitions(file : ArendFile, fileImports: Map<FilePath, Set<ImportedName>>, moduleStructure: OptimalModuleStructure, action: (ArendCompositeElement) -> Unit) {
-    checkStatements(action, file.statements.filter { it.statCmd?.kind == NamespaceCommand.Kind.IMPORT }, fileImports, EMPTY_STRUCTURE)
-    visitModuleInconsistencies(action, file, moduleStructure, moduleStructure.usages, emptyMap())
+val softOptimizer : (ArendCompositeElement) -> Unit = { element ->
+    if (element is ArendNsId) { // TODO: We could reuse existing code for this
+        val nextComma = element.findNextSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
+        val prevComma = element.findPrevSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
+        if (nextComma != null) {
+            nextComma.delete()
+        } else if (prevComma != null) {
+            prevComma.delete()
+        } else {
+            // if this function was called, then at least two nsId was imported, and one of them is used
+        }
+    }
+    val singularWhere = element.parentOfType<ArendWhere>()?.takeIf { it.statList.singleOrNull() == element }
+    element.delete()
+    singularWhere?.delete()
+}
+
+fun processRedundantImportedDefinitions(group : ArendGroup, fileImports: Map<FilePath, Set<ImportedName>>, moduleStructure: OptimalModuleStructure, action: (ArendCompositeElement) -> Unit) {
+    checkStatements(action, group.statements.filter { it is ArendStat && it.statCmd?.kind == NamespaceCommand.Kind.IMPORT }, fileImports, EMPTY_STRUCTURE)
+    visitModuleInconsistencies(action, group, moduleStructure, moduleStructure.usages, emptyMap())
 }
 
 /**
@@ -320,20 +322,20 @@ private fun eraseNamespaceCommands(group: ArendGroup) {
     }
 }
 
-internal data class ImportedName(val original: String, val renamed: String?) {
+data class ImportedName(val original: String, val renamed: String?) {
     constructor(original: String, renamed: String?, psi: PsiElement?): this ((psi as? Referable)?.refName ?: original, renamed)
 
     val visibleName = renamed ?: original
     override fun toString(): String = if (renamed == null) original else "$original \\as $renamed"
 }
 
-internal data class OptimizationResult(
+data class OptimizationResult(
     val fileImports: Map<FilePath, Set<ImportedName>>,
     val openStructure: OptimalModuleStructure,
     val coreDefinitionsUsed: Boolean
 )
 
-internal data class OptimalModuleStructure(
+data class OptimalModuleStructure(
     val name: String,
     val subgroups: List<OptimalModuleStructure>,
     val usages: Map<ModulePath, Set<ImportedName>>,
@@ -345,13 +347,14 @@ private fun OptimalModuleStructure.getDeeplyImportedNames(path: ModulePath) : Se
     return (usages[path] ?: emptySet()) + subgroups.flatMap { it.getDeeplyImportedNames(path) }
 }
 
-internal fun getOptimalImportStructure(file: ArendFile, progressIndicator: ProgressIndicator? = null): OptimizationResult {
+internal fun getOptimalImportStructure(group: ArendGroup, progressIndicator: ProgressIndicator? = null): OptimizationResult {
     val rootFrame = MutableFrame("")
+    val file = (group.containingFile as ArendFile)
     val forbiddenFilesToImport = setOfNotNull(file.moduleLocation?.modulePath, Prelude.MODULE_PATH)
     val collector = ImportStructureCollector(rootFrame, progressIndicator)
     val settings = CodeStyle.getCustomSettings(file, ArendCustomCodeStyleSettings::class.java)
 
-    file.accept(collector)
+    group.accept(collector)
     rootFrame.contract(collector.allDefinitionsTypechecked, collector.fileImports.values.flatMapTo(HashSet()) { it }, settings)
         .forEach { (file, ids) -> collector.fileImports.computeIfAbsent(file) { HashSet() }.addAll(ids) }
     return OptimizationResult(collector.fileImports.filter { it.key !in forbiddenFilesToImport }, rootFrame.asOptimalTree(), collector.allDefinitionsTypechecked)

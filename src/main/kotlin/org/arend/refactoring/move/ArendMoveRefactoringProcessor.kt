@@ -9,6 +9,8 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilCore
+import com.intellij.psi.util.elementType
+import com.intellij.psi.util.parentOfType
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.move.MoveMemberViewDescriptor
 import com.intellij.refactoring.move.moveMembers.MoveMembersImpl
@@ -16,6 +18,9 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
+import org.arend.codeInsight.getOptimalImportStructure
+import org.arend.codeInsight.processRedundantImportedDefinitions
+import org.arend.codeInsight.softOptimizer
 import org.arend.ext.module.LongName
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.reference.ClassReferable
@@ -59,7 +64,8 @@ class ArendMoveRefactoringProcessor(project: Project,
                                     private val mySourceContainer: ArendGroup,
                                     private val myTargetContainer: ArendGroup,
                                     private val insertIntoDynamicPart: Boolean,
-                                    private val myOpenInEditor: Boolean) : BaseRefactoringProcessor(project, myMoveCallback) {
+                                    private val myOpenInEditor: Boolean,
+                                    private val optimizeImportsAfterMove: Boolean = true) : BaseRefactoringProcessor(project, myMoveCallback) {
     private val myReferableDescriptors = ArrayList<LocationDescriptor>()
 
     override fun findUsages(): Array<UsageInfo> {
@@ -415,6 +421,12 @@ class ArendMoveRefactoringProcessor(project: Project,
                 modifyRecordDynamicDefCalls(definition, recordOtherDynamicMembers, psiFactory, thisVarName)
             }
 
+        }
+
+        if (optimizeImportsAfterMove) {
+            val optimalStructure = getOptimalImportStructure(mySourceContainer)
+            val (fileImports, optimalTree, _) = optimalStructure
+            processRedundantImportedDefinitions(mySourceContainer, fileImports, optimalTree, softOptimizer)
         }
 
         myMoveCallback.invoke()

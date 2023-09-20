@@ -275,7 +275,7 @@ fun createStatCmdStatement(factory: ArendPsiFactory, fullName: String, usingList
 
 fun addStatCmd(factory: ArendPsiFactory,
                commandStatement: ArendStat,
-               relativePosition: RelativePosition): PsiElement {
+               relativePosition: RelativePosition): ArendStatCmd? {
     val insertedStatement: PsiElement
 
     when (relativePosition.kind) {
@@ -292,7 +292,7 @@ fun addStatCmd(factory: ArendPsiFactory,
             insertedStatement = relativePosition.anchor.add(commandStatement)
         }
     }
-    return insertedStatement
+    return (insertedStatement as ArendStat).statCmd
 }
 
 fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positionInFile: ArendCompositeElement, elementReferable: PsiLocatedReferable, instanceMode: Boolean = false): Boolean {
@@ -349,10 +349,9 @@ fun addIdToUsing(groupMember: PsiElement?,
     }
 
     if (targetContainerName.isNotEmpty()) {
-        val insertedStatement = addStatCmd(factory,
+        val statCmd = addStatCmd(factory,
                 createStatCmdStatement(factory, targetContainerName, renamings, ArendPsiFactory.StatCmdKind.OPEN),
                 relativePosition)
-        val statCmd = insertedStatement.descendantOfType<ArendStatCmd>()
         val nsIds = statCmd?.nsUsing?.nsIdList ?: emptyList()
         return Pair(nsIds, nsIds.isNotEmpty())
     }
