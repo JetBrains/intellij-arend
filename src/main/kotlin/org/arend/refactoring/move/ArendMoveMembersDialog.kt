@@ -2,13 +2,11 @@ package org.arend.refactoring.move
 
 import com.intellij.ide.actions.CreateFileFromTemplateAction.createFileFromTemplate
 import com.intellij.ide.fileTemplates.FileTemplateManager
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiElement
-import com.intellij.psi.SmartPointerManager
-import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.*
 import com.intellij.refactoring.HelpID
 import com.intellij.refactoring.classMembers.MemberInfoBase
 import com.intellij.refactoring.move.MoveDialogBase
@@ -17,33 +15,38 @@ import com.intellij.refactoring.ui.AbstractMemberSelectionPanel
 import com.intellij.refactoring.ui.AbstractMemberSelectionTable
 import com.intellij.refactoring.ui.MemberSelectionTable
 import com.intellij.refactoring.util.CommonRefactoringUtil
-import com.intellij.ui.RowIcon
-import com.intellij.ui.ScrollPaneFactory
-import com.intellij.ui.SeparatorFactory
+import com.intellij.ui.*
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
+import org.arend.ArendFileType
 import org.arend.ext.module.ModulePath
+import org.arend.module.ModuleLocation
+import org.arend.module.ModuleScope
 import org.arend.module.config.ArendModuleConfigService
-import org.arend.psi.ext.ArendClassStat
-import org.arend.psi.ext.ArendDefClass
-import org.arend.psi.ext.ArendDefFunction
-import org.arend.psi.ext.ArendGroup
+import org.arend.naming.reference.Referable
+import org.arend.naming.scope.EmptyScope
+import org.arend.naming.scope.LexicalScope
+import org.arend.naming.scope.Scope
+import org.arend.psi.ArendFile
+import org.arend.psi.ext.*
 import org.arend.psi.findGroupByFullName
+import org.arend.psi.libraryConfig
 import org.arend.util.FullName
 import org.arend.util.aligned
 import java.awt.BorderLayout
 import java.awt.Dimension
-import javax.swing.*
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
+import java.util.function.Predicate
+import javax.swing.Icon
+import javax.swing.JPanel
+import javax.swing.JRadioButton
 
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendGroup>,
                              container: PsiElement,
                              private val enclosingModule: Module) : MoveDialogBase(project, false, true) {
-    private val targetFileTextField: JTextField
-    private val targetModuleTextField: JTextField
+    private val targetFileField: EditorTextField
+    private val targetModuleField: EditorTextField
     private val centerPanel: JPanel
     private val containerRef: SmartPsiElementPointer<PsiElement>
     private val memberSelectionPanel: ArendMemberSelectionPanel
@@ -63,8 +66,15 @@ class ArendMoveMembersDialog(project: Project,
             null
         }
 
-        targetFileTextField = JTextField(fullName?.modulePath?.toString() ?: "")
-        targetModuleTextField = JTextField(fullName?.longName?.toString() ?: "")
+        val containingFile = container.containingFile as? ArendFile
+        val globalScope = containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == ModuleLocation.LocationKind.TEST) } ?: EmptyScope.INSTANCE
+
+        targetFileField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.modulePath?.toString() ?: "", null, customScopeGetter = { globalScope })), project, ArendFileType.INSTANCE)
+        targetModuleField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.longName?.toString() ?: "", null, customScopeGetter = {
+            val group = simpleLocate(targetFileField.text, "", enclosingModule).first
+            group?.let { FilteringScope(LexicalScope.insideOf(it, EmptyScope.INSTANCE)) { referable ->
+                referable !is ArendClassField && referable !is ArendConstructor && referable !is ArendFieldDefIdentifier
+            } } ?: EmptyScope.INSTANCE })), project, ArendFileType.INSTANCE)
 
         memberSelectionPanel = ArendMemberSelectionPanel("Members to move", memberInfos)
         staticGroup = JRadioButton("Static")
@@ -74,8 +84,8 @@ class ArendMoveMembersDialog(project: Project,
             row { cell(ScrollPaneFactory.createScrollPane(memberSelectionPanel, true))
                 .align(Align.FILL)
             }.resizableRow()
-            aligned("Target file: ", targetFileTextField)
-            aligned("Target module: ", targetModuleTextField)
+            aligned("Target file: ", targetFileField)
+            aligned("Target module: ", targetModuleField)
 
             buttonsGroup {
                 classPartRow = row("Target part of the class") {
@@ -101,23 +111,29 @@ class ArendMoveMembersDialog(project: Project,
             staticGroup.isSelected = true
         }
 
-        val updater: () -> Unit = { classPartRow.enabled(classPartShouldBeEnabled()) }
-
-        val documentListener = object: DocumentListener {
-            override fun changedUpdate(e: DocumentEvent?) = updater()
-            override fun insertUpdate(e: DocumentEvent?) = updater()
-            override fun removeUpdate(e: DocumentEvent?) = updater()
+        val updater: () -> Unit = {
+            classPartRow.enabled(classPartShouldBeEnabled())
         }
 
-        targetFileTextField.document.addDocumentListener(documentListener)
-        targetModuleTextField.document.addDocumentListener(documentListener)
+        val documentListener = object: com.intellij.openapi.editor.event.DocumentListener {
+            override fun beforeDocumentChange(event: com.intellij.openapi.editor.event.DocumentEvent) { }
+
+            override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) { updater() }
+
+            override fun bulkUpdateStarting(document: Document) { }
+
+            override fun bulkUpdateFinished(document: Document) { }
+        }
+
+        targetFileField.document.addDocumentListener(documentListener)
+        targetModuleField.document.addDocumentListener(documentListener)
 
         init()
     }
 
     private fun classPartShouldBeEnabled() : Boolean {
-        val fileName = targetFileTextField.text
-        val moduleName = targetModuleTextField.text
+        val fileName = targetFileField.text
+        val moduleName = targetModuleField.text
         val locateResult = simpleLocate(fileName, moduleName, enclosingModule)
         return locateResult.second == LocateResult.LOCATE_OK && locateResult.first is ArendDefClass
     }
@@ -141,8 +157,8 @@ class ArendMoveMembersDialog(project: Project,
     override fun doAction() {
         val sourceGroup = containerRef.element
         val elementsToMove = memberSelectionPanel.table.selectedMemberInfos.map { it.member }
-        val fileName = targetFileTextField.text
-        val moduleName = targetModuleTextField.text
+        val fileName = targetFileField.text
+        val moduleName = targetModuleField.text
         var targetContainer: ArendGroup? = null
         val targetIsDynamic: Boolean? = if (!classPartShouldBeEnabled()) null else {
             val isDynamic = dynamicGroup.isSelected
@@ -162,7 +178,7 @@ class ArendMoveMembersDialog(project: Project,
         var showErrorMessage = true
         if (locateResult.second != LocateResult.LOCATE_OK) {
             if (locateResult.second == LocateResult.CANT_FIND_FILE && moduleName.trim() == "") {
-                val dirData = locateParentDirectory(targetFileTextField.text, enclosingModule)
+                val dirData = locateParentDirectory(targetFileField.text, enclosingModule)
                 val directory = dirData?.first
                 val newFileName = dirData?.second
                 if (dirData != null && directory != null) {
@@ -187,7 +203,7 @@ class ArendMoveMembersDialog(project: Project,
             if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.getRefactoringName(), getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
     }
 
-    override fun getPreferredFocusedComponent() = targetFileTextField
+    override fun getPreferredFocusedComponent() = targetFileField
 
     override fun getRefactoringId() = "Move Arend static member"
 
@@ -203,6 +219,21 @@ class ArendMoveMembersDialog(project: Project,
         private const val canNotLocateMessage = "Can not locate target module"
         private const val targetEqualsSource = "Target module cannot coincide with the source module"
         private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
+
+        class FilteringScope(val scope: Scope, val predicate: (Referable) -> Boolean) : Scope {
+            override fun find(pred: Predicate<Referable>?): Referable? {
+                val result = scope.find(pred)
+                return if (result != null && predicate.invoke(result)) result else null
+            }
+
+            override fun getElements(kind: Referable.RefKind?): MutableCollection<out Referable> {
+                return scope.getElements(kind).filter { predicate.invoke(it) }.toMutableList()
+            }
+
+            override fun resolveNamespace(name: String, onlyInternal: Boolean): Scope? {
+                return scope.resolveNamespace(name, onlyInternal)?.let { FilteringScope(it, predicate) }
+            }
+        }
 
         fun isMovable(a: ArendGroup) = !(a is ArendDefFunction && a.functionKind.isUse)
 

@@ -21,6 +21,7 @@ import org.arend.psi.doc.ArendDocReferenceText
 import org.arend.psi.ext.*
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.psi.ArendExpressionCodeFragmentElementType
+import org.arend.refactoring.move.ArendLongNameCodeFragmentElementType
 
 class ArendParserDefinition : ParserDefinition {
 
@@ -140,6 +141,7 @@ class ArendParserDefinition : ParserDefinition {
         ACCESS_MOD -> ArendAccessMod(node)
         STAT_ACCESS_MOD -> ArendStatAccessMod(node)
         ArendExpressionCodeFragmentElementType -> ArendExpr(node)
+        ArendLongNameCodeFragmentElementType -> ArendLongName(node)
         else -> throw AssertionError("Unknown element type: $type")
     }
 }

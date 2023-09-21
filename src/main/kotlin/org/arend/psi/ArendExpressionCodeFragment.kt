@@ -1,12 +1,14 @@
 package org.arend.psi
 
 import com.intellij.lang.ASTNode
+import com.intellij.lang.PsiBuilder
 import com.intellij.lang.PsiBuilderFactory
 import com.intellij.lang.parser.GeneratedParserUtilBase
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.PsiCodeFragmentImpl
 import com.intellij.psi.impl.source.tree.ICodeFragmentElementType
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.elementType
 import org.arend.ArendLanguage
 import org.arend.IArendFile
@@ -44,17 +46,23 @@ class ArendExpressionCodeFragment(project: Project, expression: String,
     fun scopeModified(nsCmd: NsCmdRefactoringAction) { fragmentController?.scopeModified(nsCmd) }
 }
 
-object ArendExpressionCodeFragmentElementType: ICodeFragmentElementType("EXPR_TEXT", ArendLanguage.INSTANCE) {
+abstract class ArendCodeFragmentElementType(debugName: String, val elementType: IElementType) : ICodeFragmentElementType(debugName, ArendLanguage.INSTANCE) {
     override fun parseContents(chameleon: ASTNode): ASTNode {
         val project: Project = chameleon.psi.project
         var builder = PsiBuilderFactory.getInstance().createBuilder(project, chameleon, null, ArendLanguage.INSTANCE, chameleon.chars)
         val parser = ArendParser()
         builder = GeneratedParserUtilBase.adapt_builder_(this, builder, parser, ArendParser.EXTENDS_SETS_)
         val marker = GeneratedParserUtilBase.enter_section_(builder, 0, GeneratedParserUtilBase._COLLAPSE_ , null)
-        val success = ArendParser.expr(builder, 1, -1)
-        GeneratedParserUtilBase.exit_section_(builder, 0, marker, ArendElementTypes.EXPR, success, true, GeneratedParserUtilBase.TRUE_CONDITION)
+        val success = doParse(builder) //ArendParser.longName(builder, 1)
+        GeneratedParserUtilBase.exit_section_(builder, 0, marker, elementType, success, true, GeneratedParserUtilBase.TRUE_CONDITION)
         return builder.treeBuilt
     }
+
+    abstract fun doParse(builder: PsiBuilder): Boolean
+}
+
+object ArendExpressionCodeFragmentElementType : ArendCodeFragmentElementType("AREND_EXPRESSION_CODE_FRAGMENT", ArendElementTypes.EXPR) {
+    override fun doParse(builder: PsiBuilder): Boolean = ArendParser.expr(builder, 1, -1)
 }
 
 interface ArendCodeFragmentController {

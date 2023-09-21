@@ -47,7 +47,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
             }
         }
         result.runRemainingContributors(parameters, tracker)
-        val file = parameters.originalFile
+        val file = parameters.originalFile as? ArendFile ?: return
         val isTestFile = (file as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
         val refElementAtCaret = file.findElementAt(parameters.offset - 1)?.parent
         val parent = refElementAtCaret?.parent
@@ -79,7 +79,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                     }
                     locatedReferables.forEach {
                         val isInsideTest = (it.containingFile as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
-                        val isImportAllowed = it.accessModifier != AccessModifier.PRIVATE && isVisible(it.containingFile as ArendFile, file as ArendFile)
+                        val isImportAllowed = it.accessModifier != AccessModifier.PRIVATE && isVisible(it.containingFile as ArendFile, file)
                         if (!tracker.variants.contains(it) && (isTestFile || !isInsideTest) && isImportAllowed)
                             ArendReferenceBase.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
                                 result.addElement(
