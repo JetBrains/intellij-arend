@@ -24,6 +24,9 @@ import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
+import org.arend.ext.prettyprinting.doc.DocFactory
+import org.arend.injection.InjectedArendEditor
+import org.arend.injection.actions.withNormalizedTerms
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendGoal
 import org.arend.psi.ext.PsiConcreteReferable
@@ -40,7 +43,8 @@ import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
-class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : ArendErrorTreeListener, TreeSelectionListener, ProjectManagerListener {
+class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : ArendErrorTreeListener,
+    TreeSelectionListener, ProjectManagerListener {
     private val root = DefaultMutableTreeNode("Errors")
     private val treeModel = DefaultTreeModel(root)
     val tree = ArendErrorTree(treeModel, this)
@@ -51,7 +55,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val goalsErrorsSplitter = OnePixelSplitter(!toolWindow.anchor.isHorizontal, 0.5f)
 
     private var goalEditor: ArendMessagesViewEditor? = null
-    private val goalEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.goal.panel.text"))
+    private val goalEmptyPanel =
+        JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.goal.panel.text"))
     private val goalsPanel = JBUI.Panels.simplePanel(goalEmptyPanel)
     private val defaultGoalsTabTitle = ArendBundle.message("arend.messages.view.latest.goal.title")
     private val goalsTabInfo = TabInfo(goalsPanel).apply {
@@ -60,7 +65,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     private var errorEditor: ArendMessagesViewEditor? = null
-    private val errorEmptyPanel = JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.error.panel.text"))
+    private val errorEmptyPanel =
+        JBPanelWithEmptyText().withEmptyText(ArendBundle.message("arend.messages.view.empty.error.panel.text"))
     private val errorsPanel = JBUI.Panels.simplePanel(errorEmptyPanel)
 
     init {
@@ -69,11 +75,12 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         toolWindow.setIcon(ArendIcons.MESSAGES)
         val contentManager = toolWindow.contentManager
         contentManager.addContent(contentManager.factory.createContent(treeDetailsSplitter, "", false))
-        project.messageBus.connect(project).subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
-            override fun toolWindowShown(toolWindow: ToolWindow) {
-                updateOrientation(toolWindow)
-            }
-        })
+        project.messageBus.connect(project)
+            .subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
+                override fun toolWindowShown(toolWindow: ToolWindow) {
+                    updateOrientation(toolWindow)
+                }
+            })
 
         setupTreeDetailsSplitter(!toolWindow.anchor.isHorizontal)
 
@@ -159,7 +166,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun valueChanged(e: TreeSelectionEvent?) = updateEditors()
 
     fun updateEditors() {
-        val treeElement = getSelectedMessage()
+        var treeElement = getSelectedMessage()
         if (treeElement != null) {
             if (isGoal(treeElement) && !isGoalTextPinned() && (!isImplicitGoal(treeElement) || isShowImplicitGoals())) {
                 if (goalEditor == null) {
@@ -177,24 +184,27 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
         } else {
             if (!isGoalTextPinned()) {
-                val currentGoal = goalEditor?.treeElement?.sampleError
-                if (currentGoal != null) {
+                goalEditor?.treeElement?.sampleError?.let { currentGoal ->
                     if (isParentDefinitionPsiInvalid(currentGoal)) {
                         goalEditor?.clear()
                         updateGoalsView(goalEmptyPanel)
-                    }
-                    else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) {
+                    } else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) {
+                        val error = currentGoal.error
+                        val (resolve, scope) = InjectedArendEditor.resolveCauseReference(error)
+                        val doc = goalEditor?.getDoc(goalEditor?.treeElement!!, error, resolve, scope)
+
                         if (isParentDefinitionRemovedFromTree(currentGoal)) {
                             goalEditor?.clear()
                             updateGoalsView(goalEmptyPanel)
-                        }
-                        else if (isCausePsiInvalid(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
+                        } else if (isCausePsiInvalid(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
                             runInEdt {
                                 goalsTabInfo.append(
                                     " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})",
                                     SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES
                                 )
                             }
+                        } else if (goalEditor?.currentDoc.toString() != doc.toString()) {
+                            updateGoalText()
                         }
                     }
                 }
@@ -218,7 +228,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     private fun isGoal(treeElement: ArendErrorTreeElement?) =
-            treeElement?.highestError?.error?.level == GeneralError.Level.GOAL
+        treeElement?.highestError?.error?.level == GeneralError.Level.GOAL
 
     private fun isShowImplicitGoals() = project.service<ArendMessagesService>().isShowImplicitGoals.get()
 
@@ -277,7 +287,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     fun updateErrorText() {
         val level = errorEditor?.treeElement?.highestError?.error?.level
-        if (level != null &&  level != GeneralError.Level.GOAL) {
+        if (level != null && level != GeneralError.Level.GOAL) {
             errorEditor?.updateErrorText()
         }
     }
@@ -310,7 +320,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         val errorsMap = project.service<ErrorService>().errors
         val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
         tree.update(root) { node ->
-            if (node == root) errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }.map { it.key }
+            if (node == root) errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }
+                .map { it.key }
             else when (val obj = node.userObject) {
                 is ArendFile -> {
                     val arendErrors = errorsMap[obj]
@@ -325,11 +336,13 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                             children.add(ArendErrorTreeElement(arendError))
                         } else {
                             children.add(def)
-                            map.computeIfAbsent(def) { LinkedHashMap() }.computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
+                            map.computeIfAbsent(def) { LinkedHashMap() }
+                                .computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
                         }
                     }
                     children
                 }
+
                 is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
                 else -> emptySet()
             }

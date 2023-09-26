@@ -129,14 +129,7 @@ abstract class InjectedArendEditor(
                     if (scope != null) {
                         fileScope = scope
                     }
-                    val ppConfig = getCurrentConfig(scope)
-                    val doc = if (causeIsMetaExpression(error.causeSourceNode, resolve))
-                        error.getDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
-                    else
-                        DocFactory.vHang(
-                            error.getHeaderDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig),
-                            error.getBodyDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
-                        )
+                    val doc = getDoc(treeElement, error, resolve, scope)
                     currentDoc = doc
                     doc.accept(visitor, false)
                 }
@@ -186,6 +179,19 @@ abstract class InjectedArendEditor(
             verboseLevelMap,
             verboseLevelParameterMap
         )
+    }
+
+    fun getDoc(treeElement: ArendErrorTreeElement, error: GeneralError, resolve: Referable?, scope: Scope?): Doc {
+        val ppConfig = getCurrentConfig(scope)
+        return if (causeIsMetaExpression(error.causeSourceNode, resolve)) {
+            error.getDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
+        }
+        else {
+            DocFactory.vHang(
+                error.getHeaderDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig),
+                error.getBodyDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
+            )
+        }
     }
 
     fun addDoc(doc: Doc, docScope: Scope) {
