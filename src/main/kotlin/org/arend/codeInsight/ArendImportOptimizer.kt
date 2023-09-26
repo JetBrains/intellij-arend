@@ -278,7 +278,9 @@ fun getScopeProvider(isForModule: Boolean, group: ArendGroup): ScopeProvider {
     } else {
         val libraryManager = group.project.service<TypeCheckingService>().libraryManager
         { path ->
-            libraryManager.registeredLibraries.firstNotNullOfOrNull { libraryManager.getAvailableModuleScopeProvider(it).forModule(path) }
+            val result = libraryManager.registeredLibraries.firstNotNullOfOrNull { libraryManager.getAvailableModuleScopeProvider(it).forModule(path) }
+            if (result == null) println("FOO")
+            result
         }
     }
 }

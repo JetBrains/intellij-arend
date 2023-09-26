@@ -2,6 +2,7 @@ package org.arend.util
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.hints.InlayHintsPassFactory
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -18,6 +19,8 @@ import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.psi.ArendFile
+import org.arend.settings.ArendProjectSettings
+import org.arend.typechecking.ArendExtensionChangeListener
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.jetbrains.yaml.psi.YAMLFile
@@ -55,9 +58,13 @@ fun Module.register() {
         config.copyFromYAML(false)
         config
     } ?: return
+    refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
     runReadAction {
         service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
     }
+    ApplicationManager.getApplication().getService(ArendExtensionChangeListener::class.java).initializeModule(config)
+    config.isInitialized = true
+    DaemonCodeAnalyzer.getInstance(project).restart()
 }
 
 fun Editor.isDetailedViewEditor() : Boolean = getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null
