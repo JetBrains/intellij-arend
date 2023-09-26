@@ -35,6 +35,7 @@ import org.arend.typechecking.visitor.SearchVisitor
 import org.arend.util.ArendBundle
 import org.arend.util.mapToSet
 import org.jetbrains.annotations.Contract
+import java.util.Collections.singletonList
 import kotlin.reflect.jvm.internal.impl.utils.SmartSet
 
 /**
@@ -101,7 +102,7 @@ class ArendImportOptimizer : ImportOptimizer {
             fileImports: Map<FilePath, Set<ImportedName>>,
             optimalTree: OptimalModuleStructure
         ) {
-            processRedundantImportedDefinitions(file, fileImports, optimalTree, softOptimizer)
+            processRedundantImportedDefinitions(file, fileImports, optimalTree, importRemover)
             val factory = ArendPsiFactory(file.project)
             val allImports = file.statements.filter { it.statCmd?.kind == NamespaceCommand.Kind.IMPORT }.map {
                 val text = it.text
@@ -117,7 +118,7 @@ class ArendImportOptimizer : ImportOptimizer {
     }
 }
 
-val softOptimizer : (ArendCompositeElement) -> Unit = { element ->
+val importRemover : (ArendCompositeElement) -> Unit = { element ->
     if (element is ArendNsId) { // TODO: We could reuse existing code for this
         val nextComma = element.findNextSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
         val prevComma = element.findPrevSibling()?.takeIf { it.elementType == ArendElementTypes.COMMA }
@@ -147,8 +148,8 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit,
                             pattern: Map<ModulePath, Set<ImportedName>>,
                             hierarchy: OptimalModuleStructure) : Map<ModulePath, Set<ImportedName>>{
     val deepStatements = mutableMapOf<ModulePath, MutableSet<ImportedName>>()
-    for (import in statements) {
-        val statCmd = import.namespaceCommand ?: continue
+    for (stat in statements) {
+        val statCmd = stat.namespaceCommand ?: continue
         val qualifiedReferences = statCmd.getQualifiedReferenceFromOpen()
         val importedPattern = qualifiedReferences.flatMapTo(HashSet()) { pattern[it] ?: emptySet() }
         val deepPatterns = qualifiedReferences.flatMapTo(HashSet()) { hierarchy.getDeeplyImportedNames(it) }
@@ -158,7 +159,7 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit,
         if ((importedPattern.isEmpty() && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref ->
             ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text, ref.refIdentifier.resolve) !in (importedPattern + deepPatterns)
         } } == true)  {
-            action(import)
+            action(stat)
             continue
         }
         for ((idx, nsId) in importedHere.withIndex()) {
@@ -392,7 +393,12 @@ private class ImportStructureCollector(
 
         if (element !is ArendStatCmd) {
             super.visitElement(element)
+        } else if (element.openKw != null) {
+            val resolved = element.openedReference?.resolve as? PsiStubbedReferableImpl<*> ?: return
+            val (q1, q2) = collectQualifier(resolved) ?: return
+            currentFrame.activeOpens[Pair(q1, ModulePath(q2.toList() + singletonList(resolved.getName())))] = element
         }
+
         if (element is ArendReferenceElement) {
             visitReferenceElement(element)
         }
@@ -459,7 +465,18 @@ private class ImportStructureCollector(
         fileImports.computeIfAbsent(importedFilePath) { HashSet() }.add(ImportedName(identifierImportedFromFile, importedAs?.takeIf { identifierImportedFromFile == characteristics }, null))
         val shortenedOpeningPath = openingPath.shorten(groupStack)
         if (shortenedOpeningPath.isNotEmpty() || importedAs != null) {
+            if (openingPath.size > 1) println(openingPath)
             currentFrame.usages[ImportedName(characteristics, importedAs, null)] = ModulePath(openingPath)
+        }
+
+        for (frame in frameStack) {
+            val key : Pair<FilePath, ModulePath> = Pair(importedFilePath, ModulePath(openingPath))
+            val relevantOpen = frame.activeOpens[key]
+            if (relevantOpen != null) {
+                val lN = relevantOpen.openedReference ?: continue
+                for (ref in lN.refIdentifierList)
+                    visitReferenceElement(ref)
+            }
         }
     }
 
@@ -478,7 +495,7 @@ private class ImportStructureCollector(
     ): Boolean {
         val resolvedParentGroup by lazy(LazyThreadSafetyMode.NONE) { resolved.parentOfType<ArendGroup>() }
         val elementGroup by lazy(LazyThreadSafetyMode.NONE) { element.parentOfType<ArendGroup>() ?: element }
-        if (resolved is ArendDefModule ||
+        if (/*resolved is ArendDefModule ||*/
             element.parent?.parent is CoClauseBase ||
             (resolved is ArendClassField &&
                resolved.name == element.referenceName && // check against renamed field
@@ -516,6 +533,7 @@ private data class MutableFrame(
     val usages: MutableMap<ImportedName, ModulePath> = mutableMapOf(),
     val instancesFromScope: MutableList<ArendDefInstance> = mutableListOf(),
     val instancesFromCore: MutableSet<ArendDefInstance> = mutableSetOf(),
+    val activeOpens: MutableMap<Pair<FilePath, ModulePath>, ArendStatCmd> = mutableMapOf()
 ) {
     fun asOptimalTree(): OptimalModuleStructure =
         OptimalModuleStructure(name, subgroups.map { it.asOptimalTree() }, run {

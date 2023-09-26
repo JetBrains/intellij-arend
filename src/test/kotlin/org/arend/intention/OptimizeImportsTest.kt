@@ -1358,4 +1358,34 @@ class OptimizeImportsTest : QuickFixTestBase() {
        }
     """)
 
+    fun testOptimizeImports5() = doSoftTest("""
+       \open Outer{-caret-} (Inner)
+
+       \module Bar \where {
+         \open Inner
+
+         \func bar => foobar
+       }
+
+       \module Outer \where {
+         \module Inner \where {
+           \func foobar => 100
+         }
+       }
+    """, """
+       \open Outer (Inner)
+
+       \module Bar \where {
+         \open Inner
+
+         \func bar => foobar
+       }
+
+       \module Outer \where {
+         \module Inner \where {
+           \func foobar => 100
+         }
+       }
+    """)
+
 }

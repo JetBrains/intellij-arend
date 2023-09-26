@@ -9,7 +9,6 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilCore
-import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.move.MoveMemberViewDescriptor
@@ -20,7 +19,7 @@ import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
 import org.arend.codeInsight.getOptimalImportStructure
 import org.arend.codeInsight.processRedundantImportedDefinitions
-import org.arend.codeInsight.softOptimizer
+import org.arend.codeInsight.importRemover
 import org.arend.ext.module.LongName
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.reference.ClassReferable
@@ -426,7 +425,7 @@ class ArendMoveRefactoringProcessor(project: Project,
         if (optimizeImportsAfterMove) {
             val optimalStructure = getOptimalImportStructure(mySourceContainer)
             val (fileImports, optimalTree, _) = optimalStructure
-            processRedundantImportedDefinitions(mySourceContainer, fileImports, optimalTree, softOptimizer)
+            processRedundantImportedDefinitions(mySourceContainer, fileImports, optimalTree, importRemover)
         }
 
         myMoveCallback.invoke()
