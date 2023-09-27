@@ -1242,4 +1242,16 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func lol => cons {_} {1} nil 
     """)
+
+    fun testPrivateWhereBlock() = doTest("""
+       \module M \where \private {
+         \func foo (n{-caret-} : Nat) => n
+         \func bar => foo 0
+       }
+    """, """
+       \module M \where \private {
+         \func foo {n : Nat} => n
+         \func bar => foo {0}
+       }
+    """)
 }

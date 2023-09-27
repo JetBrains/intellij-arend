@@ -173,7 +173,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
 
         val nodePsi = node.psi
 
-        if (node.elementType == STAT || nodePsi is ArendFile) return ChildAttributes.DELEGATE_TO_PREV_CHILD
+        if (node.elementType == STAT || node.elementType == STAT_ACCESS_MOD || nodePsi is ArendFile) return ChildAttributes.DELEGATE_TO_PREV_CHILD
 
         if (node.elementType == TUPLE && subBlocks.size > 1 && newChildIndex == 1)
             return ChildAttributes(Indent.getNormalIndent(), null)

@@ -235,4 +235,17 @@ class ArendNewlineTest : ArendFormatterTestBase() {
 
     fun testBlockDoc2() = checkNewLine("{- | Foo\n - Bar{-caret-}\n -}", "{- | Foo\n - Bar\n - {-caret-}\n -}")
 
+    // Test private
+
+    fun testPrivate() = checkNewLine("""
+       \module M \where \private {
+         \func foo (n : Nat) : Nat{-caret-}
+       }
+    """, """
+       \module M \where \private {
+         \func foo (n : Nat) : Nat
+           {-caret-}
+       }
+    """)
+
 }

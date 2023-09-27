@@ -1,7 +1,9 @@
 package org.arend.codeInsight.completion
 
 
-class ArendFieldCompletionTest : ArendCompletionTestBase() {
+class ArendCompletionTest : ArendCompletionTestBase() {
+
+    /* field completion */
     fun `test local variable`() =
         checkCompletionVariants(
             "\\class C { | f : Nat | g : Nat }\n" +
@@ -107,10 +109,95 @@ class ArendFieldCompletionTest : ArendCompletionTestBase() {
             "\\func test (a : 0 + 1) => a.{-caret-}",
             listOf("f", "g"))
 
-    fun `_test pattern`() =
+    fun `test pattern`() =
         checkCompletionVariants(
             "\\class A (f g : Nat)\n" +
             "\\data D | con A\n" +
             "\\func test (d : D) : Nat | con (a : A) => a.{-caret-}",
             listOf("f", "g"))
+
+    /* private */
+
+    fun `test private`() =
+        checkCompletionVariants("""
+           \module M \where \private {
+             \func foo (n : Nat) => n
+             \func bar => foo 0
+           }
+
+           \func lol => M.{-caret-}
+        """, listOf())
+
+    fun `test private 2`() =
+        checkCompletionVariants("""
+           \module M \where \private {
+             \func foo (n : Nat) => n
+             \func bar => foo 0
+             
+             \func lol => {-caret-}
+           }
+          
+        """, listOf("foo", "bar"), CompletionCondition.CONTAINS)
+
+    /* module completion in import commands */
+
+    fun `test module name completion`() = doSingleCompletionMultifile(
+        """
+                -- ! Main.ard
+                \import My{-caret-}
+
+                -- ! MyModule.ard
+                -- empty
+            """,
+        """
+                \import MyModule
+            """
+    )
+
+    fun `test directory name completion`() = doSingleCompletionMultifile(
+        """
+                -- ! Main.ard
+                \import Dir{-caret-}
+
+                -- ! Directory/MyModule.ard
+                -- empty
+            """,
+        """
+                \import Directory{-caret-}
+            """
+    )
+
+    fun `test module name completion subdirectory`() = doSingleCompletionMultifile(
+        """
+                -- ! Main.ard
+                \import Directory.My{-caret-}
+
+                -- ! Directory/MyModule.ard
+                -- empty
+            """,
+        """
+                \import Directory.MyModule{-caret-}
+            """
+    )
+
+    /* no variants delegator */
+
+    fun `test noVariantsDelegator`() = doSingleCompletionMultifile("""
+                -- ! Main.ard
+                \import Depend{-caret-}
+                -- ! Dir1/Dependency.ard
+                -- empty
+    """, """
+                \import Dir1.Dependency{-caret-}
+    """)
+
+    fun `test noVariantsDelegator 2`() =
+        checkSingleCompletion("""
+           \module M \where {
+             \func foo (n : Nat) => n
+             \func bar => foo 0
+           }
+
+           \func lol => fo{-caret-}
+        """, "M.foo")
 }

@@ -36,7 +36,7 @@ interface ArendReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: TextRange, private val beforeImportDot: Boolean = false, protected val refKind: RefKind = RefKind.EXPR) : PsiReferenceBase<T>(element, range), ArendReference {
+abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: TextRange, private val beforeImportDot: Boolean = false, val refKind: RefKind = RefKind.EXPR) : PsiReferenceBase<T>(element, range), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element

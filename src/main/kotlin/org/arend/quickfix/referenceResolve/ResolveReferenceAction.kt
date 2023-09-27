@@ -56,7 +56,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
         fun getTargetName(target: PsiLocatedReferable?, element: ArendCompositeElement): String? {
             val containingFile = element.containingFile as? ArendFile ?: return null
             val location = LocationData(target ?: return null)
-            val (importAction, resultName) = calculateReferenceName(location, containingFile, element) ?: return null
+            val (importAction, resultName) = doCalculateReferenceName(location, containingFile, element)
             importAction?.execute()
             return LongName(resultName.ifEmpty { listOf(target.name) }).toString()
         }
