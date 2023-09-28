@@ -111,7 +111,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
             .range(range)
             .severity(levelToSeverity(error.level))
             .description(error.shortMessage)
-            .escapedToolTip(XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>").replace(" ", "&nbsp;"))
+            .escapedToolTip(XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
     }
 
     fun registerFix(builder: HighlightInfo.Builder, fix: IntentionAction) {
