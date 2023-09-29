@@ -58,7 +58,7 @@ class ArendResolveCache(project: Project) {
     }
 
     private fun doReplaceCache(newRef: Referable?, reference: ArendReferenceElement) {
-        if (newRef is PsiElement) {
+        if (newRef is PsiElement && newRef.isValid) {
             refMapPsi[reference] = Pair(reference.text.hashCode(), SmartPointerManager.createPointer(newRef))
         } else
             refMap[reference] = newRef ?: TCDefReferable.NULL_REFERABLE
