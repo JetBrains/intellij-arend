@@ -16,19 +16,22 @@ class ArendMessagesService(private val project: Project) {
         private set
     var isGoalTextPinned: Boolean = false
     var isErrorTextPinned: Boolean = false
+    private val arendProjectSettings = project.service<ArendProjectSettings>().apply {
+        data.isShowImplicitGoals = true
+    }
 
     var isShowImplicitGoals: MutableBooleanProperty =
-            AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowImplicitGoals).apply {
-                afterChange { project.service<ArendProjectSettings>().data.isShowImplicitGoals = it }
+            AtomicBooleanProperty(arendProjectSettings.data.isShowImplicitGoals).apply {
+                afterChange { arendProjectSettings.data.isShowImplicitGoals = it }
             }
 
     var isShowErrorsPanel: MutableBooleanProperty =
-            AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowErrorsPanel).apply {
-                afterChange { project.service<ArendProjectSettings>().data.isShowErrorsPanel = it }
+            AtomicBooleanProperty(arendProjectSettings.data.isShowErrorsPanel).apply {
+                afterChange { arendProjectSettings.data.isShowErrorsPanel = it }
             }
     var isShowGoalsInErrorsPanel: MutableBooleanProperty =
-            AtomicBooleanProperty(project.service<ArendProjectSettings>().data.isShowGoalsInErrorsPanel).apply {
-                afterChange { project.service<ArendProjectSettings>().data.isShowGoalsInErrorsPanel = it }
+            AtomicBooleanProperty(arendProjectSettings.data.isShowGoalsInErrorsPanel).apply {
+                afterChange { arendProjectSettings.data.isShowGoalsInErrorsPanel = it }
             }
 
     fun activate(project: Project, selectFirst: Boolean) {
