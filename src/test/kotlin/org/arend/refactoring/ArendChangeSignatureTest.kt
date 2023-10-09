@@ -407,4 +407,9 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
        \func usage3 => \new C2 Nat 1 Bool
     """, listOf(Pair(-1, "Z"), Pair(-2, "z")))
 
+    fun testProperty() = changeSignature("""
+       \func foo (\property {-caret-}A : \Type) => 101
+    """, """
+       \func foo {\property A : \Type} => 101
+    """, listOf(-1))
 }

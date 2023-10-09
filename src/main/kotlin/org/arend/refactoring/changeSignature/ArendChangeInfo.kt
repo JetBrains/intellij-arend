@@ -101,14 +101,14 @@ data class ArendChangeInfo (
 
     fun parameterText(): String {
 
-        data class TeleEntry(val typeText: String?, val isExplicit: Boolean, val isCoerce: Boolean, val isClassifying: Boolean, val accessModifier: org.arend.term.group.AccessModifier = org.arend.term.group.AccessModifier.PUBLIC, val parameterNames: MutableList<Pair<String?, Int>>)
+        data class TeleEntry(val typeText: String?, val isExplicit: Boolean, val isCoerce: Boolean, val isClassifying: Boolean, val isProperty: Boolean, val accessModifier: org.arend.term.group.AccessModifier = org.arend.term.group.AccessModifier.PUBLIC, val parameterNames: MutableList<Pair<String?, Int>>)
         val teleEntries = ArrayList<TeleEntry>()
         val associatedWhitespaceData = HashSet<Pair<TeleEntry, TeleWhitespaceData>>()
         val usedWhitespaceData = HashSet<TeleWhitespaceData>()
 
         for (parameter in parameterInfo) {
             if (teleEntries.isEmpty() || teleEntries.last().typeText != parameter.typeText || teleEntries.last().isExplicit != parameter.isExplicit() || parameter.isCoerce || parameter.isClassifying)
-                teleEntries.add(TeleEntry(parameter.typeText, parameter.isExplicit(), parameter.isCoerce, parameter.isClassifying, parameter.accessModifier, singletonList(Pair(parameter.name, parameter.oldIndex)).toMutableList())) else
+                teleEntries.add(TeleEntry(parameter.typeText, parameter.isExplicit(), parameter.isCoerce, parameter.isClassifying, parameter.isProperty, parameter.accessModifier, singletonList(Pair(parameter.name, parameter.oldIndex)).toMutableList())) else
                     teleEntries.last().parameterNames.add(Pair(parameter.name, parameter.oldIndex))
             val data = parameterToTeleWhitespaceData[parameter.oldIndex]
             if (data != null && !usedWhitespaceData.contains(data)) {
@@ -139,7 +139,10 @@ data class ArendChangeInfo (
                 org.arend.term.group.AccessModifier.PROTECTED -> newTeles.append("$PROTECTED_KW ")
                 else -> {}
             }
-            if (entry.isCoerce) newTeles.append("$COERCE_KW ") else if (entry.isClassifying) newTeles.append("$CLASSIFYING_KW ")
+            if (entry.isCoerce) newTeles.append("$COERCE_KW ") else
+                if (entry.isClassifying) newTeles.append("$CLASSIFYING_KW ") else
+                    if (entry.isProperty) newTeles.append("$PROPERTY_KW ")
+
 
             if (entry.typeText != null) {
                 if (printParameterNames) {
@@ -194,7 +197,7 @@ data class ArendChangeInfo (
 
             for (t in getTeles(locatedReferable)) when (t) {
                 is ArendNameTele -> for (parameter in t.identifierOrUnknownList) {
-                    result.add(ArendParameterInfo(parameter.defIdentifier?.name ?: "_", t.type?.oneLineText, index, t.isExplicit, correspondingReferable = parameter.defIdentifier))
+                    result.add(ArendParameterInfo(parameter.defIdentifier?.name ?: "_", t.type?.oneLineText, index, t.isExplicit, isProperty = t.isProperty, correspondingReferable = parameter.defIdentifier))
                     index++
                 }
                 is ArendTypeTele -> {
@@ -202,22 +205,22 @@ data class ArendChangeInfo (
                     var i = 0
                     t.typedExpr?.identifierOrUnknownList?.forEach { iOU ->
                         i++
-                        iOU.defIdentifier?.let { dI -> result.add(ArendParameterInfo(dI.name, type, index, t.isExplicit, correspondingReferable = iOU.defIdentifier)) }
+                        iOU.defIdentifier?.let { dI -> result.add(ArendParameterInfo(dI.name, type, index, t.isExplicit, isProperty = t.isProperty, correspondingReferable = iOU.defIdentifier)) }
                         index++
                     }
                     if (i == 0) {
-                        result.add(ArendParameterInfo("_", type, index, t.isExplicit, correspondingReferable = t))
+                        result.add(ArendParameterInfo("_", type, index, t.isExplicit, isProperty = t.isProperty, correspondingReferable = t))
                         index++
                     }
                 }
                 is ArendNameTeleUntyped -> {
-                    result.add(ArendParameterInfo(t.defIdentifier.name, null, index, t.isExplicit, correspondingReferable = t))
+                    result.add(ArendParameterInfo(t.defIdentifier.name, null, index, t.isExplicit, isProperty = t.isProperty, correspondingReferable = t))
                     index++
                 }
 
                 is ArendFieldTele -> {
                     for (fdI in t.referableList) {
-                        result.add(ArendParameterInfo(fdI.name, t.type?.text ?: "", index, t.isExplicit, t.isClassifying, t.isCoerce, t.descendantOfType<ArendAccessMod>()?.accessModifier ?: org.arend.term.group.AccessModifier.PUBLIC, correspondingReferable = fdI))
+                        result.add(ArendParameterInfo(fdI.name, t.type?.text ?: "", index, t.isExplicit, t.isClassifying, t.isCoerce, t.isProperty, t.descendantOfType<ArendAccessMod>()?.accessModifier ?: org.arend.term.group.AccessModifier.PUBLIC, correspondingReferable = fdI))
                         index++
                     }
                 }

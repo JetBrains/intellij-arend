@@ -29,7 +29,11 @@ abstract class ArendChangeSignatureTestBase: ArendTestBase() {
                 val index = abs(element) - 1
                 val toggle = element < 0
                 val originalElement = baseParams[index]
-                ArendParameterInfo(originalElement.name, originalElement.typeText, index, originalElement.isExplicit().let { if (toggle) !it else it }, correspondingReferable = originalElement.correspondingReferable)
+                ArendParameterInfo(originalElement.name, originalElement.typeText, index, originalElement.isExplicit().let { if (toggle) !it else it },
+                    isProperty = originalElement.isProperty,
+                    isClassifying = originalElement.isClassifying,
+                    isCoerce = originalElement.isCoerce,
+                    correspondingReferable = originalElement.correspondingReferable)
             }
             is String -> {
                 val entry = typeMap[element]!!

@@ -1242,4 +1242,10 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
        \func lol => cons {_} {1} nil 
     """)
+
+    fun testProperty() = doTest("""
+       \func foo (\property {-caret-}A : \Type) => 101 
+    """, """
+       \func foo {\property A : \Type} => 101 
+    """)
 }

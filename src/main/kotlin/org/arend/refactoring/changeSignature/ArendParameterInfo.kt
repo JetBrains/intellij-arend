@@ -11,6 +11,7 @@ data class ArendParameterInfo(
     private var isExplicit: Boolean,
     val isClassifying: Boolean = false,
     val isCoerce: Boolean = false,
+    val isProperty: Boolean = false,
     val accessModifier: AccessModifier = AccessModifier.PUBLIC,
     val correspondingReferable: PsiElement?) : ParameterInfo {
     override fun getName(): String = name ?: "_"
