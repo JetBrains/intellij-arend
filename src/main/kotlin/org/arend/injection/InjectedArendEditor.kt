@@ -48,6 +48,7 @@ import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
 import org.arend.typechecking.error.local.TypeMismatchWithSubexprError
 import java.awt.BorderLayout
+import java.awt.Component
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -106,6 +107,16 @@ abstract class InjectedArendEditor(
     val component: JComponent?
         get() = panel
 
+
+    fun addEditorComponent() {
+        if (editor != null) {
+            panel?.add(editor.component, BorderLayout.CENTER)
+        }
+    }
+    fun removeUnnecessaryComponents(collection: Collection<Component>) {
+        collection.forEach { panel?.remove(it) }
+    }
+
     fun updateErrorText(id: String? = null, postWriteCallback: () -> Unit = {}) {
         if (editor == null) return
         val treeElement = treeElement ?: return
@@ -137,7 +148,8 @@ abstract class InjectedArendEditor(
             val text = builder.toString()
             if (editor.isDisposed) return@invokeLater
             val action: () -> Unit = {
-                UndoManager.getInstance(project).undoableActionPerformed(UnblockingDocumentAction(editor.document, id, false))
+                UndoManager.getInstance(project)
+                    .undoableActionPerformed(UnblockingDocumentAction(editor.document, id, false))
                 modifyDocument { setText(text) }
                 getInjectionFile()?.apply {
                     injectionRanges = visitor.textRanges
@@ -160,7 +172,8 @@ abstract class InjectedArendEditor(
                     }
                 }
                 postWriteCallback()
-                UndoManager.getInstance(project).undoableActionPerformed(UnblockingDocumentAction(editor.document, id, true))
+                UndoManager.getInstance(project)
+                    .undoableActionPerformed(UnblockingDocumentAction(editor.document, id, true))
             }
             WriteCommandAction.runWriteCommandAction(project, null, id, action)
             val support = EditorHyperlinkSupport.get(editor)
@@ -185,8 +198,7 @@ abstract class InjectedArendEditor(
         val ppConfig = getCurrentConfig(scope)
         return if (causeIsMetaExpression(error.causeSourceNode, resolve)) {
             error.getDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
-        }
-        else {
+        } else {
             DocFactory.vHang(
                 error.getHeaderDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig),
                 error.getBodyDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
@@ -202,24 +214,34 @@ abstract class InjectedArendEditor(
         doc.accept(visitor, false)
         builder.append('\n')
         val text = builder.toString()
-        ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
-            if (editor.isDisposed) return@runUndoTransparentWriteAction
-            val document = editor.document
-            val length = document.textLength
-            modifyDocument { insertString(textLength, text) }
-            editor.scrollingModel.scrollTo(editor.offsetToLogicalPosition(length + text.length), ScrollType.MAKE_VISIBLE)
+        ApplicationManager.getApplication().invokeLater {
+            runUndoTransparentWriteAction {
+                if (editor.isDisposed) return@runUndoTransparentWriteAction
+                val document = editor.document
+                val length = document.textLength
+                modifyDocument { insertString(textLength, text) }
+                editor.scrollingModel.scrollTo(
+                    editor.offsetToLogicalPosition(length + text.length),
+                    ScrollType.MAKE_VISIBLE
+                )
 
-            getInjectionFile()?.apply {
-                scope = docScope
-                injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
-                injectedExpressions.addAll(visitor.expressions)
-            }
+                getInjectionFile()?.apply {
+                    scope = docScope
+                    injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
+                    injectedExpressions.addAll(visitor.expressions)
+                }
 
-            val support = EditorHyperlinkSupport.get(editor)
-            for (hyperlink in visitor.hyperlinks) {
-                support.createHyperlink(length + hyperlink.first.startOffset, length + hyperlink.first.endOffset, null, hyperlink.second)
+                val support = EditorHyperlinkSupport.get(editor)
+                for (hyperlink in visitor.hyperlinks) {
+                    support.createHyperlink(
+                        length + hyperlink.first.startOffset,
+                        length + hyperlink.first.endOffset,
+                        null,
+                        hyperlink.second
+                    )
+                }
             }
-        } }
+        }
     }
 
     fun clearText() {
@@ -266,7 +288,7 @@ abstract class InjectedArendEditor(
         }
     }
 
-    fun getOffsetInEditor(relativeOffsetInInjection: Int, indexOfInjection : Int) : Int? {
+    fun getOffsetInEditor(relativeOffsetInInjection: Int, indexOfInjection: Int): Int? {
         if (indexOfInjection == -1) {
             return null
         }

@@ -4,6 +4,7 @@ import com.intellij.codeInsight.CodeInsightActionHandler
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -42,6 +43,7 @@ abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsigh
         arendEditor.editor.settings.additionalColumnsCount = 1
         arendEditor.editor.settings.isFoldingOutlineShown = false
         arendEditor.editor.settings.additionalLinesCount = 1
+        arendEditor.editor.setFontSize(EditorColorsManager.getInstance().globalScheme.editorFontSize)
         val factory = JBPopupFactory.getInstance()
         val listener = object : JBPopupListener {
             override fun onClosed(event: LightweightWindowEvent) = arendEditor.close()

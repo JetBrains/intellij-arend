@@ -27,6 +27,9 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
         }
         treeElement = newTreeElement
         updateErrorText()
+    }
+
+    fun updateActionGroup() {
         actionGroup.removeAll()
         setupActions()
     }

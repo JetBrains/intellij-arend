@@ -531,8 +531,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
             (improvedElement as? ArendGoal)?.let {
                 if (it.expr != null) {
-                    val range = it.textRange
-                    return TextRange(range.startOffset, range.startOffset + 2)
+                    return TextRange(it.textRange.startOffset, improvedElement.textRange.endOffset)
                 }
             }
 
