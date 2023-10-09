@@ -10,18 +10,14 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.util.descendantsOfType
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
+import org.arend.util.ArendBundle
 
 class NameShadowingHighlighterPass(file: ArendFile, editor: Editor, highlightInfoProcessor: HighlightInfoProcessor) :
     BasePass(file, editor, "Arend name shadowing annotator", TextRange(0, editor.document.textLength), highlightInfoProcessor) {
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        val typeTeles = file.descendantsOfType<ArendTypeTele>()
-        val nameTeles = file.descendantsOfType<ArendNameTele>()
-        val nameUntypedTeles = file.descendantsOfType<ArendNameTeleUntyped>()
-
+        val typeTeles = file.descendantsOfType<ArendConstructor>().map { it.descendantsOfType<ArendTypeTele>() }.flatten()
         exploreScope(typeTeles)
-        exploreScope(nameTeles)
-        exploreScope(nameUntypedTeles)
     }
 
     private fun exploreScope(teles: Sequence<ArendSourceNodeImpl>) {
@@ -50,7 +46,7 @@ class NameShadowingHighlighterPass(file: ArendFile, editor: Editor, highlightInf
                     .newHighlightInfo(HighlightInfoType.WARNING)
                     .range(identifier.textRange)
                     .severity(HighlightSeverity.WARNING)
-                    .descriptionAndTooltip("An identifier with the same name $name was announced earlier")
+                    .descriptionAndTooltip(ArendBundle.message("arend.inspection.name.shadowed", name))
                 addHighlightInfo(builder)
             }
         }
