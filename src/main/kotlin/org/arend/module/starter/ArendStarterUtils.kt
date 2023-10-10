@@ -2,12 +2,20 @@ package org.arend.module.starter
 
 import com.intellij.ide.starters.local.Dependency
 import com.intellij.ide.starters.local.DependencyConfig
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.util.Version
+import com.intellij.openapi.vfs.VfsUtil
+import org.arend.library.LibraryDependency
+import org.arend.module.AREND_LIB
+import org.arend.util.*
+import org.arend.util.FileUtils.LIBRARY_CONFIG_FILE
 import org.jdom.Element
 import org.jetbrains.annotations.ApiStatus
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.time.Instant
 import java.time.LocalDate
@@ -116,5 +124,29 @@ object ArendStarterUtils {
             return if (interpolateProperties) propertyValue else version
         }
         return version
+    }
+
+    internal fun getLibraryDependencies(librariesRoot: String, module: Module?): List<LibraryDependency> {
+        val list = mutableListOf<LibraryDependency>()
+        val arendLib = LibraryDependency(AREND_LIB)
+
+        VfsUtil.findFile(Paths.get(librariesRoot), true)?.let { libRoot ->
+            VfsUtil.markDirtyAndRefresh(false, false, true, libRoot)
+            libRoot.children.mapNotNull { file ->
+                if (file.name != LIBRARY_CONFIG_FILE && file.refreshed.configFile != null) {
+                    file.libraryName?.let { LibraryDependency(it) }
+                } else null
+            }.forEach {
+                list.add(it)
+            }
+        }
+
+        val modules = module?.project?.let { ModuleManager.getInstance(it).modules } ?: return if (list.contains(arendLib)) list else listOf(arendLib) + list
+        for (otherModule in modules) {
+            if (otherModule != module) {
+                list.add(LibraryDependency(otherModule.name))
+            }
+        }
+        return if (list.contains(arendLib)) list else listOf(arendLib) + list
     }
 }
