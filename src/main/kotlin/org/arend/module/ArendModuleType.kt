@@ -5,7 +5,7 @@ import com.intellij.openapi.module.ModuleType
 import org.arend.ArendIcons
 
 class ArendModuleType : ModuleType<ArendModuleBuilder>("AREND_MODULE") {
-    override fun getNodeIcon(isOpened: Boolean) = ArendIcons.AREND_MODULE
+    override fun getNodeIcon(isOpened: Boolean) = ArendIcons.AREND
 
     override fun createModuleBuilder() = ArendModuleBuilder()
 

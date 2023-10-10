@@ -3,8 +3,6 @@ package org.arend.module
 import com.intellij.CommonBundle
 import com.intellij.ide.JavaUiBundle
 import com.intellij.ide.starters.local.*
-import com.intellij.ide.starters.local.wizard.StarterInitialStep
-import com.intellij.ide.starters.local.wizard.StarterLibrariesStep
 import com.intellij.ide.starters.shared.*
 import com.intellij.ide.util.projectWizard.SdkSettingsStep
 import com.intellij.ide.util.projectWizard.SettingsStep
@@ -28,6 +26,7 @@ import org.arend.ArendIcons
 import org.arend.library.LibraryDependency
 import org.arend.module.config.ArendModuleConfiguration
 import org.arend.module.config.ArendModuleConfigurationUpdater
+import org.arend.module.starter.*
 import org.arend.prelude.Prelude
 import org.arend.ui.addBrowseAndChangeListener
 import org.arend.util.*
@@ -36,7 +35,7 @@ import java.nio.file.Paths
 import javax.swing.Icon
 import javax.swing.JTextField
 
-class ArendModuleBuilder : StarterModuleBuilder(), ArendModuleConfiguration {
+class ArendModuleBuilder : ArendStarterModuleBuilder(), ArendModuleConfiguration {
 
     private val moduleRoot = moduleFilePath?.let { FileUtil.toSystemDependentName(it) }
 
@@ -148,7 +147,7 @@ class ArendModuleBuilder : StarterModuleBuilder(), ArendModuleConfiguration {
         }
 
     override var dependencies: List<LibraryDependency>
-        get() = libraryStep.getSelectedLibraryIds()
+        get() = libraryStep.getSelectedLibraries().map { LibraryDependency(it.title) }
         set(_) {}
 
     override var versionString: String
@@ -163,27 +162,10 @@ class ArendModuleBuilder : StarterModuleBuilder(), ArendModuleConfiguration {
             langVersionField.text = value
         }
 
-    private lateinit var libraryStep: StarterLibrariesStep
-
-    override fun createLibrariesStep(contextProvider: StarterContextProvider): StarterLibrariesStep {
+    private lateinit var libraryStep: ArendStarterLibrariesStep
+    override fun createLibrariesStep(contextProvider: ArendStarterContextProvider): ArendStarterLibrariesStep {
         libraryStep = super.createLibrariesStep(contextProvider)
         return libraryStep
-    }
-
-    @Suppress("UnstableApiUsage")
-    private fun StarterLibrariesStep.getSelectedLibraryIds(): List<LibraryDependency> {
-        val selected = mutableListOf<LibraryInfo>()
-        walkCheckedTree(getLibrariesRoot()) {
-            val library = (it.userObject as? Library)
-            if (library != null && it.isChecked) {
-                selected.add(library)
-            }
-        }
-        return selected.map { LibraryDependency(it.title) }
-    }
-
-    private fun StarterLibrariesStep.getLibrariesRoot(): CheckedTreeNode? {
-        return (preferredFocusedComponent as? CheckboxTreeBase)?.model?.root as? CheckedTreeNode
     }
 
     override fun getModuleType() = ArendModuleType.INSTANCE
@@ -288,14 +270,16 @@ class ArendModuleBuilder : StarterModuleBuilder(), ArendModuleConfiguration {
         addModuleConfigurationUpdater(ArendModuleConfigurationUpdater(true).apply { copyFrom(this@ArendModuleBuilder) })
     }
 
-    override fun createOptionsStep(contextProvider: StarterContextProvider): StarterInitialStep {
+    override fun createOptionsStep(contextProvider: ArendStarterContextProvider): ArendStarterInitialStep {
         return ArendExtraStep(contextProvider)
     }
 
-    private inner class ArendExtraStep(contextProvider: StarterContextProvider) : StarterInitialStep(contextProvider) {
+    private inner class ArendExtraStep(contextProvider: ArendStarterContextProvider) : ArendStarterInitialStep(contextProvider) {
 
         @Suppress("UnstableApiUsage")
         override fun addFieldsAfter(layout: Panel) {
+            sdkComboBox.selectedJdk = null
+
             layout.apply {
                 separator()
                 aligned("Language version: ", langVersionField) {
