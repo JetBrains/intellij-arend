@@ -1,4 +1,4 @@
-package org.arend.module
+package org.arend.module.starter
 
 import com.intellij.ide.starters.shared.StarterLanguage
 
