@@ -27,6 +27,22 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
     }
 
     init {
+        val buttonSwapFromAvailableList = IconButton(if (swapped) ArendIcons.MOVE_LEFT else ArendIcons.MOVE_RIGHT).apply { addActionListener {
+            moveSelected(availableList, selectedList)
+        } }
+        availableList.apply {
+            addListSelectionListener { event ->
+                val model = this.model
+                for (index in selectedIndices) {
+                    if (!isAvailable(model.getElementAt(index))) {
+                        buttonSwapFromAvailableList.isEnabled = false
+                        return@addListSelectionListener
+                    }
+                }
+                buttonSwapFromAvailableList.isEnabled = true
+            }
+        }
+
         val dim = Dimension(-1,-1)
         val availablePane = JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
@@ -58,9 +74,7 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
 
         add(JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            add(IconButton(if (swapped) ArendIcons.MOVE_LEFT else ArendIcons.MOVE_RIGHT).apply { addActionListener {
-                moveSelected(availableList, selectedList)
-            } })
+            add(buttonSwapFromAvailableList)
             add(IconButton(if (swapped) ArendIcons.MOVE_RIGHT else ArendIcons.MOVE_LEFT).apply { addActionListener {
                 moveSelected(selectedList, availableList)
                 availableList.content = availableList.content.sorted()
@@ -80,6 +94,8 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
 
     open fun getIcon(t: T): Icon? = null
 
+    open fun updateConfig() { }
+
     private fun moveSelected(from: JBList<T>, to: JBList<T>) {
         val fromModel = from.model
         val removed = ArrayList<T>()
@@ -93,6 +109,7 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
 
         val toModel = to.model
         (toModel as SimpleListModel).addAll(toModel.size, removed)
+        updateConfig()
     }
 }
 
