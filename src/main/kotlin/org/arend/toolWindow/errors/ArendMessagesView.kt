@@ -3,6 +3,7 @@ package org.arend.toolWindow.errors
 import com.intellij.ide.CommonActionsManager
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
@@ -24,9 +25,7 @@ import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
-import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.injection.InjectedArendEditor
-import org.arend.injection.actions.withNormalizedTerms
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendGoal
 import org.arend.psi.ext.PsiConcreteReferable
@@ -168,11 +167,16 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     fun updateEditors() {
         var treeElement = getSelectedMessage()
         if (treeElement != null) {
-            if (isGoal(treeElement) && !isGoalTextPinned() && (!isImplicitGoal(treeElement) || isShowImplicitGoals())) {
+            if (isGoal(treeElement) && !isGoalTextPinned()) {
                 if (goalEditor == null) {
                     goalEditor = ArendMessagesViewEditor(project, treeElement, true)
                 }
-                updateEditor(goalEditor!!, treeElement)
+                if (!isImplicitGoal(treeElement) || isShowImplicitGoals()) {
+                    updateEditor(goalEditor!!, treeElement)
+                } else {
+                    removeNotActionToolbars(goalEditor!!)
+                }
+                updateActionGroup(goalEditor!!)
                 updateGoalsView(goalEditor?.component ?: goalEmptyPanel)
             }
             if (isShowErrorsPanel() && !isErrorTextPinned() && (!isGoal(treeElement) || isShowGoalsInErrorsPanel())) {
@@ -247,6 +251,17 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
             editor.update(treeElement)
         }
+        editor.addEditorComponent()
+    }
+
+    private fun updateActionGroup(editor: ArendMessagesViewEditor) {
+        editor.updateActionGroup()
+    }
+
+    private fun removeNotActionToolbars(editor: ArendMessagesViewEditor) {
+        val components = editor.component?.components
+        val notActionToolbars = components?.filter { it !is ActionToolbar } ?: listOf()
+        editor.removeUnnecessaryComponents(notActionToolbars)
     }
 
     private fun isParentDefinitionPsiInvalid(error: ArendError): Boolean {

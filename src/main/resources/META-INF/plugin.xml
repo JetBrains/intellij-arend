@@ -396,6 +396,7 @@
         <highlightingPassFactory implementation="org.arend.injection.InjectionHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.ArendUnusedImportHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.RedundantParensPassFactory"/>
+        <highlightingPassFactory implementation="org.arend.highlight.NameShadowingHighlighterPassFactory"/>
 
         <!-- Tool Windows -->
 
