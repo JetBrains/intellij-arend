@@ -15,8 +15,6 @@ import com.intellij.openapi.ui.TextComponentAccessor
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.ui.CheckboxTreeBase
-import com.intellij.ui.CheckedTreeNode
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.Panel
@@ -276,7 +274,6 @@ class ArendModuleBuilder : ArendStarterModuleBuilder(), ArendModuleConfiguration
 
     private inner class ArendExtraStep(contextProvider: ArendStarterContextProvider) : ArendStarterInitialStep(contextProvider) {
 
-        @Suppress("UnstableApiUsage")
         override fun addFieldsAfter(layout: Panel) {
             sdkComboBox.selectedJdk = null
 
