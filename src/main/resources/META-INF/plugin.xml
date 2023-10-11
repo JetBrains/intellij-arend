@@ -27,6 +27,7 @@
         <moduleType id="AREND_MODULE" implementationClass="org.arend.module.ArendModuleType"/>
         <moduleBuilder builderClass="org.arend.module.ArendModuleBuilder"/>
         <library.type implementation="org.arend.module.ArendLibraryType"/>
+        <moduleConfigurationEditorProvider implementation="org.arend.module.editor.ArendModuleConfigEditorProvider"/>
 
         <!-- debugger.positionManagerFactory implementation="org.arend.debug.ArendPositionManagerFactory" -->
 

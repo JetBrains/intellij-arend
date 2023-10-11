@@ -22,7 +22,6 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import com.intellij.util.ui.tree.TreeUtil
-import org.arend.library.LibraryDependency
 import java.awt.Dimension
 import java.awt.GridBagLayout
 import java.awt.event.ItemEvent
@@ -30,7 +29,6 @@ import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTree
-import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreePath
@@ -178,18 +176,17 @@ open class ArendStarterLibrariesStep(contextProvider: ArendStarterContextProvide
             }
         }
 
-        librariesList.selectionModel.addTreeSelectionListener(TreeSelectionListener { e ->
+        librariesList.selectionModel.addTreeSelectionListener { e ->
             val path = e.path
             if (path != null && e.isAddedPath) {
                 when (val item = (path.lastPathComponent as? DefaultMutableTreeNode)?.userObject) {
                     is LibraryCategory -> libraryDescriptionPanel.update(item.title, item.description)
                     is Library -> libraryDescriptionPanel.update(item, null)
                 }
-            }
-            else {
+            } else {
                 libraryDescriptionPanel.reset()
             }
-        })
+        }
         val messages = starterSettings.customizedMessages
 
         return panel {
