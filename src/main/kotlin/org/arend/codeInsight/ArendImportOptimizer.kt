@@ -391,12 +391,18 @@ private class ImportStructureCollector(
             addSyntacticGlobalInstances(element)
         }
 
+        if (element is ArendGroup) {
+            for (statement in element.statements) statement.namespaceCommand?.let {nsCmd ->
+                if (nsCmd.openKw != null) {
+                    val resolved = nsCmd.openedReference?.resolve as? PsiStubbedReferableImpl<*> ?: return
+                    val (q1, q2) = collectQualifier(resolved) ?: return
+                    currentFrame.activeOpens[Pair(q1, ModulePath(q2.toList() + singletonList(resolved.getName())))] = nsCmd
+                }
+            }
+        }
+
         if (element !is ArendStatCmd) {
             super.visitElement(element)
-        } else if (element.openKw != null) {
-            val resolved = element.openedReference?.resolve as? PsiStubbedReferableImpl<*> ?: return
-            val (q1, q2) = collectQualifier(resolved) ?: return
-            currentFrame.activeOpens[Pair(q1, ModulePath(q2.toList() + singletonList(resolved.getName())))] = element
         }
 
         if (element is ArendReferenceElement) {
