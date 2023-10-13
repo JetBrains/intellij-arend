@@ -392,11 +392,12 @@ private class ImportStructureCollector(
         }
 
         if (element is ArendGroup) {
-            for (statement in element.statements) statement.namespaceCommand?.let {nsCmd ->
-                if (nsCmd.openKw != null) {
-                    val resolved = nsCmd.openedReference?.resolve as? PsiStubbedReferableImpl<*> ?: return
-                    val (q1, q2) = collectQualifier(resolved) ?: return
-                    currentFrame.activeOpens[Pair(q1, ModulePath(q2.toList() + singletonList(resolved.getName())))] = nsCmd
+            for (statement in element.statements) {
+                val namespaceCommand = statement.namespaceCommand
+                if (namespaceCommand?.openKw != null) {
+                    val resolved = namespaceCommand.openedReference?.resolve as? PsiStubbedReferableImpl<*> ?: continue
+                    val (q1, q2) = collectQualifier(resolved) ?: continue
+                    currentFrame.activeOpens[Pair(q1, ModulePath(q2.toList() + singletonList(resolved.getName())))] = namespaceCommand
                 }
             }
         }
