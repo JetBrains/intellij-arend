@@ -234,6 +234,24 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
     }
 
+    fun updateSourceDirFromIDEA(newSourcesDir: String) {
+        if (sourcesDir != newSourcesDir) {
+            sourcesDir = newSourcesDir
+            yamlFile?.write {
+                sourcesDir = newSourcesDir
+            }
+        }
+    }
+
+    fun updateTestDirFromIDEA(newTestDir: String) {
+        if (testsDir != newTestDir) {
+            testsDir = newTestDir
+            yamlFile?.write {
+                testsDir = newTestDir
+            }
+        }
+    }
+
     companion object {
         fun getInstance(module: Module?) =
             if (module != null && ArendModuleType.has(module)) ModuleServiceManager.getService(module, ArendModuleConfigService::class.java) else null

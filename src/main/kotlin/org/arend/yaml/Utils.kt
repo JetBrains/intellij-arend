@@ -115,7 +115,7 @@ var YAMLFile.version
     }
 
 fun YAMLFile.write(block: YAMLFile.() -> Unit) {
-    ApplicationManager.getApplication().invokeLater { runUndoTransparentWriteAction {
+    ApplicationManager.getApplication().runWriteAction { runUndoTransparentWriteAction {
         block()
     } }
 }
