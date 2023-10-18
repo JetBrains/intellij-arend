@@ -1,6 +1,7 @@
 package org.arend
 
 import com.intellij.ProjectTopics
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
@@ -65,5 +66,21 @@ class ArendStartupActivity : ProjectActivity {
                 }
             }
         })
+        disableActions()
+    }
+
+    companion object {
+        fun disableActions() {
+            val actionManager = ApplicationManager.getApplication().getServiceIfCreated(ActionManager::class.java)
+            actionManager?.getAction(ArendBundle.message("arend.disableActionExclude"))?.let {
+                actionManager.unregisterAction(ArendBundle.message("arend.disableActionExclude"))
+            }
+            actionManager?.getAction(ArendBundle.message("arend.disableGroupSource"))?.let {
+                actionManager.unregisterAction(ArendBundle.message("arend.disableGroupSource"))
+            }
+            actionManager?.getAction(ArendBundle.message("arend.disableActionUnmark"))?.let {
+                actionManager.unregisterAction(ArendBundle.message("arend.disableActionUnmark"))
+            }
+        }
     }
 }

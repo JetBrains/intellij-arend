@@ -542,6 +542,13 @@
             <add-to-group group-id="NavBarToolBar"
                           relative-to-action="ToolbarRunGroup" anchor="after"/>
         </group>
+        <group id="MarkArendSourceRootActionGroup"
+               class="org.arend.actions.MarkArendSourceRootActionGroup">
+            <add-to-group group-id="MarkRootGroup" anchor="last"/>
+        </group>
+        <action id="ArendUnmarkRootAction" class="org.arend.actions.ArendUnmarkRootAction">
+            <add-to-group group-id="MarkRootGroup" anchor="first"/>
+        </action>
     </actions>
 
     <resource-bundle>messages.ArendBundle</resource-bundle>

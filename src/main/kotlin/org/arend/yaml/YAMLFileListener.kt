@@ -4,14 +4,22 @@ import com.intellij.AppTopics
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileDocumentManagerListener
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.*
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.*
+import com.intellij.psi.PsiManager
+import org.arend.actions.addNewDirectory
+import org.arend.actions.removeOldDirectory
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.util.FileUtils
+import org.jetbrains.jps.model.java.JavaSourceRootType
+import org.jetbrains.yaml.psi.YAMLFile
+import java.io.File
 
 class YAMLFileListener(private val project: Project) : BulkFileListener, FileDocumentManagerListener {
     fun register() {
@@ -19,11 +27,49 @@ class YAMLFileListener(private val project: Project) : BulkFileListener, FileDoc
         connection.subscribe(VirtualFileManager.VFS_CHANGES, this)
         connection.subscribe(AppTopics.FILE_DOCUMENT_SYNC, this)
     }
+    override fun unsavedDocumentDropped(document: Document) {
+        val file = FileDocumentManager.getInstance().getFile(document) ?: return
+        if (file.name == FileUtils.LIBRARY_CONFIG_FILE) {
+            updateIdea(file)
+        }
+    }
 
     override fun beforeDocumentSaving(document: Document) {
         val file = FileDocumentManager.getInstance().getFile(document) ?: return
         if (file.name == FileUtils.LIBRARY_CONFIG_FILE) {
-            ArendModuleConfigService.getInstance(ModuleUtilCore.findModuleForFile(file, project))?.copyFromYAML(true)
+            updateIdea(file)
+        }
+    }
+
+    private fun updateIdea(file: VirtualFile) {
+        val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile
+        val module = ModuleUtilCore.findModuleForFile(file, project)
+        val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
+
+        updateSourceAndTestDirectories(module, yaml, file, arendModuleConfigService)
+
+        arendModuleConfigService?.copyFromYAML(true)
+    }
+
+    private fun updateSourceAndTestDirectories(module: Module?, yaml: YAMLFile?, file: VirtualFile, arendModuleConfigService: ArendModuleConfigService?) {
+        if (yaml?.sourcesDir != arendModuleConfigService?.sourcesDir) {
+            removeOldDirectory(module, file, arendModuleConfigService, JavaSourceRootType.SOURCE)
+        }
+        if (yaml?.testsDir != arendModuleConfigService?.testsDir) {
+            removeOldDirectory(module, file, arendModuleConfigService, JavaSourceRootType.TEST_SOURCE)
+        }
+
+        if (yaml?.sourcesDir != arendModuleConfigService?.sourcesDir) {
+            val dirFile = File(arendModuleConfigService?.root?.path + File.separator + yaml?.sourcesDir)
+            if (dirFile.exists()) {
+                addNewDirectory(yaml?.sourcesDir, arendModuleConfigService, JavaSourceRootType.SOURCE)
+            }
+        }
+        if (yaml?.testsDir != arendModuleConfigService?.testsDir) {
+            val dirFile = File(arendModuleConfigService?.root?.path + File.separator + yaml?.testsDir)
+            if (dirFile.exists()) {
+                addNewDirectory(yaml?.testsDir, arendModuleConfigService, JavaSourceRootType.TEST_SOURCE)
+            }
         }
     }
 
@@ -55,10 +101,11 @@ class YAMLFileListener(private val project: Project) : BulkFileListener, FileDoc
         }
         if (fileName == FileUtils.LIBRARY_CONFIG_FILE) {
             val file = event.file ?: return
-            val service = ArendModuleConfigService.getInstance(ModuleUtil.findModuleForFile(file, project)) ?: return
+            val module = ModuleUtil.findModuleForFile(file, project)
+            val service = ArendModuleConfigService.getInstance(module) ?: return
             val root = service.root ?: return
             if (root == oldParent || root == newParent) {
-                service.copyFromYAML(true)
+                updateIdea(file)
             }
         }
     }
