@@ -333,6 +333,9 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 COULD_BE_LEMMA, AXIOM_WITH_BODY -> if (cause is ArendDefFunction) registerFix(builder, ReplaceFunctionKindQuickFix(SmartPointerManager.createPointer(cause.functionKw), FunctionKind.LEMMA))
                 LEVEL_IGNORED -> registerFix(builder, RemoveLevelQuickFix(SmartPointerManager.createPointer(cause)))
                 CASE_RESULT_TYPE -> registerFix(builder, AddReturnKeywordQuickFix(SmartPointerManager.createPointer(cause)))
+                TRUNCATED_WITHOUT_UNIVERSE -> {
+                    registerFix(builder, RemoveTruncatedKeywordQuickFix(SmartPointerManager.createPointer(cause)))
+                }
                 else -> {}
             }
 
