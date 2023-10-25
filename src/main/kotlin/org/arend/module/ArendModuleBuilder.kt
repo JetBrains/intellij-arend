@@ -14,7 +14,6 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.TextComponentAccessor
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.Panel
@@ -25,11 +24,11 @@ import org.arend.library.LibraryDependency
 import org.arend.module.config.ArendModuleConfiguration
 import org.arend.module.config.ArendModuleConfigurationUpdater
 import org.arend.module.starter.*
+import org.arend.module.starter.ArendStarterUtils.getLibraryDependencies
 import org.arend.prelude.Prelude
 import org.arend.ui.addBrowseAndChangeListener
 import org.arend.util.*
 import org.arend.util.FileUtils.defaultLibrariesRoot
-import java.nio.file.Paths
 import javax.swing.Icon
 import javax.swing.JTextField
 
@@ -187,35 +186,29 @@ class ArendModuleBuilder : ArendStarterModuleBuilder(), ArendModuleConfiguration
 
     @Suppress("UnstableApiUsage")
     private fun getLibraryList(): List<Library> {
-        val arendLib = Library(
-            AREND_LIB,
-            ArendIcons.LIBRARY_ICON,
-            AREND_LIB,
-            ArendBundle.message("arend.libs.description.standard"),
-            null,
-            null,
-            listOf(LibraryLink(LibraryLinkType.WEBSITE, "https://github.com/JetBrains/$AREND_LIB"))
-        )
-        val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), true) ?: return listOf(arendLib)
-        VfsUtil.markDirtyAndRefresh(false, false, true, libRoot)
-        val list = libRoot.children.mapNotNull { file ->
-            if (file.name == AREND_LIB) {
-                null
-            } else if (file.name != FileUtils.LIBRARY_CONFIG_FILE && file.refreshed.configFile != null) {
-                file.libraryName?.let {
-                    Library(
-                        it,
-                        ArendIcons.LIBRARY_ICON,
-                        it,
-                        "No description",
-                        null,
-                        null,
-                        listOf()
-                    )
-                }
-            } else null
+        return getLibraryDependencies(librariesRoot, null).map {
+            if (it.name == AREND_LIB) {
+                Library(
+                    AREND_LIB,
+                    ArendIcons.LIBRARY_ICON,
+                    AREND_LIB,
+                    ArendBundle.message("arend.libs.description.standard"),
+                    null,
+                    null,
+                    listOf(LibraryLink(LibraryLinkType.WEBSITE, "https://github.com/JetBrains/$AREND_LIB/releases/tag/v${getVersion()}"))
+                )
+            } else {
+                Library(
+                    it.name,
+                    ArendIcons.LIBRARY_ICON,
+                    it.name,
+                    "No description",
+                    null,
+                    null,
+                    listOf()
+                )
+            }
         }
-        return listOf(arendLib) + list
     }
 
     override fun getDescription(): String = moduleType.description

@@ -75,8 +75,6 @@ class FunctionArgInferenceQuickFix(
             var param: Pair<Boolean, Referable>? = null
             var argument: Concrete.Argument? = null
 
-            assert (error.index <= parameters.size)
-
             while (i < error.index) {
                 textPieceToReplace = textPieceToReplace?.let { TextRange(it.endOffset, it.endOffset) }
                 param = parameters[i]

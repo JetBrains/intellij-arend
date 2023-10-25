@@ -7,7 +7,9 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiManager
 import org.arend.library.LibraryDependency
+import org.arend.module.editor.ArendModuleConfigurationView
 import org.arend.util.FileUtils
+import org.arend.util.allModules
 import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLFile
 
@@ -70,6 +72,13 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
 
         if (withExtensions) {
             contentEntry.addExcludeFolder(VfsUtil.pathToUrl(toAbsolute(rootPath, extensionsDirectory)))
+        }
+
+        val modules = module.project.allModules
+        for (otherModule in modules) {
+            if (module != otherModule) {
+                ArendModuleConfigurationView.getInstance(otherModule)?.updateAvailableLibrariesAndDependencies()
+            }
         }
     }
 }

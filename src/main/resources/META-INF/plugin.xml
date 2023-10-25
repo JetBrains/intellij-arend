@@ -363,6 +363,10 @@
 
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
 
+        <moduleService serviceImplementation="org.arend.module.editor.ArendModuleConfigurationView"/>
+
+        <moduleService serviceImplementation="org.arend.module.editor.ArendModuleConfigurationEditor"/>
+
         <applicationService serviceImplementation="org.arend.settings.ArendSettings"/>
 
         <projectService serviceImplementation="org.arend.settings.ArendProjectSettings"/>
@@ -388,6 +392,8 @@
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
         <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
         <applicationConfigurable groupId="language" displayName="Arend" id="preferences.language.Arend" instance="org.arend.editor.ArendConfigurable"/>
+        <configuration.ModuleStructureExtension
+                implementation="org.arend.module.config.ArendModuleStructureExtension"/>
 
         <!-- Highlighting Pass Factories -->
 
@@ -540,6 +546,13 @@
             <add-to-group group-id="NavBarToolBar"
                           relative-to-action="ToolbarRunGroup" anchor="after"/>
         </group>
+        <group id="MarkArendSourceRootActionGroup"
+               class="org.arend.actions.MarkArendSourceRootActionGroup">
+            <add-to-group group-id="MarkRootGroup" anchor="last"/>
+        </group>
+        <action id="ArendUnmarkRootAction" class="org.arend.actions.ArendUnmarkRootAction">
+            <add-to-group group-id="MarkRootGroup" anchor="first"/>
+        </action>
     </actions>
 
     <resource-bundle>messages.ArendBundle</resource-bundle>

@@ -2,12 +2,19 @@ package org.arend.module.starter
 
 import com.intellij.ide.starters.local.Dependency
 import com.intellij.ide.starters.local.DependencyConfig
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.util.Version
+import com.intellij.openapi.vfs.VfsUtil
+import org.arend.library.LibraryDependency
+import org.arend.module.AREND_LIB
+import org.arend.util.*
+import org.arend.util.FileUtils.LIBRARY_CONFIG_FILE
 import org.jdom.Element
 import org.jetbrains.annotations.ApiStatus
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.time.Instant
 import java.time.LocalDate
@@ -19,7 +26,11 @@ object ArendStarterUtils {
 
     private class IncorrectBomFileException(message: String) : IOException(message)
 
-    internal fun parseDependencyConfig(projectTag: Element, resourcePath: String, interpolateProperties: Boolean = true): DependencyConfig {
+    internal fun parseDependencyConfig(
+        projectTag: Element,
+        resourcePath: String,
+        interpolateProperties: Boolean = true
+    ): DependencyConfig {
         val properties: MutableMap<String, String> = mutableMapOf()
         val dependencies: MutableList<Dependency> = mutableListOf()
         val bomVersion: String
@@ -74,16 +85,19 @@ object ArendStarterUtils {
         return Version.parseVersion(bomVersionText) ?: error("Failed to parse starter dependency config version")
     }
 
-    internal fun mergeDependencyConfigs(dependencyConfig: DependencyConfig, dependencyConfigUpdates: DependencyConfig?): DependencyConfig {
-        if (dependencyConfigUpdates == null ||
-            dependencyConfig.version.toFloat() > dependencyConfigUpdates.version.toFloat()) return dependencyConfig
+    internal fun mergeDependencyConfigs(
+        dependencyConfig: DependencyConfig,
+        dependencyConfigUpdates: DependencyConfig?
+    ): DependencyConfig {
+        if (dependencyConfigUpdates == null || dependencyConfig.version.toFloat() > dependencyConfigUpdates.version.toFloat()) return dependencyConfig
 
         val newVersion = dependencyConfigUpdates.version
 
-        val properties = (dependencyConfig.properties.keys union dependencyConfigUpdates.properties.keys).associateWith { propertyKey ->
-            dependencyConfigUpdates.properties[propertyKey] ?: dependencyConfig.properties[propertyKey]
-            ?: error("Failed to find property value for key: $propertyKey")
-        }
+        val properties =
+            (dependencyConfig.properties.keys union dependencyConfigUpdates.properties.keys).associateWith { propertyKey ->
+                dependencyConfigUpdates.properties[propertyKey] ?: dependencyConfig.properties[propertyKey]
+                ?: error("Failed to find property value for key: $propertyKey")
+            }
 
         val dependencies = dependencyConfig.dependencies.map { dependency ->
             val newDependencyVersion = (dependencyConfigUpdates.dependencies.find { updatedDependency ->
@@ -99,13 +113,19 @@ object ArendStarterUtils {
     }
 
     internal fun isDependencyUpdateFileExpired(file: File): Boolean {
-        val lastModifiedMs = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java).lastModifiedTime().toMillis()
+        val lastModifiedMs =
+            Files.readAttributes(file.toPath(), BasicFileAttributes::class.java).lastModifiedTime().toMillis()
         val lastModified = Instant.ofEpochMilli(lastModifiedMs).atZone(ZoneId.systemDefault()).toLocalDateTime()
         return lastModified.isBefore(LocalDate.now().atStartOfDay())
     }
 
-    private fun interpolateDependencyVersion(groupId: String, artifactId: String, version: String,
-                                             properties: Map<String, String>, interpolateProperties: Boolean = true): String {
+    private fun interpolateDependencyVersion(
+        groupId: String,
+        artifactId: String,
+        version: String,
+        properties: Map<String, String>,
+        interpolateProperties: Boolean = true
+    ): String {
         val versionMatch = PLACEHOLDER_VERSION_PATTERN.matchEntire(version)
         if (versionMatch != null) {
             val propertyName = versionMatch.groupValues[1]
@@ -116,5 +136,30 @@ object ArendStarterUtils {
             return if (interpolateProperties) propertyValue else version
         }
         return version
+    }
+
+    internal fun getLibraryDependencies(librariesRoot: String, module: Module?): List<LibraryDependency> {
+        val list = mutableListOf<LibraryDependency>()
+        val arendLib = LibraryDependency(AREND_LIB)
+
+        VfsUtil.findFile(Paths.get(librariesRoot), true)?.let { libRoot ->
+            VfsUtil.markDirtyAndRefresh(false, false, true, libRoot)
+            libRoot.children.mapNotNull { file ->
+                if (file.name != LIBRARY_CONFIG_FILE && file.refreshed.configFile != null) {
+                    file.libraryName?.let { LibraryDependency(it) }
+                } else null
+            }.forEach {
+                list.add(it)
+            }
+        }
+
+        val modules = module?.project?.allModules
+            ?: return if (list.contains(arendLib)) list else listOf(arendLib) + list
+        for (otherModule in modules) {
+            if (otherModule != module) {
+                list.add(LibraryDependency(otherModule.name))
+            }
+        }
+        return if (list.contains(arendLib)) list else listOf(arendLib) + list
     }
 }

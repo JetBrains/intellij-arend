@@ -1,5 +1,9 @@
 package org.arend.ui
 
+import com.intellij.notification.Notifications
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.ui.MessageType
+import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.notificationGroup
 import com.intellij.ui.*
 import com.intellij.ui.components.JBList
 import com.intellij.uiDesigner.core.GridConstraints
@@ -10,20 +14,41 @@ import java.awt.Dimension
 import javax.swing.*
 
 
-open class DualList<T : Comparable<T>>(availableText: String, selectedText: String, swapped: Boolean) : JPanel(GridLayoutManager(1, 3)) {
-    val listCellRenderer = object : ColoredListCellRenderer<T>() {
+open class DualList<T : Comparable<T>>(module: Module, availableText: String, selectedText: String, swapped: Boolean) : JPanel(GridLayoutManager(1, 3)) {
+    private val availableListCellRenderer = object : ColoredListCellRenderer<T>() {
         override fun customizeCellRenderer(list: JList<out T>, value: T?, index: Int, selected: Boolean, hasFocus: Boolean) {
-            if (value != null) {
+            if (value != null && isValueExists(value)) {
+                icon = getIcon(value)
+                append(value.toString(), if (isOK(value)) SimpleTextAttributes.REGULAR_ATTRIBUTES else SimpleTextAttributes.GRAY_ATTRIBUTES, true)
+            }
+        }
+    }
+    private val selectedListCellRenderer = object : ColoredListCellRenderer<T>() {
+        override fun customizeCellRenderer(list: JList<out T>, value: T?, index: Int, selected: Boolean, hasFocus: Boolean) {
+            if (value != null && isValueExists(value)) {
                 icon = getIcon(value)
                 append(value.toString(), if (isOK(value)) SimpleTextAttributes.REGULAR_ATTRIBUTES else SimpleTextAttributes.ERROR_ATTRIBUTES, true)
             }
         }
     }
+
     val availableList = JBList<T>(SimpleListModel()).apply {
-        cellRenderer = listCellRenderer
+        cellRenderer = availableListCellRenderer
     }
     val selectedList = JBList<T>(SimpleListModel()).apply {
-        cellRenderer = listCellRenderer
+        cellRenderer = selectedListCellRenderer
+    }
+
+    private fun JBList<T>.getNotAvailableElements(): MutableList<T> {
+        val model = this.model
+        val notAvailableElements = mutableListOf<T>()
+        for (index in selectedIndices) {
+            val element = model.getElementAt(index)
+            if (!isAvailable(element)) {
+                notAvailableElements.add(element)
+            }
+        }
+        return notAvailableElements
     }
 
     init {
@@ -59,8 +84,13 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
         add(JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             add(IconButton(if (swapped) ArendIcons.MOVE_LEFT else ArendIcons.MOVE_RIGHT).apply { addActionListener {
-                moveSelected(availableList, selectedList)
-            } })
+                val notAvailableElements = availableList.getNotAvailableElements()
+                if (notAvailableElements.isNotEmpty()) {
+                    notAvailableNotification(notAvailableElements)
+                } else {
+                    moveSelected(availableList, selectedList)
+                }
+            }})
             add(IconButton(if (swapped) ArendIcons.MOVE_RIGHT else ArendIcons.MOVE_LEFT).apply { addActionListener {
                 moveSelected(selectedList, availableList)
                 availableList.content = availableList.content.sorted()
@@ -80,12 +110,18 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
 
     open fun getIcon(t: T): Icon? = null
 
+    open fun isValueExists(t: T): Boolean = false
+
+    open fun notAvailableNotification(notAvailableElements: List<T>) { }
+
+    open fun updateOtherLists() { }
+
     private fun moveSelected(from: JBList<T>, to: JBList<T>) {
         val fromModel = from.model
         val removed = ArrayList<T>()
         for (index in from.selectedIndices.reversed()) {
             val element = fromModel.getElementAt(index)
-            if (isAvailable(element)) {
+            if (isValueExists(element)) {
                 removed.add(element)
             }
             (fromModel as SimpleListModel).remove(index)
@@ -93,6 +129,8 @@ open class DualList<T : Comparable<T>>(availableText: String, selectedText: Stri
 
         val toModel = to.model
         (toModel as SimpleListModel).addAll(toModel.size, removed)
+
+        updateOtherLists()
     }
 }
 
