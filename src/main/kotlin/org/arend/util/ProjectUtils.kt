@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -28,6 +29,13 @@ import java.nio.file.Path
 
 val Project.arendModules: List<Module>
     get() = runReadAction { ModuleManager.getInstance(this).modules.filter { ArendModuleType.has(it) } }
+
+val Project.allModules: List<Module>
+    get() = runReadAction {
+        ProjectStructureConfigurable.getInstance(this)
+            ?.modulesConfig?.context?.modulesConfigurator?.moduleModel?.modules
+            ?.filter { ArendModuleType.has(it) } ?: arendModules
+    }
 
 private fun Project.findConfigInZip(zipFile: VirtualFile): YAMLFile? {
     val zipRoot = JarFileSystem.getInstance().getJarRootForLocalFile(zipFile) ?: return null

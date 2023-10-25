@@ -365,6 +365,8 @@
 
         <moduleService serviceImplementation="org.arend.module.editor.ArendModuleConfigurationView"/>
 
+        <moduleService serviceImplementation="org.arend.module.editor.ArendModuleConfigurationEditor"/>
+
         <applicationService serviceImplementation="org.arend.settings.ArendSettings"/>
 
         <projectService serviceImplementation="org.arend.settings.ArendProjectSettings"/>
@@ -390,6 +392,8 @@
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
         <autoImportOptionsProvider instance="org.arend.editor.ArendAutoImportConfigurable"/>
         <applicationConfigurable groupId="language" displayName="Arend" id="preferences.language.Arend" instance="org.arend.editor.ArendConfigurable"/>
+        <configuration.ModuleStructureExtension
+                implementation="org.arend.module.config.ArendModuleStructureExtension"/>
 
         <!-- Highlighting Pass Factories -->
 

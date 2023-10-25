@@ -26,7 +26,7 @@ import java.nio.file.Paths
 const val AREND_LIB = "arend-lib"
 
 @Throws(IOException::class)
-private fun getVersion(): String? {
+internal fun getVersion(): String? {
     val versionsConn = URL("https://raw.githubusercontent.com/JetBrains/$AREND_LIB/master/versions").openConnection()
     BufferedReader(InputStreamReader(versionsConn.getInputStream())).use { reader ->
         while (true) {

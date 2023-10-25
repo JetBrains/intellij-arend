@@ -195,7 +195,7 @@ class ArendModuleBuilder : ArendStarterModuleBuilder(), ArendModuleConfiguration
                     ArendBundle.message("arend.libs.description.standard"),
                     null,
                     null,
-                    listOf(LibraryLink(LibraryLinkType.WEBSITE, "https://github.com/JetBrains/$AREND_LIB"))
+                    listOf(LibraryLink(LibraryLinkType.WEBSITE, "https://github.com/JetBrains/$AREND_LIB/releases/tag/v${getVersion()}"))
                 )
             } else {
                 Library(

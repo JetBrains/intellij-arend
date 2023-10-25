@@ -58,10 +58,7 @@ import org.arend.typechecking.instance.provider.SimpleInstanceProvider
 import org.arend.typechecking.order.DFS
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.visitor.CheckTypeVisitor
-import org.arend.util.FullName
-import org.arend.util.Range
-import org.arend.util.Version
-import org.arend.util.refreshLibrariesDirectory
+import org.arend.util.*
 import org.arend.yaml.YAMLFileListener
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
@@ -73,7 +70,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         override fun showLibraryNotFoundError(libraryName: String) {
             if (libraryName == AREND_LIB) {
                 showDownloadNotification(project, Reason.MISSING)
-            } else {
+            } else if (project.allModules.find { it.name == libraryName } == null) {
                 super.showLibraryNotFoundError(libraryName)
             }
         }

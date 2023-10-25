@@ -1,14 +1,17 @@
 package org.arend.module.editor
 
+import com.intellij.notification.Notifications
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleServiceManager
 import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.TextComponentAccessor
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.notificationGroup
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.AlignX
@@ -19,7 +22,6 @@ import org.arend.ArendIcons
 import org.arend.library.LibraryDependency
 import org.arend.module.AREND_LIB
 import org.arend.module.ArendModuleType
-import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ArendModuleConfiguration
 import org.arend.module.starter.ArendStarterUtils.getLibraryDependencies
 import org.arend.ui.DualList
@@ -64,40 +66,53 @@ class ArendModuleConfigurationView(
     private val langVersionField = JTextField()
     private val versionField = JTextField()
 
-    private val dualList = object : DualList<LibraryDependency>("Available libraries:", "Module dependencies:", true) {
-        override fun isOK(t: LibraryDependency): Boolean {
-            val libRoot = VfsUtil.findFile(Paths.get(librariesRoot), false)
-            val newModule = ModuleManager.getInstance(module.project).modules.find { it.name == t.name }
+    private fun getLibRootAndNewModule(dependencyName: String): Pair<VirtualFile?, Module?> {
+        return Pair(
+            VfsUtil.findFile(Paths.get(librariesRoot), false),
+            module.project.allModules.find { it.name == dependencyName }
+        )
+    }
 
-            return libRoot?.findChild(t.name)?.configFile != null || libRoot?.findChild(t.name + FileUtils.ZIP_EXTENSION)?.configFile != null
-                    || (newModule != null && dfsDependencyModuleGraph(newModule, mutableSetOf(newModule))) // || additionalModule?.name == t.name
-        }
-
-        private fun dfsDependencyModuleGraph(curModule: Module, visitedModules: MutableSet<Module>): Boolean {
-            val configService = ArendModuleConfigService.getInstance(curModule)
-            val libraryNames = configService?.dependencies?.map { it.name } ?: emptyList()
-            val modules = ModuleManager.getInstance(module.project).modules.filter { libraryNames.contains(it.name) }
-            for (otherModule in modules) {
-                if (module == otherModule) {
-                    return false
-                }
-                if (!visitedModules.contains(otherModule)) {
-                    visitedModules.add(otherModule)
-                    if (!dfsDependencyModuleGraph(otherModule, visitedModules)) {
-                        return false
-                    }
-                }
-            }
+    fun isModuleOrLibraryExists(dependencyName: String): Boolean {
+        if (dependencyName == AREND_LIB) {
             return true
         }
+        val (libRoot, newModule) = getLibRootAndNewModule(dependencyName)
+
+        return libRoot?.findChild(dependencyName)?.configFile != null || libRoot?.findChild(dependencyName + FileUtils.ZIP_EXTENSION)?.configFile != null || newModule != null
+    }
+
+    private val dualList = object : DualList<LibraryDependency>(module, "Available libraries:", "Module dependencies:", true) {
+        override fun isOK(t: LibraryDependency): Boolean {
+            val (libRoot, newModule) = getLibRootAndNewModule(t.name)
+
+            return libRoot?.findChild(t.name)?.configFile != null || libRoot?.findChild(t.name + FileUtils.ZIP_EXTENSION)?.configFile != null
+                    || (newModule != null && dfsDependencyModuleGraph(module, newModule, mutableSetOf(newModule)))
+        }
+
+        override fun isValueExists(t: LibraryDependency): Boolean = isModuleOrLibraryExists(t.name)
 
         override fun isAvailable(t: LibraryDependency) = t.name == AREND_LIB || isOK(t)
 
-        override fun getIcon(t: LibraryDependency) = ArendIcons.LIBRARY_ICON
+        override fun getIcon(t: LibraryDependency) =
+            if (t.name == AREND_LIB) {
+                ArendIcons.LIBRARY_ICON
+            } else {
+                ArendIcons.AREND
+            }
 
-        override fun updateConfig() {
-            val configService = ArendModuleConfigService.getInstance(module)
-            configService?.updateFromIDEA(this@ArendModuleConfigurationView)
+        override fun notAvailableNotification(notAvailableElements: List<LibraryDependency>) {
+            val notification = notificationGroup.createNotification("If you add the selected modules `$notAvailableElements` to the module dependencies of module `${module.name}`, a cyclic dependency between the modules will appear", MessageType.WARNING)
+            Notifications.Bus.notify(notification, module.project)
+        }
+
+        override fun updateOtherLists() {
+            val modules = module.project.allModules
+            for (otherModule in modules) {
+                if (module != otherModule) {
+                    getInstance(otherModule)?.updateAvailableLibrariesAndDependencies()
+                }
+            }
         }
     }.apply {
         selectedList.setEmptyText("No dependencies")
@@ -199,15 +214,40 @@ class ArendModuleConfigurationView(
             aligned("Path to libraries: ", libRootTextField)
             row { cell(ScrollPaneFactory.createScrollPane(dualList, true)) }
             row {
-                comment("In order for other modules to be able to see the newly added module in the project, after adding a new module, click OK and re-enter the \"Project Structure\" section")
+                comment("Libraries that do not belong to the project or modules that have a cyclic dependency are highlighted in red")
             }
         }
     }.apply {
         border = BorderFactory.createEmptyBorder(0, 10, 0, 10)
     }
 
+    fun updateAvailableLibrariesAndDependencies() {
+        dualList.selectedList.content = dualList.selectedList.content.filter { libraryDependency -> isModuleOrLibraryExists(libraryDependency.name) }
+        textFieldChangeListener.textChanged()
+    }
+
     companion object {
         fun getInstance(module: Module?) =
             if (module != null && ArendModuleType.has(module)) ModuleServiceManager.getService(module, ArendModuleConfigurationView::class.java) else null
+
+        fun dfsDependencyModuleGraph(module: Module, curModule: Module, visitedModules: MutableSet<Module>): Boolean {
+            if (curModule == module) {
+                return false
+            }
+            val libraryNames = getInstance(curModule)?.dependencies?.map { it.name } ?: emptyList()
+            val modules = module.project.allModules.filter { libraryNames.contains(it.name) }
+            var flag = true
+            for (otherModule in modules) {
+                if (!visitedModules.contains(otherModule)) {
+                    if (module != otherModule) {
+                        visitedModules.add(otherModule)
+                    }
+                    if (!dfsDependencyModuleGraph(module, otherModule, visitedModules)) {
+                        flag = false
+                    }
+                }
+            }
+            return flag
+        }
     }
 }
