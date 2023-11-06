@@ -403,6 +403,7 @@
         <highlightingPassFactory implementation="org.arend.highlight.ArendUnusedImportHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.RedundantParensPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.NameShadowingHighlighterPassFactory"/>
+        <highlightingPassFactory implementation="org.arend.highlight.RedundantParameterNamePassFactory"/>
 
         <!-- Tool Windows -->
 
