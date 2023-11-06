@@ -201,10 +201,10 @@ class ArendPsiFactory(
 
     fun createColon() = createCaseArg("dummy : Nat")?.colon ?: error("Failed to create ':'")
 
-    fun createComma() = createFromText(",")?.firstChild?.firstChild?.firstChild ?: error("Failed to create ','")
-
     fun createReturnKeyword() = createFromText("\\return")?.firstChild?.firstChild?.firstChild ?: error("Failed to create return keyword")
 
     fun createReturnExpr() = createFromText("\\func foo => \\case t \\return {?} \\with {} ")?.firstChild?.firstChild
         ?.descendantOfType<ArendFunctionBody>()?.descendantOfType<ArendCaseExpr>()?.descendantOfType<ArendReturnExpr>() ?: error("Failed to create ArendReturnExpr")
+
+    fun createUnderlining() = createFromText("\\func foo (_ : Nat)")?.descendantOfType<ArendNameTele>()?.descendantOfType<ArendIdentifierOrUnknown>() ?: error("Failed to create _")
 }
