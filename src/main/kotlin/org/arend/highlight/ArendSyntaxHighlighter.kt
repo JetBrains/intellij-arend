@@ -7,8 +7,8 @@ import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import org.arend.lexer.ArendLexerAdapter
 import org.arend.parser.ParserMixin
-import org.arend.psi.AREND_KEYWORDS
 import org.arend.psi.ArendElementTypes
+import org.arend.psi.ArendKeyword.Companion.AREND_KEYWORDS
 
 class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
 

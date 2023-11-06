@@ -81,7 +81,7 @@
         <!-- Documentation -->
 
         <lang.documentationProvider language="Arend"
-                                    implementationClass="org.arend.ArendDocumentationProvider"/>
+                                    implementationClass="org.arend.documentation.ArendDocumentationProvider"/>
 
         <lang.documentationProvider language="INJECTION_TEXT"
                                     implementationClass="org.arend.injection.PsiInjectionTextDocumentationProvider"/>

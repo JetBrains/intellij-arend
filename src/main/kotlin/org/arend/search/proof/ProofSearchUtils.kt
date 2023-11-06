@@ -18,7 +18,7 @@ import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.SmartList
 import org.arend.error.DummyErrorReporter
-import org.arend.psi.AREND_KEYWORDS
+import org.arend.psi.ArendKeyword.Companion.AREND_KEYWORDS
 import org.arend.psi.ext.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.refactoring.rangeOfConcrete
