@@ -1,7 +1,6 @@
 package org.arend.intention.binOp
 
 import com.intellij.codeInsight.hint.HintManager
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -10,7 +9,6 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.util.containers.headTailOrNull
 import org.arend.psi.ext.ArendImplicitArgument
 import org.arend.refactoring.rangeOfConcrete
-import org.arend.resolving.ArendResolveCache
 import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
 

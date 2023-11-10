@@ -4,6 +4,7 @@ import org.jetbrains.grammarkit.tasks.GenerateLexerTask
 import org.jetbrains.grammarkit.tasks.GenerateParserTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.intellij.tasks.PatchPluginXmlTask
+import org.jetbrains.intellij.tasks.RunIdeBase
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
@@ -67,7 +68,7 @@ intellij {
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("yaml", "java", "IdeaVIM:2.1.0"))
+    plugins.set(listOf("org.jetbrains.plugins.yaml", "com.intellij.java", "IdeaVIM:2.1.0"))
 }
 
 tasks.named<JavaExec>("runIde") {
@@ -138,6 +139,15 @@ tasks.register<Copy>("prelude") {
 
 tasks.withType<Wrapper> {
     gradleVersion = "7.6"
+}
+
+tasks.register<RunIdeBase>("generateArendLibHTML") {
+    systemProperty("java.awt.headless", true)
+    args = listOf("generateArendLibHtml") +
+            (project.findProperty("pathToArendLib") as String? ?: "") +
+            (project.findProperty("colorScheme") as String? ?: "") +
+            (project.findProperty("host") as String? ?: "") +
+            (project.findProperty("port") as String? ?: "")
 }
 
 // Utils

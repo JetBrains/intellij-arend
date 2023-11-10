@@ -8,7 +8,7 @@
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
     <depends>org.jetbrains.plugins.yaml</depends>
-    <depends>com.intellij.modules.java</depends>
+    <depends>com.intellij.java</depends>
     <depends optional="true" config-file="plugin-json.xml">com.intellij.modules.json</depends>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -420,6 +420,10 @@
         <liveTemplateContext contextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Everywhere"/>
         <liveTemplateContext contextId="AREND_STATEMENT" baseContextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Statement"/>
         <liveTemplateContext contextId="AREND_EXPRESSION" baseContextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Expression"/>
+
+        <!--TODO-->
+        <appStarter id="generateArendLibHtml" implementation="org.arend.documentation.GenerateArendLibHtmlStarter"/>
+
     </extensions>
 
     <actions>
