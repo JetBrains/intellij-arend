@@ -33,8 +33,17 @@ enum class ArendHighlightingColors(humanName: String, default: TextAttributesKey
     DOC_COMMENT("Comments//Documentation", Default.DOC_COMMENT),
     LONG_NAME("Long name", Default.CONSTANT),
 
-    BAD_CHARACTER("Bad character", HighlighterColors.BAD_CHARACTER);
+    BAD_CHARACTER("Bad character", HighlighterColors.BAD_CHARACTER),
+
+    REF_IDENTIFIER("Ref identifier", Default.HIGHLIGHTED_REFERENCE),
+    GOALS("Goals", Default.COMMA),
+    DOC_TOKENS("Document tokens", Default.DOC_COMMENT_MARKUP)
+    ;
 
     val textAttributesKey = TextAttributesKey.createTextAttributesKey("org.arend.$name", default)
     val attributesDescriptor = AttributesDescriptor(humanName, textAttributesKey)
+
+    companion object {
+        val AREND_COLORS = values().toList()
+    }
 }
