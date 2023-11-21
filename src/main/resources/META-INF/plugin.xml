@@ -404,6 +404,7 @@
         <highlightingPassFactory implementation="org.arend.highlight.RedundantParensPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.NameShadowingHighlighterPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.RedundantParameterNamePassFactory"/>
+        <highlightingPassFactory implementation="org.arend.highlight.PartiallyInfixOperatorPrefixFormPassFactory"/>
 
         <!-- Tool Windows -->
 

@@ -35,7 +35,7 @@ enum class ArendHighlightingColors(humanName: String, default: TextAttributesKey
 
     BAD_CHARACTER("Bad character", HighlighterColors.BAD_CHARACTER),
 
-    REF_IDENTIFIER("Ref identifier", Default.HIGHLIGHTED_REFERENCE),
+    REFERENCE("Reference", Default.HIGHLIGHTED_REFERENCE),
     GOALS("Goals", Default.COMMA),
     DOC_TOKENS("Document tokens", Default.DOC_COMMENT_MARKUP)
     ;

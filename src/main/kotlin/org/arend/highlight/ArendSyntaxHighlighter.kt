@@ -44,7 +44,8 @@ class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
 
             TokenType.BAD_CHARACTER -> ArendHighlightingColors.BAD_CHARACTER
 
-            ArendElementTypes.REF_IDENTIFIER -> ArendHighlightingColors.REF_IDENTIFIER
+            ArendElementTypes.REF_IDENTIFIER -> ArendHighlightingColors.REFERENCE
+            ArendElementTypes.IP_NAME -> ArendHighlightingColors.REFERENCE
             in AREND_GOALS -> ArendHighlightingColors.GOALS
             in AREND_DOC_TOKENS -> ArendHighlightingColors.DOC_TOKENS
 
