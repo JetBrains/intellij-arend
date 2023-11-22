@@ -32,6 +32,7 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.TableView
 import com.intellij.ui.treeStructure.Tree
+import com.intellij.ui.util.minimumHeight
 import com.intellij.util.Consumer
 import org.arend.ArendFileType
 import org.arend.ext.module.LongName
@@ -57,6 +58,7 @@ import javax.swing.ListSelectionModel
 import javax.swing.event.ChangeEvent
 import javax.swing.event.TableModelEvent
 import javax.swing.table.TableCellEditor
+import kotlin.math.roundToInt
 
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
     ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context),
@@ -198,7 +200,17 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
         return if (result == Messages.OK) null else EXIT_SILENTLY
     }
 
+    private fun updateSize() {
+        if (size.height != 0 || size.width != 0) {
+            val heightRow = myParametersTable.minimumHeight / myParametersTable.items.size
+            val additionalHeight = (ADDITIONAL_BASE_HEIGHT / heightRow).roundToInt()
+            val height = size.height - parametersPanel.size.height + myParametersTable.minimumHeight + 2 * heightRow + additionalHeight
+            setSize(size.width, height)
+        }
+    }
+
     private fun evaluateChangeInfo(parametersModel: ArendParameterTableModel): ArendChangeInfo {
+        updateSize()
         return ArendChangeInfo(parametersModel.items.map {  it.parameter }.toMutableList(), myReturnTypeCodeFragment?.text, myNameField.text, myMethod.method, deferredNsCmds)
     }
 
@@ -484,5 +496,9 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     interface RefactoringTask {
         fun getStartOffset(): Int
         fun execute()
+    }
+
+    companion object {
+        const val ADDITIONAL_BASE_HEIGHT = 270.0
     }
 }
