@@ -10,11 +10,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import org.arend.psi.ArendFile
 
-class RedundantParameterNamePassFactory: BasePassFactory<ArendFile>(ArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
+class PartiallyInfixOperatorPrefixFormPassFactory: BasePassFactory<ArendFile>(ArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
     private var myPassId = -1
 
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange): TextEditorHighlightingPass {
-        return RedundantParameterNamePass(file, editor, DefaultHighlightInfoProcessor())
+        return PartiallyInfixOperatorPrefixFormPass(file, editor, DefaultHighlightInfoProcessor())
     }
 
     override fun getPassId(): Int = myPassId

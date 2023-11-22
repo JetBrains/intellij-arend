@@ -24,8 +24,7 @@ import org.arend.ArendLanguage
 import org.arend.highlight.ArendHighlightingColors.Companion.AREND_COLORS
 import org.arend.highlight.ArendSyntaxHighlighter
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.ArendRefIdentifier
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.ext.*
 import org.arend.util.register
 import org.jsoup.nodes.Element
 import java.io.File
@@ -200,6 +199,7 @@ fun generateHtmlForArend(
     val projectDir = PathManager.getPluginsDir().parent.parent.parent.toString()
     File("$projectDir/src/main/html").also {
         File(it.path + File.separator + AREND_CSS).copyTo(File(htmlDirPath + File.separator + AREND_CSS))
+        File(it.path + File.separator + AREND_JS).copyTo(File(htmlDirPath + File.separator + AREND_JS))
     }
 
     File("$curPath$extraHtmlDir$HTML_EXTENSION").writeText(buildString {
@@ -215,15 +215,16 @@ fun generateHtmlForArend(
 
                 psiFile.accept(object : PsiRecursiveElementVisitor() {
                     override fun visitElement(element: PsiElement) {
-                        if (element.firstChild != null && element !is ArendRefIdentifier) {
+                        if (element.firstChild != null && element !is ArendReferenceElement) {
                             super.visitElement(element)
                             return
                         }
 
                         val cssClass = ArendSyntaxHighlighter.map(element.elementType)
 
-                        val href = if (element is ArendRefIdentifier) {
+                        val href = if (element is ArendReferenceElement) {
                             when (val resolve = element.resolve) {
+                                element -> null
                                 is PsiFile -> {
                                     val relativePathToRefFile =
                                         if (resolve.containingFile.virtualFile is LightVirtualFile) {
