@@ -55,6 +55,7 @@ import java.util.Collections.singletonList
 import javax.swing.DefaultListSelectionModel
 import javax.swing.JPanel
 import javax.swing.ListSelectionModel
+import javax.swing.SwingUtilities
 import javax.swing.event.ChangeEvent
 import javax.swing.event.TableModelEvent
 import javax.swing.table.TableCellEditor
@@ -201,16 +202,17 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     private fun updateSize() {
-        if (size.height != 0 || size.width != 0) {
-            val heightRow = myParametersTable.minimumHeight / myParametersTable.items.size
-            val additionalHeight = (ADDITIONAL_BASE_HEIGHT / heightRow).roundToInt()
-            val height = size.height - parametersPanel.size.height + myParametersTable.minimumHeight + 2 * heightRow + additionalHeight
-            setSize(size.width, height)
-        }
+        val rowHeight = myParametersTable.rowHeight
+        val additionalHeight = (ADDITIONAL_BASE_HEIGHT / rowHeight).roundToInt()
+        val height = size.height - parametersPanel.height + (myParametersTable.items.size + 2) * rowHeight + additionalHeight
+        setSize(size.width, height)
+    }
+
+    override fun beforeShowCallback() {
+        SwingUtilities.invokeLater { updateSize() }
     }
 
     private fun evaluateChangeInfo(parametersModel: ArendParameterTableModel): ArendChangeInfo {
-        updateSize()
         return ArendChangeInfo(parametersModel.items.map {  it.parameter }.toMutableList(), myReturnTypeCodeFragment?.text, myNameField.text, myMethod.method, deferredNsCmds)
     }
 
@@ -499,6 +501,6 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     companion object {
-        const val ADDITIONAL_BASE_HEIGHT = 270.0
+        const val ADDITIONAL_BASE_HEIGHT = 280.0
     }
 }
