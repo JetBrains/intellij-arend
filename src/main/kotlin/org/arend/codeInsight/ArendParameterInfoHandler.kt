@@ -32,7 +32,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
     override fun updateUI(p: List<Abstract.Parameter>?, context: ParameterInfoUIContext) {
         if (p == null) return
         var curOffset = 0
-        var text = ""
+        val text = StringBuilder()
         var hlStart = -1; var hlEnd = -1
         var ind = 0
         var curParam = context.currentParameterIndex
@@ -49,14 +49,14 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 nameTypeList.add(Pair("_", exprToString(pm.type)))
             }
             for (v in nameTypeList) {
-                if (text != "") {
-                    text += ", "
+                if (text.isNotEmpty()) {
+                    text.append(", ")
                 }
                 var varText = v.first + if (v.second != null) " : " + v.second else ""
                 if (!pm.isExplicit) {
                     varText = "{$varText}"
                 }
-                text += varText
+                text.append(varText)
                 if (ind == curParam) {
                     hlStart = curOffset
                     hlEnd = text.length + 1
@@ -65,7 +65,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
                 ++ind
             }
         }
-        context.setupUIComponentPresentation(text, hlStart, hlEnd, !context.isUIComponentEnabled, false, false, context.defaultParameterColor)
+        context.setupUIComponentPresentation(text.toString(), hlStart, hlEnd, !context.isUIComponentEnabled, false, false, context.defaultParameterColor)
     }
 
     override fun findElementForParameterInfo(context: CreateParameterInfoContext): ArendReferenceContainer? {
