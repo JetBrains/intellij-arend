@@ -20,6 +20,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.execution.ProxyAction
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
+import org.arend.util.ArendBundle
 
 private fun levelToContentType(level: GeneralError.Level): ConsoleViewContentType = when (level) {
     GeneralError.Level.ERROR -> ERROR_OUTPUT
@@ -80,6 +81,10 @@ class TypecheckingErrorReporter(private val errorService: ErrorService, private 
                     }
                 } else null
                 error.getDoc(PrettyPrinterConfigWithRenamer(ppConfig, scope ?: EmptyScope.INSTANCE)).accept(this, true)
+
+                mapToTypeDiffInfo(error)?.let {
+                    printHyperlink(ArendBundle.message("arend.click.to.see.diff.link"), DiffHyperlinkInfo(it))
+                }
             }
             printNewLine()
             flushText()
