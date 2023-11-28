@@ -32,6 +32,7 @@ import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
+import org.arend.util.ComputationInterruptedException
 
 class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
     : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
@@ -224,19 +225,21 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
             }
         }
 
-        val dependencyListener = service.dependencyListener
-        val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
-        val lastModified = if (definitions.size == 1) definitions[0] else null
-        if (lastModified != null) {
-            lastModifiedDefinition = lastModified.data
-            ordering.order(lastModified)
-        }
-        ordering.listener = collector2
-        for (definition in definitions) {
-            if (definition.data != lastModified?.data) {
-                ordering.order(definition)
+        try {
+            val dependencyListener = service.dependencyListener
+            val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
+            val lastModified = if (definitions.size == 1) definitions[0] else null
+            if (lastModified != null) {
+                lastModifiedDefinition = lastModified.data
+                ordering.order(lastModified)
             }
-        }
+            ordering.listener = collector2
+            for (definition in definitions) {
+                if (definition.data != lastModified?.data) {
+                    ordering.order(definition)
+                }
+            }
+        } catch (_: ComputationInterruptedException) {}
     }
 
     override fun applyInformationWithProgress() {
