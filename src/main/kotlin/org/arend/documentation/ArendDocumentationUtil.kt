@@ -25,6 +25,7 @@ import org.arend.highlight.ArendHighlightingColors.Companion.AREND_COLORS
 import org.arend.highlight.ArendSyntaxHighlighter
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
+import org.arend.util.FileUtils.EXTENSION
 import org.arend.util.register
 import org.jsoup.nodes.Element
 import java.io.File
@@ -42,7 +43,6 @@ const val AREND_JS = "highlight-hover.js"
 const val AREND_DIR_HTML = ".arend-html-files/"
 const val EXTRA_AREND_DIR = ".extra-files/"
 
-const val AREND_EXTENSION = ".ard"
 const val HTML_EXTENSION = ".html"
 
 internal val REGEX_SPAN = "<span class=\"(o|k|n|g|kt|u)\">([^\"<]+)</span>".toRegex()
@@ -188,7 +188,7 @@ fun generateHtmlForArend(
     val curDir = File(curPath)
     curDir.mkdirs()
 
-    val extraHtmlDir = psiFile.name.removeSuffix(AREND_EXTENSION)
+    val extraHtmlDir = psiFile.name.removeSuffix(EXTENSION)
 
     val htmlDirPath = "$curPath.$extraHtmlDir"
     File(htmlDirPath).apply {
@@ -229,10 +229,10 @@ fun generateHtmlForArend(
                                     val relativePathToRefFile =
                                         if (resolve.containingFile.virtualFile is LightVirtualFile) {
                                             EXTRA_AREND_DIR + resolve.virtualFile.path.removePrefix("/")
-                                                .removeSuffix(AREND_EXTENSION)
+                                                .removeSuffix(EXTENSION)
                                         } else {
                                             File(resolve.virtualFile.path).toRelativeString(File(projectBasePath))
-                                                .removeSuffix(AREND_EXTENSION)
+                                                .removeSuffix(EXTENSION)
                                         }
 
                                     "$host:$port/$projectName/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION"
@@ -248,7 +248,7 @@ fun generateHtmlForArend(
                                             resolve,
                                             psiElementIds,
                                             counter,
-                                            EXTRA_AREND_DIR + resolveVirtualFile.path.removeSuffix(AREND_EXTENSION)
+                                            EXTRA_AREND_DIR + resolveVirtualFile.path.removeSuffix(EXTENSION)
                                                 .removePrefix("/")
                                         )
                                     } else {
@@ -314,7 +314,7 @@ private fun getIdCounterAndRelativePath(
 ): Triple<Int, Int, String> {
     val relativePathToRefFile =
         relativePath ?: File(element.containingFile.virtualFile.path).toRelativeString(File(element.project.basePath!!))
-            .removeSuffix(AREND_EXTENSION)
+            .removeSuffix(EXTENSION)
     val key = relativePathToRefFile + ':' + element.textOffset.toString()
     val id = psiIds[key] ?: run {
         psiIds[key] = counter

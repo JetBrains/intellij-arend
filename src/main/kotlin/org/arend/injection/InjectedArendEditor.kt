@@ -46,7 +46,10 @@ import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
+import org.arend.typechecking.error.DiffHyperlinkInfo
 import org.arend.typechecking.error.local.TypeMismatchWithSubexprError
+import org.arend.typechecking.error.mapToTypeDiffInfo
+import org.arend.util.ArendBundle
 import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.JComponent
@@ -125,6 +128,7 @@ abstract class InjectedArendEditor(
             val builder = StringBuilder()
             val visitor = CollectingDocStringBuilder(builder, treeElement.sampleError.error)
             var fileScope: Scope = EmptyScope.INSTANCE
+            var error: GeneralError? = null
 
             runReadAction {
                 var first = true
@@ -135,16 +139,27 @@ abstract class InjectedArendEditor(
                         builder.append("\n\n")
                     }
 
-                    val error = arendError.error
-                    val (resolve, scope) = resolveCauseReference(error)
+                    error = arendError.error
+                    val (resolve, scope) = resolveCauseReference(error!!)
                     if (scope != null) {
                         fileScope = scope
                     }
-                    val doc = getDoc(treeElement, error, resolve, scope)
+                    val doc = getDoc(treeElement, error!!, resolve, scope)
                     currentDoc = doc
                     doc.accept(visitor, false)
                 }
             }
+            val info = mapToTypeDiffInfo(error)
+            val (startDiff, finishDiff) = if (info != null) {
+                builder.appendLine()
+                val start = builder.lastIndex + 1
+                builder.append(ArendBundle.message("arend.click.to.see.diff.link"))
+                val finish = builder.lastIndex + 1
+                Pair(start, finish)
+            } else {
+                Pair(-1, -1)
+            }
+
             val text = builder.toString()
             if (editor.isDisposed) return@invokeLater
             val action: () -> Unit = {
@@ -180,6 +195,10 @@ abstract class InjectedArendEditor(
             support.clearHyperlinks()
             for (hyperlink in visitor.hyperlinks) {
                 support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
+            }
+
+            info?.let {
+                support.createHyperlink(startDiff, finishDiff, null, DiffHyperlinkInfo(it))
             }
         }
     }
