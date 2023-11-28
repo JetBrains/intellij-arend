@@ -19,6 +19,7 @@ import com.intellij.ui.*
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.Alarm
 import org.arend.ArendFileType
 import org.arend.ext.module.ModulePath
 import org.arend.module.ModuleLocation
@@ -40,6 +41,8 @@ import java.util.function.Predicate
 import javax.swing.Icon
 import javax.swing.JPanel
 import javax.swing.JRadioButton
+import javax.swing.SwingUtilities
+import kotlin.math.roundToInt
 
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendGroup>,
@@ -53,6 +56,7 @@ class ArendMoveMembersDialog(project: Project,
     private val dynamicGroup: JRadioButton
     private val staticGroup: JRadioButton
     private val sourceIsDynamic: Boolean?
+    private val myUpdateSizeAlarm: Alarm
 
     init {
         title = "Move Arend Static Members"
@@ -128,6 +132,8 @@ class ArendMoveMembersDialog(project: Project,
         targetFileField.document.addDocumentListener(documentListener)
         targetModuleField.document.addDocumentListener(documentListener)
 
+        myUpdateSizeAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, myDisposable)
+
         init()
     }
 
@@ -136,6 +142,26 @@ class ArendMoveMembersDialog(project: Project,
         val moduleName = targetModuleField.text
         val locateResult = simpleLocate(fileName, moduleName, enclosingModule)
         return locateResult.second == LocateResult.LOCATE_OK && locateResult.first is ArendDefClass
+    }
+
+    private fun updateSize() {
+        val rowHeight = memberSelectionPanel.table.rowHeight
+        val additionalHeight = (ADDITIONAL_BASE_HEIGHT / rowHeight).roundToInt()
+        val height = size.height - memberSelectionPanel.height + memberSelectionPanel.getTitledSeparator().height +
+                (memberSelectionPanel.memberInfo.size + 1) * rowHeight + additionalHeight
+        setSize(size.width, height)
+    }
+
+    override fun beforeShowCallback() {
+        SwingUtilities.invokeLater {
+            if (myUpdateSizeAlarm.isDisposed) return@invokeLater
+            myUpdateSizeAlarm.cancelAllRequests()
+            myUpdateSizeAlarm.addRequest({
+                if (myProject.isDisposed) return@addRequest
+                PsiDocumentManager.getInstance(myProject)
+                    .performLaterWhenAllCommitted { updateSize() }
+            }, 100)
+        }
     }
 
     private fun initMemberInfo(container: ArendGroup, membersToMove: List<ArendGroup>, sink: MutableList<ArendMemberInfo>) {
@@ -216,6 +242,7 @@ class ArendMoveMembersDialog(project: Project,
     }
 
     companion object {
+        private const val ADDITIONAL_BASE_HEIGHT = 100.0
         private const val canNotLocateMessage = "Can not locate target module"
         private const val targetEqualsSource = "Target module cannot coincide with the source module"
         private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
@@ -276,9 +303,9 @@ class ArendMoveMembersDialog(project: Project,
 
         fun simpleLocate(fileName: String, moduleName: String, ideaModule: Module): Pair<ArendGroup?, LocateResult> {
             val configService = ArendModuleConfigService.getInstance(ideaModule)
-                    ?: return Pair(null, LocateResult.OTHER_ERROR)
+                ?: return Pair(null, LocateResult.OTHER_ERROR)
             val targetFile = configService.findArendFile(ModulePath.fromString(fileName), withAdditional = false, withTests = true)
-                    ?: return Pair(null, LocateResult.CANT_FIND_FILE)
+                ?: return Pair(null, LocateResult.CANT_FIND_FILE)
 
             return if (moduleName.trim().isEmpty()) Pair(targetFile, LocateResult.LOCATE_OK) else {
                 val module = targetFile.findGroupByFullName(moduleName.split("."))
@@ -309,9 +336,10 @@ class ArendMoveMembersDialog(project: Project,
 
 }
 
-class ArendMemberSelectionPanel(title: String, memberInfo: List<ArendMemberInfo>) :
-        AbstractMemberSelectionPanel<ArendGroup, ArendMemberInfo>() {
+class ArendMemberSelectionPanel(title: String, val memberInfo: List<ArendMemberInfo>) :
+    AbstractMemberSelectionPanel<ArendGroup, ArendMemberInfo>() {
     private val myTable: ArendMemberSelectionTable
+    private val titledSeparator: TitledSeparator
 
     init {
         layout = BorderLayout()
@@ -319,11 +347,14 @@ class ArendMemberSelectionPanel(title: String, memberInfo: List<ArendMemberInfo>
         myTable = ArendMemberSelectionTable(memberInfo)
         val scrollPane = ScrollPaneFactory.createScrollPane(myTable)
         scrollPane.preferredSize = Dimension(100, 100)
-        add(SeparatorFactory.createSeparator(title, myTable), BorderLayout.NORTH)
+        titledSeparator = SeparatorFactory.createSeparator(title, myTable)
+        add(titledSeparator, BorderLayout.NORTH)
         add(scrollPane, BorderLayout.CENTER)
     }
 
     override fun getTable(): AbstractMemberSelectionTable<ArendGroup, ArendMemberInfo> = myTable
+
+    fun getTitledSeparator(): TitledSeparator = titledSeparator
 }
 
 class ArendMemberSelectionTable(memberInfos: Collection<ArendMemberInfo>) :
