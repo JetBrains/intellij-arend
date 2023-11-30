@@ -23,8 +23,11 @@ import org.apache.commons.lang.StringEscapeUtils
 import org.arend.ArendLanguage
 import org.arend.highlight.ArendHighlightingColors.Companion.AREND_COLORS
 import org.arend.highlight.ArendSyntaxHighlighter
+import org.arend.module.AREND_LIB
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
+import org.arend.util.FileUtils.DEFAULT_SOURCES_DIR
 import org.arend.util.FileUtils.EXTENSION
 import org.arend.util.register
 import org.jsoup.nodes.Element
@@ -40,15 +43,17 @@ const val EXPRESSION_CHAPTER = "expressions/"
 
 const val AREND_CSS = "Arend.css"
 const val AREND_JS = "highlight-hover.js"
-const val AREND_DIR_HTML = ".arend-html-files/"
-const val EXTRA_AREND_DIR = ".extra-files/"
+const val AREND_DIR_HTML = "arend-html-files/"
+const val AREND_BASE_FILE = "Base.ard"
 
 const val HTML_EXTENSION = ".html"
+const val HTML_DIR_EXTENSION = "HTML"
 
 internal val REGEX_SPAN = "<span class=\"(o|k|n|g|kt|u)\">([^\"<]+)</span>".toRegex()
 internal val REGEX_SPAN_HIGHLIGHT = "<span class=\"inl-highlight\">([^\"]+)</span>".toRegex()
 internal val REGEX_CODE = "<code class=\"language-plaintext highlighter-rouge\">([^\"]+)</code>".toRegex()
 internal val REGEX_HREF = "<a href=\"([^\"]+)\">([^\"]+)</a>".toRegex()
+internal val REGEX_AREND_LIB_VERSION = "\\* \\[(.+)]".toRegex()
 
 internal fun String.htmlEscape(): String = XmlStringUtil.escapeString(this, true)
 
@@ -103,15 +108,17 @@ internal fun changeTags(line: String, chapter: String?, folder: String?, isAside
 }
 
 fun generateHtmlForArendLib(
-    pathToArendLib: String?, scheme: EditorColorsScheme, host: String, port: Int
+    pathToArendLib: String?, scheme: EditorColorsScheme, host: String, port: Int?
 ) {
     val projectManager = ProjectManager.getInstance()
     val psiProject = pathToArendLib?.let { projectManager.loadAndOpenProject(it) } ?: return
 
     val moduleManager = ModuleManager.getInstance(psiProject)
-    for (module in moduleManager.modules) {
-        module.register()
-    }
+    val module = moduleManager.modules.getOrNull(0)
+    module?.register()
+
+    val configService = ArendModuleConfigService.getInstance(module)
+    val srcDir = configService?.sourcesDir ?: DEFAULT_SOURCES_DIR
 
     val psiManager = PsiManager.getInstance(psiProject)
 
@@ -122,47 +129,57 @@ fun generateHtmlForArendLib(
 
     createColorCssFile(scheme)
 
-    File(psiProject.basePath + File.separator + AREND_DIR_HTML).apply {
+    val basePath = psiProject.basePath ?: ""
+    val basePathWithSeparator = basePath + File.separator
+    File(basePathWithSeparator + AREND_DIR_HTML).apply {
         deleteRecursively()
     }
+
+    val arendBaseFile = File(basePathWithSeparator + AREND_BASE_FILE).apply {
+        writeText("")
+    }
+
+    val psiProjectName = psiProject.name
+    val indexFile = File(File(basePath).parent + File.separator + "index.md")
+    indexFile.readLines().find { REGEX_AREND_LIB_VERSION.find(it)?.groupValues?.getOrNull(1) == psiProjectName }
+        ?: indexFile.appendText("\n * [$psiProjectName]($psiProjectName/arend-html-files/Base.html)")
 
     val virtualFileVisitor = object : VirtualFileVisitor<Any>() {
         override fun visitFile(file: VirtualFile): Boolean {
             val psiFile: PsiFile? = psiManager.findFile(file)
             if (psiFile is ArendFile) {
                 counter = generateHtmlForArend(
-                    psiFile, psiElementIds, counter, extraFiles, usedExtraFiles, host, port
+                    psiFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendBaseFile, srcDir, host, port
                 )
             }
             return true
         }
     }
 
-    val basePath = psiProject.basePath
-    val virtualFile = basePath?.let { LocalFileSystem.getInstance().findFileByPath(it) }
-    if (virtualFile != null) {
-        visitChildrenRecursively(virtualFile, virtualFileVisitor)
-    }
-
-    val extraPath = basePath + File.separator + EXTRA_AREND_DIR
-    File(extraPath).apply {
-        deleteRecursively()
-        mkdir()
+    val basePathVirtualFile = LocalFileSystem.getInstance().findFileByPath(basePath)
+    if (basePathVirtualFile != null) {
+        visitChildrenRecursively(basePathVirtualFile, virtualFileVisitor)
     }
 
     while (extraFiles.isNotEmpty()) {
         val extraVirtualFile = extraFiles.first()
         usedExtraFiles.add(extraVirtualFile)
 
-        val extraAbsolutePath = extraPath + extraVirtualFile.path.removePrefix("/")
-        File(extraAbsolutePath).apply {
+        val extraFilePath = basePath + extraVirtualFile.path
+        File(extraFilePath).apply {
             writeText(extraVirtualFile.readText())
         }
 
-        LocalFileSystem.getInstance().refreshAndFindFileByPath(extraAbsolutePath)
+        LocalFileSystem.getInstance().refreshAndFindFileByPath(extraFilePath)
             ?.let { visitChildrenRecursively(it, virtualFileVisitor) }
         extraFiles.remove(extraVirtualFile)
     }
+
+    val arendBaseVirtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(arendBaseFile)
+    if (arendBaseVirtualFile != null) {
+        visitChildrenRecursively(arendBaseVirtualFile, virtualFileVisitor)
+    }
+
     projectManager.closeAndDispose(psiProject)
     exitProcess(0)
 }
@@ -173,42 +190,49 @@ fun generateHtmlForArend(
     maxId: Int,
     extraFiles: MutableSet<VirtualFile>,
     usedExtraFiles: Set<VirtualFile>,
+    arendBaseFile: File,
+    arendLibSrcDir: String,
     host: String,
-    port: Int
+    port: Int?
 ): Int {
     var counter = maxId
-    val projectName = psiFile.project.name
+    val libraryVersion = psiFile.project.name
     val projectBasePath = psiFile.project.basePath ?: return maxId
 
     println("Generate an html file for " + psiFile.virtualFile.path)
 
-    val relativePathToCurDir =
-        File(psiFile.containingDirectory.virtualFile.path).toRelativeString(File(projectBasePath)) + File.separator
-    val curPath = psiFile.project.basePath + File.separator + AREND_DIR_HTML + relativePathToCurDir
+    val relativePathToCurDir = File(psiFile.containingDirectory.virtualFile.path).toRelativeString(File(projectBasePath))
+    val curPath = psiFile.project.basePath + File.separator + AREND_DIR_HTML + relativePathToCurDir + File.separator
     val curDir = File(curPath)
     curDir.mkdirs()
 
-    val extraHtmlDir = psiFile.name.removeSuffix(EXTENSION)
+    val title = psiFile.name.removeSuffix(EXTENSION)
+    val extraHtmlDir = title + HTML_DIR_EXTENSION
 
-    val htmlDirPath = "$curPath.$extraHtmlDir"
+    val htmlDirPath = "$curPath$extraHtmlDir"
     File(htmlDirPath).apply {
         deleteRecursively()
         mkdir()
     }
 
     val projectDir = PathManager.getPluginsDir().parent.parent.parent.toString()
-    File("$projectDir/src/main/html").also {
-        File(it.path + File.separator + AREND_CSS).copyTo(File(htmlDirPath + File.separator + AREND_CSS))
-        File(it.path + File.separator + AREND_JS).copyTo(File(htmlDirPath + File.separator + AREND_JS))
+    addExtraFiles(projectDir, htmlDirPath)
+
+    var packageFile = relativePathToCurDir.removePrefix(arendLibSrcDir).removePrefix(File.separator).replace(File.separator, ".")
+    if (packageFile.isNotEmpty()) {
+        packageFile += "."
+    }
+    if (File(psiFile.virtualFile.path) != arendBaseFile) {
+        arendBaseFile.appendText("\\import $packageFile$title\n")
     }
 
-    File("$curPath$extraHtmlDir$HTML_EXTENSION").writeText(buildString {
+    File("$curPath$title$HTML_EXTENSION").writeText(buildString {
         wrapTag("html") {
             wrapTag("head") {
                 wrapTag("title") {
-                    append(extraHtmlDir)
+                    append(title)
                 }
-                append("<link rel=\"stylesheet\" href=\".$extraHtmlDir/$AREND_CSS\">")
+                append("<link rel=\"stylesheet\" href=\"${extraHtmlDir}/$AREND_CSS\">")
             }
             wrapTag("body") {
                 append("<pre class=\"Arend\">")
@@ -226,16 +250,15 @@ fun generateHtmlForArend(
                             when (val resolve = element.resolve) {
                                 element -> null
                                 is PsiFile -> {
+                                    val resolvePath = resolve.virtualFile.path
                                     val relativePathToRefFile =
-                                        if (resolve.containingFile.virtualFile is LightVirtualFile) {
-                                            EXTRA_AREND_DIR + resolve.virtualFile.path.removePrefix("/")
-                                                .removeSuffix(EXTENSION)
+                                        if (resolve.virtualFile is LightVirtualFile) {
+                                            resolvePath.removePrefix(File.separator)
                                         } else {
-                                            File(resolve.virtualFile.path).toRelativeString(File(projectBasePath))
-                                                .removeSuffix(EXTENSION)
-                                        }
+                                            File(resolvePath).toRelativeString(File(projectBasePath))
+                                        }.removeSuffix(EXTENSION)
 
-                                    "$host:$port/$projectName/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION"
+                                    "$host:${port ?: ""}/$AREND_LIB/$libraryVersion/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION"
                                 }
 
                                 is PsiLocatedReferable -> {
@@ -248,8 +271,7 @@ fun generateHtmlForArend(
                                             resolve,
                                             psiElementIds,
                                             counter,
-                                            EXTRA_AREND_DIR + resolveVirtualFile.path.removeSuffix(EXTENSION)
-                                                .removePrefix("/")
+                                            resolveVirtualFile.path.removeSuffix(EXTENSION).removePrefix(File.separator)
                                         )
                                     } else {
                                         getIdCounterAndRelativePath(resolve, psiElementIds, counter)
@@ -258,7 +280,7 @@ fun generateHtmlForArend(
                                     counter = result.second
                                     val relativePathToRefFile = result.third
 
-                                    "$host:$port/$projectName/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION#$id"
+                                    "$host:${port ?: ""}/$AREND_LIB/$libraryVersion/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION#$id"
                                 }
 
                                 else -> null
@@ -271,19 +293,23 @@ fun generateHtmlForArend(
                         val id = result.first
                         counter = result.second
 
-                        append("<a${" id=\"$id\""}${href?.let { " href=\"$it\" style=\"text-decoration:none;\"" } ?: ""}${cssClass?.let { " class=\"$it\"" } ?: ""}>${
-                            StringEscapeUtils.escapeHtml(
-                                element.text
-                            )
-                        }</a>")
+                        append("<a${" id=\"$id\""}${href?.let { " href=\"$it\" style=\"text-decoration:none;\"" } ?: ""}${
+                            cssClass?.let { " class=\"$it\"" } ?: ""}>${StringEscapeUtils.escapeHtml(element.text)}</a>")
                     }
                 })
-                append("<script src=\".$extraHtmlDir/$AREND_JS\"></script>")
+                append("<script src=\"$extraHtmlDir/$AREND_JS\"></script>")
                 append("</pre>")
             }
         }
     })
     return counter
+}
+
+private fun addExtraFiles(projectDir: String, htmlDirPath: String) {
+    File("$projectDir/src/main/html").also {
+        File(it.path + File.separator + AREND_CSS).copyTo(File(htmlDirPath + File.separator + AREND_CSS))
+        File(it.path + File.separator + AREND_JS).copyTo(File(htmlDirPath + File.separator + AREND_JS))
+    }
 }
 
 private fun createColorCssFile(scheme: EditorColorsScheme) {
@@ -302,8 +328,7 @@ private fun createColorCssFile(scheme: EditorColorsScheme) {
         )
     }
     cssFile.run {
-        appendText("\n")
-        appendText(".Arend a { text-decoration: none }\n")
+        appendText("\n.Arend a { text-decoration: none }\n")
         appendText(".Arend a[href]:hover { background-color: #8fbc8f }\n")
         appendText(".Arend [href].hover-highlight { background-color: #8fbc8f; }")
     }
