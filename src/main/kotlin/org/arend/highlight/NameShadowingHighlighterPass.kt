@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.util.descendantsOfType
+import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
 import org.arend.util.ArendBundle
@@ -38,7 +39,7 @@ class NameShadowingHighlighterPass(file: ArendFile, editor: Editor, highlightInf
         if (identifiers.isEmpty()) {
             return
         }
-        val elements = element.scope.elements.map { it.refName }
+        val elements = element.scope.elements.filter { it !is GlobalReferable }.map { it.refName }
         for (identifier in identifiers) {
             val name = identifier.name
             if (elements.contains(name)) {
