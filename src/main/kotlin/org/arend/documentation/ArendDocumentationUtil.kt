@@ -108,7 +108,7 @@ internal fun changeTags(line: String, chapter: String?, folder: String?, isAside
 }
 
 fun generateHtmlForArendLib(
-    pathToArendLib: String?, scheme: EditorColorsScheme, host: String, port: Int?
+    pathToArendLib: String?, scheme: EditorColorsScheme, version: String, host: String, port: Int?
 ) {
     val projectManager = ProjectManager.getInstance()
     val psiProject = pathToArendLib?.let { projectManager.loadAndOpenProject(it) } ?: return
@@ -139,18 +139,15 @@ fun generateHtmlForArendLib(
         writeText("")
     }
 
-    val psiProjectName = psiProject.name
-    val indexFile = File(File(basePath).parent + File.separator + "index.md")
-    indexFile.readLines().find { REGEX_AREND_LIB_VERSION.find(it)?.groupValues?.getOrNull(1) == psiProjectName }
-        ?: indexFile.appendText("\n * [$psiProjectName]($psiProjectName/arend-html-files/Base.html)")
-
     val virtualFileVisitor = object : VirtualFileVisitor<Any>() {
         override fun visitFile(file: VirtualFile): Boolean {
             val psiFile: PsiFile? = psiManager.findFile(file)
             if (psiFile is ArendFile) {
-                counter = generateHtmlForArend(
-                    psiFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendBaseFile, srcDir, host, port
-                )
+                if (File(psiFile.virtualFile.path).toRelativeString(File(basePath)).startsWith(srcDir)) {
+                    counter = generateHtmlForArend(
+                        psiFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendBaseFile, srcDir, version, host, port
+                    )
+                }
             }
             return true
         }
@@ -161,24 +158,27 @@ fun generateHtmlForArendLib(
         visitChildrenRecursively(basePathVirtualFile, virtualFileVisitor)
     }
 
+    val localFileSystem = LocalFileSystem.getInstance()
     while (extraFiles.isNotEmpty()) {
         val extraVirtualFile = extraFiles.first()
         usedExtraFiles.add(extraVirtualFile)
 
         val extraFilePath = basePath + extraVirtualFile.path
-        File(extraFilePath).apply {
+        val file = File(extraFilePath).apply {
             writeText(extraVirtualFile.readText())
         }
 
-        LocalFileSystem.getInstance().refreshAndFindFileByPath(extraFilePath)
-            ?.let { visitChildrenRecursively(it, virtualFileVisitor) }
+        localFileSystem.refreshAndFindFileByPath(extraFilePath)?.let { psiManager.findFile(it) }?.let {
+            generateHtmlForArend(it, psiElementIds, counter, extraFiles, usedExtraFiles, arendBaseFile, srcDir, version, host, port)
+        }
         extraFiles.remove(extraVirtualFile)
+        file.delete()
     }
 
-    val arendBaseVirtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(arendBaseFile)
-    if (arendBaseVirtualFile != null) {
-        visitChildrenRecursively(arendBaseVirtualFile, virtualFileVisitor)
+    localFileSystem.refreshAndFindFileByIoFile(arendBaseFile)?.let { psiManager.findFile(it) }?.let {
+        generateHtmlForArend(it, psiElementIds, counter, extraFiles, usedExtraFiles, arendBaseFile, srcDir, version, host, port)
     }
+    arendBaseFile.delete()
 
     projectManager.closeAndDispose(psiProject)
     exitProcess(0)
@@ -192,11 +192,12 @@ fun generateHtmlForArend(
     usedExtraFiles: Set<VirtualFile>,
     arendBaseFile: File,
     arendLibSrcDir: String,
+    version: String,
     host: String,
     port: Int?
 ): Int {
     var counter = maxId
-    val libraryVersion = psiFile.project.name
+    val projectName = psiFile.project.name
     val projectBasePath = psiFile.project.basePath ?: return maxId
 
     println("Generate an html file for " + psiFile.virtualFile.path)
@@ -258,7 +259,7 @@ fun generateHtmlForArend(
                                             File(resolvePath).toRelativeString(File(projectBasePath))
                                         }.removeSuffix(EXTENSION)
 
-                                    "$host:${port ?: ""}/$AREND_LIB/$libraryVersion/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION"
+                                    "$host:${port ?: ""}/$projectName/$version/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION"
                                 }
 
                                 is PsiLocatedReferable -> {
@@ -280,7 +281,7 @@ fun generateHtmlForArend(
                                     counter = result.second
                                     val relativePathToRefFile = result.third
 
-                                    "$host:${port ?: ""}/$AREND_LIB/$libraryVersion/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION#$id"
+                                    "$host:${port ?: ""}/$projectName/$version/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION#$id"
                                 }
 
                                 else -> null
