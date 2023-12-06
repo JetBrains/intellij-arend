@@ -2,6 +2,7 @@ package org.arend.documentation
 
 import com.intellij.lang.documentation.DocumentationSettings
 import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.richcopy.HtmlSyntaxInfoUtil
 import com.intellij.openapi.module.ModuleManager
@@ -23,16 +24,16 @@ import org.apache.commons.lang.StringEscapeUtils
 import org.arend.ArendLanguage
 import org.arend.highlight.ArendHighlightingColors.Companion.AREND_COLORS
 import org.arend.highlight.ArendSyntaxHighlighter
-import org.arend.module.AREND_LIB
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
-import org.arend.util.FileUtils.DEFAULT_SOURCES_DIR
 import org.arend.util.FileUtils.EXTENSION
 import org.arend.util.register
 import org.jsoup.nodes.Element
 import java.io.File
 import kotlin.system.exitProcess
+
+private val LOG: Logger = Logger.getInstance("#org.arend.documentation")
 
 const val FULL_PREFIX = "\\full:"
 const val AREND_SECTION_START = 0
@@ -108,80 +109,100 @@ internal fun changeTags(line: String, chapter: String?, folder: String?, isAside
 }
 
 fun generateHtmlForArendLib(
-    pathToArendLib: String?, scheme: EditorColorsScheme, version: String, host: String, port: Int?
+    pathToArendLib: String, pathToArendLibInArendSite: String, scheme: EditorColorsScheme, host: String, port: Int?, versionArendLib: String?
 ) {
     val projectManager = ProjectManager.getInstance()
-    val psiProject = pathToArendLib?.let { projectManager.loadAndOpenProject(it) } ?: return
-
-    val moduleManager = ModuleManager.getInstance(psiProject)
-    val module = moduleManager.modules.getOrNull(0)
-    module?.register()
-
-    val configService = ArendModuleConfigService.getInstance(module)
-    val srcDir = configService?.sourcesDir ?: DEFAULT_SOURCES_DIR
-
-    val psiManager = PsiManager.getInstance(psiProject)
-
-    var counter = 0
-    val psiElementIds = mutableMapOf<String, Int>()
-    val extraFiles = mutableSetOf<VirtualFile>()
-    val usedExtraFiles = mutableSetOf<VirtualFile>()
-
-    createColorCssFile(scheme)
-
-    val basePath = psiProject.basePath ?: ""
-    val basePathWithSeparator = basePath + File.separator
-    File(basePathWithSeparator + AREND_DIR_HTML).apply {
-        deleteRecursively()
+    val psiProject = projectManager.loadAndOpenProject(pathToArendLib) ?: run {
+        LOG.warn("Can't open arend-lib on this path=$pathToArendLib")
+        return
     }
+    try {
+        val moduleManager = ModuleManager.getInstance(psiProject)
+        val module = moduleManager.modules.getOrNull(0)
+        module?.register()
 
-    val arendBaseFile = File(basePathWithSeparator + AREND_BASE_FILE).apply {
-        writeText("")
-    }
+        val configService = ArendModuleConfigService.getInstance(module) ?: run {
+            LOG.warn("Can't load information from the YAML file about arend-lib. You need to initialize arend-lib as an Arend module before starting html file generation")
+            return
+        }
 
-    val virtualFileVisitor = object : VirtualFileVisitor<Any>() {
-        override fun visitFile(file: VirtualFile): Boolean {
-            val psiFile: PsiFile? = psiManager.findFile(file)
-            if (psiFile is ArendFile) {
-                if (File(psiFile.virtualFile.path).toRelativeString(File(basePath)).startsWith(srcDir)) {
-                    counter = generateHtmlForArend(
-                        psiFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendBaseFile, srcDir, version, host, port
-                    )
+        val version = versionArendLib
+            ?: ("v" + (configService.version?.longString ?: run {
+                LOG.warn("The YAML file in arend-lib doesn't contain information about the library version. You need to pass the library version as an argument or write the library version to the yaml file")
+                return
+            }))
+        val srcDir = configService.sourcesDir
+
+        val arendSiteVersionDir = pathToArendLibInArendSite + File.separator + version + File.separator
+        File(arendSiteVersionDir).deleteRecursively()
+
+        File(arendSiteVersionDir + AREND_DIR_HTML).apply {
+            mkdirs()
+        }
+
+        val basePath = psiProject.basePath ?: ""
+        val arendBaseFile = File(basePath + File.separator + AREND_BASE_FILE).apply {
+            writeText("")
+        }
+
+        val indexFile = File(pathToArendLibInArendSite+ File.separator + "index.md")
+        indexFile.readLines().find { REGEX_AREND_LIB_VERSION.find(it)?.groupValues?.getOrNull(1) == version }
+            ?: indexFile.appendText("\n * [$version]($version/arend-html-files/Base.html)")
+
+
+        val psiManager = PsiManager.getInstance(psiProject)
+
+        var counter = 0
+        val psiElementIds = mutableMapOf<String, Int>()
+        val extraFiles = mutableSetOf<VirtualFile>()
+        val usedExtraFiles = mutableSetOf<VirtualFile>()
+
+        createColorCssFile(scheme)
+
+        val virtualFileVisitor = object : VirtualFileVisitor<Any>() {
+            override fun visitFile(file: VirtualFile): Boolean {
+                val psiFile: PsiFile? = psiManager.findFile(file)
+                if (psiFile is ArendFile) {
+                    if (File(psiFile.virtualFile.path).toRelativeString(File(basePath)).startsWith(srcDir)) {
+                        counter = generateHtmlForArend(
+                            psiFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, srcDir, version, host, port
+                        )
+                    }
                 }
+                return true
             }
-            return true
-        }
-    }
-
-    val basePathVirtualFile = LocalFileSystem.getInstance().findFileByPath(basePath)
-    if (basePathVirtualFile != null) {
-        visitChildrenRecursively(basePathVirtualFile, virtualFileVisitor)
-    }
-
-    val localFileSystem = LocalFileSystem.getInstance()
-    while (extraFiles.isNotEmpty()) {
-        val extraVirtualFile = extraFiles.first()
-        usedExtraFiles.add(extraVirtualFile)
-
-        val extraFilePath = basePath + extraVirtualFile.path
-        val file = File(extraFilePath).apply {
-            writeText(extraVirtualFile.readText())
         }
 
-        localFileSystem.refreshAndFindFileByPath(extraFilePath)?.let { psiManager.findFile(it) }?.let {
-            generateHtmlForArend(it, psiElementIds, counter, extraFiles, usedExtraFiles, arendBaseFile, srcDir, version, host, port)
+        val basePathVirtualFile = LocalFileSystem.getInstance().findFileByPath(basePath)
+        if (basePathVirtualFile != null) {
+            visitChildrenRecursively(basePathVirtualFile, virtualFileVisitor)
         }
-        extraFiles.remove(extraVirtualFile)
-        file.delete()
-    }
 
-    localFileSystem.refreshAndFindFileByIoFile(arendBaseFile)?.let { psiManager.findFile(it) }?.let {
-        generateHtmlForArend(it, psiElementIds, counter, extraFiles, usedExtraFiles, arendBaseFile, srcDir, version, host, port)
-    }
-    arendBaseFile.delete()
+        val localFileSystem = LocalFileSystem.getInstance()
+        while (extraFiles.isNotEmpty()) {
+            val extraVirtualFile = extraFiles.first()
+            usedExtraFiles.add(extraVirtualFile)
 
-    projectManager.closeAndDispose(psiProject)
-    exitProcess(0)
+            val extraFilePath = basePath + extraVirtualFile.path
+            val file = File(extraFilePath).apply {
+                writeText(extraVirtualFile.readText())
+            }
+
+            localFileSystem.refreshAndFindFileByPath(extraFilePath)?.let { psiManager.findFile(it) }?.let {
+                generateHtmlForArend(it, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, srcDir, version, host, port)
+            }
+            extraFiles.remove(extraVirtualFile)
+            file.delete()
+        }
+
+        localFileSystem.refreshAndFindFileByIoFile(arendBaseFile)?.let { psiManager.findFile(it) }?.let {
+            generateHtmlForArend(it, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, srcDir, version, host, port)
+        }
+        arendBaseFile.delete()
+    } finally {
+        projectManager.closeAndDispose(psiProject)
+        exitProcess(0)
+    }
 }
 
 fun generateHtmlForArend(
@@ -190,6 +211,7 @@ fun generateHtmlForArend(
     maxId: Int,
     extraFiles: MutableSet<VirtualFile>,
     usedExtraFiles: Set<VirtualFile>,
+    arendSiteVersionDir: String,
     arendBaseFile: File,
     arendLibSrcDir: String,
     version: String,
@@ -197,17 +219,26 @@ fun generateHtmlForArend(
     port: Int?
 ): Int {
     var counter = maxId
-    val projectName = psiFile.project.name
-    val projectBasePath = psiFile.project.basePath ?: return maxId
+    val arendLibProjectName = psiFile.project.name
+    val arendLibProjectBasePath = psiFile.project.basePath ?: return maxId
 
-    println("Generate an html file for " + psiFile.virtualFile.path)
+    val relativePathToCurDir = File(psiFile.containingDirectory.virtualFile.path).toRelativeString(File(arendLibProjectBasePath))
+    var arendDir = relativePathToCurDir.removePrefix(arendLibSrcDir).removePrefix(File.separator).replace(File.separator, ".")
+    if (arendDir.isNotEmpty()) {
+        arendDir += "."
+    }
+    val title = psiFile.name.removeSuffix(EXTENSION)
+    val arendPackage = "$arendDir$title"
 
-    val relativePathToCurDir = File(psiFile.containingDirectory.virtualFile.path).toRelativeString(File(projectBasePath))
-    val curPath = psiFile.project.basePath + File.separator + AREND_DIR_HTML + relativePathToCurDir + File.separator
+    println("Generate an html file for $arendPackage")
+    if (File(psiFile.virtualFile.path) != arendBaseFile) {
+        arendBaseFile.appendText("\\import $arendPackage\n")
+    }
+
+    val curPath = arendSiteVersionDir + File.separator + AREND_DIR_HTML + relativePathToCurDir + File.separator
     val curDir = File(curPath)
     curDir.mkdirs()
 
-    val title = psiFile.name.removeSuffix(EXTENSION)
     val extraHtmlDir = title + HTML_DIR_EXTENSION
 
     val htmlDirPath = "$curPath$extraHtmlDir"
@@ -218,14 +249,6 @@ fun generateHtmlForArend(
 
     val projectDir = PathManager.getPluginsDir().parent.parent.parent.toString()
     addExtraFiles(projectDir, htmlDirPath)
-
-    var packageFile = relativePathToCurDir.removePrefix(arendLibSrcDir).removePrefix(File.separator).replace(File.separator, ".")
-    if (packageFile.isNotEmpty()) {
-        packageFile += "."
-    }
-    if (File(psiFile.virtualFile.path) != arendBaseFile) {
-        arendBaseFile.appendText("\\import $packageFile$title\n")
-    }
 
     File("$curPath$title$HTML_EXTENSION").writeText(buildString {
         wrapTag("html") {
@@ -256,10 +279,10 @@ fun generateHtmlForArend(
                                         if (resolve.virtualFile is LightVirtualFile) {
                                             resolvePath.removePrefix(File.separator)
                                         } else {
-                                            File(resolvePath).toRelativeString(File(projectBasePath))
+                                            File(resolvePath).toRelativeString(File(arendLibProjectBasePath))
                                         }.removeSuffix(EXTENSION)
 
-                                    "$host:${port ?: ""}/$projectName/$version/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION"
+                                    "$host:${port ?: ""}/$arendLibProjectName/$version/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION"
                                 }
 
                                 is PsiLocatedReferable -> {
@@ -281,7 +304,7 @@ fun generateHtmlForArend(
                                     counter = result.second
                                     val relativePathToRefFile = result.third
 
-                                    "$host:${port ?: ""}/$projectName/$version/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION#$id"
+                                    "$host:${port ?: ""}/$arendLibProjectName/$version/$AREND_DIR_HTML$relativePathToRefFile$HTML_EXTENSION#$id"
                                 }
 
                                 else -> null
