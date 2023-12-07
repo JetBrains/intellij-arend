@@ -234,8 +234,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             override fun getDependentLink(): DependentLink = constructor.parameters
 
             override fun patternString(location: ArendCompositeElement): String {
-                val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location)
-                        ?: constructor.name
+                val locatedReferable = PsiLocatedReferable.fromReferable(constructor.referable)
+                val constructorName = if (locatedReferable != null) getTargetName(locatedReferable, location) else constructor.name
                 val isInfix = constructor.referable.precedence.isInfix
                 return buildString {
                     if (params.isEmpty()) {
@@ -251,8 +251,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
 
             override fun expressionString(location: ArendCompositeElement): String {
-                val constructorName = getTargetName(PsiLocatedReferable.fromReferable(constructor.referable), location)
-                        ?: constructor.name
+                val locatedReferable = PsiLocatedReferable.fromReferable(constructor.referable)
+                val constructorName = if (locatedReferable != null) getTargetName(locatedReferable, location) else constructor.name
 
                 return if (constructor.referable.precedence.isInfix && params.size == 2)
                     "${params[0]} $constructorName ${params[1]}" else patternString(location)
@@ -302,8 +302,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             override fun expressionString(location: ArendCompositeElement): String = buildString {
                 append("\\new ")
-                val recordName = getTargetName(PsiLocatedReferable.fromReferable(record.referable), location)
-                        ?: record.name
+                val locatedReferable = PsiLocatedReferable.fromReferable(record.referable)
+                val recordName = if (locatedReferable != null) getTargetName(locatedReferable, location) else record.name
                 append("$recordName ")
                 val expr = ToAbstractVisitor.convert(dataCall, object : PrettyPrinterConfig {
                     override fun getNormalizationMode(): NormalizationMode? {
