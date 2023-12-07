@@ -23,6 +23,10 @@ public class ParserMixin {
   public static final ArendTokenType DOC_LBRACKET = new ArendTokenType("[");
   public static final ArendTokenType DOC_RBRACKET = new ArendTokenType("]");
   public static final ArendTokenType DOC_CODE_BLOCK_BORDER = new ArendTokenType("```");
+  public static final ArendTokenType DOC_NEWLINE_LATEX_CODE = new ArendTokenType("$$");
+  public static final ArendTokenType DOC_INLINE_LATEX_CODE = new ArendTokenType("$");
+  public static final ArendTokenType DOC_LATEX_CODE = new ArendTokenType("DOC_LATEX_CODE");
+
   public static final ArendCompositeElementType DOC_CODE_BLOCK = new ArendCompositeElementType("DOC_CODE_BLOCK");
   public static final ArendCompositeElementType DOC_REFERENCE = new ArendCompositeElementType("DOC_REFERENCE");
   public static final ArendCompositeElementType DOC_REFERENCE_TEXT = new ArendCompositeElementType("DOC_REFERENCE_TEXT");

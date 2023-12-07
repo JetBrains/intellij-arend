@@ -25,6 +25,7 @@ dependencies {
     implementation("org.arend:base")
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
+    implementation("org.scilab.forge:jlatexmath:1.0.7")
 }
 
 java {

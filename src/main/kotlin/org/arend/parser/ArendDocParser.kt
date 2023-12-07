@@ -25,7 +25,8 @@ class ArendDocParser : PsiParser, LightPsiParser {
 
         while (!builder.eof()) {
             when (val token = builder.tokenType) {
-                DOC_INLINE_CODE_BORDER, DOC_CODE, DOC_PARAGRAPH_SEP -> builder.advanceLexer()
+                DOC_INLINE_CODE_BORDER, DOC_CODE, DOC_PARAGRAPH_SEP,
+                    DOC_INLINE_LATEX_CODE, DOC_NEWLINE_LATEX_CODE, DOC_LATEX_CODE -> builder.advanceLexer()
                 DOC_LBRACKET -> parseReferenceText(builder)
                 LBRACE -> parseReference(builder, builder.mark())
                 DOC_CODE_BLOCK_BORDER -> parseCodeBlock(builder)
