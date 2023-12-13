@@ -199,6 +199,8 @@ fun generateHtmlForArendLib(
             generateHtmlForArend(it, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, srcDir, version, host, port)
         }
         arendBaseFile.delete()
+    } catch (e : Exception) {
+        e.printStackTrace()
     } finally {
         projectManager.closeAndDispose(psiProject)
         exitProcess(0)
