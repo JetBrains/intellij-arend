@@ -73,6 +73,8 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
     private val highlights = ArrayList<HighlightInfo>()
     private val errorList = ArrayList<GeneralError>()
 
+    fun getHighlights() = highlights
+
     override fun applyInformationWithProgress() {
         val errorService = myProject.service<ErrorService>()
 
