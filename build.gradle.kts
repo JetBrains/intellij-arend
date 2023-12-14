@@ -21,12 +21,16 @@ repositories {
     mavenCentral()
 }
 
+val graphStreamVersion = 2.0
+
 dependencies {
     implementation("org.arend:base")
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
     implementation("org.scilab.forge:jlatexmath:1.0.7")
     implementation("guru.nidi:graphviz-java:0.18.1")
+    implementation("org.graphstream:gs-core:$graphStreamVersion")
+    implementation("org.graphstream:gs-ui-swing:$graphStreamVersion")
 }
 
 java {
