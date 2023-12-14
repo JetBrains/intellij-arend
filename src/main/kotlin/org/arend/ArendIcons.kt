@@ -41,6 +41,8 @@ object ArendIcons {
     val TURNSTILE = getIcon("/icons/turnstile.svg")
     val CHECKMARK = getIcon("/icons/checkmark.svg")
 
+    val GRAPH = getIcon("/icons/graph.svg")
+
     // Source code elements
 
     val CLASS_DEFINITION = AllIcons.Nodes.Class
