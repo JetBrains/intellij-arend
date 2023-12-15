@@ -22,11 +22,8 @@ class GenerateArendLibHtmlStarter : ApplicationStarter {
         val editorColorsManager = EditorColorsManager.getInstance()
         val colorScheme = arguments.getOrNull(3)?.let { editorColorsManager.getScheme(it) } ?: editorColorsManager.globalScheme
 
-        val host = arguments.getOrNull(4) ?: "https://arend-lang.github.io/"
-        val port = arguments.getOrNull(5)?.toInt()
+        val versionArendLib = arguments.getOrNull(4)
 
-        val versionArendLib = arguments.getOrNull(6)
-
-        generateHtmlForArendLib(pathToArendLib, pathToArendLibInArendSite, colorScheme, host, port, versionArendLib)
+        generateHtmlForArendLib(pathToArendLib, pathToArendLibInArendSite, colorScheme, versionArendLib)
     }
 }

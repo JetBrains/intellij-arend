@@ -147,8 +147,6 @@ tasks.register<RunIdeBase>("generateArendLibHTML") {
             (project.findProperty("pathToArendLib") as String? ?: "") +
             (project.findProperty("pathToArendLibInArendSite") as String? ?: "") +
             (project.findProperty("colorScheme") as String? ?: "") +
-            (project.findProperty("host") as String? ?: "") +
-            (project.findProperty("port") as String? ?: "") +
             (project.findProperty("versionArendLib") as String? ?: "")
 }
 

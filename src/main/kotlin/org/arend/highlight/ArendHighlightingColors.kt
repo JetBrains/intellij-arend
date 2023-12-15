@@ -45,5 +45,7 @@ enum class ArendHighlightingColors(humanName: String, default: TextAttributesKey
 
     companion object {
         val AREND_COLORS = values().toList()
+
+        val colorsByAttributesKey = values().associateBy { it.textAttributesKey }
     }
 }
