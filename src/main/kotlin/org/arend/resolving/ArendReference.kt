@@ -17,6 +17,7 @@ import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.PrivateFilteredScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -209,7 +210,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImpor
             element.ancestor<ArendExpr>()
         } else null
         val def = expr?.ancestor<PsiConcreteReferable>()
-        var elements = if (expr == null) element.scope.getElements(refKind) else emptyList()
+        var elements = if (expr == null) PrivateFilteredScope(element.scope, true).getElements(refKind) else emptyList()
         val resolverListener = if (expr == null) null else object : ResolverListener {
             override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable?, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
                 if (refExpr.data == parent || refExpr.data == element) {
