@@ -1,7 +1,7 @@
 package org.arend.util
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInsight.hints.InlayHintsPassFactory
+import com.intellij.codeInsight.hints.InlayHintsFactory
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
@@ -79,7 +79,7 @@ fun Editor.isDetailedViewEditor() : Boolean = getUserData(InjectedArendEditor.AR
 
 fun Project.afterTypechecking(files: Collection<ArendFile>) {
     for (editor in EditorFactory.getInstance().allEditors) {
-        InlayHintsPassFactory.clearModificationStamp(editor)
+        InlayHintsFactory.clearModificationStamp(editor) // editor.putUserData(PSI_MODIFICATION_STAMP, null)
     }
     runReadAction {
         for (file in files) {

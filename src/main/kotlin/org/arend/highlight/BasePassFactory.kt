@@ -20,7 +20,7 @@ abstract class BasePassFactory<T : PsiFile>(private val clazz: Class<T>) : Dirty
             return null
         }
 
-        val textRange = FileStatusMap.getDirtyTextRange(editor, passId)
+        val textRange = FileStatusMap.getDirtyTextRange(editor.document, file, passId)
         return if (textRange == null) {
             EmptyHighlightingPass(file.project, editor.document)
         } else {

@@ -4,6 +4,7 @@ import com.intellij.CommonBundle
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.content.Content
 import com.intellij.ui.scale.JBUIScale
@@ -49,7 +50,7 @@ class ArendToolWindowSession(project: Project) : ComponentSession() {
             val insets = button.insets
             buttonsPanel.add(button)
             if (i < buttons.size - 1) {
-                val gap = if (StartupUiUtil.isUnderDarcula || UIUtil.isUnderIntelliJLaF()) JBUIScale.scale(if (UIUtil.isUnderWin10LookAndFeel()) 8 else 12) - insets.left - insets.right else JBUIScale.scale(8)
+                val gap = if (!JBColor.isBright() || UIUtil.isUnderIntelliJLaF()) JBUIScale.scale(12) - insets.left - insets.right else JBUIScale.scale(8)
                 buttonsPanel.add(Box.createRigidArea(Dimension(gap, 0)))
             }
         }

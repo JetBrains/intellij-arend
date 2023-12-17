@@ -1,8 +1,8 @@
 package org.arend.util
 
+import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.Panel
-import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.ui.layout.selected
 import javax.swing.AbstractButton
 import javax.swing.JComponent
@@ -40,7 +40,7 @@ fun Panel.labeled(text: String, component: JComponent) = row {
 }
 
 fun <T : JComponent> Panel.aligned(text: String, component: T, init: Cell<T>.() -> Unit = {}) = row(text) {
-    cell(component).horizontalAlign(HorizontalAlign.FILL).init()
+    cell(component).align(AlignX.FILL).init()
 }
 
 fun <T : JComponent> Panel.checked(checkBox: AbstractButton, component: T, init: Cell<T>.() -> Unit = {}) = row {

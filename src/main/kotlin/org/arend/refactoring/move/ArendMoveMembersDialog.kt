@@ -85,8 +85,7 @@ class ArendMoveMembersDialog(project: Project,
         dynamicGroup = JRadioButton("Dynamic")
         lateinit var classPartRow: Row
         centerPanel = panel {
-            row { cell(ScrollPaneFactory.createScrollPane(memberSelectionPanel, true))
-                .align(Align.FILL)
+            row { cell(ScrollPaneFactory.createScrollPane(memberSelectionPanel, true)).align(Align.FILL)
             }.resizableRow()
             aligned("Target file: ", targetFileField)
             aligned("Target module: ", targetModuleField)

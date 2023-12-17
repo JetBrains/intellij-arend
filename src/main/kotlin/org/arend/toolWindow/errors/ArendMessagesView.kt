@@ -328,23 +328,24 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     }
 
     fun update() {
-        val expandedPaths = TreeUtil.collectExpandedPaths(tree)
-        val selectedPath = tree.selectionPath
+        runInEdt {
+            val expandedPaths = TreeUtil.collectExpandedPaths(tree)
+            val selectedPath = tree.selectionPath
 
-        val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
-        val errorsMap = project.service<ErrorService>().errors
-        val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
-        tree.update(root) { node ->
-            if (node == root) errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }
+            val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
+            val errorsMap = project.service<ErrorService>().errors
+            val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
+            tree.update(root) { node ->
+                if (node == root) errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }
                 .map { it.key }
-            else when (val obj = node.userObject) {
-                is ArendFile -> {
-                    val arendErrors = errorsMap[obj]
-                    val children = LinkedHashSet<Any>()
-                    for (arendError in arendErrors ?: emptyList()) {
-                        if (!arendError.error.satisfies(filterSet)) {
-                            continue
-                        }
+                else when (val obj = node.userObject) {
+                    is ArendFile -> {
+                        val arendErrors = errorsMap[obj]
+                        val children = LinkedHashSet<Any>()
+                        for (arendError in arendErrors ?: emptyList()) {
+                            if (!arendError.error.satisfies(filterSet)) {
+                                continue
+                            }
 
                         val def = arendError.definition
                         if (def == null) {
@@ -358,13 +359,15 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     children
                 }
 
-                is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
-                else -> emptySet()
-            }
-        }
 
-        treeModel.reload()
-        TreeUtil.restoreExpandedPaths(tree, expandedPaths)
-        tree.selectionPath = tree.getExistingPrefix(selectedPath)
+                    is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
+                    else -> emptySet()
+                }
+            }
+
+            treeModel.reload()
+            TreeUtil.restoreExpandedPaths(tree, expandedPaths)
+            tree.selectionPath = tree.getExistingPrefix(selectedPath)
+        }
     }
 }
