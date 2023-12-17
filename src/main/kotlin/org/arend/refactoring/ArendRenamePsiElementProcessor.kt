@@ -32,9 +32,7 @@ class ArendRenamePsiElementProcessor: RenamePsiElementProcessor() {
             try {
                 super.canRun()
             } catch (e: ConfigurationException) {
-                if (e.message != null) {
-                    throw ConfigurationException("'" + patchedGetNewName() + "'" + "is not a valid Arend module name")
-                }
+                throw ConfigurationException("'" + patchedGetNewName() + "'" + "is not a valid Arend module name")
             }
         }
 

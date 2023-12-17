@@ -1,6 +1,5 @@
 package org.arend
 
-import com.intellij.ProjectTopics
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
@@ -22,7 +21,7 @@ class ArendStartupActivity : StartupActivity.RequiredForSmartMode {
     override fun runActivity(project: Project) {
         val libraryManager = project.service<TypeCheckingService>().libraryManager
 
-        project.messageBus.connect(project).subscribe(ProjectTopics.MODULES, object : ModuleListener {
+        project.messageBus.connect(project).subscribe(ModuleListener.TOPIC, object : ModuleListener {
             override fun modulesAdded(project: Project, modules: List<Module>) {
                 for (module in modules) {
                     if (ArendModuleType.has(module)) {
@@ -57,7 +56,7 @@ class ArendStartupActivity : StartupActivity.RequiredForSmartMode {
                 val progressFraction = 1.0 / modules.size.toDouble()
                 for (module in modules) {
                     module.register()
-                    indicator.fraction = indicator.fraction + progressFraction
+                    indicator.fraction += progressFraction
                 }
             }
         })

@@ -7,13 +7,13 @@ import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.9.0.2"
+version = "1.9.0.4"
 
 plugins {
     idea
-    kotlin("jvm") version "1.8.21"
-    id("org.jetbrains.intellij") version "1.13.3"
-    id("org.jetbrains.grammarkit") version "2022.3.1"
+    kotlin("jvm") version "1.9.21"
+    id("org.jetbrains.intellij") version "1.16.1"
+    id("org.jetbrains.grammarkit") version "2022.3.2"
 }
 
 repositories {
@@ -63,11 +63,11 @@ tasks {
 }
 
 intellij {
-    version.set("2023.1")
+    version.set("2023.3")
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("yaml", "java", "IdeaVIM:2.1.0"))
+    plugins.set(listOf("yaml", "java", "IdeaVIM:2.7.5"))
 }
 
 tasks.named<JavaExec>("runIde") {
@@ -112,8 +112,8 @@ val generateArendDocLexer = tasks.register<GenerateLexerTask>("genArendDocLexer"
 tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions {
         jvmTarget = "17"
-        languageVersion = "1.7"
-        apiVersion = "1.7"
+        languageVersion = "1.9"
+        apiVersion = "1.9"
         freeCompilerArgs = listOf("-Xjvm-default=all")
     }
     dependsOn(generateArendLexer, generateArendParser, generateArendDocLexer)
@@ -137,7 +137,7 @@ tasks.register<Copy>("prelude") {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "7.6"
+    gradleVersion = "8.5"
 }
 
 // Utils

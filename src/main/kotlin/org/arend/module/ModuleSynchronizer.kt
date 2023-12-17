@@ -1,6 +1,5 @@
 package org.arend.module
 
-import com.intellij.ProjectTopics
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
@@ -24,7 +23,7 @@ import kotlin.Pair
 
 class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
     fun install() {
-        project.messageBus.connect().subscribe(ProjectTopics.PROJECT_ROOTS, this)
+        project.messageBus.connect().subscribe(ModuleRootListener.TOPIC, this)
         synchronizeModules()
     }
 

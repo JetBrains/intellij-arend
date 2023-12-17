@@ -138,11 +138,8 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         val title = JBLabel(ArendBundle.message("arend.proof.search.title"))
         val topPanel = JPanel(MigLayout("flowx, ins 0, gap 0, fillx, filly"))
         val foregroundColor = when {
-            StartupUiUtil.isUnderDarcula() -> when {
-                UIUtil.isUnderWin10LookAndFeel() -> JBColor.WHITE
-                else -> JBColor(Gray._240, Gray._200)
-            }
-            else -> UIUtil.getLabelForeground()
+            JBColor.isBright() -> UIUtil.getLabelForeground()
+            else -> JBColor(Gray._240, Gray._200)
         }
         title.foreground = foregroundColor
         title.border = BorderFactory.createEmptyBorder(3, 5, 5, 0)

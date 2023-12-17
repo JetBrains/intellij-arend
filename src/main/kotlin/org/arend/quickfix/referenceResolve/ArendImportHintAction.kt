@@ -20,6 +20,7 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.SlowOperations
+import com.intellij.util.ThreeState
 import org.arend.settings.ArendSettings
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
@@ -90,7 +91,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
         if (availability == ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX &&
                 service<ArendSettings>().autoImportOnTheFly && !refElementUnderCaret /* prevent on-the-fly autoimport of element under caret */ &&
-                (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile)) &&
+                (ApplicationManager.getApplication().isUnitTestMode || DaemonListeners.canChangeFileSilently(psiFile, true, ThreeState.UNSURE)) &&
                 isInModlessContext) {
             val action = ArendAddImportAction(project, editor, referenceElement, referenceResolveActions.toList(), true)
             CommandProcessor.getInstance().runUndoTransparentAction { action.execute() }

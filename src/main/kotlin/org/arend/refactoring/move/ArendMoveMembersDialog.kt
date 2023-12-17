@@ -20,10 +20,9 @@ import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.ui.RowIcon
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SeparatorFactory
+import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.ui.dsl.gridLayout.HorizontalAlign
-import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import org.arend.ext.module.ModulePath
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ext.ArendClassStat
@@ -72,9 +71,7 @@ class ArendMoveMembersDialog(project: Project,
         dynamicGroup = JRadioButton("Dynamic")
         lateinit var classPartRow: Row
         centerPanel = panel {
-            row { cell(ScrollPaneFactory.createScrollPane(memberSelectionPanel, true))
-                .horizontalAlign(HorizontalAlign.FILL)
-                .verticalAlign(VerticalAlign.FILL)
+            row { cell(ScrollPaneFactory.createScrollPane(memberSelectionPanel, true)).align(Align.FILL)
             }.resizableRow()
             aligned("Target file: ", targetFileTextField)
             aligned("Target module: ", targetModuleTextField)

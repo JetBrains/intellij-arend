@@ -62,7 +62,7 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
     fun updateCurrentSelection() {
         val selectedEditor = (FileEditorManager.getInstance(myProject).selectedEditor as? TextEditor)?.editor
         if (selectedEditor != null) {
-            runInEdt(ModalityState.NON_MODAL) {
+            runInEdt(ModalityState.nonModal()) {
                 selectInAlarm(selectedEditor)
             }
         }
@@ -111,14 +111,14 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
 
     fun createActionGroup() = DefaultActionGroup(UIBundle.message("autoscroll.from.source.action.description"), true).apply {
         templatePresentation.icon = AllIcons.General.AutoscrollFromSource
-        for (type in MessageType.values()) {
+        for (type in MessageType.entries) {
             val action = MyAction(type)
             add(action)
             actionMap[type] = action
         }
 
         val settings = project.service<ArendProjectSettings>()
-        for (type in MessageType.values()) {
+        for (type in MessageType.entries) {
             val enabled = settings.messagesFilterSet.contains(type) &&
                 (!(type == MessageType.RESOLVING || type == MessageType.PARSING) ||
                     settings.autoScrollFromSource.contains(MessageType.SHORT) && settings.messagesFilterSet.contains(MessageType.SHORT))

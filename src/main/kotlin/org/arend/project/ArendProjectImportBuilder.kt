@@ -31,7 +31,7 @@ class ArendProjectImportBuilder : ProjectImportBuilder<String>() {
     override fun commit(project: Project, model: ModifiableModuleModel?, modulesProvider: ModulesProvider?, artifactModel: ModifiableArtifactModel?): List<Module>? {
         val rootPath = fileToImport ?: return null
         val detector = ProjectStructureDetector.EP_NAME.findExtensionOrFail(ArendProjectStructureDetector::class.java)
-        val builder = ProjectFromSourcesBuilderImpl(WizardContext(project, project), ModulesProvider.EMPTY_MODULES_PROVIDER)
+        val builder = ProjectFromSourcesBuilderImpl(WizardContext(project, project), modulesProvider ?: ModulesProvider.EMPTY_MODULES_PROVIDER)
         builder.baseProjectPath = rootPath
         detector.setupProjectStructure(listOf(File(rootPath)), builder.getProjectDescriptor(detector))
         return builder.commit(project, model, modulesProvider, artifactModel)

@@ -36,7 +36,7 @@ class ArendModuleBuilder : ModuleBuilder() {
                 } catch (e: ConfigurationException) {
                     //IDEA-98382 We should allow Next step if user has wrong SDK
                     if (Messages.showDialog(
-                            JavaUiBundle.message("dialog.message.0.do.you.want.to.proceed", e.message),
+                            JavaUiBundle.message("dialog.message.0.do.you.want.to.proceed", e.messageHtml),
                             e.title,
                             arrayOf(CommonBundle.getYesButtonText(), CommonBundle.getNoButtonText()),
                             1,
