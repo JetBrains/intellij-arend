@@ -46,9 +46,4 @@ class ArendModuleConfigurationEditor(private val module: Module) : ModuleConfigu
         view.copyFrom(moduleConfig)
         return view.createComponent()
     }
-
-    companion object {
-        fun getInstance(module: Module?) =
-            if (module != null && ArendModuleType.has(module)) ModuleServiceManager.getService(module, ArendModuleConfigurationEditor::class.java) else null
-    }
 }

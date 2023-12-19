@@ -365,8 +365,6 @@
 
         <moduleService serviceImplementation="org.arend.module.editor.ArendModuleConfigurationView"/>
 
-        <moduleService serviceImplementation="org.arend.module.editor.ArendModuleConfigurationEditor"/>
-
         <applicationService serviceImplementation="org.arend.settings.ArendSettings"/>
 
         <projectService serviceImplementation="org.arend.settings.ArendProjectSettings"/>
