@@ -18,12 +18,8 @@ class GenerateArendLibHtmlStarter : ApplicationStarter {
             println("The path to the Arend library in Arend site is not specified")
             return
         }
+        val versionArendLib = arguments.getOrNull(3)
 
-        val editorColorsManager = EditorColorsManager.getInstance()
-        val colorScheme = arguments.getOrNull(3)?.let { editorColorsManager.getScheme(it) } ?: editorColorsManager.globalScheme
-
-        val versionArendLib = arguments.getOrNull(4)
-
-        generateHtmlForArendLib(pathToArendLib, pathToArendLibInArendSite, colorScheme, versionArendLib)
+        generateHtmlForArendLib(pathToArendLib, pathToArendLibInArendSite, versionArendLib)
     }
 }
