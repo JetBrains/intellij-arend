@@ -121,7 +121,8 @@ abstract class ArendStarterModuleBuilder : ModuleBuilder() {
             emptyList(),
             emptyList(),
             getTestFrameworks(),
-            getCustomizedMessages()
+            getCustomizedMessages(),
+            true
         )
     }
 

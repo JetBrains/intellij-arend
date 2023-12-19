@@ -2,7 +2,6 @@ package org.arend.navigation
 
 import com.intellij.navigation.ChooseByNameContributor
 import org.arend.ArendTestBase
-import kotlin.streams.asSequence
 
 class ArendFileNavigationContributorTest : ArendTestBase() {
     fun `test contains files with metas from arend-lib`() {
@@ -14,7 +13,7 @@ class ArendFileNavigationContributorTest : ArendTestBase() {
     }
 
     private fun getByName(name: String): List<String> =
-            ChooseByNameContributor.FILE_EP_NAME.extensions().asSequence()
+            ChooseByNameContributor.FILE_EP_NAME.extensionList.asSequence()
                     .flatMap { it.getItemsByName(name, name, project, true).map { it.name!! } }
                     .toList()
 }
