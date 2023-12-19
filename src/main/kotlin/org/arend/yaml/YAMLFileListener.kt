@@ -1,6 +1,5 @@
 package org.arend.yaml
 
-import com.intellij.AppTopics
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileDocumentManagerListener
@@ -25,7 +24,7 @@ class YAMLFileListener(private val project: Project) : BulkFileListener, FileDoc
     fun register() {
         val connection = project.messageBus.connect()
         connection.subscribe(VirtualFileManager.VFS_CHANGES, this)
-        connection.subscribe(AppTopics.FILE_DOCUMENT_SYNC, this)
+        connection.subscribe(FileDocumentManagerListener.TOPIC, this)
     }
     override fun unsavedDocumentDropped(document: Document) {
         val file = FileDocumentManager.getInstance().getFile(document) ?: return

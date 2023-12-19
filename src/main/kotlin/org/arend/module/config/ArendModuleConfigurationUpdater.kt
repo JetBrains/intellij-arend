@@ -1,6 +1,7 @@
 package org.arend.module.config
 
 import com.intellij.ide.util.projectWizard.ModuleBuilder
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.util.io.FileUtil
@@ -46,23 +47,32 @@ class ArendModuleConfigurationUpdater(private val isNewModule: Boolean) : Module
                 })
             configService.copyFrom(this)
         } else {
-            val yaml = moduleRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let {
-                PsiManager.getInstance(rootModel.project).findFile(it) as? YAMLFile
-            } ?: return
+            if (!runReadAction {
+                val yaml = moduleRoot.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let {
+                    PsiManager.getInstance(rootModel.project).findFile(it) as? YAMLFile
+                } ?: return@runReadAction false
 
-            configService.copyFromYAML(yaml, false)
-            copyFrom(configService)
+                configService.copyFromYAML(yaml, false)
+                copyFrom(configService)
+                return@runReadAction true
+            }) {
+                return
+            }
         }
 
         val rootPath = FileUtil.toSystemDependentName(moduleRoot.path)
 
         val srcDir = toAbsolute(rootPath, sourcesDir)
-        VfsUtil.createDirectories(srcDir)
+        if (isNewModule) {
+            VfsUtil.createDirectories(srcDir)
+        }
         contentEntry.addSourceFolder(VfsUtil.pathToUrl(srcDir), false)
 
         if (testsDir != "") {
             val testDir = toAbsolute(rootPath, testsDir)
-            VfsUtil.createDirectories(testDir)
+            if (isNewModule) {
+                VfsUtil.createDirectories(testDir)
+            }
             contentEntry.addSourceFolder(VfsUtil.pathToUrl(toAbsolute(rootPath, testDir)), true)
         }
 

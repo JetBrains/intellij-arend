@@ -2,6 +2,7 @@ package org.arend.toolWindow.errors.tree
 
 import com.intellij.codeInsight.hints.presentation.MouseButton
 import com.intellij.codeInsight.hints.presentation.mouseButton
+import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiElement
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.tree.TreeUtil
@@ -93,7 +94,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
 
     override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
-            is ArendFile -> obj.moduleLocation?.toString() ?: obj.name
+            is ArendFile -> obj.fullName
             is ArendErrorTreeElement -> {
                 val messages = LinkedHashSet<String>()
                 for (arendError in obj.errors) {
@@ -101,7 +102,9 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
                 }
                 messages.joinToString("; ")
             }
-            is Referable -> if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
+            is Referable -> runReadAction {
+                if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
+            }
             else -> obj?.toString() ?: ""
         }
 

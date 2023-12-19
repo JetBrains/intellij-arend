@@ -18,7 +18,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiCodeFragment
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.impl.source.tree.injected.changesHandler.range
 import com.intellij.psi.util.descendants
 import com.intellij.psi.util.descendantsOfType
 import com.intellij.psi.util.elementType
@@ -32,7 +31,6 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.TableView
 import com.intellij.ui.treeStructure.Tree
-import com.intellij.ui.util.minimumHeight
 import com.intellij.util.Consumer
 import org.arend.ArendFileType
 import org.arend.ext.module.LongName
@@ -181,7 +179,7 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
             val document = documentManager.getDocument(fragment)!!
             DaemonCodeAnalyzerEx.processHighlights(document, myProject, HighlightSeverity.ERROR, 0, document.textLength) {
                 hasErrors = true
-                builder.append("${it.description} $locationDescription at ${it.range}\n")
+                builder.append("${it.description} $locationDescription at ${TextRange.create(it)}\n")
                 rawErrors.add(it); false
             }
         }

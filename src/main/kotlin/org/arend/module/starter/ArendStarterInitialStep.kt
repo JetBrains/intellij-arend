@@ -107,7 +107,7 @@ open class ArendStarterInitialStep(contextProvider: ArendStarterContextProvider)
                 row(JavaStartersBundle.message("title.project.language.label")) {
                     languageRow = this
 
-                    segmentedButton(starterSettings.languages, StarterLanguage::title)
+                    segmentedButton(starterSettings.languages) { text = it.title }
                         .bind(languageProperty)
 
                     bottomGap(BottomGap.SMALL)
@@ -117,8 +117,10 @@ open class ArendStarterInitialStep(contextProvider: ArendStarterContextProvider)
             if (starterSettings.projectTypes.isNotEmpty()) {
                 val messages = starterSettings.customizedMessages
                 row(messages?.projectTypeLabel ?: JavaStartersBundle.message("title.project.build.system.label")) {
-                    segmentedButton(starterSettings.projectTypes, StarterProjectType::title, StarterProjectType::description)
-                        .bind(projectTypeProperty)
+                    segmentedButton(starterSettings.projectTypes) {
+                        text = it.title
+                        toolTipText = it.description
+                    }.bind(projectTypeProperty)
 
                     bottomGap(BottomGap.SMALL)
                 }
@@ -126,7 +128,7 @@ open class ArendStarterInitialStep(contextProvider: ArendStarterContextProvider)
 
             if (starterSettings.testFrameworks.size > 1) {
                 row(JavaStartersBundle.message("title.project.test.framework.label")) {
-                    segmentedButton(starterSettings.testFrameworks, StarterTestRunner::title)
+                    segmentedButton(starterSettings.testFrameworks) { text = it.title }
                         .bind(testFrameworkProperty)
 
                     bottomGap(BottomGap.SMALL)
