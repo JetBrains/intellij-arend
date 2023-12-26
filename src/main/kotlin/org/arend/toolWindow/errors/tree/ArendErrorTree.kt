@@ -92,7 +92,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         return lastCorrect
     }
 
-    override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String =
+    override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String = runReadAction {
         when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
             is ArendFile -> obj.fullName
             is ArendErrorTreeElement -> {
@@ -102,11 +102,10 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
                 }
                 messages.joinToString("; ")
             }
-            is Referable -> runReadAction {
-                if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
-            }
+            is Referable -> if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
             else -> obj?.toString() ?: ""
         }
+    }
 
     fun containsNode(definition: PsiConcreteReferable): Boolean {
         val file = definition.containingFile as? ArendFile ?: return false
