@@ -8,8 +8,6 @@ import org.arend.source.SourceLoader
 class ArendRawSource(private val file: ArendFile): Source {
     override fun getModulePath() = file.moduleLocation?.modulePath
 
-    override fun preload(sourceLoader: SourceLoader) = true
-
     override fun load(sourceLoader: SourceLoader) = Source.LoadResult.SUCCESS
 
     override fun getTimeStamp() = file.virtualFile?.timeStamp ?: -1

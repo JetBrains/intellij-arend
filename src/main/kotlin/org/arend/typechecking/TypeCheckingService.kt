@@ -93,8 +93,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             return super.getRegisteredLibraries()
         }
 
-        override fun afterLibraryLoading(library: Library, successful: Boolean) {
-            if (!successful || !service<ArendSettings>().checkForUpdates) return
+        override fun afterLibraryLoading(library: Library, loaded: Int, total: Int) {
+            if (loaded < 0 || !service<ArendSettings>().checkForUpdates) return
             for (dependency in library.dependencies) {
                 if (dependency.name == AREND_LIB) {
                     val arendLib = getRegisteredLibrary(AREND_LIB)

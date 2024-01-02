@@ -42,8 +42,6 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
     override fun getModuleGroup(modulePath: ModulePath, inTests: Boolean) =
         config.findArendFile(modulePath, inTests)
 
-    override fun mustBeLoaded() = !isExternal
-
     override fun getUI() = ArendGeneralUI(config.project)
 
     override fun loadHeader(errorReporter: ErrorReporter) =
