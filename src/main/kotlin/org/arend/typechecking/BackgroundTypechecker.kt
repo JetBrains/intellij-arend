@@ -48,7 +48,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = false
                 indicator.fraction = 0.0
-                val check2 = !collector2.isEmpty && !settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.withoutErrors() == true
+                val check2 = !collector2.isEmpty && !settings.typecheckOnlyLast || lastModified == null || lastModified.typechecked?.status()?.isOK == true
                 val total = collector1.elements.size + if (check2) collector2.elements.size else 0
                 var i = 0
 
