@@ -24,10 +24,12 @@ import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.doc.ArendDocReference
 import org.arend.psi.ext.*
+import org.arend.psi.prevElement
 import org.arend.term.abs.Abstract
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.io.File
 import java.net.UnknownHostException
 
 
@@ -209,12 +211,17 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean): String? {
+        File("latex-images").deleteRecursively()
+
         val ref = element as? PsiReferable ?: (element as? ArendDocComment)?.owner
         ?: return if (element.isArendKeyword()) generateDocForKeywords(element) else null
         return buildString { wrapTag("html") {
             wrapTag("head") {
                 wrapTag("style") {
                     append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
+                }
+                wrapTag("style") {
+                    append(".center {text-align: center;}")
                 }
             }
 
@@ -247,6 +254,12 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 elementType == DOC_TEXT -> html(docElement.text)
                 elementType == WHITE_SPACE -> append(" ")
                 elementType == DOC_CODE -> append("<code>${docElement.text.htmlEscape()}</code>")
+                elementType == DOC_LATEX_CODE -> append(getHtmlLatexCode("image${counterLatexImages++}",
+                    docElement.text.htmlEscape(),
+                    docElement.prevElement.elementType == DOC_NEWLINE_LATEX_CODE,
+                    element.project,
+                    docElement.textOffset)
+                )
                 elementType == DOC_PARAGRAPH_SEP -> {
                     append("<br>")
                     if (!full) {

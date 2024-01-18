@@ -3,8 +3,13 @@ package org.arend.documentation
 import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator
 import com.intellij.codeInsight.daemon.impl.DefaultHighlightInfoProcessor
 import com.intellij.lang.documentation.DocumentationSettings
+import com.intellij.notification.NotificationAction
+import com.intellij.notification.NotificationType
+import com.intellij.notification.SingletonNotificationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.richcopy.HtmlSyntaxInfoUtil
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -12,6 +17,7 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.notificationGroup
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore.visitChildrenRecursively
@@ -24,6 +30,8 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.util.elementType
 import com.intellij.testFramework.LightVirtualFile
+import com.intellij.util.ui.ImageUtil
+import com.intellij.util.ui.JBUI
 import com.intellij.xml.util.XmlStringUtil
 import org.apache.commons.lang.StringEscapeUtils
 import org.arend.ArendLanguage
@@ -33,12 +41,23 @@ import org.arend.highlight.ArendHighlightingPass
 import org.arend.highlight.ArendSyntaxHighlighter
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.util.ArendBundle
 import org.arend.util.FileUtils.EXTENSION
 import org.arend.util.register
 import org.jsoup.nodes.Element
+import org.scilab.forge.jlatexmath.ParseException
+import org.scilab.forge.jlatexmath.TeXConstants
+import org.scilab.forge.jlatexmath.TeXFormula
+import org.scilab.forge.jlatexmath.TeXIcon
+import java.awt.image.BufferedImage
 import java.io.File
+import javax.imageio.ImageIO
+import javax.swing.JLabel
+import javax.swing.UIManager
+import kotlin.math.roundToInt
 import kotlin.system.exitProcess
 
 private val LOG: Logger = Logger.getInstance("#org.arend.documentation")
@@ -64,6 +83,8 @@ internal val REGEX_CODE = "<code class=\"language-plaintext highlighter-rouge\">
 internal val REGEX_HREF = "<a href=\"([^\"]+)\">([^\"]+)</a>".toRegex()
 internal val REGEX_AREND_LIB_VERSION = "\\* \\[(.+)]".toRegex()
 
+const val HTML_IMAGE_LATEX_SHIFT = 0.15
+
 internal fun String.htmlEscape(): String = XmlStringUtil.escapeString(this, true)
 
 internal fun String.wrapTag(tag: String) = "<$tag>$this</$tag>"
@@ -80,7 +101,7 @@ internal inline fun StringBuilder.wrapTag(tag: String, crossinline body: () -> U
     wrap("<$tag>", "</$tag>", body)
 }
 
-fun StringBuilder.appendNewLineHtml() = append("<br>")
+fun StringBuilder.appendNewLineHtml(): StringBuilder = append("<br>")
 
 internal fun StringBuilder.processElement(project: Project, element: Element, chapter: String?, folder: String?) {
     if (element.className() == HIGHLIGHTER_CLASS) {
@@ -96,6 +117,75 @@ internal fun StringBuilder.processElement(project: Project, element: Element, ch
         appendLine(changeTags(element.toString(), chapter, folder, isAside(element.tagName())))
     }
     appendNewLineHtml()
+}
+
+internal var counterLatexImages = 0
+
+internal fun getHtmlLatexCode(title: String, latexCode: String, isNewLine: Boolean, project: Project, offset: Int): String {
+    try {
+        val font = UIManager.getDefaults().getFont("Label.font").size.toFloat()
+
+        val formula = TeXFormula(latexCode)
+        val icon: TeXIcon = formula.TeXIconBuilder()
+            .setStyle(TeXConstants.STYLE_DISPLAY)
+            .setSize(font)
+            .build()
+            .apply {
+                insets.run {
+                    top -= (font * HTML_IMAGE_LATEX_SHIFT).roundToInt()
+                    bottom -= (font * HTML_IMAGE_LATEX_SHIFT).roundToInt()
+                    left -= (font * HTML_IMAGE_LATEX_SHIFT).roundToInt()
+                    right -= (font * HTML_IMAGE_LATEX_SHIFT).roundToInt()
+                }
+            }
+        val image = ImageUtil.createImage(icon.iconWidth, icon.iconHeight, BufferedImage.TYPE_INT_ARGB)
+
+        val graphics = image.createGraphics()
+        graphics.color = EditorColorsManager.getInstance().globalScheme.getColor(EditorColors.DOCUMENTATION_COLOR)
+        graphics.fillRect(0, 0, icon.iconWidth, icon.iconHeight)
+
+        val label = JLabel()
+        label.setForeground(JBUI.CurrentTheme.RunWidget.FOREGROUND)
+
+        icon.paintIcon(label, graphics, 0, 0)
+
+        val latexImagesDir = File("latex-images").apply {
+            mkdir()
+        }
+
+        val file = File(latexImagesDir.path + File.separator + title + ".png")
+        ImageIO.write(image, "png", file.getAbsoluteFile())
+
+        return buildString {
+            if (isNewLine) {
+                append("<div class=\"center\">")
+            }
+            append("<img ${if (!isNewLine) "style=\"transform: translate(0px,${icon.iconDepth}px);\"" else ""} src=\"file:///${file.absolutePath}\" title=$title width=\"${icon.iconWidth}\" height=\"${icon.iconHeight}\">")
+            if (isNewLine) {
+                append("</div>")
+            }
+        }
+    } catch (e: Exception) {
+        if (e is ParseException) {
+            val notificationManager = SingletonNotificationManager(notificationGroup.displayId, NotificationType.WARNING)
+
+            val notificationAction = NotificationAction.createSimpleExpiring(ArendBundle.message("arend.click.to.set.cursor.latex")) {
+                val fileEditorManager = FileEditorManager.getInstance(project)
+                val editor = fileEditorManager.selectedTextEditor ?: return@createSimpleExpiring
+                val caretModel = editor.caretModel
+                caretModel.moveToOffset(offset)
+            }
+
+            e.message?.let {
+                notificationManager.notify("LaTeX parsing warning", it, project) { notification ->
+                    notification.setSuggestionType(true).addAction(notificationAction)
+                }
+            }
+        } else {
+            LOG.error(e)
+        }
+    }
+    return ""
 }
 
 private fun isAside(tag: String) = tag == "aside"
@@ -211,7 +301,7 @@ fun generateHtmlForArendLib(
         }
         arendBaseFile.delete()
     } catch (e : Exception) {
-        e.printStackTrace()
+        LOG.warn(e)
     } finally {
         projectManager.closeAndDispose(psiProject)
     }

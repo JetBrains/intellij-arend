@@ -38,9 +38,13 @@ import static org.arend.psi.ArendElementTypes.*;
 %state CODE1
 %state CODE2
 %state CODE3
+%state NEWLINE_LATEX_CODE
+%state INLINE_LATEX_CODE
 %state CLOSE_CODE1
 %state CLOSE_CODE2
 %state CLOSE_CODE3
+%state CLOSE_NEWLINE_LATEX_CODE
+%state CLOSE_INLINE_LATEX_CODE
 %state REFERENCE
 %state REFERENCE_TEXT
 
@@ -94,6 +98,16 @@ NEW_LINE_HYPHEN     = "\n" [ \t]* "-"
         yybegin(CODE3);
         return DOC_CODE_BLOCK_BORDER;
     }
+    "$$" {
+          textStart = getTokenStart();
+          yybegin(NEWLINE_LATEX_CODE);
+          return DOC_NEWLINE_LATEX_CODE;
+    }
+    "$" {
+          textStart = getTokenStart();
+          yybegin(INLINE_LATEX_CODE);
+          return DOC_INLINE_LATEX_CODE;
+    }
     "-}" {
             if (zzMarkedPos == zzBuffer.length()) {
                 yybegin(YYINITIAL);
@@ -120,7 +134,7 @@ NEW_LINE_HYPHEN     = "\n" [ \t]* "-"
 }
 
 <TEXT> {
-    ("{" | "[" | "`" | {NEW_LINE}) {
+    ("{" | "[" | "`" | "$$" | "$" | {NEW_LINE}) {
         zzMarkedPos = zzStartRead;
         zzStartRead = textStart;
         yybegin(CONTENTS);
@@ -196,7 +210,39 @@ NEW_LINE_HYPHEN     = "\n" [ \t]* "-"
     [^] {}
 }
 
-<TEXT,CODE1,CODE2,CODE3,REFERENCE_TEXT> {
+<NEWLINE_LATEX_CODE> {
+    "$$" {
+        zzMarkedPos -= 2;
+        zzStartRead = textStart;
+        yybegin(CLOSE_NEWLINE_LATEX_CODE);
+        return DOC_LATEX_CODE;
+    }
+    "\n" {
+        zzMarkedPos--;
+        zzStartRead = textStart;
+        yybegin(CONTENTS);
+        return DOC_LATEX_CODE;
+    }
+    [^] {}
+}
+
+<INLINE_LATEX_CODE> {
+    "$" {
+        zzMarkedPos--;
+        zzStartRead = textStart;
+        yybegin(CLOSE_INLINE_LATEX_CODE);
+        return DOC_LATEX_CODE;
+    }
+    "\n" {
+        zzMarkedPos--;
+        zzStartRead = textStart;
+        yybegin(CONTENTS);
+        return DOC_LATEX_CODE;
+    }
+    [^] {}
+}
+
+<TEXT,CODE1,CODE2,CODE3,NEWLINE_LATEX_CODE,INLINE_LATEX_CODE,REFERENCE_TEXT> {
     "-}" {
         if (zzMarkedPos == zzBuffer.length()) {
             zzMarkedPos -= 2;
@@ -242,6 +288,16 @@ NEW_LINE_HYPHEN     = "\n" [ \t]* "-"
         yybegin(CODE3);
         return WHITE_SPACE;
     }
+}
+
+<CLOSE_NEWLINE_LATEX_CODE>"$$" {
+    yybegin(CONTENTS);
+    return DOC_NEWLINE_LATEX_CODE;
+}
+
+<CLOSE_INLINE_LATEX_CODE>"$" {
+    yybegin(CONTENTS);
+    return DOC_INLINE_LATEX_CODE;
 }
 
 [^] { return BAD_CHARACTER; }
