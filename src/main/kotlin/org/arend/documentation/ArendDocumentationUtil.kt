@@ -207,7 +207,7 @@ internal fun changeTags(line: String, chapter: String?, folder: String?, isAside
 }
 
 fun generateHtmlForArendLib(
-    pathToArendLib: String, pathToArendLibInArendSite: String, scheme: EditorColorsScheme, versionArendLib: String?
+    pathToArendLib: String, pathToArendLibInArendSite: String, versionArendLib: String?
 ) {
     val projectManager = ProjectManager.getInstance()
     val psiProject = projectManager.loadAndOpenProject(pathToArendLib) ?: run {
@@ -257,8 +257,7 @@ fun generateHtmlForArendLib(
         val psiElementIds = mutableMapOf<String, Int>()
         val extraFiles = mutableSetOf<VirtualFile>()
         val usedExtraFiles = mutableSetOf<VirtualFile>()
-
-        createColorCssFile(scheme)
+        val baseLines = mutableListOf<String>()
 
         val virtualFileVisitor = object : VirtualFileVisitor<Any>() {
             override fun visitFile(file: VirtualFile): Boolean {
@@ -266,7 +265,7 @@ fun generateHtmlForArendLib(
                 if (psiFile is ArendFile) {
                     if (File(psiFile.virtualFile.path).toRelativeString(File(basePath)).startsWith(srcDir)) {
                         counter = generateHtmlForArend(
-                            psiFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, srcDir, version
+                            psiFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, baseLines, srcDir, version
                         )
                     }
                 }
@@ -290,14 +289,17 @@ fun generateHtmlForArendLib(
             }
 
             localFileSystem.refreshAndFindFileByPath(extraFilePath)?.let { psiManager.findFile(it) }?.let {
-                generateHtmlForArend(it as ArendFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, srcDir, version)
+                counter = generateHtmlForArend(it as ArendFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, baseLines, srcDir, version)
             }
             extraFiles.remove(extraVirtualFile)
             file.delete()
         }
 
+        baseLines.sorted().forEach {
+            arendBaseFile.appendText(it)
+        }
         localFileSystem.refreshAndFindFileByIoFile(arendBaseFile)?.let { psiManager.findFile(it) }?.let {
-            generateHtmlForArend(it as ArendFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, srcDir, version)
+            generateHtmlForArend(it as ArendFile, psiElementIds, counter, extraFiles, usedExtraFiles, arendSiteVersionDir, arendBaseFile, baseLines, srcDir, version)
         }
         arendBaseFile.delete()
     } catch (e : Exception) {
@@ -316,6 +318,7 @@ fun generateHtmlForArend(
     usedExtraFiles: Set<VirtualFile>,
     arendSiteVersionDir: String,
     arendBaseFile: File,
+    baseLines: MutableList<String>,
     arendLibSrcDir: String,
     version: String
 ): Int {
@@ -347,7 +350,7 @@ fun generateHtmlForArend(
 
     println("Generate an html file for $arendPackage")
     if (File(arendFile.virtualFile.path) != arendBaseFile) {
-        arendBaseFile.appendText("\\import $arendPackage\n")
+        baseLines.add("\\import $arendPackage\n")
     }
 
     val curPath = arendSiteVersionDir + File.separator + AREND_DIR_HTML + relativePathToCurDir + File.separator
@@ -461,7 +464,7 @@ private fun addExtraFiles(projectDir: String, htmlDirPath: String) {
     }
 }
 
-private fun createColorCssFile(scheme: EditorColorsScheme) {
+fun createColorCssFile(scheme: EditorColorsScheme) {
     val projectDir = PathManager.getPluginsDir().parent.parent.parent.toString()
     val cssFile = File("$projectDir/src/main/html/$AREND_CSS")
     cssFile.writeText("")
