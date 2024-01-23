@@ -1,0 +1,28 @@
+package org.arend.codeInsight
+
+import org.arend.ArendTestBase
+
+class ArendTypedHandlerTest : ArendTestBase() {
+    private fun check(code: String, newCode: String, type: Char) {
+        InlineFile(code).withCaret()
+        myFixture.performEditorAction("EditorSelectWord")
+        myFixture.type(type)
+        myFixture.checkResult(newCode)
+    }
+
+    fun `test parens`() = check("""\func f {-caret-}(a : Nat) => {?}""", """\func f {a : Nat} => {?}""", '{')
+
+    fun `test braces`() = check("""\func f {-caret-}{a : Nat} => {?}""", """\func f (a : Nat) => {?}""", '(')
+
+    fun `test nothing`() = check("""\func f {-caret-}(a : Nat} => {?}""", """\func f {a : Nat} => {?}""", '{')
+
+    fun `test nothing 2`() = check("""\func f {-caret-}(a : Nat} => {?}""", """\func f *a : Nat} => {?}""", '*')
+
+    fun `test simple quoting parens`() = check("""\func f (a {-caret-}: Nat} => {?}""", """\func f (a (:) Nat} => {?}""", '(')
+
+    fun `test simple quoting braces`() = check("""\func f (a {-caret-}: Nat} => {?}""", """\func f (a {:} Nat} => {?}""", '{')
+
+    fun `test closing paren`() = check("""\func f (a : Nat){-caret-} => {?}""", """\func f {a : Nat} => {?}""", '}')
+
+    fun `test closing brace`() = check("""\func f {a : Nat}{-caret-} => {?}""", """\func f (a : Nat) => {?}""", ')')
+}
