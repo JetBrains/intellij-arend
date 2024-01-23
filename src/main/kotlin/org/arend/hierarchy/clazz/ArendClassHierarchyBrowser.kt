@@ -7,6 +7,7 @@ import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
 import com.intellij.ide.util.treeView.AlphaComparator
 import com.intellij.ide.util.treeView.NodeDescriptor
 import com.intellij.ide.util.treeView.SourceComparator
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
@@ -19,13 +20,16 @@ import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.ui.tree.StructureTreeModel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
+import org.arend.graph.GraphEdge
+import org.arend.graph.GraphSimulator
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ext.ArendDefClass
+import org.arend.psi.ext.fullName
 import org.arend.settings.ArendProjectSettings
 import java.util.*
-import javax.swing.JPanel
-import javax.swing.JTree
+import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.TreeNode
 import javax.swing.tree.TreePath
 
 class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHierarchyBrowserBase(project, method) {
@@ -85,6 +89,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         super.prependActions(actionGroup)
         actionGroup.addAction(ArendShowImplFieldsAction())
         actionGroup.addAction(ArendShowNonImplFieldsAction())
+        actionGroup.addAction(ArendHierarchyGraphAction())
     }
 
     fun getJTree(type: String): JTree? = typeToTree?.get(type)
@@ -161,4 +166,41 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         }
     }
 
+    inner class ArendHierarchyGraphAction : AnAction(ArendIcons.GRAPH) {
+        private val usedNodes = mutableSetOf<TreeNode>()
+
+        private fun findEdges(currentNode: DefaultMutableTreeNode): Set<GraphEdge> {
+            usedNodes.add(currentNode)
+
+            val from = ((currentNode.userObject as ArendHierarchyNodeDescriptor).psiElement as ArendDefClass).fullName
+            val edges = mutableSetOf<GraphEdge>()
+
+            val children = TreeUtil.listChildren(currentNode)
+            for (child in children) {
+                val to = (((child as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName
+                        ?: continue
+                edges.add(GraphEdge(from, to))
+
+                if (!usedNodes.contains(child)) {
+                    edges.addAll(findEdges(child))
+                }
+            }
+            return edges
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+            val tree = getJTree(currentViewType) ?: return
+            val root = tree.model.root as DefaultMutableTreeNode
+
+            usedNodes.clear()
+            val simulator = GraphSimulator(
+                this.toString(),
+                findEdges(root),
+                usedNodes.map { (((it as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName!! }
+                    .toSet()
+            )
+
+            simulator.display()
+        }
+    }
 }
