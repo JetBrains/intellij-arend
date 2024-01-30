@@ -21,11 +21,10 @@ import com.intellij.ui.tree.StructureTreeModel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.graph.GraphEdge
+import org.arend.graph.GraphSimulator
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.fullName
-import org.arend.graph.SingleGraphSimulator
-import org.arend.psi.ext.*
 import org.arend.settings.ArendProjectSettings
 import java.util.*
 import javax.swing.*
@@ -54,8 +53,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     override fun getComparator(): Comparator<NodeDescriptor<*>>? =
         if (HierarchyBrowserManager.getInstance(myProject).state!!.SORT_ALPHABETICALLY) AlphaComparator.INSTANCE else SourceComparator.INSTANCE
 
-    override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor) =
-        (descriptor as? ArendHierarchyNodeDescriptor)?.psiElement
+    override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor) = (descriptor as? ArendHierarchyNodeDescriptor)?.psiElement
 
     override fun changeView(typeName: String) {
         if (isFirstChangeViewCall) {
@@ -75,7 +73,8 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         trees[getSupertypesHierarchyType()] = superTree
 
         typeToTree = hashMapOf(
-            getSubtypesHierarchyType() to subTree, getSupertypesHierarchyType() to superTree
+                getSubtypesHierarchyType() to subTree,
+                getSupertypesHierarchyType() to superTree
         )
     }
 
@@ -95,16 +94,10 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     fun getJTree(type: String): JTree? = typeToTree?.get(type)
 
-    fun buildChildren(
-        children: Array<ArendHierarchyNodeDescriptor>,
-        treeType: String
-    ): Array<ArendHierarchyNodeDescriptor> {
+    fun buildChildren(children: Array<ArendHierarchyNodeDescriptor>, treeType: String): Array<ArendHierarchyNodeDescriptor> {
         for (node in children) {
             node.update()
-            if (ArendSuperClassTreeStructure.getChildren(node, myProject).isEmpty() || pathsToExpand.contains(
-                    ArendHierarchyNodeDescriptor.nodePath(node)
-                )
-            ) {
+            if (ArendSuperClassTreeStructure.getChildren(node, myProject).isEmpty() || pathsToExpand.contains(ArendHierarchyNodeDescriptor.nodePath(node))) {
                 ApplicationManager.getApplication().invokeLater {
                     runWriteAction {
                         val tree = getJTree(treeType)
@@ -126,8 +119,8 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
             val userObject = childNode.userObject
             if (tree.isExpanded(path)) {
                 val newPath = ArendHierarchyNodeDescriptor.nodePath(userObject as ArendHierarchyNodeDescriptor)
-                pathsToExpand.add(newPath)
-                storePaths(tree, childNode, pathsToExpand)
+                    pathsToExpand.add(newPath)
+                    storePaths(tree, childNode, pathsToExpand)
             }
         }
     }
@@ -149,7 +142,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
         val structure = createHierarchyTreeStructure(currentViewType, element)
         val comparator = comparator
-        val myModel = StructureTreeModel(structure!!, comparator ?: Comparator { _, _ -> 1 }, myProject)
+        val myModel = StructureTreeModel(structure!!, comparator ?: Comparator { _, _ -> 1}, myProject)
         tree.model = AsyncTreeModel(myModel, false, myProject)
     }
 
@@ -163,8 +156,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         }
     }
 
-    inner class ArendShowNonImplFieldsAction :
-        ToggleAction("Show Non-Implemented Fields", "", ArendIcons.SHOW_NON_IMPLEMENTED) {
+    inner class ArendShowNonImplFieldsAction : ToggleAction("Show Non-Implemented Fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
 
         override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showNonImplFields
 
@@ -187,7 +179,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
             for (child in children) {
                 val to = (((child as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName
                         ?: continue
-                edges.add(GraphEdge(from, to, true))
+                edges.add(GraphEdge(from, to))
 
                 if (!usedNodes.contains(child)) {
                     edges.addAll(findEdges(child))
@@ -201,7 +193,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
             val root = tree.model.root as DefaultMutableTreeNode
 
             usedNodes.clear()
-            val simulator = SingleGraphSimulator(
+            val simulator = GraphSimulator(
                 this.toString(),
                 findEdges(root),
                 usedNodes.map { (((it as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName!! }
@@ -212,4 +204,3 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         }
     }
 }
-

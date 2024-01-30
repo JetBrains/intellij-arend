@@ -6,7 +6,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import org.arend.ArendIcons
 import org.arend.graph.GraphEdge
-import org.arend.graph.SingleGraphSimulator
+import org.arend.graph.GraphSimulator
 import org.arend.module.config.ArendModuleConfigService
 
 class ArendModuleDependenciesGraphAction : AnAction(ArendIcons.GRAPH) {
@@ -23,8 +23,7 @@ class ArendModuleDependenciesGraphAction : AnAction(ArendIcons.GRAPH) {
         val children = modules.filter { dependencyNames.contains(it.name) }
 
         for (child in children) {
-            val to = child.name
-            edges.add(GraphEdge(from, to, true))
+            edges.add(GraphEdge(from, child.name))
 
             if (!usedNodes.contains(child)) {
                 edges.addAll(findEdges(child, modules))
@@ -45,7 +44,7 @@ class ArendModuleDependenciesGraphAction : AnAction(ArendIcons.GRAPH) {
             }
         }
 
-        val simulator = SingleGraphSimulator(this.toString(), edges, usedNodes.map { it.name }.toSet())
+        val simulator = GraphSimulator(this.toString(), edges, usedNodes.map { it.name }.toSet())
         simulator.display()
     }
 }

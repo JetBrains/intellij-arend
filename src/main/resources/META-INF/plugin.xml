@@ -459,7 +459,7 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
         </action>
 
-        <action id="org.arend.module.ArendModuleDependenciesGraphAction"
+        <action id="ArendModuleDependenciesGraphAction"
                 class="org.arend.module.ArendModuleDependenciesGraphAction"
                 text="Show Graph of Arend Modules">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
