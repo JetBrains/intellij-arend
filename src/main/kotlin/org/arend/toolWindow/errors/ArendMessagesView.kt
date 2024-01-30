@@ -5,7 +5,6 @@ import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -166,7 +165,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun valueChanged(e: TreeSelectionEvent?) = updateEditors()
 
     fun updateEditors() {
-        val treeElement = getSelectedMessage()
+        var treeElement = getSelectedMessage()
         if (treeElement != null) {
             if (isGoal(treeElement) && !isGoalTextPinned()) {
                 if (goalEditor == null) {
@@ -193,7 +192,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     if (isParentDefinitionPsiInvalid(currentGoal)) {
                         goalEditor?.clear()
                         updateGoalsView(goalEmptyPanel)
-                    } else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) invokeLater {
+                    } else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) {
                         val error = currentGoal.error
                         val (resolve, scope) = InjectedArendEditor.resolveCauseReference(error)
                         val doc = goalEditor?.getDoc(goalEditor?.treeElement!!, error, resolve, scope)
@@ -331,45 +330,44 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     fun update() {
         runInEdt {
             val expandedPaths = TreeUtil.collectExpandedPaths(tree)
-            invokeLater {
-                val selectedPath = tree.selectionPath
-                val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
-                val errorsMap = project.service<ErrorService>().errors
-                val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
-                tree.update(root) { node ->
-                    if (node == root) errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }
-                            .map { it.key }
-                    else when (val obj = node.userObject) {
-                        is ArendFile -> {
-                            val arendErrors = errorsMap[obj]
-                            val children = LinkedHashSet<Any>()
-                            for (arendError in arendErrors ?: emptyList()) {
-                                if (!arendError.error.satisfies(filterSet)) {
-                                    continue
-                                }
+            val selectedPath = tree.selectionPath
 
-                                val def = arendError.definition
-                                if (def == null) {
-                                    children.add(ArendErrorTreeElement(arendError))
-                                } else {
-                                    children.add(def)
-                                    map.computeIfAbsent(def) { LinkedHashMap() }
-                                            .computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
-                                }
+            val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
+            val errorsMap = project.service<ErrorService>().errors
+            val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
+            tree.update(root) { node ->
+                if (node == root) errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }
+                .map { it.key }
+                else when (val obj = node.userObject) {
+                    is ArendFile -> {
+                        val arendErrors = errorsMap[obj]
+                        val children = LinkedHashSet<Any>()
+                        for (arendError in arendErrors ?: emptyList()) {
+                            if (!arendError.error.satisfies(filterSet)) {
+                                continue
                             }
-                            children
+
+                        val def = arendError.definition
+                        if (def == null) {
+                            children.add(ArendErrorTreeElement(arendError))
+                        } else {
+                            children.add(def)
+                            map.computeIfAbsent(def) { LinkedHashMap() }
+                                .computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
                         }
-
-
-                        is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
-                        else -> emptySet()
                     }
+                    children
                 }
 
-                treeModel.reload()
-                TreeUtil.restoreExpandedPaths(tree, expandedPaths)
-                tree.selectionPath = tree.getExistingPrefix(selectedPath)
+
+                    is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
+                    else -> emptySet()
+                }
             }
+
+            treeModel.reload()
+            TreeUtil.restoreExpandedPaths(tree, expandedPaths)
+            tree.selectionPath = tree.getExistingPrefix(selectedPath)
         }
     }
 }
