@@ -195,7 +195,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     } else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) {
                         val error = currentGoal.error
                         val (resolve, scope) = InjectedArendEditor.resolveCauseReference(error)
-                        val doc = goalEditor?.getDoc(goalEditor?.treeElement!!, error, resolve, scope)
+                        val doc = goalEditor?.treeElement?.let { goalEditor?.getDoc(it, error, resolve, scope) }
 
                         if (isParentDefinitionRemovedFromTree(currentGoal)) {
                             goalEditor?.clear()
