@@ -1,10 +1,13 @@
 package org.arend.graph
 
+import com.vladsch.flexmark.util.html.ui.Color
 import guru.nidi.graphviz.engine.Format
 import guru.nidi.graphviz.engine.Graphviz
 import guru.nidi.graphviz.model.Factory.graph
 import guru.nidi.graphviz.model.Factory.node
 import java.awt.Toolkit
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel
@@ -32,33 +35,39 @@ class GraphSimulator(
         )
 
         val screenSize = Toolkit.getDefaultToolkit().screenSize
-        val screenWidth = (screenSize.getWidth() * FULL_SCREEN_CALIBRATION_WIDTH_FACTOR).toInt()
-        val screenHeight = (screenSize.getHeight() * FULL_SCREEN_CALIBRATION_HEIGHT_FACTOR).toInt()
-        var isResized = false
+        val screenWidth = screenSize.getWidth().toInt()
+        val screenHeight = screenSize.getHeight().toInt()
 
-        val imageIcon = when {
-            screenWidth <= baseImageIcon.iconWidth || screenHeight <= baseImageIcon.iconHeight -> {
-                isResized = true
+        var imageIcon = getImageIcon(baseImageIcon, graphviz, screenWidth, screenHeight)
+        var imageLabel = JLabel(imageIcon)
+
+        val frame = JFrame()
+        frame.contentPane.add(imageLabel)
+        frame.contentPane.background = Color.WHITE
+        frame.pack()
+        frame.setLocation((screenWidth - frame.width) / 2, (screenHeight - frame.height) / 2)
+        frame.isVisible = true
+
+        frame.contentPane.addComponentListener(object : ComponentAdapter() {
+            override fun componentResized(e: ComponentEvent) {
+                imageIcon = getImageIcon(baseImageIcon, graphviz, e.component.width, e.component.height)
+                imageLabel = JLabel(imageIcon)
+
+                frame.contentPane.removeAll()
+                frame.contentPane.add(imageLabel)
+                frame.revalidate()
+            }
+        })
+    }
+
+    private fun getImageIcon(baseImageIcon: ImageIcon, graphviz: Graphviz, width: Int, height: Int): ImageIcon {
+        return when {
+            width <= baseImageIcon.iconWidth || height <= baseImageIcon.iconHeight -> {
                 ImageIcon(
-                    graphviz.width(screenWidth).height(screenHeight).render(Format.PNG).toImage()
+                    graphviz.width(width).height(height).render(Format.PNG).toImage()
                 )
             }
             else -> baseImageIcon
         }
-
-        val imageLabel = JLabel(imageIcon)
-
-        val frame = JFrame()
-        frame.contentPane.add(imageLabel)
-        frame.pack()
-        if (isResized) {
-            frame.extendedState = JFrame.MAXIMIZED_BOTH
-        }
-        frame.isVisible = true
-    }
-
-    companion object {
-        const val FULL_SCREEN_CALIBRATION_WIDTH_FACTOR = 0.965
-        const val FULL_SCREEN_CALIBRATION_HEIGHT_FACTOR = 0.95
     }
 }
