@@ -4,6 +4,8 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.DumbModeTask
@@ -11,6 +13,7 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
+import com.intellij.ui.JBColor
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.typechecking.TypeCheckingService
@@ -66,20 +69,28 @@ class ArendStartupActivity : ProjectActivity {
             }
         })
         disableActions()
+        changeColors()
     }
 
-    companion object {
-        fun disableActions() {
-            val actionManager = ApplicationManager.getApplication().getServiceIfCreated(ActionManager::class.java)
-            actionManager?.getAction(ArendBundle.message("arend.disableActionExclude"))?.let {
-                actionManager.unregisterAction(ArendBundle.message("arend.disableActionExclude"))
-            }
-            actionManager?.getAction(ArendBundle.message("arend.disableGroupSource"))?.let {
-                actionManager.unregisterAction(ArendBundle.message("arend.disableGroupSource"))
-            }
-            actionManager?.getAction(ArendBundle.message("arend.disableActionUnmark"))?.let {
-                actionManager.unregisterAction(ArendBundle.message("arend.disableActionUnmark"))
-            }
+    private fun disableActions() {
+        val actionManager = ApplicationManager.getApplication().getServiceIfCreated(ActionManager::class.java)
+        actionManager?.getAction(ArendBundle.message("arend.disableActionExclude"))?.let {
+            actionManager.unregisterAction(ArendBundle.message("arend.disableActionExclude"))
         }
+        actionManager?.getAction(ArendBundle.message("arend.disableGroupSource"))?.let {
+            actionManager.unregisterAction(ArendBundle.message("arend.disableGroupSource"))
+        }
+        actionManager?.getAction(ArendBundle.message("arend.disableActionUnmark"))?.let {
+            actionManager.unregisterAction(ArendBundle.message("arend.disableActionUnmark"))
+        }
+    }
+
+    private fun changeColors() {
+        val colorManager = EditorColorsManager.getInstance()
+        val highContrastColorScheme = colorManager.getScheme("_@user_High contrast")
+        val inlayDefaultTextColor = TextAttributesKey.createTextAttributesKey("INLAY_DEFAULT")
+        val attributes = highContrastColorScheme.getAttributes(inlayDefaultTextColor)
+        attributes.foregroundColor = JBColor.YELLOW
+        highContrastColorScheme.setAttributes(inlayDefaultTextColor, attributes)
     }
 }
