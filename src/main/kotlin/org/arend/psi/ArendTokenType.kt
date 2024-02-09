@@ -117,13 +117,13 @@ enum class ArendKeyword(val type: IElementType, val section: ArendKeywordSection
     ;
 
     companion object {
-        private val keywordTypes = values().associateBy { it.type }
+        private val keywordTypes = entries.associateBy { it.type }
 
         fun PsiElement?.toArendKeyword() = keywordTypes[this.elementType]
 
         fun PsiElement?.isArendKeyword(): Boolean = ArendKeyword.keywordTypes.contains(this.elementType)
 
-        val AREND_KEYWORDS = initTokenSet(values().map { it.type })
+        val AREND_KEYWORDS = initTokenSet(entries.map { it.type })
     }
 }
 

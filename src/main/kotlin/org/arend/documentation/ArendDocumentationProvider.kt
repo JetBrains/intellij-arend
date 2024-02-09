@@ -1,5 +1,6 @@
 package org.arend.documentation
 
+import com.intellij.codeInsight.documentation.DocumentationManagerUtil
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup.*
 import com.intellij.openapi.editor.Editor
@@ -7,8 +8,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.TokenType.WHITE_SPACE
-import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.elementType
+import org.arend.documentation.ArendDocumentationProvider.TypeListItem.Companion.LIST_ELEMENT_TYPES
 import org.arend.ext.module.LongName
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.RedirectingReferable
@@ -23,6 +25,7 @@ import org.arend.psi.childrenWithLeaves
 import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.doc.ArendDocReference
+import org.arend.psi.doc.ArendDocReferenceText
 import org.arend.psi.ext.*
 import org.arend.psi.prevElement
 import org.arend.term.abs.Abstract
@@ -30,6 +33,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.io.File
+import java.net.URL
 import java.net.UnknownHostException
 
 
@@ -246,62 +250,267 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private fun StringBuilder.generateDocComments(element: PsiReferable, doc: PsiElement, full: Boolean) {
-        for (docElement in doc.childrenWithLeaves) {
-            val elementType = (docElement as? LeafPsiElement)?.elementType
-            when {
-                elementType == DOC_LBRACKET -> append("[")
-                elementType == DOC_RBRACKET -> append("]")
-                elementType == DOC_TEXT -> html(docElement.text)
-                elementType == WHITE_SPACE -> append(" ")
-                elementType == DOC_CODE -> append("<code>${docElement.text.htmlEscape()}</code>")
-                elementType == DOC_LATEX_CODE -> append(getHtmlLatexCode("image${counterLatexImages++}",
-                    docElement.text.htmlEscape(),
-                    docElement.prevElement.elementType == DOC_NEWLINE_LATEX_CODE,
-                    element.project,
-                    docElement.textOffset)
-                )
-                elementType == DOC_PARAGRAPH_SEP -> {
-                    append("<br>")
-                    if (!full) {
-                        append("<a href=\"psi_element://$FULL_PREFIX${element.refName}\">more...</a>")
-                        return
+        var curIndex = 0
+        val docElements = doc.childrenWithLeaves.toList()
+        val context = mutableListOf<IElementType>()
+
+        while (curIndex <= docElements.lastIndex) {
+            curIndex = processElement(curIndex, docElements, element, full, context)
+        }
+    }
+
+    private fun StringBuilder.processElement(
+        index: Int,
+        docElements: List<PsiElement>,
+        element: PsiReferable,
+        full: Boolean,
+        context: MutableList<IElementType>
+    ): Int {
+        val docElement = docElements[index]
+        val elementType = docElement.elementType
+        when {
+            elementType == DOC_LBRACKET -> append("[")
+            elementType == DOC_RBRACKET -> append("]")
+            elementType == DOC_TEXT -> {
+                val nextElement = docElements.getOrNull(index + 1)
+                val nextElementType = nextElement.elementType
+                if (docElements.getOrNull(index + 2).elementType == DOC_NEWLINE) {
+                    if (nextElementType == DOC_HEADER_1) {
+                        append("<h1>${docElement.text}</h1>")
+                        return index + 2
+                    } else if (nextElementType == DOC_HEADER_2) {
+                        append("<h2>${docElement.text}</h2>")
+                        return index + 2
                     }
                 }
-                docElement is ArendDocReference -> {
-                    val longName = docElement.longName
-                    val link = longName.refIdentifierList.joinToString(".") { it.id.text.htmlEscape() }
-                    val isLink = longName.resolve is PsiReferable
-                    if (isLink) {
-                        append("<a href=\"psi_element://$link\">")
-                    }
-
-                    append("<code>")
-                    val text = docElement.docReferenceText
-                    if (text != null) {
-                        for (child in text.childrenWithLeaves) {
-                            if (child.elementType == DOC_TEXT) html(child.text)
-                        }
-                    } else {
-                        append(link)
-                    }
-                    append("</code>")
-
-                    if (isLink) {
-                        append("</a>")
-                    }
-                }
-                docElement is ArendDocCodeBlock -> {
-                    append("<pre>")
-                    for (child in docElement.childrenWithLeaves) {
-                        when ((child as? LeafPsiElement)?.elementType) {
-                            DOC_CODE_LINE -> html(child.text)
-                            WHITE_SPACE -> append("\n")
-                        }
-                    }
-                    append("</pre>")
+                html(docElement.text)
+            }
+            elementType == WHITE_SPACE || elementType == DOC_NEWLINE || elementType == DOC_TABS -> append(" ")
+            elementType == DOC_CODE -> append("<code>${docElement.text.htmlEscape()}</code>")
+            elementType == DOC_LATEX_CODE -> append(getHtmlLatexCode("image${counterLatexImages++}",
+                docElement.text.htmlEscape(),
+                docElement.prevElement.elementType == DOC_NEWLINE_LATEX_CODE,
+                element.project,
+                docElement.textOffset)
+            )
+            elementType == DOC_UNORDERED_LIST -> {
+                return appendListItems(TypeListItem.UNORDERED, index, docElements, element, full, context)
+            }
+            elementType == DOC_ORDERED_LIST -> {
+                return appendListItems(TypeListItem.ORDERED, index, docElements, element, full, context)
+            }
+            elementType == DOC_BLOCKQUOTES -> {
+                return appendBlockQuotes(index, docElements, element, full, context)
+            }
+            elementType == DOC_ITALICS_CODE -> append("<i>${docElement.text}</i>")
+            elementType == DOC_BOLD_CODE -> append("<b>${docElement.text}</b>")
+            elementType == DOC_LINEBREAK -> append("<br/>")
+            elementType == DOC_PARAGRAPH_SEP -> {
+                append("<br>")
+                if (!full) {
+                    append("<a href=\"psi_element://$FULL_PREFIX${element.refName}\">more...</a>")
+                    return docElements.lastIndex + 1
                 }
             }
+            docElement is ArendDocReference -> {
+                val url = docElement.longName.text
+                if (isValidUrl(url)) {
+                    append("<a href=\"$url\">${docElement.docReferenceText?.let { getLinkText(it).joinToString() }}</a>")
+                    return index + 1
+                }
+                val longName = docElement.longName
+                val link = longName.refIdentifierList.joinToString(".") { it.id.text.htmlEscape() }
+                val isLink = longName.resolve is PsiReferable
+                if (isLink) {
+                    append("<a href=\"psi_element://$link\">")
+                }
+
+                append("<code>")
+                val text = docElement.docReferenceText
+                if (text != null) {
+                    getLinkText(text).forEach { html(it) }
+                } else {
+                    append(link)
+                }
+                append("</code>")
+
+                if (isLink) {
+                    append("</a>")
+                }
+            }
+            docElement is ArendDocCodeBlock -> {
+                append("<pre>")
+                for (child in docElement.childrenWithLeaves) {
+                    when (child.elementType) {
+                        DOC_CODE_LINE -> html(child.text)
+                        WHITE_SPACE -> append("\n")
+                    }
+                }
+                append("</pre>")
+            }
         }
+        return index + 1
+    }
+
+    private fun isValidUrl(urlString: String): Boolean {
+        return try {
+            URL(urlString)
+            true
+        } catch (ex: Exception) {
+            false
+        }
+    }
+
+    private fun getLinkText(text: ArendDocReferenceText): Sequence<String> {
+        return text.childrenWithLeaves.filter { it.elementType == DOC_TEXT }.map { it.text }
+    }
+
+    private enum class TypeListItem(val elementType: IElementType) {
+        ORDERED(DOC_ORDERED_LIST),
+        UNORDERED(DOC_UNORDERED_LIST);
+
+        companion object {
+            val LIST_ELEMENT_TYPES = entries.associateBy { it.elementType }
+        }
+    }
+
+    private fun StringBuilder.appendListItems(
+        typeListItem: TypeListItem,
+        index: Int,
+        docElements: List<PsiElement>,
+        element: PsiReferable,
+        full: Boolean,
+        context: MutableList<IElementType>
+    ): Int {
+        context.add(docElements[index].elementType!!)
+        if (typeListItem == TypeListItem.UNORDERED) {
+            append("<ul>")
+        } else {
+            append("<ol>")
+        }
+        append("<li>")
+
+        val newIndex = processBlock(index + 1, docElements, element, full, context, "</li><li>")
+
+        append("</li>")
+        if (typeListItem == TypeListItem.UNORDERED) {
+            append("</ul>")
+        } else {
+            append("</ol>")
+        }
+        return newIndex
+    }
+
+    private fun StringBuilder.appendBlockQuotes(index: Int, docElements: List<PsiElement>, element: PsiReferable, full: Boolean, context: MutableList<IElementType>): Int {
+        context.add(docElements[index].elementType!!)
+        append("<blockquote><p>")
+
+        val newIndex = processBlock(index + 1, docElements, element, full, context, " ")
+
+        append("</p></blockquote>")
+        return newIndex
+    }
+
+    private fun StringBuilder.processBlock(
+        index: Int,
+        docElements: List<PsiElement>,
+        element: PsiReferable,
+        full: Boolean,
+        context: MutableList<IElementType>,
+        itemHtml: String
+    ): Int {
+        var curIndex = index
+        while (curIndex <= docElements.lastIndex) {
+            val curElementType = docElements[curIndex].elementType
+            if (curElementType == DOC_PARAGRAPH_SEP) {
+                break
+            } else if (curElementType == DOC_NEWLINE) {
+                val resultContext = checkContext(curIndex, docElements, context)
+                if (resultContext.first) {
+                    curIndex += resultContext.second
+                    append(itemHtml)
+                } else if (isNestedList(curIndex, docElements, context)) {
+                    append("</li>")
+                    val listElementType = docElements[curIndex + 2].elementType
+                    curIndex = appendListItems(
+                        if (listElementType == DOC_ORDERED_LIST) TypeListItem.ORDERED else TypeListItem.UNORDERED,
+                        curIndex + 2,
+                        docElements,
+                        element,
+                        full,
+                        context
+                    )
+                    continue
+                } else {
+                    break
+                }
+            } else {
+                curIndex = processElement(curIndex, docElements, element, full, context)
+                continue
+            }
+            curIndex++
+        }
+        context.removeLast()
+        return curIndex
+    }
+
+    private fun checkContext(elementIndex: Int, docElements: List<PsiElement>, context: List<IElementType>): Pair<Boolean, Int> {
+        var contextIndex = 0
+        var shiftDocElements = 1
+        while (contextIndex <= context.lastIndex) {
+            val contextElement = context[contextIndex]
+            val element = docElements.getOrNull(elementIndex + shiftDocElements)
+            val elementType = element?.elementType
+
+            if (elementType == DOC_TABS) {
+                var numberTabs = element!!.text.length / 2
+                while (numberTabs > 0 && contextIndex < context.lastIndex) {
+                    if (!LIST_ELEMENT_TYPES.contains(context[contextIndex])) {
+                        return Pair(false, -1)
+                    }
+                    contextIndex++
+                    numberTabs--
+                }
+                shiftDocElements++
+                if (numberTabs == 0) {
+                    continue
+                }
+            }
+            if (elementType != contextElement) {
+                return Pair(false, -1)
+            }
+            contextIndex++
+            shiftDocElements++
+        }
+        return Pair(true, shiftDocElements - 1)
+    }
+
+    private fun isNestedList(elementIndex: Int, docElements: List<PsiElement>, context: List<IElementType>): Boolean {
+        var firstNotEqualContextIndex = -1
+        for (contextElement in context.withIndex()) {
+            val elementType = docElements.getOrNull(elementIndex + contextElement.index + 1)?.elementType
+            if (elementType != contextElement.value) {
+                firstNotEqualContextIndex = contextElement.index
+                break
+            }
+        }
+
+        val whiteSpaceItem = docElements.getOrNull(elementIndex + 1)
+        if (whiteSpaceItem.elementType != DOC_TABS) {
+            return false
+        }
+        val numberTabs = whiteSpaceItem!!.text.length / 2
+        if (numberTabs != context.lastIndex - firstNotEqualContextIndex + 1) {
+            return false
+        }
+        for (index in firstNotEqualContextIndex..context.lastIndex) {
+            if (!LIST_ELEMENT_TYPES.contains(context[index])) {
+                return false
+            }
+        }
+
+        val listItemType = docElements.getOrNull(elementIndex + 2).elementType
+        return LIST_ELEMENT_TYPES.contains(listItemType)
     }
 
     private fun StringBuilder.generateDefinition(element: PsiReferable) {
