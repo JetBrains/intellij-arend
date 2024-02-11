@@ -30,11 +30,11 @@ class ReplaceWithShortNameIntentionTest: QuickFixTestBase() {
        } """)
 
     fun testHeadCaret() = doTest("""
-        \func lol => Pa{-caret-}th.inProp
+        \func lol => Na{-caret-}t.div
     """, """
-        \open Path (inProp)
+        \open Nat (div)
         
-        \func lol => {-caret-}inProp
+        \func lol => {-caret-}div
     """)
 
     fun testSingleItemInWhere() = doTest("""

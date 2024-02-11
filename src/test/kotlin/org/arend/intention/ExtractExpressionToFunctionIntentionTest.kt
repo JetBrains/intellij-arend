@@ -22,19 +22,23 @@ class ExtractExpressionToFunctionIntentionTest : QuickFixTestBase() {
     """)
 
     fun `test extract from selection 2`() = doTest("""
-        \func bar {A : \Prop} (x y : A) : x = y => {-selection-}Path.i{-caret-}nProp _ _{-end_selection-}
+        \axiom prop-pi {A : \Prop} (x y : A) : x = y
+        \lemma bar {A : \Prop} (x y : A) : x = y => {-selection-}pro{-caret-}p-pi _ _{-end_selection-}
     """, """
-        \func bar {A : \Prop} (x y : A) : x = y => bar-lemma x y
+        \axiom prop-pi {A : \Prop} (x y : A) : x = y
+        \lemma bar {A : \Prop} (x y : A) : x = y => bar-lemma x y
           \where {
-            \func bar-lemma {A : \Prop} (x y : A) : x = y => Path.inProp _ _
+            \func bar-lemma {A : \Prop} (x y : A) : x = y => prop-pi _ _
           }
     """)
 
     // yes, it is intended. normalizing expressions would result in awful function bodies
     fun `test extract from selection 3`() = doTest("""
-        \func bar {A : \Prop} (x y : A) : x = y => Path.inProp {-selection-}{-caret-}_{-end_selection-} _
+        \axiom prop-pi {A : \Prop} (x y : A) : x = y
+        \lemma bar {A : \Prop} (x y : A) : x = y => prop-pi {-selection-}{-caret-}_{-end_selection-} _
     """, """
-        \func bar {A : \Prop} (x y : A) : x = y => Path.inProp (bar-lemma x) _
+        \axiom prop-pi {A : \Prop} (x y : A) : x = y
+        \lemma bar {A : \Prop} (x y : A) : x = y => prop-pi (bar-lemma x) _
           \where {
             \func bar-lemma {A : \Prop} (x : A) : A => _
           }

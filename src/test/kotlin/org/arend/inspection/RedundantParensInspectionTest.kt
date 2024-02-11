@@ -22,9 +22,10 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \func test3 => f2 {Nat} ${rp("(1)")} 2
 
        \data Empty
-       \lemma p => Path.inProp {Empty}
+       \axiom prop-pi {A : \Prop} (x y : A) : x = y
+       \lemma p => prop-pi {Empty}
        \func test4 : $LEVEL ${rp("(Empty)")} ${rp("(p)")} => {?}
-       \func test5 : $LEVEL Empty (Path.inProp {Empty}) => {?}
+       \func test5 : $LEVEL Empty (prop-pi {Empty}) => {?}
 
        \class Unit
        \func test6 => f2 (\new Unit) 1
@@ -58,7 +59,8 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \data Empty
 
        \func test1 : ${rp("(1 = 1)")} => idp
-       \func test2 : Empty $LEVEL ${rp("(Path.inProp {Empty})")} => {?} 
+       \axiom prop-pi {A : \Prop} (x y : A) : x = y
+       \func test2 : Empty $LEVEL ${rp("(prop-pi {Empty})")} => {?} 
     """)
 
     fun testParameterType() = doWeakWarningsCheck("""
