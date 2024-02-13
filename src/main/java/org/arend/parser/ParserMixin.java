@@ -26,7 +26,18 @@ public class ParserMixin {
   public static final ArendTokenType DOC_NEWLINE_LATEX_CODE = new ArendTokenType("$$");
   public static final ArendTokenType DOC_INLINE_LATEX_CODE = new ArendTokenType("$");
   public static final ArendTokenType DOC_LATEX_CODE = new ArendTokenType("DOC_LATEX_CODE");
-
+  public static final ArendTokenType DOC_ITALICS_CODE_BORDER = new ArendTokenType("*");
+  public static final ArendTokenType DOC_ITALICS_CODE = new ArendTokenType("DOC_ITALICS_CODE");
+  public static final ArendTokenType DOC_BOLD_CODE_BORDER = new ArendTokenType("**");
+  public static final ArendTokenType DOC_BOLD_CODE = new ArendTokenType("DOC_BOLD_CODE");
+  public static final ArendCompositeElementType DOC_NEWLINE = new ArendCompositeElementType("DOC_NEWLINE");
+  public static final ArendCompositeElementType DOC_LINEBREAK = new ArendCompositeElementType("DOC_LINEBREAK");
+  public static final ArendCompositeElementType DOC_TABS = new ArendCompositeElementType("DOC_TABS");
+  public static final ArendCompositeElementType DOC_UNORDERED_LIST = new ArendCompositeElementType("DOC_UNORDERED_LIST");
+  public static final ArendCompositeElementType DOC_ORDERED_LIST = new ArendCompositeElementType("DOC_ORDERED_LIST");
+  public static final ArendCompositeElementType DOC_BLOCKQUOTES = new ArendCompositeElementType("DOC_BLOCKQUOTES");
+  public static final ArendCompositeElementType DOC_HEADER_1 = new ArendCompositeElementType("DOC_HEADER_1");
+  public static final ArendCompositeElementType DOC_HEADER_2 = new ArendCompositeElementType("DOC_HEADER_2");
   public static final ArendCompositeElementType DOC_CODE_BLOCK = new ArendCompositeElementType("DOC_CODE_BLOCK");
   public static final ArendCompositeElementType DOC_REFERENCE = new ArendCompositeElementType("DOC_REFERENCE");
   public static final ArendCompositeElementType DOC_REFERENCE_TEXT = new ArendCompositeElementType("DOC_REFERENCE_TEXT");
