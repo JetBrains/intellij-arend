@@ -159,7 +159,7 @@ private class InterceptingPrettyPrintVisitor(
         }
         if (core is ClassCallExpression) {
             val implementations = core.implementations
-            return core.definition.fields.take(implementations.size).count { !it.referable.isExplicitField }
+            return core.definition.notImplementedFields.take(implementations.size).count { !it.referable.isExplicitField }
         }
         val parameterLink = (core as? DefCallExpression)?.definition?.parameters
         if (parameterLink != null) {

@@ -46,13 +46,13 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
         val implementedClass = classRef?.typechecked
         if (ambientDefinition is PsiConcreteReferable && missingClassInstance is ArendDefClass && implementedClass is ClassDefinition) {
             val psiFactory = ArendPsiFactory(project)
-            val className = ResolveReferenceAction.getTargetName(missingClassInstance, ambientDefinition).let { if (it.isNullOrEmpty()) missingClassInstance.defIdentifier?.textRepresentation() else it }
+            val className = ResolveReferenceAction.getTargetName(missingClassInstance, ambientDefinition).let { it.ifEmpty { missingClassInstance.defIdentifier?.textRepresentation() } }
             val ppConfig = object : PrettyPrinterConfig { override fun getDefinitionRenamer(): DefinitionRenamer = PsiLocatedRenamer(ambientDefinition) }
             val classifyingTypeExpr = (error.classifyingExpression as? Expression)?.let{ ToAbstractVisitor.convert(it, ppConfig) }
             val classifyingField = implementedClass.classifyingField
-            val fCallOk = classifyingField == null || implementedClass.fields.filter { it.referable.isExplicitField && !implementedClass.isImplemented(it) }.let{ it.isNotEmpty() && it[0] == classifyingField }
+            val fCallOk = classifyingField == null || implementedClass.notImplementedFields.filter { it.referable.isExplicitField }.let{ it.isNotEmpty() && it[0] == classifyingField }
             val classCall = if (fCallOk) className + (classifyingTypeExpr?.let { if (argNeedsParentheses(it)) " ($it)" else " $it" } ?: "") else "$className { | ${classifyingField!!.name} => $classifyingTypeExpr }"
-            val ambientDefTypechecked = (error.definition as DataLocatedReferable).typechecked
+            val ambientDefTypechecked = (error.definition as? DataLocatedReferable)?.typechecked
             val l  = when (ambientDefinition) {
                 is ArendFunctionDefinition -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.identifierOrUnknownList.size) }
                 is ArendDefData -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.typedExpr?.identifierOrUnknownList?.size ?: 1) }

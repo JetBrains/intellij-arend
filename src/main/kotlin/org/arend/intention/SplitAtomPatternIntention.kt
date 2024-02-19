@@ -291,7 +291,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val renamer = StringRenamer()
                 renamer.setForceTypeSCName(true)
 
-                for (field in record.fields.filter { record.isGoodField(it) }) {
+                for (field in record.notImplementedFields) {
                     val name = renamer.generateFreshName(field, occupiedNames)
                     occupiedNames.add(field)
                     params.add(name)

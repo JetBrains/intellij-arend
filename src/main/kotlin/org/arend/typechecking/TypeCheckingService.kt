@@ -55,7 +55,7 @@ import org.arend.typechecking.instance.pool.LocalInstancePool
 import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.instance.provider.SimpleInstanceProvider
-import org.arend.typechecking.order.DFS
+import org.arend.typechecking.dfs.DFS
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.util.*
@@ -121,7 +121,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
     */
 
-    private val tcRefMaps = Array<MutableMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>>(Referable.RefKind.values().size) {
+    private val tcRefMaps = Array<MutableMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>>(Referable.RefKind.entries.size) {
         ConcurrentHashMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>()
     }
 
@@ -229,7 +229,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (definition !is FunctionDefinition) return
         if (definition.kind != CoreFunctionDefinition.Kind.INSTANCE) return
         val classCall = definition.resultType as? ClassCallExpression ?: return
-        val dfs = object : DFS<ClassDefinition,Void>() {
+        val dfs = object : DFS<ClassDefinition, Void>() {
             override fun forDependencies(classDef: ClassDefinition): Void? {
                 for (superClass in classDef.superClasses) {
                     visit(superClass)
