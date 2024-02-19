@@ -357,7 +357,7 @@ class SplitAtomPatternIntentionTest: QuickFixTestBase() {
     """, """
        $pairDefinition3 
        \func test9 (p : Pair2) : Nat \elim p
-         | (p,p1) : Pair2 => (snd {snd2 {\new Pair2 p p1}}).2  
+         | (A,B,p,p1) : Pair2 => (snd {snd2 {\new Pair2 A B p p1}}).2
     """)
 
     fun testCase() = doTest("""

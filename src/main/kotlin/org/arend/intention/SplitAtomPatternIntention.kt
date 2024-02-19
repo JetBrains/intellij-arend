@@ -7,7 +7,6 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.containers.tail
 import org.arend.ext.variable.Variable
 import org.arend.core.context.param.DependentLink
-import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
 import org.arend.core.definition.FunctionDefinition
 import org.arend.core.elimtree.ElimBody
@@ -70,16 +69,15 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
             is SigmaExpression -> singletonList(TupleSplitPatternEntry(type.parameters))
             is ClassCallExpression -> {
-                val definition = type.definition
-                if (definition == Prelude.DEP_ARRAY) {
+                if (type.definition == Prelude.DEP_ARRAY) {
                     val isEmpty = ConstructorExpressionPattern.isArrayEmpty(type)
                     val result = ArrayList<SplitPatternEntry>()
                     for (p in arrayOf(Pair(true, Prelude.EMPTY_ARRAY), Pair(false, Prelude.ARRAY_CONS)))
                         if (isEmpty == null || isEmpty == p.first) result.add(ConstructorSplitPatternEntry(p.second, defIdentifier, type.definition))
                     result
-                } else if (definition.isRecord)
-                    singletonList(RecordSplitPatternEntry(type, definition))
-                else null
+                } else {
+                    singletonList(ClassSplitPatternEntry(type))
+                }
             }
             else -> null
         }
@@ -283,7 +281,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        class RecordSplitPatternEntry(private val dataCall: ClassCallExpression, val record: ClassDefinition) : SplitPatternEntry {
+        class ClassSplitPatternEntry(private val classCall: ClassCallExpression) : SplitPatternEntry {
             val params: ArrayList<String> = ArrayList()
 
             override fun initParams(occupiedNames: MutableSet<Variable>) {
@@ -291,10 +289,12 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val renamer = StringRenamer()
                 renamer.setForceTypeSCName(true)
 
-                for (field in record.notImplementedFields) {
-                    val name = renamer.generateFreshName(field, occupiedNames)
-                    occupiedNames.add(field)
-                    params.add(name)
+                for (field in classCall.definition.notImplementedFields) {
+                    if (!classCall.isImplementedHere(field)) {
+                        val name = renamer.generateFreshName(field, occupiedNames)
+                        occupiedNames.add(field)
+                        params.add(name)
+                    }
                 }
             }
 
@@ -302,10 +302,10 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             override fun expressionString(location: ArendCompositeElement): String = buildString {
                 append("\\new ")
-                val locatedReferable = PsiLocatedReferable.fromReferable(record.referable)
-                val recordName = if (locatedReferable != null) getTargetName(locatedReferable, location) else record.name
+                val locatedReferable = PsiLocatedReferable.fromReferable(classCall.definition.referable)
+                val recordName = if (locatedReferable != null) getTargetName(locatedReferable, location) else classCall.definition.name
                 append("$recordName ")
-                val expr = ToAbstractVisitor.convert(dataCall, object : PrettyPrinterConfig {
+                val expr = ToAbstractVisitor.convert(classCall, object : PrettyPrinterConfig {
                     override fun getNormalizationMode(): NormalizationMode? {
                         return null
                     }
