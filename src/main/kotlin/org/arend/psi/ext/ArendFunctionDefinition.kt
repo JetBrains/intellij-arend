@@ -30,6 +30,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     val returnExpr: ArendReturnExpr?
         get() = childOfType()
 
+    override val parametersExt: List<Abstract.Parameter>
+        get() = parameters
+
     override fun getParameters(): List<ArendNameTele> = getChildrenOfType()
 
     override fun getResultType() = returnExpr?.type

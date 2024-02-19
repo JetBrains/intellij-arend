@@ -461,7 +461,7 @@
 
         <action id="ArendModuleDependenciesGraphAction"
                 class="org.arend.module.ArendModuleDependenciesGraphAction"
-                text="Show Graph of Arend Modules">
+                text="Show a Graph of Arend Modules">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
         </action>
 
@@ -562,6 +562,11 @@
         </group>
         <action id="ArendUnmarkRootAction" class="org.arend.actions.ArendUnmarkRootAction">
             <add-to-group group-id="MarkRootGroup" anchor="first"/>
+        </action>
+        <action id="ArendDefinitionInverseDependenciesGraphAction"
+                class="org.arend.actions.ArendDefinitionInverseDependenciesGraphAction"
+                text="Show a Graph of Inverse Dependencies of Definitions">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorPopupMenu3"/>
         </action>
     </actions>
 

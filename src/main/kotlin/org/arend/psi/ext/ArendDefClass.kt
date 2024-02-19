@@ -46,6 +46,9 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefi
     val extendsKw: PsiElement?
         get() = findChildByType(EXTENDS_KW)
 
+    override val parametersExt: List<Abstract.Parameter>
+        get() = parameters
+
     override fun getReferable() = this
 
     override fun isRecord(): Boolean = hasChildOfType(RECORD_KW)

@@ -34,6 +34,9 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
             tcReferableCache = value
         }
 
+    override val parametersExt: List<Abstract.Parameter>
+        get() = parameters
+
     override fun getDescription() = documentation?.toString() ?: ""
 
     private fun prepareTCRef(data: SmartPsiElementPointer<PsiLocatedReferable>?, parent: LocatedReferable?) =
