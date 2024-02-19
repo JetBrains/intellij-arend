@@ -259,12 +259,6 @@ HEADER_2            = {NEW_LINE} "-" "-"+ " "*
         yybegin(CLOSE_NEWLINE_LATEX_CODE);
         return DOC_LATEX_CODE;
     }
-    "\n" {
-        zzMarkedPos--;
-        zzStartRead = textStart;
-        yybegin(CONTENTS);
-        return DOC_LATEX_CODE;
-    }
     [^] {}
 }
 
@@ -273,12 +267,6 @@ HEADER_2            = {NEW_LINE} "-" "-"+ " "*
         zzMarkedPos--;
         zzStartRead = textStart;
         yybegin(CLOSE_INLINE_LATEX_CODE);
-        return DOC_LATEX_CODE;
-    }
-    "\n" {
-        zzMarkedPos--;
-        zzStartRead = textStart;
-        yybegin(CONTENTS);
         return DOC_LATEX_CODE;
     }
     [^] {}
