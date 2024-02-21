@@ -368,7 +368,7 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
 
        \func usage => \new C4 1 Bool true (List Nat) (cons 1 nil)
        \func usage2 => \new C3 1 Bool true
-       \func usage3 => \new C2 {Nat} 1 Bool
+       \func usage3 => \new C2 Nat {1} Bool
     """, listOf(Pair(-1, "XX")))
 
     fun testClass2() = changeSignature("""
@@ -403,7 +403,7 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
        \class C4 (y : Y) \extends C3, C2
 
        \func usage => \new C4 1 {Bool} {true} (List Nat) (cons 1 nil)
-       \func usage2 => \new C3 1 {Bool} {true}
+       \func usage2 => \new C3 {1} {Bool} true
        \func usage3 => \new C2 Nat 1 Bool
     """, listOf(Pair(-1, "Z"), Pair(-2, "z")))
 
