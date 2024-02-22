@@ -41,7 +41,6 @@ import org.arend.highlight.ArendHighlightingPass
 import org.arend.highlight.ArendSyntaxHighlighter
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.util.ArendBundle
@@ -84,6 +83,7 @@ internal val REGEX_HREF = "<a href=\"([^\"]+)\">([^\"]+)</a>".toRegex()
 internal val REGEX_AREND_LIB_VERSION = "\\* \\[(.+)]".toRegex()
 
 const val HTML_IMAGE_LATEX_SHIFT = 0.15
+const val DOC_TABS_SIZE = 2
 
 internal fun String.htmlEscape(): String = XmlStringUtil.escapeString(this, true)
 

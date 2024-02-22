@@ -365,12 +365,14 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         return text.childrenWithLeaves.filter { it.elementType == DOC_TEXT }.map { it.text }
     }
 
-    private enum class TypeListItem(val elementType: IElementType) {
+    enum class TypeListItem(val elementType: IElementType) {
         ORDERED(DOC_ORDERED_LIST),
         UNORDERED(DOC_UNORDERED_LIST);
 
         companion object {
             val LIST_ELEMENT_TYPES = entries.associateBy { it.elementType }
+            val LIST_UNORDERED_ITEM_SYMBOLS = listOf("* ", "- ", "+ ")
+            val LIST_ORDERED_REGEX = "[0-9]+.".toRegex()
         }
     }
 
@@ -463,7 +465,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             val elementType = element?.elementType
 
             if (elementType == DOC_TABS) {
-                var numberTabs = element!!.text.length / 2
+                var numberTabs = (element!!.text.length + DOC_TABS_SIZE - 1) / DOC_TABS_SIZE
                 while (numberTabs > 0 && contextIndex < context.lastIndex) {
                     if (!LIST_ELEMENT_TYPES.contains(context[contextIndex])) {
                         return Pair(false, -1)
@@ -499,7 +501,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         if (whiteSpaceItem.elementType != DOC_TABS) {
             return false
         }
-        val numberTabs = whiteSpaceItem!!.text.length / 2
+        val numberTabs = (whiteSpaceItem!!.text.length + DOC_TABS_SIZE - 1) / DOC_TABS_SIZE
         if (numberTabs != context.lastIndex - firstNotEqualContextIndex + 1) {
             return false
         }
