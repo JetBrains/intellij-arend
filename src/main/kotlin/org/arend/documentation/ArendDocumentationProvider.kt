@@ -288,7 +288,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             elementType == WHITE_SPACE || elementType == DOC_NEWLINE || elementType == DOC_TABS -> append(" ")
             elementType == DOC_CODE -> append("<code>${docElement.text.htmlEscape()}</code>")
             elementType == DOC_LATEX_CODE -> append(getHtmlLatexCode("image${counterLatexImages++}",
-                docElement.text.htmlEscape(),
+                docElement.text.replace(AREND_DOC_NEW_LINE, " ").htmlEscape(),
                 docElement.prevElement.elementType == DOC_NEWLINE_LATEX_CODE,
                 element.project,
                 docElement.textOffset)
@@ -600,5 +600,9 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         return null
+    }
+    
+    companion object {
+        private val AREND_DOC_NEW_LINE = "\n \t*(- )?".toRegex()
     }
 }
