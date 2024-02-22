@@ -251,18 +251,36 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
        \class C {Z : \Type} {
          \data Bar \alias Fu (X : \Type) (n m : Nat) \elim n
            | zero => nil X Z
-           | suc n => cons X (Bar {\this} X n {?})
+           | suc n => cons X (Bar X n {?})
        }
 
        \func lol (I : C {Nat}) : C.Fu _ 2 {?} => C.cons {_} {_} {_} {{?}} 1 (C.cons {_} {_} {_} {{?}} 2 (C.nil {I} {_} {{?}} 3 4)) 
     """, listOf(Pair(-1, "X"), Pair(3, "n"), "m"), listOf(Pair("m", Pair(true, "Nat"))), "Bar")
+
+    fun testCombineData2b() = changeSignature("""
+       \class C {Z : \Type} {
+         \data Foo{-caret-} \alias Fu {X Y : \Type} (n : Nat) \elim n
+           | zero => nil X Z
+           | suc n => cons X (Foo {\this} {X} {Y} n)
+       }
+
+       \func lol (I : C {Nat}) : C.Fu 2 => C.cons 1 (C.cons 2 (C.Fu.nil {I} {_} {Nat} 3 4)) 
+    """, """
+       \class C {Z : \Type} {
+         \data Bar \alias Fu {X : \Type} (n m : Nat) \elim n
+           | zero => nil X Z
+           | suc n => cons X (Bar {\this} {X} n {?})
+       }
+
+       \func lol (I : C {Nat}) : C.Fu 2 {?} => C.cons {_} {_} {_} {{?}} 1 (C.cons {_} {_} {_} {{?}} 2 (C.nil {I} {_} {{?}} 3 4)) 
+    """, listOf(Pair(1, "X"), Pair(3, "n"), "m"), listOf(Pair("m", Pair(true, "Nat"))), "Bar")
 
     fun testData3() = changeSignature("""
        \data Vec{-caret-} {X : \Type} (n : Nat) \with
          | {X}, zero => nullV
          | {X}, suc n => consV {X} (Vec {X} n)
          
-       \func lol => consV {Nat} {1} {101} (consV {_} {2} {101} nullV)
+       \func lol => consV {Nat} {1} {101} (consV {_} {0} {101} nullV)
     """, """
        \data Vec {X : \Type} \with
          | {X}{-, zero-} => nullV
@@ -306,11 +324,15 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
          | 1 => cons1
          | {0}, p => cons2 Nat
          | {1}, suc p => cons3 (Lol {0} p)
+         
+         \func usage => cons1 {1}
     """, """
        \data Lol {m : Nat} (n : Nat) \with
          | {1}, _ => cons1
          | {p}, 0 => cons2 Nat
          | {suc p}, 1 => cons3 (Lol {p} 0)
+         
+         \func usage => cons1 {1}
     """, listOf(Pair(-2, "m"), Pair(-1, "n")))
 
     fun testConstructor() = changeSignature("""
@@ -412,4 +434,151 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
     """, """
        \func foo {\property A : \Type} => 101
     """, listOf(-1))
+
+    fun testPrivate() = changeSignature("""
+       \private \func foo (A{-caret-} : \Type) => 101
+       \func bar => foo Nat
+    """, """
+       \private \func foo {A : \Type} => 101
+       \func bar => foo {Nat}
+    """, listOf(-1))
+
+    fun testExternalParameters() = changeSignature("""
+       \func foo (x : \Type) => x \where
+         \func bar{-caret-} (y : x) => y
+
+       \func lol => foo.bar {Nat} 1
+    """, """
+       \func foo (x : \Type) => x \where
+         \func bar (y : x) (z : Nat) => y
+
+       \func lol => foo.bar {Nat} 1 {?}
+    """, listOf(1, "z"), listOf(Pair("z", Pair(true, "Nat"))))
+
+    fun testExternalParameters2() = changeSignature("""
+    \class Foo {u : Nat} {
+      | v : Nat
+
+      \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
+        \func \infixl 1 +{-caret-}++ (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+
+        \func usage1 (a b c : Nat) => a +++ b +++ c
+      }
+
+      \func usage2 (a b c : Nat) => foo.+++ {_} {0} (foo.+++ {_} {0} a b) c
+    }
+
+    \class Bar \extends Foo {
+      \func lol1 => Foo.foo.+++ {_} {0} 101 102
+    } \where {
+      \func lol2 => Foo.foo.+++ {\new Foo {101} 102} {0} 101 102
+    }
+    """, """
+    \class Foo {u : Nat} {
+      | v : Nat
+
+      \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
+        \func \infixl 1 +++ {z : Nat} (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+
+        \func usage1 (a b c : Nat) => a +++ {\this} {w} {{?}} b +++ {\this} {w} {{?}} c
+      }
+
+      \func usage2 (a b c : Nat) => (a foo.+++ {\this} {0} {{?}} b) foo.+++ {\this} {0} {{?}} c
+    }
+
+    \class Bar \extends Foo {
+      \func lol1 => 101 Foo.foo.+++ {_} {0} {{?}} 102
+    } \where {
+      \func lol2 => 101 Foo.foo.+++ {\new Foo {101} 102} {0} {{?}} 102
+    }
+    """, listOf("z", 1, 2), listOf(Pair("z", Pair(false, "Nat"))))
+
+    fun testExternalParameters3() = changeSignature("""
+    \func foo (X : \Type) => X \where {
+      \data List {n{-caret-} : Nat} \elim n
+        | 0 => nil
+        | suc n => \infixl 1 :: X (List {X} {n})
+
+      \func d (x : X) : List {_} {1} => x :: nil
+    }
+
+    \func bar : foo.List {Nat} {1} => 0 foo.:: {Nat} {0} foo.nil
+ """, """
+    \func foo (X : \Type) => X \where {
+      \data List (n : Nat) \elim n
+        | 0 => nil
+        | suc n => \infixl 1 :: X (List {X} n)
+
+      \func d (x : X) : List 1 => x :: nil
+    }
+
+    \func bar : foo.List {Nat} 1 => 0 foo.:: {Nat} {0} foo.nil
+ """, listOf(-1))
+
+   fun testExternalParameters4() = changeSignature("""
+   \func foo (X{-caret-} : \Type) => X \where {
+     \data List {n : Nat} \elim n
+       | 0 => nil
+       | suc n => \infixl 1 :: X (List {X} {n})
+
+     \func d (x : X) : List {X} {1} => x :: nil
+   }
+
+   \func bar : foo.List {Nat} {1} => 0 foo.:: {Nat} {0} foo.nil
+""", """
+  \func foo {X : \Type} => X \where {
+    \data List {n : Nat} \elim n
+      | 0 => nil
+      | suc n => \infixl 1 :: X (List {X} {n})
+
+    \func d (x : X) : List {X} {1} => x :: nil
+  }
+
+  \func bar : foo.List {Nat} {1} => 0 foo.:: {Nat} {0} foo.nil
+""", listOf(-1))
+
+   fun testExternalParameters5() = changeSignature("""
+   \func foo (X{-caret-} : \Type) => X \where {
+     \data List {n : Nat} \elim n
+       | 0 => nil
+       | suc n => \infixl 1 :: X (List {X} {n})
+
+     \func d (x : X) : List {X} {1} => x :: nil {X}
+   }
+
+   \func bar : foo.List {Nat} {1} => 0 foo.:: {Nat} {0} foo.nil {Nat}
+""", """
+   \func foo => X \where {
+     \data List {X : \Type} {n : Nat} \elim n
+       | 0 => nil
+       | suc n => \infixl 1 :: X (List {X} {n})
+
+     \func d {X : \Type} (x : X) : List {X} {1} => x :: nil {X}
+   }
+
+   \func bar : foo.List {Nat} {1} => 0 foo.:: {Nat} {0} foo.nil {Nat}
+""", listOf())
+
+   fun testExternalParameters6() = changeSignature("""
+      \func Hom{-caret-} (R S : \Set) => R -> S \where {
+        \func comp {T : \Set} (f : Hom R T) (g : Hom T S) : Hom R S => \lam r => g (f r)
+        
+        \func usage => comp {Nat} (\lam x => x Nat.+ 2) (\lam y => y Nat.* 2)
+      }
+
+      \func Hom_ {S R : \Set} (f : Hom S R) => Hom.comp {S} {R} (\lam x => x) f
+
+      \func comp2 => Hom.comp (\lam (n : Nat) => n Nat.+ 2) (\lam (m : Nat) => m Nat.* 2) 
+   """, """
+      \func Hom (S_ R_ : \Set) => R_ -> S_ \where {
+        \func comp {T : \Set} (f : Hom T R_) (g : Hom S_ T) : Hom S_ R_ => \lam r => g (f r)
+        
+        \func usage => comp {_} {Nat} (\lam x => x Nat.+ 2) (\lam y => y Nat.* 2)
+      }
+
+      \func Hom_ {S R : \Set} (f : Hom R S) => Hom.comp {R} {S} (\lam x => x) f
+
+      \func comp2 => Hom.comp (\lam (n : Nat) => n Nat.+ 2) (\lam (m : Nat) => m Nat.* 2) 
+   """, listOf(Pair(2, "S_"), Pair(1, "R_")), listOf(Pair("S_", Pair(true, "\\Set")), Pair("R_", Pair(true, "\\Set"))))
+
 }

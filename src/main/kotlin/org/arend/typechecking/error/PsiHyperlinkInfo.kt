@@ -18,7 +18,6 @@ import org.arend.ext.error.ArgInferenceError
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.SourceInfoReference
 import org.arend.ext.error.TypeMismatchError
-import org.arend.ext.error.TypecheckingError
 import org.arend.ext.reference.ArendRef
 import org.arend.ext.reference.DataContainer
 import org.arend.highlight.BasePass

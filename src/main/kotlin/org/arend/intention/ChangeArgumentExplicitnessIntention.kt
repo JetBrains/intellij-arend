@@ -1,6 +1,5 @@
 package org.arend.intention
 
-import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -10,13 +9,10 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.refactoring.*
-import org.arend.refactoring.changeSignature.ArendChangeInfo
-import org.arend.refactoring.changeSignature.ArendChangeInfo.Companion.getParameterInfo
-import org.arend.refactoring.changeSignature.ArendChangeSignatureUsageProcessor
-import org.arend.refactoring.changeSignature.ArendParameterInfo
+import org.arend.refactoring.changeSignature.*
+import org.arend.term.abs.Abstract.ParametersHolder
 import org.arend.util.*
 import java.util.Collections.singletonList
-
 
 class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendCompositeElement>(ArendCompositeElement::class.java, ArendBundle.message("arend.coClause.changeArgumentExplicitness")) {
     override fun isApplicableTo(element: ArendCompositeElement, caretOffset: Int, editor: Editor): Boolean {
@@ -34,10 +30,10 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
         val switchedArgIndexInTele = getSwitchedArgIndex(element, elementOnCaret)
         val def = element.ancestor() as? PsiLocatedReferable ?: return
 
-        val parameterInfo : List<ArendParameterInfo> = getParameterInfo(def)
+        val modifiedParameterInfo = ArendParametersInfo(def)
         val referables = when (element) {
-            is ArendNameTele -> element.identifierOrUnknownList.mapNotNull { it.defIdentifier }.toList()
-            is ArendTypeTele -> element.typedExpr?.identifierOrUnknownList?.mapNotNull { it.defIdentifier }?.toList().let {
+            is ArendNameTele -> element.identifierOrUnknownList.map { it.defIdentifier }.toList()
+            is ArendTypeTele -> element.typedExpr?.identifierOrUnknownList?.map { it.defIdentifier }?.toList().let {
                 if (it.isNullOrEmpty()) singletonList(element) else it
             }
             is ArendFieldTele -> element.referableList
@@ -45,15 +41,15 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
         }
 
         if (switchedArgIndexInTele == null || switchedArgIndexInTele == -1) {
-            for (p in parameterInfo) if (referables.contains(p.correspondingReferable)) p.switchExplicit()
+            for (p in modifiedParameterInfo.parameterInfo) if (referables.contains(p.correspondingReferable)) p.switchExplicit()
         } else {
-            for (p in parameterInfo) if (p.correspondingReferable == referables[switchedArgIndexInTele]) p.switchExplicit()
+            for (p in modifiedParameterInfo.parameterInfo) if (p.correspondingReferable == referables[switchedArgIndexInTele]) p.switchExplicit()
         }
 
-        val changeInfo = ArendChangeInfo(parameterInfo, null, def.name!!, def)
-        val processor = ArendChangeSignatureUsageProcessor()
-        processor.findUsages(changeInfo)
-        processor.processPrimaryMethod(changeInfo)
+        val externalParametersOk = if (def is ParametersHolder) ArendChangeSignatureHandler.checkExternalParametersOk(def) else null
+        val primaryChangeInfo = ArendChangeInfo(modifiedParameterInfo, null, def.name!!, def)
+        if (externalParametersOk == true)
+            ArendChangeSignatureProcessor(project, primaryChangeInfo).run()
     }
 
     override fun startInWriteAction(): Boolean = false

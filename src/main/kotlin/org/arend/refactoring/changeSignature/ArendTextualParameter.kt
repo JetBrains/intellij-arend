@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.refactoring.changeSignature.ParameterInfo
 import org.arend.term.group.AccessModifier
 
-data class ArendParameterInfo(
+data class ArendTextualParameter(
     private var name: String?,
     private var type: String?,
     private val oldIndex: Int, /* == -1, if does not correspond to an old parameter */
@@ -41,6 +41,6 @@ data class ArendParameterInfo(
     }
 
     companion object {
-        fun createEmpty(): ArendParameterInfo = ArendParameterInfo("", "", ParameterInfo.NEW_PARAMETER, true, correspondingReferable = null)
+        fun createEmpty(): ArendTextualParameter = ArendTextualParameter("", "", ParameterInfo.NEW_PARAMETER, true, correspondingReferable = null)
     }
 }

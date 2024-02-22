@@ -469,12 +469,12 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
     fun testPartialAppIESimple() = doTest(
         """
         \func f {A {-caret-}B : \Type} (a : A) (b : B) => (a, b)
-        \func id {A : \Type} (a : A) => a
+        \func id (a : \Pi {B : \Set} -> Nat -> B -> \Sigma Nat B ) => a
         \func g => id (f {Nat})
         """,
         """
         \func f {A : \Type} (B : \Type) (a : A) (b : B) => (a, b)
-        \func id {A : \Type} (a : A) => a
+        \func id (a : \Pi {B : \Set} -> Nat -> B -> \Sigma Nat B ) => a
         \func g => id (\lam {B} => f {Nat} B)
         """
     )
@@ -1014,7 +1014,7 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
        } 
     """, """
        \record R {
-         \func test => foo {_} {1}
+         \func test => foo {\this} {1}
            \where {
            \func foo {x : Nat} => x
          }

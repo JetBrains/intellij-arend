@@ -1,5 +1,7 @@
 package org.arend.refactoring
 
+import org.junit.Ignore
+
 class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
     fun testSimpleMove1() =
@@ -1436,6 +1438,30 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                } 
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 
+    fun _testMoveBetweenDynamics3() = testMoveRefactoring("""
+       \class C {foo : Nat} {
+         \func ba{-caret-}r (a : Nat) => a Nat.+ C.foo
+
+         \func usage => bar 101
+       }
+
+       \class D \extends C {
+         \func lol => bar
+       }
+    """, """
+       \class C {foo : Nat} {
+         \func usage => bar {_} 101
+       } \where {
+         \open D (bar)
+       }
+
+       \class D \extends C {
+         \func lol => bar
+
+         \func bar (a : Nat) => a Nat.+ C.foo
+       }
+    """, "Main", "D", targetIsDynamic = true)
+
     fun testInstanceRefFix() =
             testMoveRefactoring("""
                -- ! A.ard
@@ -1535,4 +1561,226 @@ $testMOR8Header
              \func bar => Foo.foo
            } 
         """, "Main", "Bar", useOpenCommands = true)
+
+    fun _testParentImplicitParams() = testMoveRefactoring("""
+       \func foo (x : Nat) => x
+         \where
+           \func bar{-caret-} => x
+            
+       \module M
+    """, """
+       \func foo (x : Nat) => x
+            
+       \module M \where {
+         \func bar (x : Nat) => x
+       }
+    """, "Main", "M", typecheck = true)
+
+    fun _testParentImplicitParams2() = testMoveRefactoring("""
+       \func foo (x : Nat) => x
+         \where
+           \func fubar (y : Nat) => y
+             \where
+               \func bar{-caret-} => x Nat.+ y
+
+       \func lol => foo.fubar.bar 101 42
+    """, """
+       \func foo (x : Nat) => x
+         \where {
+           \func fubar (y : Nat) => y
+           
+           \func bar (y : Nat) => x Nat.+ y
+         }   
+       
+       \func lol => foo.bar 102 42
+    """, "Main", "foo", typecheck = true)
+
+    fun _testParentImplicitClass() = testMoveRefactoring("""
+       \class C {
+         | foo : Nat
+         \func lol (bar : Nat) => bar \where
+           \func fubar{-caret-} => foo Nat.+ bar
+       }
+       
+       \module M
+    """, """
+       \class C {
+         | foo : Nat
+         \func lol (bar : Nat) => bar \where {}
+       }
+       
+       \module M \where {
+         \func fubar {this : C} (bar : Nat) => foo Nat.+ bar
+       }
+    """, "Main", "M", typecheck = true)
+
+    fun _testParentImplicitUsage() = testMoveRefactoring("""
+       \func foo (x : Nat) => x
+         \where {
+           \func bar{-caret-} (p : x = x) : Nat => \case x \with {
+             | 0 => 0
+             | suc n' => test n'
+           }
+
+           \func usage => bar idp
+           
+           \func test (y : Nat) => x Nat.+ y
+         }
+
+       \module M \where {
+         \func fubar : Nat => foo.bar 101 idp
+       }
+    """, """
+       \func foo (x : Nat) => x
+         \where {
+           \open M (bar)
+           
+           \func usage => bar x idp
+           
+           \func test (y : Nat) => x Nat.+ y
+         }
+
+       \module M \where {
+         \func fubar : Nat => bar 101 idp
+         
+         \func bar (x : Nat) (p : x = x) : Nat => \case x \with {
+           | 0 => 0
+           | suc n' => foo.test x n'
+         }
+       }
+    """, "Main", "M", typecheck = true)
+
+    fun _testComplicatedUsage() = testMoveRefactoring("""
+       \func foo (x : Nat) => x
+         \where {
+           \func bar {y : Nat} => y \where {
+             \func foobar (z : Nat) => z \where {
+               \func fubar{-caret-} {w : Nat} => 
+                 usage_x 0 Nat.+ usage_y 0 Nat.+ usage_z Nat.+ w
+
+               \func usage_z => z
+               \func usage_fubar1 => fubar {fubar {1}}
+             }
+
+           \func usage_y (p : Nat) => y Nat.+ p
+
+           \func usage_fubar2 => foobar.fubar 0 {foobar.fubar 0 {0}}
+         }
+
+         \func usage_x (q : Nat) => x Nat.+ q
+
+         \func usage_fubar3 => bar.foobar.fubar {0} 0 {bar.foobar.fubar {0} 0 {0}}
+       }
+
+       \module M \where {
+         \func usage_outer : Nat => foo.bar.foobar.fubar 1 {1} 1 {1}
+       }
+    """,  """
+      \func foo (x : Nat) => x
+        \where {
+          \func bar {y : Nat} => y \where {
+            \func foobar (z : Nat) => z \where {
+              \open M (fubar)
+
+              \func usage_z => z
+              \func usage_fubar1 => fubar x {y} z {fubar x {y} z {1}}
+            }
+
+          \func usage_y (p : Nat) => y Nat.+ p
+
+          \func usage_fubar2 => M.fubar x {y} 0 {M.fubar x {y} 0 {0}}
+        }
+
+        \func usage_x (q : Nat) => x Nat.+ q
+
+        \func usage_fubar3 => M.fubar x {0} 0 {M.fubar x {0} 0 {0}}
+      }
+
+      \module M \where {
+        \func usage_outer : Nat => fubar 1 {1} 1 {1}
+
+        \func fubar (x : Nat) {y : Nat} (z : Nat) {w : Nat} =>
+          foo.usage_x x 0 Nat.+ foo.bar.usage_y {y} 0 Nat.+ foo.bar.foobar.usage_z z Nat.+ w
+      }
+    """, "Main", "M", typecheck = true)
+
+    fun _testComplicatedUsage2() = testMoveRefactoring("""
+       \class Foo {u : Nat} {
+         | v : Nat
+
+         \func foo {w : Nat} => u Nat.+ v Nat.+ w \where {
+           \func \infixl 1 +{-caret-}++ (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+
+           \func usage1 (a b c : Nat) => a +++ b +++ c
+         }
+
+         \func usage2 (a b c : Nat) => a foo.+++ {0} b foo.+++ {0} c
+       }
+
+       \class Bar \extends Foo {
+         \func lol1 => 101 Foo.foo.+++ {0} 102
+       } \where {
+         \func lol2 => 101 Foo.foo.+++ {\new Foo {101} 102} {0} 102
+       }
+    """, """
+       \class Foo {u : Nat} {
+         | v : Nat
+
+         \func foo {w : Nat} => u Nat.+ v Nat.+ w \where {
+           \func usage1 (a b c : Nat) (_ : Bar) => a +++ {_} {\this} {w} b +++ {_} {\this} {w} c
+
+           \open Bar (+++)
+         }
+
+         \func usage2 (a b c : Nat) (_ : Bar) => a Bar.+++ {_} {\this} {0} b Bar.+++ {_} {\this} {0} c
+       }
+
+       \class Bar \extends Foo {
+         \func lol1 => 101 +++ {_} {_} {0} 102
+
+         \func \infixl 1 +++ {this : Foo} {w : Nat} (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+       } \where {
+         \func lol2 => 101 +++ {_} {\new Foo {101} 102} {0} 102
+       } 
+    """, "Main", "Bar", typecheck = true, targetIsDynamic = true)
+
+    fun _testComplicatedUsage3() = testMoveRefactoring("""
+      \class Foo {u : Nat} {
+        | v : Nat
+
+        \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
+          \func \infixl 1 +{-caret-}++ (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+
+          \func usage1 (a b c : Nat) => a +++ b +++ c
+        }
+
+       \func usage2 (a b c : Nat) => foo.+++ 0 (foo.+++ 0 a b) c
+      }
+
+      \class Bar \extends Foo {
+        \func lol1 => (Foo.foo.+++ 0) 101 102
+      } \where {
+        \func lol2 => Foo.foo.+++ {\new Foo {101} 102} 0 101 102
+      }
+    """, """
+    \class Foo {u : Nat} {
+      | v : Nat
+
+      \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
+        \func usage1 (a b c : Nat) => +++ w (+++ w a b) c
+
+        \open Bar (+++)
+      }
+
+     \func usage2 (a b c : Nat) => Bar.+++ 0 (Bar.+++ 0 a b) c
+    }
+
+    \class Bar \extends Foo {
+      \func lol1 => (+++ 0) 101 102
+    } \where {
+      \func lol2 => +++ {\new Foo {101} 102} 0 101 102
+
+      \func \infixl 1 +++ {this : Foo} (w x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+    }  
+    """, "Main", "Bar", typecheck = true, targetIsDynamic = false)
 }

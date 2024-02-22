@@ -21,6 +21,7 @@ import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.Alarm
 import org.arend.ArendFileType
+import org.arend.codeInsight.ArendCodeInsightUtils
 import org.arend.ext.module.ModulePath
 import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
@@ -29,20 +30,21 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
-import org.arend.psi.ArendFile
+import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.psi.findGroupByFullName
-import org.arend.psi.libraryConfig
+import org.arend.util.ArendBundle
 import org.arend.util.FullName
 import org.arend.util.aligned
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.util.*
 import java.util.function.Predicate
 import javax.swing.Icon
 import javax.swing.JPanel
 import javax.swing.JRadioButton
 import javax.swing.SwingUtilities
 import kotlin.math.roundToInt
+import kotlin.collections.ArrayList
 
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendGroup>,
@@ -210,7 +212,7 @@ class ArendMoveMembersDialog(project: Project,
                     showErrorMessage = false
                     val answer = Messages.showYesNoDialog(
                             myProject,
-                            "Target file $fileName does not exist.\n Do you want to create the file named $newFileName within the directory ${directory.name}?",
+                            "Target file $fileName does not exist.\n Do you want to create a file named $newFileName within the directory ${directory.name}?",
                             MoveMembersImpl.getRefactoringName(),
                             Messages.getQuestionIcon())
                     if (answer == Messages.YES) {
@@ -221,11 +223,42 @@ class ArendMoveMembersDialog(project: Project,
             }
         } else {
             targetContainer = locateResult.first
+            showErrorMessage = false
         }
 
-        if (targetContainer != null)
-            invokeRefactoring(ArendMoveRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, targetContainer, dynamicGroup.isSelected, isOpenInEditor)) else
-            if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.getRefactoringName(), getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
+        //Validate that dynamically inferred implicit parameters of functions being moved are known
+        val problematicGroups = LinkedHashSet<ArendGroup>()
+        if (!showErrorMessage) {
+            for (def in elementsToMove) if (def is ArendDefinition<*>) {
+                val list = ArendCodeInsightUtils.getExternalParameters(def)
+                if (list == null) problematicGroups.add(def)
+            }
+
+            if (problematicGroups.isNotEmpty()) {
+                val builder = StringBuilder()
+                for (group in problematicGroups.withIndex()) {
+                    builder.append("`${group.value.name}`")
+                    builder.append(if (group.index < problematicGroups.size - 1) ", " else " ")
+                }
+
+                val message = ArendBundle.message(if (problematicGroups.size > 1) "arend.refactoring.notTypecheckedMessage.partI.multiple" else "arend.refactoring.notTypecheckedMessage.partI.single", builder) +
+                ArendBundle.message("arend.refactoring.notTypecheckedMessage.partII", builder)
+
+                val answer = Messages.showYesNoDialog(
+                    myProject,
+                    message,
+                    MoveMembersImpl.getRefactoringName(),
+                    Messages.getQuestionIcon())
+
+                if (answer == Messages.YES) {
+                    problematicGroups.clear()
+                }
+            }
+        }
+
+        if (targetContainer != null && problematicGroups.isEmpty())
+            invokeRefactoring(ArendMoveRefactoringProcessor(project, {}, elementsToMove, sourceGroup as ArendGroup, targetContainer, dynamicGroup.isSelected, isOpenInEditor))
+        else if (showErrorMessage) CommonRefactoringUtil.showErrorMessage(MoveMembersImpl.getRefactoringName(), getLocateErrorMessage(locateResult.second), HelpID.MOVE_MEMBERS, myProject)
     }
 
     override fun getPreferredFocusedComponent() = targetFileField
@@ -242,10 +275,6 @@ class ArendMoveMembersDialog(project: Project,
 
     companion object {
         private const val ADDITIONAL_BASE_HEIGHT = 100.0
-        private const val canNotLocateMessage = "Can not locate target module"
-        private const val targetEqualsSource = "Target module cannot coincide with the source module"
-        private const val targetSubmoduleSource = "Target module cannot be a submodule of the member being moved"
-
         class FilteringScope(val scope: Scope, val predicate: (Referable) -> Boolean) : Scope {
             override fun find(pred: Predicate<Referable>?): Referable? {
                 val result = scope.find(pred)
@@ -282,10 +311,10 @@ class ArendMoveMembersDialog(project: Project,
 
         fun getLocateErrorMessage(lr: LocateResult): String = when (lr) {
             LocateResult.LOCATE_OK -> "No error"
-            LocateResult.TARGET_EQUALS_SOURCE -> targetEqualsSource
-            LocateResult.TARGET_IS_SUBMODULE_OF_SOURCE -> targetSubmoduleSource
-            LocateResult.CANT_FIND_FILE, LocateResult.CANT_FIND_MODULE -> canNotLocateMessage
-            LocateResult.CLASSPART_UNSPECIFIED -> "Unspecified part of the class"
+            LocateResult.TARGET_EQUALS_SOURCE -> ArendBundle.message("arend.refactoring.move.targetEqualsSource")
+            LocateResult.TARGET_IS_SUBMODULE_OF_SOURCE -> ArendBundle.message("arend.refactoring.move.targetSubmoduleSource")
+            LocateResult.CANT_FIND_FILE, LocateResult.CANT_FIND_MODULE -> ArendBundle.message("arend.refactoring.move.canNotLocate")
+            LocateResult.CLASSPART_UNSPECIFIED -> ArendBundle.message("arend.refactoring.move.unspecifiedPartOfTheClass")
             else -> "Other locate error"
         }
 

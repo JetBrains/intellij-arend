@@ -1,9 +1,12 @@
 package org.arend.refactoring
 
 import com.intellij.openapi.components.service
+import com.intellij.psi.PsiElement
 import org.arend.ArendTestBase
 import org.arend.fileTreeFromText
+import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ancestor
+import org.arend.psi.ext.ArendDefinition
 import org.arend.psi.ext.ArendGroup
 import org.arend.refactoring.move.ArendMoveHandlerDelegate
 import org.arend.refactoring.move.ArendMoveMembersDialog
@@ -21,12 +24,16 @@ abstract class ArendMoveTestBase : ArendTestBase() {
                             targetFile: String,
                             targetName: String,
                             targetIsDynamic: Boolean = false,
-                            useOpenCommands: Boolean = false) {
+                            useOpenCommands: Boolean = false,
+                            typecheck: Boolean = false) {
         val arendSettings = service<ArendSettings>()
         arendSettings.autoImportWriteOpenCommands = useOpenCommands
         try {
             val fileTree = fileTreeFromText(contents)
             fileTree.createAndOpenFileWithCaretMarker()
+
+            if (typecheck) typecheck()
+
             val sourceElement = myFixture.elementAtCaret.ancestor<ArendGroup>() ?: throw AssertionError("Cannot find source anchor")
 
             doPerformMoveRefactoringTest(resultingContent, targetFile, targetName, targetIsDynamic, listOf(sourceElement))

@@ -16,6 +16,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.IArendFile
+import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersForReferable
 import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
@@ -391,11 +392,9 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
             is FunctionArgInferenceError -> {
                 if (error.definition != null) {
-                    val params = ArendParameterInfoHandler.getAllParametersForReferable(error.definition.referable.underlyingReferable)
-                        .map { it.referableList.map { r -> Pair(it.isExplicit, r) } }.flatten()
-                    if (error.index <= params.size) {
+                    val params = getAllParametersForReferable(error.definition.referable.underlyingReferable, cause as? ArendCompositeElement)?.first
+                    if (params != null && error.index <= params.size)
                         registerFix(builder, FunctionArgInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
-                    }
                 }
             }
 

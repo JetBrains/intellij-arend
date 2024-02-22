@@ -2,6 +2,8 @@ package org.arend.refactoring.changeSignature.entries
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
+import org.arend.codeInsight.ParameterDescriptor
+import org.arend.codeInsight.SignatureUsageContext
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.childrenWithLeaves
 import org.arend.psi.ext.*
@@ -39,7 +41,7 @@ class LocalCoClauseEntry(private val psiLocalCoClause: ArendLocalCoClause,
             val isExplicit = when (data) {
                 is ArendNameTele -> data.isExplicit
                 is ArendPattern -> data.isExplicit
-                else -> data.text.trim().startsWith("{")
+                else -> !data.text.trim().startsWith("{")
             }
             procArguments.add(
                 ArgumentPrintResult(
@@ -54,12 +56,14 @@ class LocalCoClauseEntry(private val psiLocalCoClause: ArendLocalCoClause,
             )
         }
     }
-    override fun getLambdaParams(parameterMap: Set<Parameter>, includingSuperfluousTrailingParams: Boolean): List<Parameter> = emptyList()
+    override fun getLambdaParams(parameterMap: Set<ParameterDescriptor>, includingSuperfluousTrailingParams: Boolean): List<ParameterDescriptor> = emptyList()
 
     override fun getArguments(): List<ArgumentPrintResult> = procArguments
 
-    override fun getParameters(): Pair<List<Parameter>, List<NewParameter>> =
-        Pair(descriptor1.oldParametersWithoutImplicitPrefix!!, descriptor1.newParametersWithoutImplicitPrefix!!)
+    override fun getParameters(): Pair<List<ParameterDescriptor>, List<ParameterDescriptor>> {
+        val context = SignatureUsageContext.getParameterContext(psiLocalCoClause.lamParamList.firstOrNull() ?: psiLocalCoClause)
+        return Pair(context.filterParameters(descriptor1.oldParameters), context.filterParameters(descriptor1.newParameters))
+    }
 
     override fun getUnmodifiableSuffix(): String? {
         val children = psiLocalCoClause.childrenWithLeaves.toList()

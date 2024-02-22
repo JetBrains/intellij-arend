@@ -6,10 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.wm.IdeFocusManager
-import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiRecursiveElementVisitor
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.siblings
@@ -46,6 +43,9 @@ import org.arend.util.getBounds
 import java.lang.IllegalArgumentException
 import java.math.BigInteger
 import java.util.Collections.singletonList
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 import kotlin.math.max
 
 private fun addId(id: String, newName: String?, factory: ArendPsiFactory, using: ArendNsUsing): ArendNsId? {
@@ -175,10 +175,10 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
     }
 }
 
-class RenameReferenceAction constructor(private val element: ArendReferenceElement,
-                                        private val newName: List<String>,
-                                        private val target: PsiLocatedReferable? = null,
-                                        private val useOpen : Boolean = service<ArendSettings>().autoImportWriteOpenCommands) {
+class RenameReferenceAction (private val element: ArendReferenceElement,
+                             private val newName: List<String>,
+                             private val target: PsiLocatedReferable? = null,
+                             private val useOpen : Boolean = service<ArendSettings>().autoImportWriteOpenCommands) {
     override fun toString(): String = "Rename " + element.text + " to " + LongName(newName).toString()
 
     fun execute(editor: Editor?) {
@@ -232,7 +232,7 @@ fun getCorrectPreludeItemStringReference(project: Project, location: ArendCompos
     //Notice that this method may modify PSI (by writing "import Prelude" in the file header)
     val itemName = preludeItem.name
     val itemReferable = project.service<TypeCheckingService>().preludeScope.resolveName(itemName)
-    return ResolveReferenceAction.getTargetName(itemReferable as PsiLocatedReferable, location) ?: itemName
+    return ResolveReferenceAction.getTargetName(itemReferable as PsiLocatedReferable, location)
 }
 
 fun usingListToString(usingList: List<Pair<String, String?>>?): String {

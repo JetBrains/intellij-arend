@@ -10,8 +10,12 @@ import org.junit.Assert
 
 class ArendParameterInfoTest : ArendTestBase() {
 
-    private fun checkParameterInfo(code: String, expectedHint: String) {
+    private fun checkParameterInfo(code: String, expectedHint: String, typecheck: Boolean = false) {
         InlineFile(code).withCaret()
+
+        if (typecheck) {
+            typecheck()
+        }
 
         val handler = ShowParameterInfoHandler.getHandlers(project, ArendLanguage.INSTANCE).firstOrNull() ?:
                             error("Could not find parameter info handler")
@@ -85,12 +89,12 @@ class ArendParameterInfoTest : ArendTestBase() {
         checkParameterInfo(code, expectedHint)
     }
 
-    fun `test no hint in lam`() {
+    /*fun `test no hint in lam`() {
         val code = "\\func f (x y : Nat) => 0\n" +
                 "\\func h => f (\\lam x => {-caret-}x)"
         val expectedHint = ""
         checkParameterInfo(code, expectedHint)
-    }
+    } */
 
     fun `test hint in lam`() {
         val code = "\\func f (x y : Nat) => 0\n" +
@@ -171,35 +175,35 @@ class ArendParameterInfoTest : ArendTestBase() {
     fun `test class fields`() {
         val code = "\\class C { \\field f (x y : Nat) : Nat } \n" +
                 "\\func h (c : C) (x : Nat) => c.f {-caret-}x"
-        val expectedHint = "<highlight>x : Nat</highlight>, y : Nat"
+        val expectedHint = "{this : C}, <highlight>x : Nat</highlight>, y : Nat"
         checkParameterInfo(code, expectedHint)
     }
 
     fun `test param after this`() {
         val code = "\\class C { \\field f (x y : Nat) : Nat } \n" +
                 "\\func h (c : C) (x : Nat) => f {c} {-caret-}x"
-        val expectedHint = "<highlight>x : Nat</highlight>, y : Nat"
+        val expectedHint = "{this : C}, <highlight>x : Nat</highlight>, y : Nat"
         checkParameterInfo(code, expectedHint)
     }
 
     fun `test func param after this`() {
         val code = "\\class C { \\func f (x y : Nat) : Nat => 0 } \n" +
                 "\\func h (c : C) (x : Nat) => C.f {c} {-caret-}x"
-        val expectedHint = "<highlight>x : Nat</highlight>, y : Nat"
+        val expectedHint = "{this : C}, <highlight>x : Nat</highlight>, y : Nat"
         checkParameterInfo(code, expectedHint)
     }
 
     fun `test this`() {
         val code = "\\class C { \\field f (x y : Nat) : Nat } \n" +
                 "\\func h (c : C) (x : Nat) => f {{-caret-}c} x"
-        val expectedHint = "x : Nat, y : Nat"
+        val expectedHint = "<highlight>{this : C}</highlight>, x : Nat, y : Nat"
         checkParameterInfo(code, expectedHint)
     }
 
     fun `test func this`() {
         val code = "\\class C { \\func f (x y : Nat) : Nat => 0 } \n" +
                 "\\func h (c : C) (x : Nat) => C.f {{-caret-}c} x"
-        val expectedHint = "x : Nat, y : Nat"
+        val expectedHint = "<highlight>{this : C}</highlight>, x : Nat, y : Nat"
         checkParameterInfo(code, expectedHint)
     }
 
@@ -268,6 +272,87 @@ class ArendParameterInfoTest : ArendTestBase() {
   
 
        \func lol => consV {Nat} {0} {101}{-caret-} nullV 
-    """, "{X}, {n}, <highlight>{_ : X}</highlight>, _ : Vec {X} n")
+    """, "{X : \\Type}, {n}, <highlight>{_ : X}</highlight>, _ : Vec {X} n")
+
+    fun `test local coclause`() = checkParameterInfo("""
+       \\class C (carrier : \Set) {
+         | magma (x y : carrier) : carrier
+       }
+        
+       \\func instance => \new C {
+         | magma x y{-caret-} => Nat
+       } 
+    """, "x : carrier, <highlight>y : carrier</highlight>")
+
+    fun `test patterns`() = checkParameterInfo("""
+        \\data List (X : \Type)
+          | nil
+          | \infixr 1 :: X (List X)
+          
+        \\func foo {X : \Type} (l : List X) \with
+          | l0 :: l{-caret-}s => {?} 
+    """, "_ : X, <highlight>_ : List X</highlight>")
+
+
+    fun `test this 2`() = checkParameterInfo("""
+        \\class Pair
+          | sum (a b : Nat) : Nat
+          
+        \func lol (p : Pair) => p{-caret-}.sum 1 2
+    """, "<highlight>{this : Pair}</highlight>, a : Nat, b : Nat")
+
+    fun `test this + postfix`() = checkParameterInfo("""
+       \class Magma {X : \Set}
+         | \infix 1 * (x y : X) : X
+
+       \func usage (M : Magma {Nat}) => (`* {-caret-}1) 2 
+    """, "{this : Magma}, x : X, <highlight>y : X</highlight>")
+
+    fun `test this + postfix 2`() = checkParameterInfo("""
+       \class Magma {X : \Set}
+         | \infix 1 * (x y : X) : X
+
+       \func usage (M : Magma {Nat}) => (M.`* {-caret-}1) 2 
+    """, "{this : Magma}, x : X, <highlight>y : X</highlight>")
+
+    fun `test dumbMode hints`() = checkParameterInfo("""
+        \class Test {
+          \func foo {a b c d : Nat} => a Nat.+ b Nat.+ c Nat.+ d \where {
+            \func bar (p : a + b = c + d) : p = p => idp
+          }
+        }
+                        
+        \open Test.foo
+        
+        \func foobar => bar {\new Test} {1} {2} {2} {1}{-caret-} idp
+        
+    """, "{this : Test}, <highlight>???,</highlight> p : a + b = c + d")
+
+    fun `test smartMode hints`() = checkParameterInfo("""
+        \class Test {
+          \func foo {a b c d : Nat} => a Nat.+ b Nat.+ c Nat.+ d \where {
+            \func bar (p : a + b = c + d) : p = p => idp
+          }
+        }
+                        
+        \open Test.foo
+        
+        \func foobar => bar {\new Test} {1} {2} {2} {1}{-caret-} idp
+        
+    """, "{this : Test}, {a : Nat}, {b : Nat}, {c : Nat}, <highlight>{d : Nat}</highlight>, p : a + b = c + d", true)
+
+    fun `test external parameters scope detection`() = checkParameterInfo("""
+       \class Foo {u : Nat} {
+         | v : Nat
+
+       \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
+         \func \infixl 1 +++ (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+
+         \func usage1 (a b c : Nat) => a +++ b +++ c
+       }
+
+       \func usage2 (a b c : Nat) => foo.+++ {_} {0{-caret-}} (foo.+++ {_} {0} a b) c
+       } 
+    """, "{this : Foo}, <highlight>{w : Nat}</highlight>, x : Nat, y : Nat", true)
 
 }

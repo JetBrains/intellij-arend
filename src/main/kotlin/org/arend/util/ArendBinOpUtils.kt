@@ -11,6 +11,7 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
+import org.arend.psi.childOfType
 import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendExpr
 import org.arend.resolving.ArendReferableConverter
@@ -21,6 +22,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.Concrete.NumberPattern
 
 fun appExprToConcrete(appExpr: ArendExpr): Concrete.Expression? = appExprToConcrete(appExpr, false)
 
@@ -40,7 +42,15 @@ fun appExprToConcrete(appExpr: ArendExpr, setData: Boolean, errorReporter: Error
 
 fun patternToConcrete(unparsedPattern: ArendPattern, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE): Concrete.Pattern? {
     val scope = CachingScope.make(unparsedPattern.scope)
-    val unparsed = ConcreteBuilder.convertPattern(unparsedPattern, ArendReferableConverter, errorReporter, null)
+    val builder = object: ConcreteBuilder(ArendReferableConverter, errorReporter, null) {
+        override fun buildPattern(pattern: Abstract.Pattern?): Concrete.Pattern {
+            if (pattern is ArendPattern && pattern.getSequence().size == 1 && pattern.isTuplePattern) {
+                return NumberPattern(pattern.data, -1, buildTypedReferable(pattern.asPattern)) // substitute every parenthesized pattern with dummy
+            }
+            return super.buildPattern(pattern)
+        }
+    }
+    val unparsed = builder.buildPattern(unparsedPattern)
     val referables = ArrayList<Referable>()
     val patterns = ArrayList<Concrete.Pattern>(); patterns.add(unparsed)
     ExpressionResolveNameVisitor(ArendReferableConverter, scope, referables, errorReporter, null).visitPatterns(patterns, HashMap())

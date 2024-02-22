@@ -21,18 +21,18 @@ import javax.swing.table.TableCellRenderer
 class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
                                private val dialog: ArendChangeSignatureDialog,
                                defaultValueContext: PsiElement):
-    ParameterTableModelBase<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor, dialog), ArendImplicitnessColumn()) {
+    ParameterTableModelBase<ArendTextualParameter, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method, defaultValueContext, ArendNameColumn(descriptor, dialog), ArendTypeColumn(descriptor, dialog), ArendImplicitnessColumn()) {
 
-    override fun createRowItem(parameterInfo: ArendParameterInfo?): ArendChangeSignatureDialogParameterTableModelItem {
+    override fun createRowItem(parameterInfo: ArendTextualParameter?): ArendChangeSignatureDialogParameterTableModelItem {
         val resultParameterInfo = if (parameterInfo == null) {
-            val newParameter = ArendParameterInfo.createEmpty()
+            val newParameter = ArendTextualParameter.createEmpty()
             newParameter
         } else parameterInfo
 
         return ArendChangeSignatureDialogParameterTableModelItem(resultParameterInfo, ArendExpressionCodeFragment(myTypeContext.project, resultParameterInfo.typeText ?: "", myTypeContext, dialog))
     }
 
-    private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog): NameColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
+    private class ArendNameColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog): NameColumn<ArendTextualParameter, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem, value: String?) {
             value ?: return
             val items = dialog.getParameterTableItems().toHashSet(); items.remove(item)
@@ -47,7 +47,7 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
     }
 
     private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog) :
-        TypeColumn<ArendParameterInfo, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileType.INSTANCE) {
+        TypeColumn<ArendTextualParameter, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileType.INSTANCE) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
             val fragment = value as? ArendExpressionCodeFragment ?: return
             item?.parameter?.setType(fragment.text)
@@ -67,21 +67,21 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
     }
 
     private class ArendImplicitnessColumn :
-        ColumnInfoBase<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>, Boolean>("Explicit") {
-        override fun valueOf(item: ParameterTableModelItemBase<ArendParameterInfo>): Boolean =
+        ColumnInfoBase<ArendTextualParameter, ParameterTableModelItemBase<ArendTextualParameter>, Boolean>("Explicit") {
+        override fun valueOf(item: ParameterTableModelItemBase<ArendTextualParameter>): Boolean =
             item.parameter.isExplicit()
 
-        override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>, value: Boolean?) {
+        override fun setValue(item: ParameterTableModelItemBase<ArendTextualParameter>, value: Boolean?) {
             if (value == null) return
             item.parameter.switchExplicit()
         }
 
-        override fun isCellEditable(item: ParameterTableModelItemBase<ArendParameterInfo>): Boolean = true
+        override fun isCellEditable(item: ParameterTableModelItemBase<ArendTextualParameter>): Boolean = true
 
-        override fun doCreateRenderer(item: ParameterTableModelItemBase<ArendParameterInfo>): TableCellRenderer =
+        override fun doCreateRenderer(item: ParameterTableModelItemBase<ArendTextualParameter>): TableCellRenderer =
             BooleanTableCellRenderer()
 
-        override fun doCreateEditor(item: ParameterTableModelItemBase<ArendParameterInfo>): TableCellEditor =
+        override fun doCreateEditor(item: ParameterTableModelItemBase<ArendTextualParameter>): TableCellEditor =
             BooleanTableCellEditor()
     }
 }

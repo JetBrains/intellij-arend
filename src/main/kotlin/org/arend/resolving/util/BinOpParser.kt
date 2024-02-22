@@ -1,6 +1,7 @@
 package org.arend.resolving.util
 
 import com.intellij.openapi.components.service
+import com.intellij.psi.PsiElement
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.ErrorReporter
 import org.arend.naming.binOp.ExpressionBinOpEngine
@@ -9,6 +10,7 @@ import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
+import org.arend.psi.ancestor
 import org.arend.psi.ext.*
 import org.arend.resolving.ArendResolveCache
 import org.arend.term.Fixity
@@ -25,7 +27,6 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?, scope: Sc
             else -> null
         }
 
-        var arg: Concrete.Expression? = null
         val scope1 =  ((data as? ArendIPName)?.parentLiteral ?: data).scope
 
         val anchor: ArendReferenceElement? = when (referentData) {
@@ -37,14 +38,26 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?, scope: Sc
 
         val resolveCache = data.project.service<ArendResolveCache>()
         val refExpr = Concrete.FixityReferenceExpression.make(data, referent, fixity, null, null)
-        val computer = {
+
+        var arg: Concrete.Expression? = null
+        var isCachedValue = true
+        val referentComputer = {
+            isCachedValue = false
             arg = ExpressionResolveNameVisitor.resolve(refExpr, scope1, false, null)
             refExpr.referent
         }
 
-        val referable = if (anchor != null) resolveCache.resolveCached(computer, anchor) else computer.invoke()
+        val referable = if (anchor != null) resolveCache.resolveCached(referentComputer, anchor) else referentComputer.invoke()
+
+        if (fixity == Fixity.POSTFIX)
+            arg = null
+        else {
+            val isDynamicClassMember = (referable as? PsiElement)?.ancestor<ArendDefClass>()?.dynamicReferables?.contains(referable) == true
+            if (isDynamicClassMember && isCachedValue) referentComputer.invoke()
+        }
+
         if (arg == null && referent is LongUnresolvedReference && data is ArendLongName) {
-            val list = data.refIdentifierList.map { resolveCache.resolveCached(computer, it) }.toMutableList()
+            val list = data.refIdentifierList.map { resolveCache.resolveCached(referentComputer, it) }.toMutableList()
             val resolvedRefs = ArrayList<Referable?>()
             var i = 0
             var canResolve = true

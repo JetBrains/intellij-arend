@@ -5,10 +5,10 @@ import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.PsiLocatedReferable
 
 class ArendChangeSignatureDescriptor(private val psiReferable: PsiLocatedReferable) :
-    MethodDescriptor<ArendParameterInfo, String> {
+    MethodDescriptor<ArendTextualParameter, String> {
     override fun getName(): String = psiReferable.name ?: ""
 
-    override fun getParameters(): List<ArendParameterInfo> = ArendChangeInfo.getParameterInfo(psiReferable)
+    override fun getParameters(): List<ArendTextualParameter> = ArendParametersInfo(psiReferable).parameterInfo
 
     override fun getParametersCount(): Int = parameters.size
 

@@ -1,6 +1,5 @@
 package org.arend.refactoring.changeSignature
 
-import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiDocumentManager
@@ -16,48 +15,27 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.refactoring.util.MoveRenameUsageInfo
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.containers.MultiMap
-import org.arend.codeInsight.ArendParameterInfoHandler
+import com.intellij.webSymbols.references.WebSymbolReferenceProvider.Companion.startOffsetIn
 import org.arend.psi.ext.*
 import org.arend.psi.findPrevSibling
 import org.arend.refactoring.rename.ArendRenameProcessor
 import org.arend.refactoring.rename.ArendRenameRefactoringContext
 import org.arend.term.abs.Abstract
 import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
-import kotlin.collections.LinkedHashSet
 
 class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
     private var lastFoundUsages: List<ArendUsageInfo> = emptyList()
 
     override fun findUsages(info: ChangeInfo?): Array<ArendUsageInfo> {
         if (info !is ArendChangeInfo) return emptyArray()
-        val refactoringDescriptors = ArrayList<ChangeSignatureRefactoringDescriptor>()
-        val newParams = info.newParameters.toList().map { it as ArendParameterInfo }
-        val d = info.method as Abstract.ParametersHolder
-        val implicitPrefix = ArendParameterInfoHandler.getImplicitPrefixForReferable(d).map { p ->
-            p.referableList.map { Parameter(false, it) }
-        }.flatten()
-        val mainParameters = d.parameters.map { p -> p.referableList.map { Parameter(p.isExplicit, it) } }.flatten()
-
-        val newParametersPrefix = ArrayList<NewParameter>()
-        val newParameters = ArrayList<NewParameter>()
-        for (p in implicitPrefix) newParametersPrefix.add(NewParameter(false, p))
-        var isSetOrOrderPreserved = newParams.size == mainParameters.size // this is different from "info.isParameterSetOrOrderChanged"
-        for ((i, newParam) in newParams.withIndex()) {
-            val oldIndex = newParam.oldIndex
-            if (oldIndex != i) isSetOrOrderPreserved = false
-            newParameters.add(NewParameter(newParam.isExplicit(), mainParameters.getOrNull(oldIndex)))
-        }
-
-        refactoringDescriptors.addAll(info.changeSignatureProcessor.getRefactoringDescriptors(implicitPrefix, mainParameters, newParametersPrefix, newParameters, isSetOrOrderPreserved))
 
         //assert valid refactoring descriptors
-        for (rd in refactoringDescriptors)
+        for (rd in info.refactoringDescriptors)
             for (nP in rd.newParameters)
                 if (nP.oldParameter != null)
                     assert (rd.oldParameters.contains(nP.oldParameter))
 
-        lastFoundUsages = refactoringDescriptors.map { descriptor -> ReferencesSearch.search(descriptor.affectedDefinition).map { ArendUsageInfo(it.element, descriptor) }}.flatten().sorted()
+        lastFoundUsages = info.refactoringDescriptors.map { descriptor -> ReferencesSearch.search(descriptor.affectedDefinition).map { ArendUsageInfo(it.element, descriptor) }}.flatten().sorted()
         return lastFoundUsages.toTypedArray<ArendUsageInfo>()
     }
 
@@ -68,42 +46,39 @@ class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
     override fun processPrimaryMethod(changeInfo: ChangeInfo?): Boolean {
         if (changeInfo !is ArendChangeInfo) return false
         val project = changeInfo.method.project
-        val roots = lastFoundUsages.filter { it.psiParentRoot != null }.map { it.psiParentRoot!! }.toCollection(LinkedHashSet())
-        val descriptors = lastFoundUsages.map { it.task }.toCollection(HashSet()).toList()
 
-        if (changeInfo.isParameterSetOrOrderChanged) {
-            if (!processUsages(changeInfo.method.project, roots, descriptors)) return true
+        changeInfo.addNamespaceCommands()
+        val documentManager = PsiDocumentManager.getInstance(project)
+        val document = documentManager.getDocument(changeInfo.method.containingFile)
+        document?.let { documentManager.doPostponedOperationsAndUnblockDocument(document) }
+
+        val definition = changeInfo.method as PsiDefReferable
+
+        if (changeInfo.isParameterNamesChanged && definition is Abstract.ParametersHolder)
+            renameParameters(project, changeInfo, definition)
+
+        val secondaryRefactoringDescriptors = changeInfo.refactoringDescriptors.drop(1)
+        val secondaryParametersInfos = secondaryRefactoringDescriptors.map { it.toParametersInfo() }
+        val changeInfos = ArrayList<ArendChangeInfo>()
+        changeInfos.add(changeInfo)
+        changeInfos.addAll(secondaryParametersInfos.filterNotNull().map { secondaryParameterInfo ->
+            ArendChangeInfo(secondaryParameterInfo, null, secondaryParameterInfo.locatedReferable.name ?: "", secondaryParameterInfo.locatedReferable)
+        })
+
+        for (d in changeInfo.refactoringDescriptors) d.fixEliminator()
+
+        if (changeInfo.isNameChanged) {
+            val renameProcessor = ArendRenameProcessor(project, definition, changeInfo.newName, ArendRenameRefactoringContext(definition.refName), null)
+            val usages = renameProcessor.findUsages()
+            renameProcessor.executeEx(usages)
         }
 
-        runWriteAction {
-            changeInfo.addNamespaceCommands()
-            val documentManager = PsiDocumentManager.getInstance(project)
-            val document = documentManager.getDocument(changeInfo.method.containingFile)
-            document?.let { documentManager.doPostponedOperationsAndUnblockDocument(document) }
-
-            val definition = changeInfo.method as PsiDefReferable
-
-            if (changeInfo.isParameterSetOrOrderChanged)
-                changeInfo.changeSignatureProcessor.fixEliminator()
-
-            if (changeInfo.isParameterNamesChanged && definition is Abstract.ParametersHolder)
-                renameParameters(project, changeInfo, definition)
-
-            if (changeInfo.isNameChanged) {
-                val renameProcessor = ArendRenameProcessor(project, definition, changeInfo.newName, ArendRenameRefactoringContext(definition.refName), null)
-                val usages = renameProcessor.findUsages()
-                renameProcessor.executeEx(usages)
-            }
-
-            if (changeInfo.isParameterNamesChanged || changeInfo.isParameterSetOrOrderChanged || changeInfo.isParameterTypesChanged || changeInfo.isReturnTypeChanged) {
-                val signatureEndPsi: PsiElement? = changeInfo.changeSignatureProcessor.getSignatureEnd()
-                val signature = changeInfo.changeSignatureProcessor.getSignature()
-                performTextModification(definition, signature, definition.startOffset, signatureEndPsi?.findPrevSibling()?.endOffset ?: definition.endOffset)
-            }
-
-            else if (changeInfo.isNameChanged)
-                (changeInfo.method as ArendDefinition<*>).setName(changeInfo.newName)
-        }
+        for (cI in changeInfos) if (cI.isParameterNamesChanged || cI.isParameterSetOrOrderChanged || cI.isParameterTypesChanged || cI.isReturnTypeChanged) {
+            val signatureEndPsi: PsiElement? = cI.getSignatureEndPositionPsi()
+            val signature = cI.getSignature()
+            performTextModification(cI.method, signature, cI.method.startOffset, signatureEndPsi?.findPrevSibling()?.endOffset ?: cI.method.endOffset)
+        } else if (cI.isNameChanged)
+            (cI.method as ArendDefinition<*>).setName(cI.newName)
 
         return true
     }

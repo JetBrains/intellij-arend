@@ -7,12 +7,12 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.codeInsight.ArendParameterInfoHandler.Companion.getAllParametersForReferable
+import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersForReferable
+import org.arend.codeInsight.ParameterDescriptor
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.concrete.expr.ConcreteExpression
 import org.arend.ext.error.GeneralError
-import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.TGOAL
 import org.arend.psi.ext.*
@@ -63,7 +63,7 @@ class FunctionArgInferenceQuickFix(
 
         val subExpr = findSubExpr(concreteExpr)
         val underlyingReferable = error.definition.referable.underlyingReferable
-        val parameters = getAllParametersForReferable(underlyingReferable).map { it.referableList.map { r -> Pair(it.isExplicit, r) } }.flatten()
+        val parameters = getAllParametersForReferable(underlyingReferable, rootPsi)?.first ?: return
         var textPieceToReplace: TextRange? = null
         var replacementText = ""
         var caretShift = 0
@@ -72,32 +72,32 @@ class FunctionArgInferenceQuickFix(
             var i = 0
             var j = 0
             textPieceToReplace = (rangeData[subExpr.function]?.endOffset ?: -1).let{ startPosition -> TextRange(startPosition, startPosition) }
-            var param: Pair<Boolean, Referable>? = null
-            var argument: Concrete.Argument? = null
+            var param: ParameterDescriptor?
+            var argument: Concrete.Argument?
 
             while (i < error.index) {
                 textPieceToReplace = textPieceToReplace?.let { TextRange(it.endOffset, it.endOffset) }
                 param = parameters[i]
                 argument = if (j < subExpr.arguments.size) subExpr.arguments[j] else null
 
-                if (argument?.isExplicit == param.first) {
+                if (argument?.isExplicit == param.isExplicit) {
                     textPieceToReplace = rangeData[argument.expression]
                     replacementText = ""
                     i++
                     j++
-                } else if (!param.first) {
+                } else if (!param.isExplicit) {
                     i++; if (i == error.index) break
                     replacementText += " {_}"
                 }
             }
 
-            replacementText += if (parameters[error.index - 1].first) " $TGOAL" else " {$TGOAL}"
+            replacementText += if (parameters[error.index - 1].isExplicit) " $TGOAL" else " {$TGOAL}"
         } else if (subExpr is Concrete.ReferenceExpression) {
             var i = 0
             replacementText += (subExpr.data as? PsiElement)?.text ?: ""
             while (i < error.index) {
                 val param = parameters[i]
-                replacementText += if (error.index == i+1) if (param.first) " $TGOAL" else " {$TGOAL}" else  if (param.first) " _" else " {_}"
+                replacementText += if (error.index == i+1) if (param.isExplicit) " $TGOAL" else " {$TGOAL}" else  if (param.isExplicit) " _" else " {_}"
                 i++
             }
             replacementText = "(${replacementText.trim()})"

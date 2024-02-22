@@ -59,8 +59,9 @@ import javax.swing.event.TableModelEvent
 import javax.swing.table.TableCellEditor
 import kotlin.math.roundToInt
 
-class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
-    ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context),
+class ArendChangeSignatureDialog(project: Project,
+                                 val descriptor: ArendChangeSignatureDescriptor):
+    ChangeSignatureDialogBase<ArendTextualParameter, PsiElement, String, ArendChangeSignatureDescriptor, ArendChangeSignatureDialogParameterTableModelItem, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context),
     ArendCodeFragmentController {
     private lateinit var parametersPanel: JPanel
     private lateinit var parameterToUsages: MutableMap<ArendChangeSignatureDialogParameterTableModelItem, MutableMap<ArendExpressionCodeFragment, MutableSet<TextRange>>>
@@ -211,11 +212,11 @@ class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSi
     }
 
     private fun evaluateChangeInfo(parametersModel: ArendParameterTableModel): ArendChangeInfo {
-        return ArendChangeInfo(parametersModel.items.map {  it.parameter }.toMutableList(), myReturnTypeCodeFragment?.text, myNameField.text, myMethod.method, deferredNsCmds)
+        return ArendChangeInfo(ArendParametersInfo(myMethod.method, parametersModel.items.map {  it.parameter }.toMutableList()), myReturnTypeCodeFragment?.text, myNameField.text, myMethod.method, deferredNsCmds)
     }
 
     override fun calculateSignature(): String =
-        evaluateChangeInfo(myParametersTableModel).changeSignatureProcessor.getSignature()
+        evaluateChangeInfo(myParametersTableModel).getSignature()
 
     override fun createVisibilityControl() = object : ComboBoxVisibilityPanel<String>("", arrayOf()) {}
 

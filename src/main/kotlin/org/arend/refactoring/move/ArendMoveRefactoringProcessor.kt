@@ -17,9 +17,8 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.usageView.UsageViewDescriptor
 import com.intellij.usageView.UsageViewUtil
 import com.intellij.util.containers.MultiMap
+import org.arend.codeInsight.*
 import org.arend.codeInsight.getOptimalImportStructure
-import org.arend.codeInsight.processRedundantImportedDefinitions
-import org.arend.codeInsight.importRemover
 import org.arend.ext.module.LongName
 import org.arend.intention.SplitAtomPatternIntention.Companion.doSubstituteUsages
 import org.arend.naming.reference.ClassReferable
@@ -163,6 +162,14 @@ class ArendMoveRefactoringProcessor(project: Project,
 
             for ((mIndex, m) in myMembers.withIndex())
                 collectUsagesAndMembers(emptyList(), m, mIndex, recordFields, usagesInMovedBodies, descriptorsOfAllMovedMembers, memberReferences)
+
+            //TODO: Implement analysis of external parameters
+            /*for (m in myMembers) descriptorsOfAllMovedMembers[m]?.let { descriptor ->
+                val list = if (m is ArendDefinition<*>) ArendCodeInsightUtils.getExternalParameters(m) else emptyList()
+                if (list != null) externalParametersToAdd[descriptor] = list.filter {
+                    !myTargetContainer.ancestors.contains(it.correspondingDefinition?.element as? PsiElement)
+                }
+            }*/
 
             for (referable in usagesInMovedBodies.keys.minus(recordFields))
                 targetReferences[referable] = descriptorsOfAllMovedMembers[referable]?.let { DescriptorTargetReference(it) }
@@ -394,10 +401,17 @@ class ArendMoveRefactoringProcessor(project: Project,
             modifyRecordDynamicDefCalls(dynamicSubgroup, definitionsThatNeedThisParameter.toSet(), psiFactory, "\\this", true)
         }
 
+        //TODO: Implement analysis of external parameters
+        /*for (eP in externalParametersToAdd) if (eP.value.isNotEmpty()) {
+            val referable = movedReferablesMap[eP.key]
+            for (param in eP.value) println("Add ${param.parameterName} of type ${ param.typeExpression} to ${referable?.refName}")
+
+        }*/
+
 
         //Add "this" parameters/arguments to definitions moved out of the class + definitions inside it
         if (containingClass is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionDefinition<*> || definition is ArendDefData) {
-            val className = getTargetName(containingClass, definition).let { if (it.isNullOrEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
+            val className = getTargetName(containingClass, definition).let { if (it.isEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
             if (className != null) {
                 val thisVarName = addImplicitClassDependency(psiFactory, definition, className)
                 val classifyingField = getClassifyingField(containingClass)

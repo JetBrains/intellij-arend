@@ -364,13 +364,6 @@ fun getIdName(id: Referable): String? = when (id) {
     else -> null
 }
 
-fun getTelesFromDef(def: PsiElement?): List<Pair<String?, Boolean>>? =
-    (def as? Referable)?.let { referable ->
-        ArendParameterInfoHandler.getAllParametersForReferable(referable)
-            .map { it.referableList.map { v ->
-                Pair((v as? PsiElement)?.let{getIdName(v)}, it.isExplicit)
-            } }.flatten()}
-
 fun Editor.getSelectionWithoutErrors(): TextRange? =
     EditorUtil.getSelectionInAnyMode(this).takeIf { range ->
         if (range.isEmpty) {
