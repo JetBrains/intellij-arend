@@ -10,10 +10,16 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiFile
 import com.intellij.openapi.util.Ref
+import com.intellij.psi.util.elementType
+import org.arend.documentation.ArendDocumentationProvider.TypeListItem.Companion.LIST_ELEMENT_TYPES
+import org.arend.documentation.DOC_TABS_SIZE
 import org.arend.parser.ParserMixin
+import org.arend.parser.ParserMixin.*
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendTuple
 import org.arend.psi.ext.ArendTypeTele
+import org.arend.psi.nextElement
+import org.arend.psi.prevElement
 
 class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
     override fun preprocessEnter(origFile: PsiFile, origEditor: Editor, caretOffset: Ref<Int>, caretAdvance: Ref<Int>, dataContext: DataContext, originalHandler: EditorActionHandler?): EnterHandlerDelegate.Result {
@@ -54,6 +60,17 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
         } else EnterHandlerDelegate.Result.Continue
     }
 
+    override fun postProcessEnter(
+        file: PsiFile,
+        editor: Editor,
+        dataContext: DataContext
+    ): EnterHandlerDelegate.Result {
+        val currentOffset = editor.logicalPositionToOffset(editor.caretModel.logicalPosition)
+        insertTabs(file, editor, currentOffset)
+
+        return super.postProcessEnter(file, editor, dataContext)
+    }
+
     companion object {
         private fun nextParen(caretOffset: Int, charSeq: CharSequence): Int {
             var offset = caretOffset
@@ -91,6 +108,37 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
             document.insertString(caretOffset, spacing)
             editor.caretModel.moveToOffset(caretOffset + spacing.length)
         }
-    }
 
+        private fun insertTabs(file: PsiFile, editor: Editor, offset: Int) {
+            val document = editor.document
+            var element = file.findElementAt(offset - LENGTH_DOC_NEWLINE - 1)
+            if (element.elementType == DOC_PARAGRAPH_SEP) {
+                return
+            }
+            while (element != null && element.elementType != DOC_TABS && element.elementType != DOC_NEWLINE) {
+                element = element.prevElement
+            }
+
+            val nextElement = element?.nextElement ?: return
+            val nextElementType = nextElement.elementType
+            if (!LIST_ELEMENT_TYPES.contains(nextElementType)) {
+                return
+            }
+            val insertedString = if (element.elementType == DOC_TABS) {
+                val restSpaces = (element.text.length + DOC_TABS_SIZE - 1) / DOC_TABS_SIZE * DOC_TABS_SIZE - element.text.length
+                element.text + " ".repeat(restSpaces)
+            } else {
+                ""
+            } + if (nextElementType == DOC_UNORDERED_LIST) {
+                nextElement.text
+                } else {
+                    val number = nextElement.text?.removeSuffix(". ")?.toInt()
+                    number?.let { it + 1 }?.toString() + ". "
+                }
+            document.insertString(offset, insertedString)
+            editor.caretModel.moveToOffset(offset + insertedString.length)
+        }
+
+        private const val LENGTH_DOC_NEWLINE = 4
+    }
 }

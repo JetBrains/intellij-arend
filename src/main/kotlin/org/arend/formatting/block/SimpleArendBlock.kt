@@ -13,14 +13,16 @@ import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import com.intellij.psi.util.siblings
+import org.arend.documentation.ArendDocumentationProvider.TypeListItem.Companion.LIST_ORDERED_REGEX
+import org.arend.documentation.ArendDocumentationProvider.TypeListItem.Companion.LIST_UNORDERED_ITEM_SYMBOLS
+import org.arend.documentation.DOC_TABS_SIZE
 import org.arend.parser.ParserMixin.DOC_COMMENT
 import org.arend.parser.ParserMixin.DOC_TEXT
 import org.arend.psi.AREND_COMMENTS
-import org.arend.psi.ext.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.*
 import org.arend.util.mapFirstNotNull
-import java.util.*
 
 class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: Wrap?, alignment: Alignment?, myIndent: Indent?, parentBlock: AbstractArendBlock?) :
         AbstractArendBlock(node, settings, wrap, alignment, myIndent, parentBlock) {
@@ -449,7 +451,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
             skipWhitespace { c -> c.isWhitespace() }
         }
 
-        return DocCommentBlock(settings, blocks, globalAlignment, globalIndent, parent)
+        return DocCommentBlock(commentNode.text, commentNode.startOffset, settings, blocks, globalAlignment, globalIndent, parent)
     }
 
     private fun needsCrlfInCoClausesBlock(child1: Block?, child2: Block?): Boolean =
@@ -458,10 +460,18 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                             || child1.node.psi is ArendLocalCoClause && child2.node.elementType == RBRACE)
 
 
-    class DocCommentBlock(settings: CommonCodeStyleSettings?, blocks: ArrayList<Block>, globalAlignment: Alignment?, globalIndent: Indent, parent: AbstractArendBlock) : GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
+    class DocCommentBlock(private val fullCommentText: String, private val startCommentOffset: Int, settings: CommonCodeStyleSettings?, blocks: ArrayList<Block>, globalAlignment: Alignment?, globalIndent: Indent, parent: AbstractArendBlock) : GroupBlock(settings, blocks, null, globalAlignment, globalIndent, parent) {
         override fun getSpacing(child1: Block?, child2: Block): Spacing? {
             if (child1 is CommentPieceBlock && child1.isDash &&
                     !(child2 is CommentPieceBlock && child2.isDash)) {
+                val child2IntRange = child2.textRange.startOffset - startCommentOffset until child2.textRange.endOffset - startCommentOffset
+                val subString2 = fullCommentText.substring(child2IntRange)
+                if (LIST_UNORDERED_ITEM_SYMBOLS.any { subString2.trim().startsWith(it) } ||
+                        LIST_ORDERED_REGEX.matches(subString2.trim().substringBefore(" "))) {
+                    val numberOfSpaces = subString2.indexOf(subString2.trim())
+                    val requiredSpaces = (numberOfSpaces + DOC_TABS_SIZE - 1) / DOC_TABS_SIZE * DOC_TABS_SIZE
+                    return Spacing.createSpacing(requiredSpaces - numberOfSpaces + 1, requiredSpaces, 0, true, 0)
+                }
                 return oneSpaceWrap
             }
             return null
