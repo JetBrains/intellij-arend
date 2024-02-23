@@ -12,17 +12,19 @@ import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel
 
+data class GraphNode(val id: String)
+
 data class GraphEdge(val from: String, val to: String)
 
 class GraphSimulator(
-    private val graphId: String, private val edges: Set<GraphEdge>, private val vertices: Set<String>
+    private val graphId: String, private val edges: Set<GraphEdge>, private val vertices: Set<GraphNode>
 ) {
 
-    fun display() {
+    fun displayOrthogonal() {
         var graph = graph(graphId).directed()
 
         for (vertex in vertices) {
-            graph = graph.with(node(vertex))
+            graph = graph.with(node(vertex.id))
         }
 
         for (edge in edges) {

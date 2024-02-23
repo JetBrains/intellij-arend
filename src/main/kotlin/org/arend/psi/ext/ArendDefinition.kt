@@ -74,7 +74,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         return null
     }
 
-    protected open val parametersExt: List<Abstract.Parameter>
+    open val parametersExt: List<Abstract.Parameter>
         get() = emptyList()
 
     override fun getExternalParameters(): List<ParameterReferable> {
