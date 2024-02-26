@@ -1,5 +1,6 @@
 package org.arend.documentation
 
+import com.intellij.codeInsight.documentation.DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL
 import com.intellij.codeInsight.documentation.DocumentationManagerUtil
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup.*
@@ -288,7 +289,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             elementType == WHITE_SPACE || elementType == DOC_NEWLINE || elementType == DOC_TABS -> append(" ")
             elementType == DOC_CODE -> append("<code>${docElement.text.htmlEscape()}</code>")
             elementType == DOC_LATEX_CODE -> append(getHtmlLatexCode("image${counterLatexImages++}",
-                docElement.text.replace(AREND_DOC_NEW_LINE, " ").htmlEscape(),
+                docElement.text.replace(AREND_DOC_NEW_LINE, " "),
                 docElement.prevElement.elementType == DOC_NEWLINE_LATEX_CODE,
                 element.project,
                 docElement.textOffset)
@@ -315,14 +316,14 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             docElement is ArendDocReference -> {
                 val url = docElement.longName.text
                 if (isValidUrl(url)) {
-                    append("<a href=\"$url\">${docElement.docReferenceText?.let { getLinkText(it).joinToString() }}</a>")
+                    append("<a href=\"$url\">${docElement.docReferenceText?.let { getLinkText(it).joinToString() } ?: url}</a>")
                     return index + 1
                 }
                 val longName = docElement.longName
                 val link = longName.refIdentifierList.joinToString(".") { it.id.text.htmlEscape() }
                 val isLink = longName.resolve is PsiReferable
                 if (isLink) {
-                    append("<a href=\"psi_element://$link\">")
+                    append("<a href=\"$PSI_ELEMENT_PROTOCOL$link\">")
                 }
 
                 append("<code>")
