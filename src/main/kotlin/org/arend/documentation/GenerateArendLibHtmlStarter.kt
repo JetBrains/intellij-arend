@@ -19,7 +19,8 @@ class GenerateArendLibHtmlStarter : ApplicationStarter {
             return
         }
         val versionArendLib = arguments.getOrNull(3)
+        val updateColorScheme = arguments.getOrNull(4).toBoolean()
 
-        generateHtmlForArendLib(pathToArendLib, pathToArendLibInArendSite, versionArendLib)
+        generateHtmlForArendLib(pathToArendLib, pathToArendLibInArendSite, versionArendLib, updateColorScheme)
     }
 }

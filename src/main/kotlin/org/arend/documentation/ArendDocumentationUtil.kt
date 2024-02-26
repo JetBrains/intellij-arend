@@ -56,7 +56,6 @@ import java.io.File
 import javax.imageio.ImageIO
 import javax.swing.JLabel
 import javax.swing.UIManager
-import kotlin.math.roundToInt
 import kotlin.system.exitProcess
 
 private val LOG: Logger = Logger.getInstance("#org.arend.documentation")
@@ -82,7 +81,6 @@ internal val REGEX_CODE = "<code class=\"language-plaintext highlighter-rouge\">
 internal val REGEX_HREF = "<a href=\"([^\"]+)\">([^\"]+)</a>".toRegex()
 internal val REGEX_AREND_LIB_VERSION = "\\* \\[(.+)]".toRegex()
 
-const val HTML_IMAGE_LATEX_SHIFT = 0.15
 const val DOC_TABS_SIZE = 2
 
 internal fun String.htmlEscape(): String = XmlStringUtil.escapeString(this, true)
@@ -130,14 +128,6 @@ internal fun getHtmlLatexCode(title: String, latexCode: String, isNewLine: Boole
             .setStyle(TeXConstants.STYLE_DISPLAY)
             .setSize(font)
             .build()
-            .apply {
-                insets.run {
-                    top -= (font * HTML_IMAGE_LATEX_SHIFT).roundToInt()
-                    bottom -= (font * HTML_IMAGE_LATEX_SHIFT).roundToInt()
-                    left -= (font * HTML_IMAGE_LATEX_SHIFT).roundToInt()
-                    right -= (font * HTML_IMAGE_LATEX_SHIFT).roundToInt()
-                }
-            }
         val image = ImageUtil.createImage(icon.iconWidth, icon.iconHeight, BufferedImage.TYPE_INT_ARGB)
 
         val graphics = image.createGraphics()
@@ -207,7 +197,7 @@ internal fun changeTags(line: String, chapter: String?, folder: String?, isAside
 }
 
 fun generateHtmlForArendLib(
-    pathToArendLib: String, pathToArendLibInArendSite: String, versionArendLib: String?
+    pathToArendLib: String, pathToArendLibInArendSite: String, versionArendLib: String?, updateColorScheme: Boolean
 ) {
     val projectManager = ProjectManager.getInstance()
     val psiProject = projectManager.loadAndOpenProject(pathToArendLib) ?: run {
@@ -233,6 +223,10 @@ fun generateHtmlForArendLib(
                 return
             }))
         val srcDir = configService.sourcesDir
+
+        if (updateColorScheme) {
+            createColorCssFile(EditorColorsManager.getInstance().globalScheme)
+        }
 
         val arendSiteVersionDir = pathToArendLibInArendSite + File.separator + version + File.separator
         File(arendSiteVersionDir).deleteRecursively()
@@ -464,7 +458,7 @@ private fun addExtraFiles(projectDir: String, htmlDirPath: String) {
     }
 }
 
-fun createColorCssFile(scheme: EditorColorsScheme) {
+private fun createColorCssFile(scheme: EditorColorsScheme) {
     val projectDir = PathManager.getPluginsDir().parent.parent.parent.toString()
     val cssFile = File("$projectDir/src/main/html/$AREND_CSS")
     cssFile.writeText("")
