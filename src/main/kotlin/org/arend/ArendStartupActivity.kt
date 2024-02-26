@@ -1,5 +1,7 @@
 package org.arend
 
+import com.intellij.codeInsight.editorActions.SelectionQuotingTypedHandler
+import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -83,6 +85,7 @@ class ArendStartupActivity : ProjectActivity {
         actionManager?.getAction(ArendBundle.message("arend.disableActionUnmark"))?.let {
             actionManager.unregisterAction(ArendBundle.message("arend.disableActionUnmark"))
         }
+        TypedHandlerDelegate.EP_NAME.point.unregisterExtension(SelectionQuotingTypedHandler::class.java)
     }
 
     private fun changeColors() {
