@@ -4,6 +4,7 @@ import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerEx
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.concurrency.resetThreadContext
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.*
 import com.intellij.openapi.command.executeCommand
@@ -236,17 +237,19 @@ class ArendChangeSignatureDialog(project: Project,
                         val i = myParametersTable.selectionModel.selectedIndices.firstOrNull()
                         val newName = if (i != null) myParametersTableModel.items.getOrNull(i)?.parameter?.name else null
                         if (i != null) invokeLater {
-                            val deps = HashSet<Int>()
-                            if (newName == null || myReturnTypeCodeFragment?.text?.contains(newName) == true) deps.add(-1)
-                            for (j in i+1 until myParametersTable.items.size) {
-                                val psi = myParametersTableModel.items.getOrNull(j)?.typeCodeFragment
-                                if (psi != null) {
-                                    val children = psi.descendants().filter { it.elementType == ArendElementTypes.ID }.map { it.text }.toSet()
-                                    if (newName == null || children.contains(newName))
-                                        deps.add(j)
+                            resetThreadContext().use { _ ->
+                                val deps = HashSet<Int>()
+                                if (newName == null || myReturnTypeCodeFragment?.text?.contains(newName) == true) deps.add(-1)
+                                for (j in i+1 until myParametersTable.items.size) {
+                                    val psi = myParametersTableModel.items.getOrNull(j)?.typeCodeFragment
+                                    if (psi != null) {
+                                        val children = psi.descendants().filter { it.elementType == ArendElementTypes.ID }.map { it.text }.toSet()
+                                        if (newName == null || children.contains(newName))
+                                            deps.add(j)
+                                    }
                                 }
+                                invalidateIndices(deps)
                             }
-                            invalidateIndices(deps)
                         }
                     }
                     is CodeFragmentTableCellEditorBase -> {
@@ -314,17 +317,19 @@ class ArendChangeSignatureDialog(project: Project,
         }
 
         this.myParametersTableModel.addTableModelListener { ev ->
-            for (l in oldModelListeners) l.tableChanged(ev)
-            if (ev.type == TableModelEvent.UPDATE && ev.lastRow - ev.firstRow == 1) { //Row swap
-                invokeNameResolverHighlighting(ev.lastRow)
-            } else if (ev.type == TableModelEvent.DELETE) { //Row deletion
-                val obsoleteTableItems = parameterToUsages.filter { !myParametersTableModel.items.contains(it.key) }
-                invokeLater { invalidateIndices(calculateUsagesOf(obsoleteTableItems.map { it.key })) }
-                for (item in obsoleteTableItems) (item.key.typeCodeFragment as? ArendExpressionCodeFragment)?.let {
-                    deleteFragmentDependencyData(it, true)
+            resetThreadContext().use {
+                for (l in oldModelListeners) l.tableChanged(ev)
+                if (ev.type == TableModelEvent.UPDATE && ev.lastRow - ev.firstRow == 1) { //Row swap
+                    invokeNameResolverHighlighting(ev.lastRow)
+                } else if (ev.type == TableModelEvent.DELETE) { //Row deletion
+                    val obsoleteTableItems = parameterToUsages.filter { !myParametersTableModel.items.contains(it.key) }
+                    invokeLater { invalidateIndices(calculateUsagesOf(obsoleteTableItems.map { it.key })) }
+                    for (item in obsoleteTableItems) (item.key.typeCodeFragment as? ArendExpressionCodeFragment)?.let {
+                        deleteFragmentDependencyData(it, true)
+                    }
                 }
+                updateToolbarButtons()
             }
-            updateToolbarButtons()
         }
         return parametersPanel
     }
