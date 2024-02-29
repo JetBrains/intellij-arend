@@ -17,7 +17,6 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.IArendFile
 import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersForReferable
-import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.ReferenceExpression
