@@ -19,7 +19,7 @@ class ArendResolveCache(project: Project) {
 
     fun getCached(reference: ArendReferenceElement): Referable? {
         val ref = refMap[reference]
-        if (ref != null && ref != TCDefReferable.NULL_REFERABLE) return ref
+        if (ref != null/* && ref != TCDefReferable.NULL_REFERABLE*/) return ref
 
         val entry = refMapPsi[reference]
         val psi = entry?.second?.element
@@ -60,8 +60,10 @@ class ArendResolveCache(project: Project) {
     private fun doReplaceCache(newRef: Referable?, reference: ArendReferenceElement) {
         if (newRef is PsiElement && newRef.isValid) {
             refMapPsi[reference] = Pair(reference.text.hashCode(), SmartPointerManager.createPointer(newRef))
-        } else
+            refMap.remove(reference)
+        } else {
             refMap[reference] = newRef ?: TCDefReferable.NULL_REFERABLE
+        }
     }
 
     fun dropCache(reference: ArendReferenceElement) {

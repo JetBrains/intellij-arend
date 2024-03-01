@@ -8,7 +8,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import org.arend.actions.selectErrorFromEditor
 import org.arend.psi.ArendFile
-import org.arend.resolving.ArendResolveCache
 import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
@@ -17,7 +16,6 @@ class TypecheckerPass(override val file: ArendFile, editor: Editor, highlightInf
     : BasePass(file, editor, "Arend typechecker annotator", TextRange(0, editor.document.textLength), highlightInfoProcessor) {
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        file.project.service<ArendResolveCache>().clear()
         val errors = myProject.service<ErrorService>().getTypecheckingErrors(file)
         setProgressLimit(errors.size.toLong())
         for (pair in errors) {

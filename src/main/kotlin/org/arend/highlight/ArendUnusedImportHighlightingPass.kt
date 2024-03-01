@@ -9,7 +9,6 @@ import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
 import com.intellij.codeInspection.InspectionManager
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ex.QuickFixWrapper
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.profile.codeInspection.InspectionProjectProfileManager
@@ -22,7 +21,6 @@ import org.arend.intention.ArendOptimizeImportsQuickFix
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendNsId
 import org.arend.psi.ext.ArendStat
-import org.arend.resolving.ArendResolveCache
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
@@ -37,7 +35,6 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
 
     override fun doCollectInformation(progress: ProgressIndicator) {
         if (file.isRepl) return
-        file.project.service<ArendResolveCache>().clear()
 
         val currentOptimizationResult = getOptimalImportStructure(file, progress)
         val (fileImports, openStructure, _) = currentOptimizationResult

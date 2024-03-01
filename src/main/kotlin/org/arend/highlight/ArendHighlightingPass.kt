@@ -16,7 +16,10 @@ import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.psi.ArendExpressionCodeFragment
-import org.arend.resolving.*
+import org.arend.resolving.ArendReferableConverter
+import org.arend.resolving.ArendResolverListener
+import org.arend.resolving.IntellijTCReferable
+import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteCompareVisitor
@@ -48,7 +51,6 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
     }
 
     public override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        file.project.service<ArendResolveCache>().clear()
         setProgressLimit(numberOfDefinitions(file as? Group).toLong())
         collectInfo(progress)
     }
