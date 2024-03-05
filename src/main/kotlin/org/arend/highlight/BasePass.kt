@@ -17,7 +17,6 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.IArendFile
 import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersForReferable
-import org.arend.codeInsight.ArendParameterInfoHandler
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.ReferenceExpression
@@ -142,9 +141,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                     val builder = createHighlightInfoBuilder(error, ref?.textRange ?: getImprovedTextRange(error, cause), if (resolved == null) HighlightInfoType.WRONG_REF else null)
                     if (resolved == null && ref != null && error.index == 0) {
                         val fix = ArendImportHintAction(ref)
-                        if (fix.isAvailable(myProject, null, file)) {
-                            registerFix(builder, fix)
-                        }
+                        registerFix(builder, fix)
                     }
                     addHighlightInfo(builder)
                 }
@@ -159,19 +156,13 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 refElement != null -> listOfNotNull(refElement.takeIf { it.longName.size == 1 }?.descendantOfType<ArendReferenceElement>())
                 else -> cause.sequence.mapNotNull { subpattern -> subpattern.singleReferable ?: subpattern.referenceElement?.takeIf { it.longName.size == 1 }?.descendantOfType<ArendReferenceElement>() }
             }
-            var fixRegistered = false
             for (referenceElement in references) {
                 val builder = createHighlightInfoBuilder(error, referenceElement.textRange, HighlightInfoType.WRONG_REF)
                 val fix = ArendImportHintAction(referenceElement)
-                if (fix.isAvailable(myProject, null, file)) {
-                    fixRegistered = true
-                    registerFix(builder, fix)
-                }
+                registerFix(builder, fix)
                 addHighlightInfo(builder)
             }
-            if (fixRegistered) {
-                return
-            }
+            return
         }
         val textRange = getImprovedTextRange(error, cause)
         val builder = createHighlightInfoBuilder(error, textRange)

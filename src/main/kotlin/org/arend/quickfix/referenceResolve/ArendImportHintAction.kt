@@ -8,6 +8,7 @@ import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.codeInspection.HintAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.impl.LaterInvocator
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -18,7 +19,6 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
-import com.intellij.util.SlowOperations
 import com.intellij.util.ThreeState
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
@@ -35,6 +35,24 @@ import org.arend.util.FileUtils
 enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
 
 class ArendImportHintAction(private val referenceElement: ArendReferenceElement) : HintAction, HighPriorityAction {
+    private var availability: ImportHintActionAvailability = ImportHintActionAvailability.UNAVAILABLE
+    private var itemsToImport: Sequence<ResolveReferenceAction> = emptySequence()
+
+    init {
+        val initializer = {
+            val psiFile = referenceElement.containingFile
+            val project = referenceElement.project
+            availability = doComputeAvailability(project, referenceElement)
+            itemsToImport = if (importQuickFixAllowed(referenceElement))
+                getStubElementSet(project, referenceElement, psiFile).asSequence().mapNotNull {
+                    ResolveReferenceAction.getProposedFix(it, referenceElement)
+                }
+            else emptySequence()
+        }
+
+        val application = ApplicationManager.getApplication()
+        application.executeOnPooledThread{ runReadAction { initializer.invoke() } }
+    }
     private enum class ImportHintActionAvailability { UNAVAILABLE, ONLY_AT_USER_REQUEST, AVAILABLE, AVAILABLE_FOR_SILENT_FIX }
 
     override fun startInWriteAction(): Boolean = false
@@ -51,24 +69,23 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             doFix(editor) != Result.POPUP_NOT_SHOWN
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
-        referenceElement.isValid && checkAvailability(project) != ImportHintActionAvailability.UNAVAILABLE
+        referenceElement.isValid && checkAvailability() != ImportHintActionAvailability.UNAVAILABLE
 
-    private fun checkAvailability(project: Project): ImportHintActionAvailability {
+    private fun checkAvailability(): ImportHintActionAvailability {
         if (!importQuickFixAllowed(referenceElement)) return ImportHintActionAvailability.UNAVAILABLE
-        return doComputeAvailability(project, referenceElement)
+        return availability
     }
 
-    private fun getItemsToImport(project: Project, file: PsiFile?, onlyGenerallyAvailable: Boolean = false): Sequence<ResolveReferenceAction> =
-            if (importQuickFixAllowed(referenceElement))
-                getStubElementSet(project, referenceElement, file).asSequence().filter{!onlyGenerallyAvailable || !availableOnlyAtUserRequest(it)}.mapNotNull { ResolveReferenceAction.getProposedFix(it, referenceElement) }
-            else emptySequence()
+    private fun getItemsToImport(onlyGenerallyAvailable: Boolean = false): Sequence<ResolveReferenceAction> =
+        itemsToImport.filter { !onlyGenerallyAvailable || !availableOnlyAtUserRequest(it.target) }
+
 
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
         if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
         if (!referenceUnresolved(referenceElement) && referenceElement.parent !is ArendPattern) return // already imported or invalid
 
         ApplicationManager.getApplication().runWriteAction {
-            val fixData = getItemsToImport(project, file)
+            val fixData = getItemsToImport()
             if (!fixData.iterator().hasNext()) return@runWriteAction
             val action = ArendAddImportAction(project, editor, referenceElement, fixData.toList(), false)
             action.execute()
@@ -82,11 +99,11 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         val project = psiFile.project
 
         if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
-        val availability = checkAvailability(project)
+        val availability = checkAvailability()
         if (availability !in setOf(ImportHintActionAvailability.AVAILABLE, ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX)) return Result.POPUP_NOT_SHOWN // We import fieldDefIdentifier only at the request of the user (through invoke method)
 
         val isInModlessContext = if (Registry.`is`("ide.perProjectModality")) !LaterInvocator.isInModalContextForProject(editor.project) else !LaterInvocator.isInModalContext()
-        val referenceResolveActions = getItemsToImport(project, psiFile, true)
+        val referenceResolveActions = getItemsToImport(true)
         val actionsIterator = referenceResolveActions.iterator()
 
         if (availability == ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX &&
@@ -151,11 +168,9 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
                 }
                 result
             }
-            return SlowOperations.allowSlowOperations<List<PsiLocatedReferable>, Exception> {
-                StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
-                        StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ArendFileScope(project), ArendFile::class.java) +
-                        libRefs + service.getAdditionalReferables(name)
-            }
+            return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
+                    StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ArendFileScope(project), ArendFile::class.java) +
+                    libRefs + service.getAdditionalReferables(name)
         }
 
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {

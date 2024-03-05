@@ -15,10 +15,10 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
                              private val targetFullName: List<String>,
                              val statCmdFixAction: NsCmdRefactoringAction?,
                              val nameFixAction: RenameReferenceAction?) {
+    private val suffix: String = (target.containingFile as? ArendFile)?.moduleLocation?.toString() ?: "NULL"
 
     override fun toString(): String {
         val prefix = LongName(targetFullName).toString()
-        val suffix = (target.containingFile as? ArendFile)?.moduleLocation?.toString() ?: "NULL"
         return if (prefix.isNotEmpty()) "$prefix in $suffix" else suffix
     }
 
