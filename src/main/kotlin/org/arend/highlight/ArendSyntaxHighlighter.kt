@@ -5,12 +5,12 @@ import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.fileTypes.SyntaxHighlighterBase
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
+import org.arend.documentation.ArendKeyword.Companion.AREND_KEYWORDS
 import org.arend.lexer.ArendLexerAdapter
 import org.arend.parser.ParserMixin
 import org.arend.psi.AREND_DOC_TOKENS
 import org.arend.psi.AREND_GOALS
 import org.arend.psi.ArendElementTypes
-import org.arend.psi.ArendKeyword.Companion.AREND_KEYWORDS
 
 class ArendSyntaxHighlighter : SyntaxHighlighterBase() {
 

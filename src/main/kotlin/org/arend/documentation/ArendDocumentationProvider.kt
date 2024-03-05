@@ -1,102 +1,46 @@
 package org.arend.documentation
 
-import com.intellij.codeInsight.documentation.DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL
-import com.intellij.codeInsight.documentation.DocumentationManagerUtil
+import com.intellij.ide.IdeEventQueue
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup.*
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
-import com.intellij.psi.TokenType.WHITE_SPACE
-import com.intellij.psi.tree.IElementType
-import com.intellij.psi.util.elementType
-import org.arend.documentation.ArendDocumentationProvider.TypeListItem.Companion.LIST_ELEMENT_TYPES
+import com.intellij.ui.awt.RelativePoint
+import com.intellij.ui.jcef.JBCefBrowser
+import com.intellij.ui.jcef.JBCefBrowserBase
+import com.intellij.ui.jcef.JBCefJSQuery
+import com.intellij.ui.util.height
+import com.intellij.ui.util.width
+import org.arend.documentation.ArendKeyword.Companion.isArendKeyword
 import org.arend.ext.module.LongName
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.scope.Scope
-import org.arend.parser.ParserMixin.*
 import org.arend.psi.ArendFile
-import org.arend.psi.ArendKeyword
-import org.arend.psi.ArendKeyword.*
-import org.arend.psi.ArendKeyword.Companion.isArendKeyword
-import org.arend.psi.ArendKeyword.Companion.toArendKeyword
-import org.arend.psi.childrenWithLeaves
-import org.arend.psi.doc.ArendDocCodeBlock
 import org.arend.psi.doc.ArendDocComment
-import org.arend.psi.doc.ArendDocReference
-import org.arend.psi.doc.ArendDocReferenceText
 import org.arend.psi.ext.*
-import org.arend.psi.prevElement
 import org.arend.term.abs.Abstract
-import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
+import org.cef.browser.CefBrowser
+import org.cef.browser.CefFrame
+import org.cef.handler.CefLoadHandlerAdapter
+import java.awt.AWTEvent
+import java.awt.Dimension
+import java.awt.MouseInfo
+import java.awt.Rectangle
+import java.awt.event.AWTEventListener
+import java.awt.event.MouseEvent
 import java.io.File
-import java.net.URL
-import java.net.UnknownHostException
+import javax.swing.SwingUtilities
+import javax.swing.UIManager
 
 
 class ArendDocumentationProvider : AbstractDocumentationProvider() {
-
-    private data class ArendKeywordHtmlSection(val id: String, val index: Int)
-
-    private inner class ArendKeywordHtml(val chapter: String, val folder: String?) {
-        var isUnknownHostException = false
-        private fun initParagraphs(doc: Document?) = doc?.select("section")?.first()?.children() ?: emptyList()
-
-        private fun initSections(paragraphs: List<Element>) = paragraphs.mapIndexedNotNull { index: Int, element: Element? ->
-            if (element?.id().isNullOrEmpty()) {
-                null
-            } else {
-                ArendKeywordHtmlSection(element?.id()!!, index)
-            }
-        }
-
-        var paragraphs = initParagraphs(
-            try {
-                Jsoup.connect(AREND_DOCUMENTATION_BASE_PATH + chapter + (folder ?: "")).get()
-            } catch (e: UnknownHostException) {
-                isUnknownHostException = true
-                null
-            } catch (e: Throwable) {
-                null
-            }
-        )
-        var sections = initSections(paragraphs)
-
-        fun updateConnection() {
-            try {
-                Jsoup.connect(AREND_DOCUMENTATION_BASE_PATH + chapter + (folder ?: "")).get()
-            } catch (e: Throwable) {
-                null
-            }?.let {
-                isUnknownHostException = false
-                paragraphs = initParagraphs(it)
-                sections = initSections(paragraphs)
-            }
-
-        }
-    }
-
-    private val functionHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "functions")
-    private val moduleHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "modules")
-    private val dataHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "data")
-    private val typesHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "types")
-    private val classesHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "classes")
-    private val recordsHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "records")
-    private val metasHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "metas")
-    private val parametersHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "parameters")
-    private val definitionsHtml = ArendKeywordHtml(DEFINITION_CHAPTER, null)
-    private val coercionHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "coercion")
-    private val levelHtml = ArendKeywordHtml(DEFINITION_CHAPTER, "level")
-    private val universesHtml = ArendKeywordHtml(EXPRESSION_CHAPTER, "universes")
-    private val classExtHtml = ArendKeywordHtml(EXPRESSION_CHAPTER, "class-ext")
-    private val piHtml = ArendKeywordHtml(EXPRESSION_CHAPTER, "pi")
-    private val sigmaHtml = ArendKeywordHtml(EXPRESSION_CHAPTER, "sigma")
-    private val letHtml = ArendKeywordHtml(EXPRESSION_CHAPTER, "let")
-    private val caseHtml = ArendKeywordHtml(EXPRESSION_CHAPTER, "case")
 
     override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, false)
 
@@ -114,84 +58,6 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             return contextElement
         }
         return null
-    }
-
-    private fun getStartAndFinishSection(html: ArendKeywordHtml?, arendKeyword: ArendKeyword?): List<Element> {
-        val sectionName = arendKeyword?.section?.sectionName ?: return emptyList()
-        val paragraphs = html?.paragraphs ?: return emptyList()
-        val sections = html.sections
-
-        val indexOfLemmaSection = sections.indexOf(sections.find { it.id == sectionName })
-        val sectionStart = sections[indexOfLemmaSection].index + 1
-        val sectionFinish = if (indexOfLemmaSection == sections.lastIndex) {
-            paragraphs.size
-        } else {
-            sections[indexOfLemmaSection + 1].index
-        }
-        return paragraphs.subList(sectionStart, sectionFinish)
-    }
-
-    private fun getArendKeywordHtml(arendKeyword: ArendKeyword?) =
-        when (arendKeyword) {
-            OPEN, HIDING, AS, USING, IMPORT, MODULE, WHERE -> moduleHtml
-            TRUNCATED, DATA, CONS -> dataHtml
-            FUNC, LEMMA, AXIOM, SFUNC, EVAL, PEVAL, WITH, ELIM, COWITH -> functionHtml
-            TYPE -> typesHtml
-            CLASS, CLASSIFYING, NO_CLASSIFYING, INSTANCE -> classesHtml
-            RECORD, FIELD, PROPERTY, OVERRIDE, DEFAULT, EXTENDS, THIS -> recordsHtml
-            META -> metasHtml
-            STRICT -> parametersHtml
-            ALIAS, INFIX, INFIX_LEFT, INFIX_RIGHT, FIX, FIX_LEFT, FIX_RIGHT -> definitionsHtml
-            USE, COERCE -> coercionHtml
-            LEVEL -> levelHtml
-            LEVELS, PLEVELS, HLEVELS, LP, LH, SUC, MAX, OO, PROP, SET, UNIVERSE, TRUNCATED_UNIVERSE -> universesHtml
-            NEW -> classExtHtml
-            PI, LAM -> piHtml
-            SIGMA -> sigmaHtml
-            LET, LETS, HAVE, HAVES, IN -> letHtml
-            CASE, SCASE, RETURN -> caseHtml
-            BOX, PRIVATE, PROTECTED, null -> null
-        }
-
-    private fun StringBuilder.addLink(arendKeywordHtml: ArendKeywordHtml?, arendKeyword: ArendKeyword?) {
-        append("See the documentation: <a href=\"${AREND_DOCUMENTATION_BASE_PATH + (arendKeywordHtml?.chapter ?: "") + (arendKeywordHtml?.folder ?: "") 
-                + (arendKeyword?.section?.sectionName?.let { "#$it" } ?: "")}\">${arendKeyword?.type?.debugName}</a>")
-    }
-
-    private fun StringBuilder.getDescriptionForKeyword(psiElement: PsiElement) {
-        val arendKeyword = psiElement.toArendKeyword()
-        val arendKeywordHtml = getArendKeywordHtml(arendKeyword)
-        val paragraphs = arendKeywordHtml?.paragraphs
-        val sections = arendKeywordHtml?.sections
-
-        val sectionElements = if (arendKeywordHtml?.isUnknownHostException == true) {
-            emptyList()
-        } else {
-            when (arendKeyword) {
-                DATA, TYPE, CLASS, RECORD, META, FIELD, USE, COERCE, PI, SIGMA, LAM, LET, IN, CASE, RETURN, PROP, SET, UNIVERSE, TRUNCATED_UNIVERSE ->
-                    paragraphs?.subList(AREND_SECTION_START, sections?.firstOrNull()?.index ?: paragraphs.size)
-                FUNC -> paragraphs?.subList(AREND_SECTION_START, sections?.firstOrNull()?.index?.minus(1) ?: paragraphs.size)
-                LEVEL, NEW -> paragraphs?.subList(AREND_SECTION_START, paragraphs.size)
-
-                else -> getStartAndFinishSection(arendKeywordHtml, arendKeyword)
-            } ?: emptyList()
-        }
-
-        for (element in sectionElements) {
-            processElement(psiElement.project, element, arendKeywordHtml?.chapter, arendKeywordHtml?.folder)
-        }
-        if (arendKeywordHtml?.isUnknownHostException == true) {
-            append("There is no internet connection to get the documentation")
-            arendKeywordHtml.updateConnection()
-        }
-        when (arendKeyword) {
-            BOX, PRIVATE, PROTECTED, null -> return
-            else -> {
-                wrapTag("hr") {
-                    addLink(arendKeywordHtml, arendKeyword)
-                }
-            }
-        }
     }
 
     private fun generateDocForKeywords(element: PsiElement): String {
@@ -216,304 +82,120 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean): String? {
-        File("latex-images").deleteRecursively()
-
         val ref = element as? PsiReferable ?: (element as? ArendDocComment)?.owner
         ?: return if (element.isArendKeyword()) generateDocForKeywords(element) else null
-        return buildString { wrapTag("html") {
+        val docCommentInfo = ArendDocCommentInfo(hasLatexCode = false, wasPrevRow = false)
+        val html = buildString { wrapTag("html") {
             wrapTag("head") {
                 wrapTag("style") {
                     append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
-                }
-                wrapTag("style") {
-                    append(".center {text-align: center;}")
+                    val font = UIManager.getDefaults().getFont("Label.font").size
+                    append(".row { display: flex;align-items: center; font-size: $font;}")
+                    append(".definition { font-size: $font;}")
+                    append(".content { font-size: $font;}")
                 }
             }
 
-            wrapTag("body") {
-                wrap(DEFINITION_START, DEFINITION_END) {
-                    generateDefinition(ref)
+            append("<body ")
+            append("style=\"color:${getHtmlRgbFormat(UIManager.getColor("MenuItem.foreground").rgb)};" +
+                    "background-color:${getHtmlRgbFormat(
+                        EditorColorsManager.getInstance().globalScheme.getColor(
+                            EditorColors.DOCUMENTATION_COLOR)?.rgb ?: 0)};\">")
+            wrap(DEFINITION_START, DEFINITION_END) {
+                generateDefinition(ref)
+            }
+
+            wrap(CONTENT_START, CONTENT_END) {
+                generateContent(ref, originalElement)
+            }
+
+            if (withDocComments) {
+                val doc = element as? ArendDocComment ?: ref.documentation
+                if (doc != null) {
+                    File(LATEX_IMAGES_DIR).deleteRecursively()
+                    docCommentInfo.hasLatexCode = hasLatexCode(doc)
+
+                    append(CONTENT_START)
+                    generateDocComments(ref, doc, element is ArendDocComment, docCommentInfo)
+                    append(CONTENT_END)
                 }
-
-                wrap(CONTENT_START, CONTENT_END) {
-                    generateContent(ref, originalElement)
-                }
-
-                if (withDocComments) {
-                    val doc = element as? ArendDocComment ?: ref.documentation
-                    if (doc != null) {
-                        append(CONTENT_START)
-                        generateDocComments(ref, doc, element is ArendDocComment)
-                        append(CONTENT_END)
-                    }
-                }
-            } } }
-    }
-
-    private fun StringBuilder.generateDocComments(element: PsiReferable, doc: PsiElement, full: Boolean) {
-        var curIndex = 0
-        val docElements = doc.childrenWithLeaves.toList()
-        val context = mutableListOf<IElementType>()
-
-        while (curIndex <= docElements.lastIndex) {
-            curIndex = processElement(curIndex, docElements, element, full, context)
+            }
+            append("</body>")
+        } }
+        if (docCommentInfo.hasLatexCode) {
+            showInCefBrowser(html)
         }
+        return html
     }
 
-    private fun StringBuilder.processElement(
-        index: Int,
-        docElements: List<PsiElement>,
-        element: PsiReferable,
-        full: Boolean,
-        context: MutableList<IElementType>
-    ): Int {
-        val docElement = docElements[index]
-        val elementType = docElement.elementType
-        when {
-            elementType == DOC_LBRACKET -> append("[")
-            elementType == DOC_RBRACKET -> append("]")
-            elementType == DOC_TEXT -> {
-                val nextElement = docElements.getOrNull(index + 1)
-                val nextElementType = nextElement.elementType
-                if (docElements.getOrNull(index + 2).elementType == DOC_NEWLINE) {
-                    if (nextElementType == DOC_HEADER_1) {
-                        append("<h1>${docElement.text}</h1>")
-                        return index + 2
-                    } else if (nextElementType == DOC_HEADER_2) {
-                        append("<h2>${docElement.text}</h2>")
-                        return index + 2
-                    }
-                }
-                html(docElement.text)
-            }
-            elementType == WHITE_SPACE || elementType == DOC_NEWLINE || elementType == DOC_TABS -> append(" ")
-            elementType == DOC_CODE -> append("<code>${docElement.text.htmlEscape()}</code>")
-            elementType == DOC_LATEX_CODE -> append(getHtmlLatexCode("image${counterLatexImages++}",
-                docElement.text.replace(AREND_DOC_NEW_LINE, " "),
-                docElement.prevElement.elementType == DOC_NEWLINE_LATEX_CODE,
-                element.project,
-                docElement.textOffset)
-            )
-            elementType == DOC_UNORDERED_LIST -> {
-                return appendListItems(TypeListItem.UNORDERED, index, docElements, element, full, context)
-            }
-            elementType == DOC_ORDERED_LIST -> {
-                return appendListItems(TypeListItem.ORDERED, index, docElements, element, full, context)
-            }
-            elementType == DOC_BLOCKQUOTES -> {
-                return appendBlockQuotes(index, docElements, element, full, context)
-            }
-            elementType == DOC_ITALICS_CODE -> append("<i>${docElement.text}</i>")
-            elementType == DOC_BOLD_CODE -> append("<b>${docElement.text}</b>")
-            elementType == DOC_LINEBREAK -> append("<br/>")
-            elementType == DOC_PARAGRAPH_SEP -> {
-                append("<br>")
-                if (!full) {
-                    append("<a href=\"psi_element://$FULL_PREFIX${element.refName}\">more...</a>")
-                    return docElements.lastIndex + 1
-                }
-            }
-            docElement is ArendDocReference -> {
-                val url = docElement.longName.text
-                if (isValidUrl(url)) {
-                    append("<a href=\"$url\">${docElement.docReferenceText?.let { getLinkText(it).joinToString() } ?: url}</a>")
-                    return index + 1
-                }
-                val longName = docElement.longName
-                val link = longName.refIdentifierList.joinToString(".") { it.id.text.htmlEscape() }
-                val isLink = longName.resolve is PsiReferable
-                if (isLink) {
-                    append("<a href=\"$PSI_ELEMENT_PROTOCOL$link\">")
-                }
+    private fun showInCefBrowser(html: String) {
+        val browser = JBCefBrowser()
+        browser.component.preferredSize = Dimension(1, 1)
 
-                append("<code>")
-                val text = docElement.docReferenceText
-                if (text != null) {
-                    getLinkText(text).forEach { html(it) }
-                } else {
-                    append(link)
-                }
-                append("</code>")
+        val popup = JBPopupFactory.getInstance()
+            .createComponentPopupBuilder(browser.component, null)
+            .setResizable(true)
+            .setMovable(true)
+            .setRequestFocus(true)
+            .createPopup()
 
-                if (isLink) {
-                    append("</a>")
-                }
-            }
-            docElement is ArendDocCodeBlock -> {
-                append("<pre>")
-                for (child in docElement.childrenWithLeaves) {
-                    when (child.elementType) {
-                        DOC_CODE_LINE -> html(child.text)
-                        WHITE_SPACE -> append("\n")
-                    }
-                }
-                append("</pre>")
+        val listener = AWTEventListener { event: AWTEvent ->
+            if (event is MouseEvent && popup.isVisible && !Rectangle(popup.locationOnScreen, popup.size).contains(event.locationOnScreen)) {
+                popup.closeOk(event)
             }
         }
-        return index + 1
-    }
 
-    private fun isValidUrl(urlString: String): Boolean {
-        return try {
-            URL(urlString)
-            true
-        } catch (ex: Exception) {
+        IdeEventQueue.getInstance().addDispatcher({ event ->
+            if (event is MouseEvent && event.getID() === MouseEvent.MOUSE_MOVED) {
+                SwingUtilities.invokeLater { listener.eventDispatched(event) }
+            }
             false
-        }
-    }
+        }, null)
 
-    private fun getLinkText(text: ArendDocReferenceText): Sequence<String> {
-        return text.childrenWithLeaves.filter { it.elementType == DOC_TEXT }.map { it.text }
-    }
+        val queryWidth = JBCefJSQuery.create(browser as JBCefBrowserBase)
+        val queryHeight = JBCefJSQuery.create(browser as JBCefBrowserBase)
 
-    enum class TypeListItem(val elementType: IElementType) {
-        ORDERED(DOC_ORDERED_LIST),
-        UNORDERED(DOC_UNORDERED_LIST);
-
-        companion object {
-            val LIST_ELEMENT_TYPES = entries.associateBy { it.elementType }
-            val LIST_UNORDERED_ITEM_SYMBOLS = listOf("* ", "- ", "+ ")
-            val LIST_ORDERED_REGEX = "[0-9]+.".toRegex()
-        }
-    }
-
-    private fun StringBuilder.appendListItems(
-        typeListItem: TypeListItem,
-        index: Int,
-        docElements: List<PsiElement>,
-        element: PsiReferable,
-        full: Boolean,
-        context: MutableList<IElementType>
-    ): Int {
-        context.add(docElements[index].elementType!!)
-        if (typeListItem == TypeListItem.UNORDERED) {
-            append("<ul>")
-        } else {
-            append("<ol>")
-        }
-        append("<li>")
-
-        val newIndex = processBlock(index + 1, docElements, element, full, context, "</li><li>")
-
-        append("</li>")
-        if (typeListItem == TypeListItem.UNORDERED) {
-            append("</ul>")
-        } else {
-            append("</ol>")
-        }
-        return newIndex
-    }
-
-    private fun StringBuilder.appendBlockQuotes(index: Int, docElements: List<PsiElement>, element: PsiReferable, full: Boolean, context: MutableList<IElementType>): Int {
-        context.add(docElements[index].elementType!!)
-        append("<blockquote><p>")
-
-        val newIndex = processBlock(index + 1, docElements, element, full, context, " ")
-
-        append("</p></blockquote>")
-        return newIndex
-    }
-
-    private fun StringBuilder.processBlock(
-        index: Int,
-        docElements: List<PsiElement>,
-        element: PsiReferable,
-        full: Boolean,
-        context: MutableList<IElementType>,
-        itemHtml: String
-    ): Int {
-        var curIndex = index
-        while (curIndex <= docElements.lastIndex) {
-            val curElementType = docElements[curIndex].elementType
-            if (curElementType == DOC_PARAGRAPH_SEP) {
-                break
-            } else if (curElementType == DOC_NEWLINE) {
-                val resultContext = checkContext(curIndex, docElements, context)
-                if (resultContext.first) {
-                    curIndex += resultContext.second
-                    append(itemHtml)
-                } else if (isNestedList(curIndex, docElements, context)) {
-                    append("</li>")
-                    val listElementType = docElements[curIndex + 2].elementType
-                    curIndex = appendListItems(
-                        if (listElementType == DOC_ORDERED_LIST) TypeListItem.ORDERED else TypeListItem.UNORDERED,
-                        curIndex + 2,
-                        docElements,
-                        element,
-                        full,
-                        context
-                    )
-                    continue
-                } else {
-                    break
-                }
-            } else {
-                curIndex = processElement(curIndex, docElements, element, full, context)
-                continue
-            }
-            curIndex++
-        }
-        context.removeLast()
-        return curIndex
-    }
-
-    private fun checkContext(elementIndex: Int, docElements: List<PsiElement>, context: List<IElementType>): Pair<Boolean, Int> {
-        var contextIndex = 0
-        var shiftDocElements = 1
-        while (contextIndex <= context.lastIndex) {
-            val contextElement = context[contextIndex]
-            val element = docElements.getOrNull(elementIndex + shiftDocElements)
-            val elementType = element?.elementType
-
-            if (elementType == DOC_TABS) {
-                var numberTabs = (element!!.text.length + DOC_TABS_SIZE - 1) / DOC_TABS_SIZE
-                while (numberTabs > 0 && contextIndex < context.lastIndex) {
-                    if (!LIST_ELEMENT_TYPES.contains(context[contextIndex])) {
-                        return Pair(false, -1)
-                    }
-                    contextIndex++
-                    numberTabs--
-                }
-                shiftDocElements++
-                if (numberTabs == 0) {
-                    continue
-                }
-            }
-            if (elementType != contextElement) {
-                return Pair(false, -1)
-            }
-            contextIndex++
-            shiftDocElements++
-        }
-        return Pair(true, shiftDocElements - 1)
-    }
-
-    private fun isNestedList(elementIndex: Int, docElements: List<PsiElement>, context: List<IElementType>): Boolean {
-        var firstNotEqualContextIndex = -1
-        for (contextElement in context.withIndex()) {
-            val elementType = docElements.getOrNull(elementIndex + contextElement.index + 1)?.elementType
-            if (elementType != contextElement.value) {
-                firstNotEqualContextIndex = contextElement.index
-                break
+        val cefLoadHandler = object : CefLoadHandlerAdapter() {
+            override fun onLoadEnd(browser: CefBrowser?, frame: CefFrame?, httpStatusCode: Int) {
+                val jsWidth = """
+                    var width = document.documentElement.scrollWidth;
+                    ${queryWidth.inject("width")}
+                """
+                val jsHeight = """
+                    var height = document.documentElement.scrollHeight;
+                    ${queryHeight.inject("height")}
+                """
+                browser?.executeJavaScript(jsWidth, browser.url, 0)
+                browser?.executeJavaScript(jsHeight, browser.url, 0)
             }
         }
 
-        val whiteSpaceItem = docElements.getOrNull(elementIndex + 1)
-        if (whiteSpaceItem.elementType != DOC_TABS) {
-            return false
-        }
-        val numberTabs = (whiteSpaceItem!!.text.length + DOC_TABS_SIZE - 1) / DOC_TABS_SIZE
-        if (numberTabs != context.lastIndex - firstNotEqualContextIndex + 1) {
-            return false
-        }
-        for (index in firstNotEqualContextIndex..context.lastIndex) {
-            if (!LIST_ELEMENT_TYPES.contains(context[index])) {
-                return false
+        browser.jbCefClient.addLoadHandler(cefLoadHandler, browser.cefBrowser)
+        browser.loadHTML(html)
+
+        val response = JBCefJSQuery.Response("")
+        queryWidth.addHandler { result ->
+            val width = result.toIntOrNull() ?: return@addHandler response
+            try {
+                popup.width = width + WIDTH_PADDING
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
+            response
+        }
+        queryHeight.addHandler { result ->
+            val height = result.toIntOrNull() ?: return@addHandler response
+            try {
+                popup.height = height
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            response
         }
 
-        val listItemType = docElements.getOrNull(elementIndex + 2).elementType
-        return LIST_ELEMENT_TYPES.contains(listItemType)
+        invokeLater {
+            popup.show(RelativePoint(MouseInfo.getPointerInfo().location))
+        }
     }
 
     private fun StringBuilder.generateDefinition(element: PsiReferable) {
@@ -604,8 +286,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
 
         return null
     }
-    
+
     companion object {
-        private val AREND_DOC_NEW_LINE = "\n \t*(- )?".toRegex()
+        const val WIDTH_PADDING = 60
     }
 }
