@@ -3,9 +3,9 @@ package org.arend.refactoring
 import com.intellij.lang.refactoring.NamesValidator
 import com.intellij.openapi.project.Project
 import com.intellij.psi.tree.IElementType
+import org.arend.documentation.ArendKeyword.Companion.AREND_KEYWORDS
 import org.arend.lexer.ArendLexerAdapter
 import org.arend.psi.ArendElementTypes
-import org.arend.psi.ArendKeyword.Companion.AREND_KEYWORDS
 
 class ArendNamesValidator : NamesValidator {
     override fun isKeyword(name: String, project: Project?): Boolean =

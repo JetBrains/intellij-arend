@@ -11,8 +11,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiFile
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.util.elementType
-import org.arend.documentation.ArendDocumentationProvider.TypeListItem.Companion.LIST_ELEMENT_TYPES
-import org.arend.documentation.DOC_TABS_SIZE
+import org.arend.documentation.AREND_DOC_COMMENT_TABS_SIZE
+import org.arend.documentation.CONTEXT_ELEMENTS
 import org.arend.parser.ParserMixin
 import org.arend.parser.ParserMixin.*
 import org.arend.psi.ArendFile
@@ -115,26 +115,27 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
             if (element.elementType == DOC_PARAGRAPH_SEP) {
                 return
             }
-            while (element != null && element.elementType != DOC_TABS && element.elementType != DOC_NEWLINE) {
+            while (element != null && element.elementType != DOC_TABS && element.elementType != DOC_NEWLINE && element.elementType != DOC_LINEBREAK) {
                 element = element.prevElement
             }
 
             val nextElement = element?.nextElement ?: return
             val nextElementType = nextElement.elementType
-            if (!LIST_ELEMENT_TYPES.contains(nextElementType)) {
+            if (!CONTEXT_ELEMENTS.contains(nextElementType)) {
                 return
             }
             val insertedString = if (element.elementType == DOC_TABS) {
-                val restSpaces = (element.text.length + DOC_TABS_SIZE - 1) / DOC_TABS_SIZE * DOC_TABS_SIZE - element.text.length
+                val restSpaces = (element.text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE * AREND_DOC_COMMENT_TABS_SIZE - element.text.length
                 element.text + " ".repeat(restSpaces)
             } else {
                 ""
-            } + if (nextElementType == DOC_UNORDERED_LIST) {
-                nextElement.text
-                } else {
+            } + when (nextElementType) {
+                DOC_ORDERED_LIST -> {
                     val number = nextElement.text?.removeSuffix(". ")?.toInt()
                     number?.let { it + 1 }?.toString() + ". "
                 }
+                else -> nextElement.text
+            }
             document.insertString(offset, insertedString)
             editor.caretModel.moveToOffset(offset + insertedString.length)
         }

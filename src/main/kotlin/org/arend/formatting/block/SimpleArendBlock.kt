@@ -13,9 +13,9 @@ import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import com.intellij.psi.util.siblings
-import org.arend.documentation.ArendDocumentationProvider.TypeListItem.Companion.LIST_ORDERED_REGEX
-import org.arend.documentation.ArendDocumentationProvider.TypeListItem.Companion.LIST_UNORDERED_ITEM_SYMBOLS
-import org.arend.documentation.DOC_TABS_SIZE
+import org.arend.documentation.AREND_DOC_COMMENT_TABS_SIZE
+import org.arend.documentation.LIST_ORDERED_REGEX
+import org.arend.documentation.LIST_UNORDERED_ITEM_SYMBOLS
 import org.arend.parser.ParserMixin.DOC_COMMENT
 import org.arend.parser.ParserMixin.DOC_TEXT
 import org.arend.psi.AREND_COMMENTS
@@ -469,7 +469,7 @@ class SimpleArendBlock(node: ASTNode, settings: CommonCodeStyleSettings?, wrap: 
                 if (LIST_UNORDERED_ITEM_SYMBOLS.any { subString2.trim().startsWith(it) } ||
                         LIST_ORDERED_REGEX.matches(subString2.trim().substringBefore(" "))) {
                     val numberOfSpaces = subString2.indexOf(subString2.trim())
-                    val requiredSpaces = (numberOfSpaces + DOC_TABS_SIZE - 1) / DOC_TABS_SIZE * DOC_TABS_SIZE
+                    val requiredSpaces = (numberOfSpaces + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE * AREND_DOC_COMMENT_TABS_SIZE
                     return Spacing.createSpacing(requiredSpaces - numberOfSpaces + 1, requiredSpaces, 0, true, 0)
                 }
                 return oneSpaceWrap
