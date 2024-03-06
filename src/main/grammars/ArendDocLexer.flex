@@ -52,7 +52,7 @@ import static org.arend.psi.ArendElementTypes.*;
 %state REFERENCE
 %state REFERENCE_TEXT
 
-START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF]
+START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF\u2A00-\u2AFF]
 ID_CHAR             = {START_CHAR} | [0-9']
 ID                  = {START_CHAR} {ID_CHAR}*
 

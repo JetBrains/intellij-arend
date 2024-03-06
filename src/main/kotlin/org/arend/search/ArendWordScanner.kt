@@ -33,7 +33,7 @@ open class ArendWordScanner : VersionedWordsScanner() {
             isArendIdentifierStart(c) || c in '0'..'9' || c == '\''
 
         fun isArendIdentifierStart(c: Char): Boolean =
-            c in 'a'..'z' || c in 'A'..'Z' || c in "_~!@#$%^&*-+=<>?/|[]:" || c in '\u2200'..'\u22FF'
+            c in 'a'..'z' || c in 'A'..'Z' || c in "_~!@#$%^&*-+=<>?/|[]:" || c in '\u2200'..'\u22FF' || c in '\u2A00'..'\u2AFF'
 
         protected fun stripWords(
                 processor: Processor<in WordOccurrence>,

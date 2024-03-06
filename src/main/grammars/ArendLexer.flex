@@ -35,7 +35,7 @@ import static org.arend.psi.ArendElementTypes.*;
 EOL                 = \R
 WHITE_SPACE         = [ \t\r\n]+
 
-LINE_COMMENT        = -- ([ ] ([^\|\r\n] .* | {EOL})? | ([^ ~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\u2200-\u22FF\r\n] .* | {EOL})? | -+ ([^~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\u2200-\u22FF\r\n] .* | {EOL})?)
+LINE_COMMENT        = -- ([ ] ([^\|\r\n] .* | {EOL})? | ([^ ~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\u2200-\u22FF\u2A00-\u2AFF\r\n] .* | {EOL})? | -+ ([^~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_0-9'\u2200-\u22FF\u2A00-\u2AFF\r\n] .* | {EOL})?)
 BLOCK_DOC_COMMENT_START = "{- |"
 BLOCK_COMMENT_START = "{-"
 BLOCK_COMMENT_END   = "-}"
@@ -45,7 +45,7 @@ LINE_DOC  = "-- |" (.* | {EOL})
 NUMBER              = [0-9]+
 NEGATIVE_NUMBER     = -{NUMBER}
 
-START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF]
+START_CHAR          = [~!@#$%\^&*\-+=<>?/|\[\]:a-zA-Z_\u2200-\u22FF\u2A00-\u2AFF]
 KEYWORD             = \\[0-9]*{ID}
 
 ID_CHAR             = {START_CHAR} | [0-9']
