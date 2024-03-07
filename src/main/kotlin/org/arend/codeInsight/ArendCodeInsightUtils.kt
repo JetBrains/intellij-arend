@@ -6,6 +6,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.startOffset
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.GeneralError
@@ -353,6 +354,16 @@ class ArendCodeInsightUtils {
                             rootConcrete is Concrete.LamExpression && rootConcrete.parameters.size == 1)) {
                     rangeDataReceiver.clear()
                     getBounds(rootConcrete, currentNode.node.getChildren(null).toList(), rangeDataReceiver)
+
+                    val correctedBounds = HashMap<Concrete.SourceNode, TextRange>()
+                    for (k in rangeDataReceiver.entries) {
+                        val psi = file.findElementAt(k.value.startOffset)
+                        val ancestors = ArrayList<PsiElement>()
+                        if (psi != null) for (a in psi.ancestors) if (a.startOffset == psi.startOffset) ancestors.add(a) else break
+                        val whitespace = ancestors.map { it.getWhitespace(SpaceDirection.LeadingSpace) }.firstOrNull{ !it.isNullOrEmpty() }
+                        if (whitespace != null && whitespace.length > 1) correctedBounds[k.key] = TextRange(k.value.startOffset - whitespace.length + 1, k.value.endOffset)
+                    }
+                    rangeDataReceiver.putAll(correctedBounds)
 
                     for (concrete in rangeDataReceiver.keys.toList())
                         if (concrete is Concrete.AppExpression)
