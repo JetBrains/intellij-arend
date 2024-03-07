@@ -319,7 +319,7 @@ class ArendCodeInsightUtils {
             val offset = adjustOffset(file, caretOffset)
             var currentNode = skipWhitespaces(file, offset)
             var applicationConcrete: Concrete.SourceNode? = null
-            val rangeDataReceiver = HashMap<Concrete.SourceNode, TextRange>()
+            val rangeData = HashMap<Concrete.SourceNode, TextRange>()
 
             var argumentTextRange: TextRange? = null
             var data: Pair<List<ParameterDescriptor>, Boolean>? = null
@@ -352,25 +352,25 @@ class ArendCodeInsightUtils {
                             rootConcrete is Concrete.ConstructorPattern ||
                             rootConcrete is Concrete.ReferenceExpression && rootConcrete.referent is GlobalReferable ||
                             rootConcrete is Concrete.LamExpression && rootConcrete.parameters.size == 1)) {
-                    rangeDataReceiver.clear()
-                    getBounds(rootConcrete, currentNode.node.getChildren(null).toList(), rangeDataReceiver)
+                    rangeData.clear()
+                    getBounds(rootConcrete, currentNode.node.getChildren(null).toList(), rangeData)
 
-                    val correctedBounds = HashMap<Concrete.SourceNode, TextRange>()
-                    for (k in rangeDataReceiver.entries) {
+                    val rangeDataWithSpaces = HashMap<Concrete.SourceNode, TextRange>()
+                    rangeDataWithSpaces.putAll(rangeData)
+                    for (k in rangeData.entries) {
                         val psi = file.findElementAt(k.value.startOffset)
                         val ancestors = ArrayList<PsiElement>()
                         if (psi != null) for (a in psi.ancestors) if (a.startOffset == psi.startOffset) ancestors.add(a) else break
                         val whitespace = ancestors.map { it.getWhitespace(SpaceDirection.LeadingSpace) }.firstOrNull{ !it.isNullOrEmpty() }
-                        if (whitespace != null && whitespace.length > 1) correctedBounds[k.key] = TextRange(k.value.startOffset - whitespace.length + 1, k.value.endOffset)
+                        if (whitespace != null && whitespace.length > 1) rangeDataWithSpaces[k.key] = TextRange(k.value.startOffset - whitespace.length + 1, k.value.endOffset)
                     }
-                    rangeDataReceiver.putAll(correctedBounds)
 
-                    for (concrete in rangeDataReceiver.keys.toList())
+                    for (concrete in rangeDataWithSpaces.keys.toList())
                         if (concrete is Concrete.AppExpression)
-                            correctDynamicUsage(concrete, rangeDataReceiver)
+                            correctDynamicUsage(concrete, rangeDataWithSpaces)
 
-                    val orderedCaretNeighborhoods = rangeDataReceiver.toList().filter{ it.second.startOffset <= caretOffset && caretOffset <= it.second.endOffset }.sortedBy { it.second.length }
-                    afterExpression = rangeDataReceiver.all { it.value.endOffset < caretOffset }
+                    val orderedCaretNeighborhoods = rangeDataWithSpaces.toList().filter{ it.second.startOffset <= caretOffset && caretOffset <= it.second.endOffset }.sortedBy { it.second.length }
+                    afterExpression = rangeData.all { it.value.endOffset < caretOffset }
                     val parameterOwnerIsValid = parameterOwner != null && orderedCaretNeighborhoods.mapNotNull { getData(it.first) }.contains(parameterOwner)
 
                     if (afterExpression) {
@@ -381,9 +381,10 @@ class ArendCodeInsightUtils {
                         for (entry in orderedCaretNeighborhoods) if (entry.first !is Concrete.LamExpression) {
                             applicationConcrete = entry.first
                             data = getParameters(applicationConcrete)
-                            if ((data?.first?.isNotEmpty() == true || data?.second == false) &&
+                            val isProperOverlap = rangeData[entry.first]?.let { it.startOffset <= caretOffset && caretOffset <= it.endOffset } ?: false
+                            if ((data?.first?.isNotEmpty() == true && isProperOverlap || data?.second == false) &&
                                 (!parameterOwnerIsValid || getData(applicationConcrete) == parameterOwner)) break
-                            argumentTextRange = rangeDataReceiver[applicationConcrete]
+                            argumentTextRange = rangeData[applicationConcrete]
                         }
                     }
 
@@ -394,7 +395,7 @@ class ArendCodeInsightUtils {
             } while (currentNode != null)
 
 
-            return doComputeParameterInfo(applicationConcrete, data?.first ?: return null, data.second, afterExpression, argumentTextRange, rangeDataReceiver)
+            return doComputeParameterInfo(applicationConcrete, data?.first ?: return null, data.second, afterExpression, argumentTextRange, rangeData)
         }
 
         fun getParameters(concrete: Concrete.SourceNode): Pair<List<ParameterDescriptor>, Boolean>? {

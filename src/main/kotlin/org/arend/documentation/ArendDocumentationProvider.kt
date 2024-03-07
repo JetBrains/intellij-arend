@@ -17,6 +17,7 @@ import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.ui.util.height
 import com.intellij.ui.util.width
+import org.arend.codeInsight.ArendCodeInsightUtils
 import org.arend.documentation.ArendKeyword.Companion.isArendKeyword
 import org.arend.ext.module.LongName
 import org.arend.naming.reference.FieldReferable
@@ -206,10 +207,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             html(" $it")
         }
 
-        for (parameter in (element as? Abstract.ParametersHolder)?.parameters ?: emptyList()) {
-            if (parameter is PsiElement) {
-                html(" ${parameter.text}")
-            }
+        for (parameter in ArendCodeInsightUtils.getAllParametersForReferable(element, null)?.first ?: emptyList()) {
+            html(" $parameter")
         }
 
         element.psiElementType?.let { html(" : ${it.text}") }

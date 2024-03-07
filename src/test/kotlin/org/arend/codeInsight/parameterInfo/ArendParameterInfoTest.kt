@@ -355,4 +355,14 @@ class ArendParameterInfoTest : ArendTestBase() {
        } 
     """, "{this : Foo}, <highlight>{w : Nat}</highlight>, x : Nat, y : Nat", true)
 
+    fun `test external parameters 2`() = checkParameterInfo("""
+        \func foo (A : \Type) => 101 \where {
+          \func bar (a : A) => a \where {
+            \func lol (p : a = a) => {?}
+
+            \func usage => lol {-caret-} idp
+          }
+       }
+    """, "{A : \\Type}, {a : A}, <highlight>p : a = a</highlight>", typecheck = true)
+
 }
