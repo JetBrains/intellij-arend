@@ -24,6 +24,7 @@ import org.arend.psi.findNextSibling
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
+import java.lang.Integer.min
 import javax.swing.JPanel
 
 @Suppress("UnstableApiUsage")
@@ -91,7 +92,7 @@ class ArendParametersInlayProvider : InlayHintsProvider<ArendParametersInlayProv
                         ppv.prettyPrintParameters(parameters)
                     } else {
                         val list = if (def is ClassDefinition) {
-                            def.personalFields.subList(0, def.parametersOriginalDefinitions.size).map { Pair(it.referable.isExplicitField, it.name) }
+                            def.personalFields.subList(0, min(def.parametersOriginalDefinitions.size, def.personalFields.size)).map { Pair(it.referable.isExplicitField, it.name) }
                         } else {
                             DependentLink.Helper.toList(DependentLink.Helper.take(if (def.hasEnclosingClass()) def.parameters.next else def.parameters, def.parametersOriginalDefinitions.size)).map { Pair(it.isExplicit, it.name) }
                         }
