@@ -63,6 +63,9 @@ abstract class LibraryConfig(val project: Project) {
     open val testsDirFile: VirtualFile?
         get() = testsDir.let { if (it.isEmpty()) null else findDir(it) }
 
+    val binariesDirFile: VirtualFile?
+        get() = binariesDir?.let { findDir(it) }
+
     val binariesDirList: List<String>?
         get() = binariesDir?.let { FileUtil.toSystemIndependentName(it).removeSuffix("/").split('/') }
 

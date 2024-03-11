@@ -1,75 +1,54 @@
 package org.arend.yaml
 
-import com.intellij.openapi.editor.Document
+import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.FileDocumentManagerListener
-import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
-import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.*
-import com.intellij.psi.PsiManager
-import org.arend.actions.addNewDirectory
-import org.arend.actions.removeOldDirectory
+import com.intellij.testFramework.LightVirtualFile
+import com.intellij.ui.EditorNotifications
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.util.FileUtils
-import org.jetbrains.jps.model.java.JavaSourceRootType
-import org.jetbrains.yaml.psi.YAMLFile
-import java.io.File
 
-class YAMLFileListener(private val project: Project) : BulkFileListener, FileDocumentManagerListener {
+class YAMLFileListener(private val project: Project) : BulkFileListener, DocumentListener {
+    private val yamlFileService = project.service<YamlFileService>()
+
     fun register() {
         val connection = project.messageBus.connect()
         connection.subscribe(VirtualFileManager.VFS_CHANGES, this)
-        connection.subscribe(FileDocumentManagerListener.TOPIC, this)
     }
-    override fun unsavedDocumentDropped(document: Document) {
+
+    override fun documentChanged(event: DocumentEvent) {
+        val document = event.document
         val file = FileDocumentManager.getInstance().getFile(document) ?: return
-        if (file.name == FileUtils.LIBRARY_CONFIG_FILE) {
-            updateIdea(file)
-        }
-    }
+        if (file.name == FileUtils.LIBRARY_CONFIG_FILE && file !is LightVirtualFile) {
+            val text = document.text
+            val newYamlFile = createFromText(text, project)
 
-    override fun beforeDocumentSaving(document: Document) {
-        val file = FileDocumentManager.getInstance().getFile(document) ?: return
-        if (file.name == FileUtils.LIBRARY_CONFIG_FILE) {
-            updateIdea(file)
-        }
-    }
+            val arendModuleConfigService = ArendModuleConfigService.getInstance(ModuleUtil.findModuleForFile(file, project))
+            val updateFlag = arendModuleConfigService?.sourcesDir != newYamlFile?.sourcesDir.orEmpty() ||
+                    arendModuleConfigService.binariesDirectory != newYamlFile?.binariesDir.orEmpty() ||
+                    arendModuleConfigService.testsDir != newYamlFile?.testsDir.orEmpty() ||
+                    arendModuleConfigService.extensionsDirectory != newYamlFile?.extensionsDir.orEmpty() ||
+                    arendModuleConfigService.extensionMainClassData != newYamlFile?.extensionMainClass.orEmpty() ||
+                    arendModuleConfigService.modules.orEmpty() != newYamlFile?.modules.orEmpty() ||
+                    arendModuleConfigService.dependencies != newYamlFile?.dependencies.orEmpty() ||
+                    arendModuleConfigService.versionString != newYamlFile?.version.orEmpty() ||
+                    arendModuleConfigService.langVersionString != newYamlFile?.langVersion.orEmpty()
 
-    private fun updateIdea(file: VirtualFile) {
-        val yaml = PsiManager.getInstance(project).findFile(file) as? YAMLFile
-        val module = ModuleUtilCore.findModuleForFile(file, project)
-        val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
-
-        updateSourceAndTestDirectories(module, yaml, file, arendModuleConfigService)
-
-        arendModuleConfigService?.copyFromYAML(true)
-    }
-
-    private fun updateSourceAndTestDirectories(module: Module?, yaml: YAMLFile?, file: VirtualFile, arendModuleConfigService: ArendModuleConfigService?) {
-        if (yaml?.sourcesDir != arendModuleConfigService?.sourcesDir) {
-            removeOldDirectory(module, file, arendModuleConfigService, JavaSourceRootType.SOURCE)
-        }
-        if (yaml?.testsDir != arendModuleConfigService?.testsDir) {
-            removeOldDirectory(module, file, arendModuleConfigService, JavaSourceRootType.TEST_SOURCE)
-        }
-
-        if (yaml?.sourcesDir != arendModuleConfigService?.sourcesDir) {
-            val dirFile = File(arendModuleConfigService?.root?.path + File.separator + yaml?.sourcesDir)
-            if (dirFile.exists()) {
-                addNewDirectory(yaml?.sourcesDir, arendModuleConfigService, JavaSourceRootType.SOURCE)
+            if (updateFlag) {
+                yamlFileService.addChangedFile(file)
+            } else {
+                yamlFileService.removeChangedFile(file)
             }
+            EditorNotifications.getInstance(project).updateNotifications(file)
         }
-        if (yaml?.testsDir != arendModuleConfigService?.testsDir) {
-            val dirFile = File(arendModuleConfigService?.root?.path + File.separator + yaml?.testsDir)
-            if (dirFile.exists()) {
-                addNewDirectory(yaml?.testsDir, arendModuleConfigService, JavaSourceRootType.TEST_SOURCE)
-            }
-        }
+        super.documentChanged(event)
     }
 
     override fun before(events: List<VFileEvent>) {
@@ -104,7 +83,7 @@ class YAMLFileListener(private val project: Project) : BulkFileListener, FileDoc
             val service = ArendModuleConfigService.getInstance(module) ?: return
             val root = service.root ?: return
             if (root == oldParent || root == newParent) {
-                updateIdea(file)
+                yamlFileService.updateIdea(file)
             }
         }
     }

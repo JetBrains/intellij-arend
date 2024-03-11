@@ -2,16 +2,14 @@ package org.arend.module.editor
 
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleConfigurationEditor
-import com.intellij.openapi.module.ModuleServiceManager
-import org.arend.actions.addNewDirectory
-import org.arend.actions.removeOldDirectory
-import org.arend.module.ArendModuleType
+import org.arend.actions.mark.DirectoryType.*
+import org.arend.actions.mark.addMarkedDirectory
+import org.arend.actions.mark.removeMarkedDirectory
 import org.arend.module.config.ArendModuleConfigService
-import org.jetbrains.jps.model.java.JavaSourceRootType
 import javax.swing.JComponent
 
 
-class ArendModuleConfigurationEditor(private val module: Module) : ModuleConfigurationEditor {
+class ArendModuleConfigurationEditor(module: Module) : ModuleConfigurationEditor {
     private val view = ArendModuleConfigurationView.getInstance(module) ?: ArendModuleConfigurationView(module)
     private val moduleConfig = ArendModuleConfigService.getInstance(module) ?: ArendModuleConfigService(module)
 
@@ -22,16 +20,23 @@ class ArendModuleConfigurationEditor(private val module: Module) : ModuleConfigu
     override fun apply() {
         view.let {
             if (moduleConfig.sourcesDir != view.sourcesDir) {
-                removeOldDirectory(module, moduleConfig.sourcesDirFile, moduleConfig, JavaSourceRootType.SOURCE)
+                removeMarkedDirectory(moduleConfig.sourcesDirFile, moduleConfig, SRC)
             }
             if (moduleConfig.testsDir != view.testsDir) {
-                removeOldDirectory(module, moduleConfig.sourcesDirFile, moduleConfig, JavaSourceRootType.TEST_SOURCE)
+                removeMarkedDirectory(moduleConfig.testsDirFile, moduleConfig, TEST_SRC)
             }
+            if (moduleConfig.binariesDirectory != view.binariesDirectory) {
+                removeMarkedDirectory(moduleConfig.binariesDirFile, moduleConfig, BIN)
+            }
+
             if (moduleConfig.sourcesDir != view.sourcesDir) {
-                addNewDirectory(view.sourcesDir, moduleConfig, JavaSourceRootType.SOURCE)
+                addMarkedDirectory(view.sourcesDir, moduleConfig, SRC)
             }
             if (moduleConfig.testsDir != view.testsDir) {
-                addNewDirectory(view.testsDir, moduleConfig, JavaSourceRootType.TEST_SOURCE)
+                addMarkedDirectory(view.testsDir, moduleConfig, TEST_SRC)
+            }
+            if (moduleConfig.binariesDirectory != view.binariesDirectory) {
+                addMarkedDirectory(view.binariesDirectory, moduleConfig, BIN)
             }
             it.dependencies = it.dependencies.filter { libraryDependency -> it.isModuleOrLibraryExists(libraryDependency.name) }
             moduleConfig.updateFromIDEA(it)

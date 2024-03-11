@@ -107,12 +107,12 @@ internal fun generateHtmlForArendLib(
             }
         }
 
-        val basePathVirtualFile = LocalFileSystem.getInstance().findFileByPath(basePath)
+        val localFileSystem = LocalFileSystem.getInstance()
+        val basePathVirtualFile = localFileSystem.findFileByPath(basePath)
         if (basePathVirtualFile != null) {
             VfsUtilCore.visitChildrenRecursively(basePathVirtualFile, virtualFileVisitor)
         }
 
-        val localFileSystem = LocalFileSystem.getInstance()
         while (extraFiles.isNotEmpty()) {
             val extraVirtualFile = extraFiles.first()
             usedExtraFiles.add(extraVirtualFile)
