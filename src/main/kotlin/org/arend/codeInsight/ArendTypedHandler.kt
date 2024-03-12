@@ -14,20 +14,25 @@ import org.arend.psi.ArendElementTypes.*
 import org.arend.settings.ArendSettings
 import org.arend.psi.ArendFile
 import org.arend.psi.childOfType
-import org.arend.psi.ext.ArendCompositeElementImpl
+import org.arend.psi.ext.ArendCompositeElement
 
 
 class ArendTypedHandler : TypedHandlerDelegate() {
 
-    private fun changeCorrespondingElement(c: Char, project: Project, editor: Editor, file: PsiFile) {
-        val parent = file.findElementAt(editor.selectionModel.selectionStart)
-            ?.parent as? ArendCompositeElementImpl?
+    private fun changeCorrespondingBracket(c: Char, project: Project, editor: Editor, file: PsiFile) {
+        var element = file.findElementAt(editor.selectionModel.selectionStart)
+        while (element !is ArendCompositeElement?) {
+            element = element?.parent
+        }
+        if (element == null) {
+            return
+        }
 
         val correspondingElementOffset = when (c) {
-            '(' -> parent?.childOfType(RBRACE)?.textOffset
-            '{' -> parent?.childOfType(RPAREN)?.textOffset
-            ')' -> parent?.childOfType(LBRACE)?.textOffset
-            else -> parent?.childOfType(LPAREN)?.textOffset
+            '(' -> element.childOfType(RBRACE)?.textOffset
+            '{' -> element.childOfType(RPAREN)?.textOffset
+            ')' -> element.childOfType(LBRACE)?.textOffset
+            else -> element.childOfType(LPAREN)?.textOffset
         } ?: return
 
         val document = editor.document
@@ -46,10 +51,10 @@ class ArendTypedHandler : TypedHandlerDelegate() {
     }
 
     override fun beforeSelectionRemoved(c: Char, project: Project, editor: Editor, file: PsiFile): Result {
-        if (PARENTHESES_AND_BRACES.contains(c.toString())) {
+        if (BRACKETS.contains(c.toString())) {
             val selectedText = editor.selectionModel.selectedText
-            if (PARENTHESES_AND_BRACES.contains(selectedText)) {
-                changeCorrespondingElement(c, project, editor, file)
+            if (BRACKETS.contains(selectedText)) {
+                changeCorrespondingBracket(c, project, editor, file)
                 return Result.CONTINUE
             }
         }
@@ -60,7 +65,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         if (file !is ArendFile) {
             return super.charTyped(c, project, editor, file)
         }
-        if (PARENTHESES_AND_BRACES.contains(c.toString())) {
+        if (BRACKETS.contains(c.toString())) {
             return Result.STOP // To prevent auto-formatting
         }
 
@@ -107,4 +112,4 @@ class ArendTypedHandler : TypedHandlerDelegate() {
 
 }
 
-private val PARENTHESES_AND_BRACES = listOf("(", "{", ")", "}")
+private val BRACKETS = listOf("(", "{", ")", "}")
