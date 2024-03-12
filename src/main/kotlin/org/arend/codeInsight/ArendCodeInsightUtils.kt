@@ -265,11 +265,7 @@ class ArendCodeInsightUtils {
 
                 is ArendDefInstance -> getThisParameterAsList(def) + externalParametersOrEmpty + ParameterDescriptor.createFromTeles(def.parameters) + (if (addTailParameters) getTailParameters(def.resultType) else emptyList())
 
-                is ArendConstructor -> {
-                    val data = (def.parent.parent as? ArendDefData) ?: (def.parent.parent.parent as? ArendDefData
-                        ?: throw java.lang.IllegalStateException())
-                    getThisParameterAsList(def) + getPartialExpectedConstructorSignature(def, externalParametersOrEmpty).first + ParameterDescriptor.createFromTeles(def.parameters)
-                }
+                is ArendConstructor -> getThisParameterAsList(def) + getPartialExpectedConstructorSignature(def, externalParametersOrEmpty).first + ParameterDescriptor.createFromTeles(def.parameters)
 
                 is ArendDefData -> getThisParameterAsList(def) + externalParametersOrEmpty + ParameterDescriptor.createFromTeles(def.parameters)
 
@@ -330,8 +326,8 @@ class ArendCodeInsightUtils {
                 val errorReporter = CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
                 val curNodeParent = currentNode?.parent
 
-                if (currentNode != null && curNodeParent is ArendLocalCoClause && curNodeParent.implementation != currentNode && (parameterOwner == null || parameterOwner == curNodeParent.longName))
-                    return computeLocalClauseParameterInfo(currentNode, offset)
+                if (currentNode != null && curNodeParent is CoClauseBase && curNodeParent.implementation != currentNode && (parameterOwner == null || parameterOwner == curNodeParent.longName))
+                    return computeCoClauseParameterInfo(currentNode, offset)
 
                 val rootConcrete = when (currentNode) {
                     is ArendArgumentAppExpr -> appExprToConcrete(currentNode, false, errorReporter)?.let {
@@ -345,7 +341,7 @@ class ArendCodeInsightUtils {
                     else -> null
                 }
 
-                if (currentNode is ArendLocalCoClause) break
+                if (currentNode is CoClauseBase) break
 
                 if (currentNode != null &&
                     (rootConcrete is Concrete.AppExpression ||
@@ -451,8 +447,8 @@ class ArendCodeInsightUtils {
         private fun getClassParameterList(def: ArendDefClass): List<ParameterDescriptor> =
             ClassReferable.Helper.getNotImplementedFields(def).map { ParameterDescriptor(it) }.toList()
 
-        private fun computeLocalClauseParameterInfo(node: PsiElement, offset: Int): ParameterInfo? {
-            val localCoClause = node.parent as ArendLocalCoClause
+        private fun computeCoClauseParameterInfo(node: PsiElement, offset: Int): ParameterInfo? {
+            val localCoClause = node.parent as CoClauseBase
             val arguments = localCoClause.lamParameters
             val referable = localCoClause.longName?.resolve as? Referable ?: return null
             val data = getAllParametersForReferable(referable, localCoClause.longName, addTailParameters = true)
@@ -470,11 +466,11 @@ class ArendCodeInsightUtils {
                 val argIsExplicit = when (arg) {
                     is ArendNameTele -> arg.isExplicit
                     is ArendPattern -> arg.isExplicit
-                    else -> !arg.text.trim().startsWith("{")
+                    else -> !(arg as PsiElement).text.trim().startsWith("{")
                 }
 
                 if (argIsExplicit == param.isExplicit) {
-                    if (arg.textRange.startOffset <= offset && offset <= arg.textRange.endOffset) {
+                    if ((arg as PsiElement).textRange.startOffset <= offset && offset <= arg.textRange.endOffset) {
                         resultingParamIndex = paramIndex
                         break
                     }

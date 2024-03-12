@@ -233,7 +233,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             override fun patternString(location: ArendCompositeElement): String {
                 val locatedReferable = PsiLocatedReferable.fromReferable(constructor.referable)
-                val constructorName = if (locatedReferable != null) getTargetName(locatedReferable, location) else constructor.name
+                val (constructorName, namespaceCommand) = if (locatedReferable != null) getTargetName(locatedReferable, location) else Pair(constructor.name, null)
+                namespaceCommand?.execute()
+
                 val isInfix = constructor.referable.precedence.isInfix
                 return buildString {
                     if (params.isEmpty()) {
@@ -250,7 +252,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
 
             override fun expressionString(location: ArendCompositeElement): String {
                 val locatedReferable = PsiLocatedReferable.fromReferable(constructor.referable)
-                val constructorName = if (locatedReferable != null) getTargetName(locatedReferable, location) else constructor.name
+                val (constructorName, namespaceCommand) = if (locatedReferable != null) getTargetName(locatedReferable, location) else Pair(constructor.name, null)
+                namespaceCommand?.execute()
 
                 return if (constructor.referable.precedence.isInfix && params.size == 2)
                     "${params[0]} $constructorName ${params[1]}" else patternString(location)
@@ -303,7 +306,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             override fun expressionString(location: ArendCompositeElement): String = buildString {
                 append("\\new ")
                 val locatedReferable = PsiLocatedReferable.fromReferable(classCall.definition.referable)
-                val recordName = if (locatedReferable != null) getTargetName(locatedReferable, location) else classCall.definition.name
+                val (recordName, namespaceCommand) = if (locatedReferable != null) getTargetName(locatedReferable, location) else Pair(classCall.definition.name, null)
+                namespaceCommand?.execute()
+
                 append("$recordName ")
                 val expr = ToAbstractVisitor.convert(classCall, object : PrettyPrinterConfig {
                     override fun getNormalizationMode(): NormalizationMode? {
@@ -612,7 +617,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val field = if (longNameTail.isNotEmpty()) longNameTail[0] else null
             val fieldTarget = field?.reference?.resolve()
             return if (fieldTarget is ArendClassField) {
-                val fieldName = getTargetName(fieldTarget, element)
+                val (fieldName, namespaceCommand) = getTargetName(fieldTarget, element)
+                namespaceCommand?.execute()
                 createFieldConstructorInvocation(element, longNameTail.drop(1), "$fieldName {${substitutedExpression}}")
             } else {
                 if (longNameTail.isEmpty()) {

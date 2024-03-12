@@ -383,7 +383,9 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                                     }
                                 }
                                 (((((substEntry.value as? ConstructorExpressionPattern)?.dataExpression as? ClassCallExpression)?.definition?.referable?.data) as? SmartPsiElementPointer<*>)?.element as? PsiLocatedReferable)?.let {
-                                    if (asName.isNotEmpty()) asName += " : ${ResolveReferenceAction.getTargetName(it, currentClause as ArendCompositeElement)}"
+                                    val (name, namespaceCommand) = ResolveReferenceAction.getTargetName(it, currentClause as ArendCompositeElement)
+                                    namespaceCommand?.execute()
+                                    if (asName.isNotEmpty()) asName += " : $name"
                                 }
 
                                 val actualPatternToReplace = if ((namePatternToReplace.parent as? ArendPattern)?.asPattern != null) namePatternToReplace.parent as ArendPattern else namePatternToReplace
@@ -782,7 +784,11 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         val tupleMode = constructor == null
                         var constructorArgument: DependentLink = pattern.parameters
                         val locatedReferable = if (constructor != null) PsiLocatedReferable.fromReferable(constructor.referable) else null
-                        var result = if (locatedReferable != null) ResolveReferenceAction.getTargetName(locatedReferable, location) + " " else "("
+                        var result = if (locatedReferable != null) {
+                            val (name, namespaceCommand) = ResolveReferenceAction.getTargetName(locatedReferable, location)
+                            namespaceCommand?.execute()
+                            "$name "
+                        } else "("
                         val patternIterator = pattern.subPatterns.iterator()
                         var complexity = 1
                         var containsClassConstructor = tupleMode && pattern.definition is ClassDefinition

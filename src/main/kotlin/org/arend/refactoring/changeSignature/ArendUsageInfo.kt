@@ -15,7 +15,7 @@ class ArendUsageInfo(val psi: PsiElement, val task: ChangeSignatureRefactoringDe
         }
 
         psiParentRoot = if (isAdmissibleUsage) {
-            while (e != null && e !is ArendPattern && e !is ArendArgumentAppExpr && e !is ArendLocalCoClause) e = e.parent
+            while (e != null && e !is ArendPattern && e !is ArendArgumentAppExpr && e !is CoClauseBase) e = e.parent
             when {
                 (e is ArendPattern && e.parent is ArendPattern) -> e.parent
                 e != null -> e

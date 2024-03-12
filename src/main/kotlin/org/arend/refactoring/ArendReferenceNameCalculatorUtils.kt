@@ -136,6 +136,10 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 
     val elementParent = anchor.parent
     var correctedScope = if (elementParent is ArendLongName) elementParent.scope else anchor.scope
+    if (deferredImports?.isNotEmpty() == true) {
+        val scopes = singletonList(correctedScope) + deferredImports.map { it.getAmendedScope() }
+        correctedScope = MergeScope(scopes)
+    }
     if (modifyingImportsNeeded && defaultLocation.getLongName().isNotEmpty())
         correctedScope = MergeScope(correctedScope, defaultLocation.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
@@ -354,5 +358,8 @@ class AddIdToUsingAction(currentFile: ArendFile,
 
     override fun getImportedParts(): List<String>? = singletonList(myId)
 
-    override fun getAmendedScope(): Scope = ListScope(singletonList(locationData.target))
+    override fun getAmendedScope(): Scope =
+        ListScope(singletonList(
+            if (locationData.alias) AliasReferable(locationData.target) else locationData.target
+        ))
 }

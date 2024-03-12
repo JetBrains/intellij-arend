@@ -22,9 +22,10 @@ import org.arend.highlight.BasePass
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendArgumentAppExpr
-import org.arend.psi.ext.ArendLocalCoClause
 import org.arend.psi.ext.ArendPattern
-import org.arend.refactoring.changeSignature.entries.LocalCoClauseEntry
+import org.arend.psi.ext.CoClauseBase
+import org.arend.refactoring.NsCmdRefactoringAction
+import org.arend.refactoring.changeSignature.entries.CoClauseEntry
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.error.ErrorService
 import org.arend.util.ArendBundle
@@ -35,7 +36,8 @@ import java.util.Collections.singletonList
 
 class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInfo) :
     ChangeSignatureProcessorBase(project, changeInfo) {
-        private val fileChangeMap = LinkedHashMap<PsiFile, SortedList<Pair<TextRange, Pair<String, String?>>>>()
+    private val fileChangeMap = LinkedHashMap<PsiFile, SortedList<Pair<TextRange, Pair<String, String?>>>>()
+    private val deferredNsCmds = ArrayList<NsCmdRefactoringAction>()
 
     override fun createUsageViewDescriptor(usages: Array<out UsageInfo>): UsageViewDescriptor =
         BaseUsageViewDescriptor(changeInfo?.method)
@@ -83,7 +85,7 @@ class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInf
                                     if (errorReporter.errorsNumber == 0) concreteSet.add(ConcreteDataItem(rootPsi, it))
                                 }
 
-                                is ArendLocalCoClause -> concreteSet.add(ConcreteDataItem(rootPsi, null))
+                                is CoClauseBase -> concreteSet.add(ConcreteDataItem(rootPsi, null))
                             }
                             if (errorReporter.errorsNumber > 0)
                                 rootPsiWithErrors.add(rootPsi)
@@ -93,7 +95,7 @@ class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInf
                             progressIndicator.fraction = index.toDouble() / concreteSet.size
                             progressIndicator.checkCanceled()
                             val refactoringContext =
-                                ChangeSignatureRefactoringContext(referableData, textReplacements, rangeData)
+                                ChangeSignatureRefactoringContext(referableData, textReplacements, rangeData, (changeInfo as? ArendChangeInfo)?.deferredNsCmds ?: ArrayList())
                             rangeData.clear()
 
                             try {
@@ -112,11 +114,11 @@ class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInf
                                         Pair(printResult.text, printResult.strippedText)
                                     }
 
-                                    is ArendLocalCoClause -> {
+                                    is CoClauseBase -> {
                                         val referable = callEntry.psi.longName?.resolve as? Referable
                                         if (referable != null) {
                                             val descriptor = refactoringContext.identifyDescriptor(referable)
-                                            Pair(LocalCoClauseEntry(callEntry.psi, refactoringContext, descriptor!!).printUsageEntry().first, null) //TODO: Null safety
+                                            Pair(CoClauseEntry(callEntry.psi, refactoringContext, descriptor!!).printUsageEntry().first, null) //TODO: Null safety
                                         } else throw IllegalStateException()
                                     }
 
@@ -127,6 +129,9 @@ class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInf
                             } catch (e: IllegalArgumentException) {
                                 rootPsiWithErrors.add(callEntry.psi)
                             }
+
+                            deferredNsCmds.clear()
+                            deferredNsCmds.addAll(refactoringContext.deferredNsCmds)
                         }
 
                         for (replacementEntry in textReplacements) {
@@ -193,6 +198,7 @@ class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInf
     override fun performRefactoring(usages: Array<out UsageInfo>) {
         if (changeInfo.isParameterSetOrOrderChanged) {
             writeFileChangeMap(changeInfo.method.project, fileChangeMap)
+            for (nsCmd in deferredNsCmds) nsCmd.execute()
         }
 
         super.performRefactoring(usages)

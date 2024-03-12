@@ -480,10 +480,10 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
       \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
         \func \infixl 1 +++ {z : Nat} (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
 
-        \func usage1 (a b c : Nat) => a +++ {\this} {w} {{?}} b +++ {\this} {w} {{?}} c
+        \func usage1 (a b c : Nat) => a +++ {_} {w} {{?}} b +++ {_} {w} {{?}} c
       }
 
-      \func usage2 (a b c : Nat) => (a foo.+++ {\this} {0} {{?}} b) foo.+++ {\this} {0} {{?}} c
+      \func usage2 (a b c : Nat) => (a foo.+++ {_} {0} {{?}} b) foo.+++ {_} {0} {{?}} c
     }
 
     \class Bar \extends Foo {
@@ -580,5 +580,37 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
 
       \func comp2 => Hom.comp (\lam (n : Nat) => n Nat.+ 2) (\lam (m : Nat) => m Nat.* 2) 
    """, listOf(Pair(2, "S_"), Pair(1, "R_")), listOf(Pair("S_", Pair(true, "\\Set")), Pair("R_", Pair(true, "\\Set"))))
+
+    fun testAlias() = changeSignature("""
+       -- ! A.ard
+       \func foo \alias bar (n{-caret-} : Nat) => n
+              
+       -- ! Main.ard
+       \import A (foo)
+       
+       \func test => foo 101 Nat.+ foo 101
+    """, """       
+       \import A (bar, foo)
+       
+       \func test => bar {101} Nat.+ bar {101}
+    """, listOf(-1), fileName = "Main.ard")
+
+    fun testClassImplement() = changeSignature("""
+       \class C {
+         | field (n{-caret-} : Nat) {m : Nat} : Nat
+       }
+       
+       \class D \extends C {
+         | field n {m} => n Nat.+ m
+       }
+    """, """
+       \class C {
+         | field {n m : Nat} : Nat
+       }
+       
+       \class D \extends C {
+         | field {n} {m} => n Nat.+ m
+       }
+    """, listOf(-1, 2))
 
 }

@@ -10,9 +10,9 @@ import org.arend.psi.ext.*
 import org.arend.refactoring.changeSignature.*
 import java.util.HashMap
 
-class LocalCoClauseEntry(private val psiLocalCoClause: ArendLocalCoClause,
-                         refactoringContext: ChangeSignatureRefactoringContext,
-                         private val descriptor1: ChangeSignatureRefactoringDescriptor
+class CoClauseEntry(private val psiLocalCoClause: CoClauseBase,
+                    refactoringContext: ChangeSignatureRefactoringContext,
+                    private val descriptor1: ChangeSignatureRefactoringDescriptor
 ): UsageEntry(refactoringContext, psiLocalCoClause, descriptor1, null) {
     private val procArguments = ArrayList<ArgumentPrintResult>()
     init {

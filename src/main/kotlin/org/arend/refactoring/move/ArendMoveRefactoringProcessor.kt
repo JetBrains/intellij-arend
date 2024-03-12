@@ -411,7 +411,9 @@ class ArendMoveRefactoringProcessor(project: Project,
 
         //Add "this" parameters/arguments to definitions moved out of the class + definitions inside it
         if (containingClass is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionDefinition<*> || definition is ArendDefData) {
-            val className = getTargetName(containingClass, definition).let { if (it.isEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
+            val (targetName, namespaceCommand) = getTargetName(containingClass, definition)
+            namespaceCommand?.execute()
+            val className = targetName.let { if (it.isEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
             if (className != null) {
                 val thisVarName = addImplicitClassDependency(psiFactory, definition, className)
                 val classifyingField = getClassifyingField(containingClass)

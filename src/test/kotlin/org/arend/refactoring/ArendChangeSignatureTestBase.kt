@@ -15,7 +15,8 @@ abstract class ArendChangeSignatureTestBase: ArendTestBase() {
                         options: List<Any>,
                         typeQualifications: List<Pair<String, Pair<Boolean, String>>> = emptyList(),
                         newName: String? = null,
-                        typecheck: Boolean = true) {
+                        typecheck: Boolean = true,
+                        fileName: String = "Main.ard") {
         val fileTree = fileTreeFromText(contents)
         fileTree.createAndOpenFileWithCaretMarker()
         val sourceElement = myFixture.elementAtCaret.ancestor<PsiLocatedReferable>() ?: throw AssertionError("Cannot find source anchor")
@@ -54,6 +55,6 @@ abstract class ArendChangeSignatureTestBase: ArendTestBase() {
             throw AssertionError("External parameters have not been inferred properly")
 
         ArendChangeSignatureProcessor(project, ArendChangeInfo(ArendParametersInfo(sourceElement, newParams), null, newNameActual, sourceElement)).run()
-        myFixture.checkResult(resultingContent.trimIndent())
+        myFixture.checkResult(fileName, resultingContent.trimIndent(), false)
     }
 }

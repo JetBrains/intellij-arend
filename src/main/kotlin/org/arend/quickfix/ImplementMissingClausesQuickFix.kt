@@ -349,8 +349,8 @@ class ImplementMissingClausesQuickFix(private val missingClausesError: MissingCl
                         val filter = filters[pattern]
                         val arguments = concat(argumentPatterns, filter, if (tupleMode) "," else " ")
                         val result = buildString {
-                            val defCall = if (referable != null) getTargetName(referable, cause)
-                                    ?: referable.name else definition?.name
+                            val (defCall, namespaceCommand) = if (referable != null) getTargetName(referable, cause) else Pair(definition?.name, null)
+                            namespaceCommand?.execute()
                             if (infixMode && nExplicit == 2) {
                                 append(explicitPatterns[0])
                                 append(" ")

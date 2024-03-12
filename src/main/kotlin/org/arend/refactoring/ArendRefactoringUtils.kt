@@ -232,7 +232,9 @@ fun getCorrectPreludeItemStringReference(project: Project, location: ArendCompos
     //Notice that this method may modify PSI (by writing "import Prelude" in the file header)
     val itemName = preludeItem.name
     val itemReferable = project.service<TypeCheckingService>().preludeScope.resolveName(itemName)
-    return ResolveReferenceAction.getTargetName(itemReferable as PsiLocatedReferable, location)
+    val data = ResolveReferenceAction.getTargetName(itemReferable as PsiLocatedReferable, location)
+    data.second?.execute()
+    return data.first
 }
 
 fun usingListToString(usingList: List<Pair<String, String?>>?): String {

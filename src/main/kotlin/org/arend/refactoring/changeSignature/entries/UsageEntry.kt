@@ -13,6 +13,7 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
+import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.refactoring.changeSignature.*
 import java.util.*
 import kotlin.collections.ArrayList
@@ -22,6 +23,27 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
                           val descriptor: ChangeSignatureRefactoringDescriptor?,
                           val target: Referable?) {
     val usageContext = SignatureUsageContext.getParameterContext(contextPsi)
+    private val myContextName: String
+
+    init {
+        val affectedDefinition = descriptor?.affectedDefinition
+        if (affectedDefinition is PsiLocatedReferable) {
+            val data = ResolveReferenceAction.getTargetName(descriptor?.affectedDefinition as PsiLocatedReferable, contextPsi, refactoringContext.deferredNsCmds)
+            val longNameString = data.first
+            val namespaceCommand = data.second
+            if (namespaceCommand != null) {
+                refactoringContext.deferredNsCmds.add(namespaceCommand)
+            }
+
+            val longName = LongName.fromString(longNameString).toList()
+            myContextName = if (target == affectedDefinition && descriptor.newName != null && longName.last() == affectedDefinition.name) {
+                LongName(longName.take(longName.size - 1) + Collections.singletonList(descriptor.newName)).toString()
+            } else longNameString
+        } else {
+            myContextName = ""
+        }
+    }
+
     abstract fun getArguments(): List<ArgumentPrintResult>
 
     private fun getTrailingParameters(): List<ParameterDescriptor> {
@@ -40,17 +62,7 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
         return lambdaParameters
     }
     abstract fun getParameters(): Pair<List<ParameterDescriptor>, List<ParameterDescriptor>>
-    open fun getContextName(): String {
-        val affectedDefinition = descriptor?.affectedDefinition
-        val renameNeeded = target == affectedDefinition && affectedDefinition != null
-        val longNameString =
-            ResolveReferenceAction.getTargetName(descriptor?.affectedDefinition as PsiLocatedReferable, contextPsi)
-        val longName = LongName.fromString(longNameString).toList()
-        if (affectedDefinition != null && renameNeeded && descriptor.newName != null && longName.last() == affectedDefinition.name) {
-            return LongName(longName.take(longName.size - 1) + Collections.singletonList(descriptor.newName)).toString()
-        }
-        return longNameString
-    }
+    open fun getContextName(): String = myContextName
 
     open fun getUnmodifiablePrefix(): String? = null
     open fun getUnmodifiableSuffix(): String? = null
@@ -116,7 +128,6 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
                 (oldParam == null) -> Pair("{?}", false)
                 (oldParam.isExternal() && parameter == null && oldParam.getExternalScope()?.let{ usageContext.envelopingGroups.contains(it) } == true && !hasExplicitExternalArgument) ->
                     Pair(oldParam.getNameOrUnderscore(), false)
-                (newParam.getThisDefClass() != null && newParam.getThisDefClass() == usageContext.envelopingDynamicClass) -> Pair("\\this", false)
                 (parameter == null) -> Pair("_", false)
                 else -> Pair(if (parameterInfo == RenderedParameterKind.INFIX_RIGHT && parameter.printResult.parenthesizedPrefixText != null) parameter.printResult.parenthesizedPrefixText else
                     parameter.printResult.strippedText ?: parameter.printResult.text, !parameter.printResult.isAtomic && !inhibitParens)

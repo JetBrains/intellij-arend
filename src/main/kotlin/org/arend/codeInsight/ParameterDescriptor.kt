@@ -163,7 +163,7 @@ class SignatureUsageContext private constructor(val isInsidePatternOrCoClause: B
             val envelopingGroups = ArrayList<ArendGroup>()
             var currentAnchor: PsiElement? = anchor
             while (currentAnchor != null) {
-                if (currentAnchor.parent is ArendLocalCoClause && currentAnchor.siblings(true, false).any{ it.elementType == FAT_ARROW })
+                if (currentAnchor.parent is CoClauseBase && currentAnchor.siblings(true, false).any{ it.elementType == FAT_ARROW })
                     isInsidePatternOrCoClause = true
 
                 val parent = currentAnchor.parent

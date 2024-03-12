@@ -53,12 +53,11 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
             return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
         }
 
-        fun getTargetName(target: PsiLocatedReferable, element: ArendCompositeElement): String {
-            val containingFile = element.containingFile as? ArendFile ?: return ""
+        fun getTargetName(target: PsiLocatedReferable, element: ArendCompositeElement, deferredImports: List<NsCmdRefactoringAction>? = null): Pair<String, NsCmdRefactoringAction?> {
+            val containingFile = element.containingFile as? ArendFile ?: return Pair("", null)
             val location = LocationData(target)
-            val (importAction, resultName) = doCalculateReferenceName(location, containingFile, element)
-            importAction?.execute()
-            return LongName(resultName.ifEmpty { listOf(target.name) }).toString()
+            val (importAction, resultName) = doCalculateReferenceName(location, containingFile, element, deferredImports = deferredImports)
+            return Pair(LongName(resultName.ifEmpty { listOf(target.name) }).toString(), importAction)
         }
     }
 }

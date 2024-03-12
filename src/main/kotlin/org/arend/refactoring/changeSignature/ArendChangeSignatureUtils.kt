@@ -13,6 +13,7 @@ import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
+import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.refactoring.changeSignature.entries.*
 import org.arend.resolving.DataLocatedReferable
 import org.arend.term.concrete.Concrete
@@ -95,7 +96,8 @@ fun modifyExternalParameters(oldParameters: List<ParameterDescriptor>,
 *  */
 data class ChangeSignatureRefactoringContext(val refactoringDescriptors: List<ChangeSignatureRefactoringDescriptor>,
                                              val textReplacements: HashMap<PsiElement, Pair<String, String?>>,
-                                             val rangeData: HashMap<Concrete.SourceNode, TextRange>) {
+                                             val rangeData: HashMap<Concrete.SourceNode, TextRange>,
+                                             val deferredNsCmds: MutableList<NsCmdRefactoringAction> = ArrayList()) {
     fun textGetter(psi: PsiElement): String =
         textReplacements[psi]?.let { it.second ?: it.first } ?: buildString {
             if (psi.firstChild == null) append(psi.text) else

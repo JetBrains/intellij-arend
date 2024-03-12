@@ -29,7 +29,7 @@ data class ArendChangeInfo (
     private val returnType: String?,
     val name: String,
     val locatedReferable: PsiLocatedReferable,
-    private val nsCmds: List<NsCmdRefactoringAction> = emptyList()) : ChangeInfo {
+    val deferredNsCmds: MutableList<NsCmdRefactoringAction> = ArrayList()) : ChangeInfo {
 
     private val pLevelsKw = locatedReferable.childrenWithLeaves.firstOrNull {it.elementType == PLEVELS_KW}
     private val pLevelParam = (locatedReferable as? ArendDefinition<*>)?.pLevelParameters
@@ -262,9 +262,6 @@ data class ArendChangeInfo (
             returnType != null && returnExpr == null -> " : $returnType"
             else -> "$colonWhitespace$returnType"
         }
-    }
-    fun addNamespaceCommands() {
-        for (nsCmd in nsCmds) nsCmd.execute()
     }
 
     companion object {

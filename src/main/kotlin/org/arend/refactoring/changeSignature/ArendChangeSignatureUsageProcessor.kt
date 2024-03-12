@@ -15,7 +15,6 @@ import com.intellij.refactoring.suggested.startOffset
 import com.intellij.refactoring.util.MoveRenameUsageInfo
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.containers.MultiMap
-import com.intellij.webSymbols.references.WebSymbolReferenceProvider.Companion.startOffsetIn
 import org.arend.psi.ext.*
 import org.arend.psi.findPrevSibling
 import org.arend.refactoring.rename.ArendRenameProcessor
@@ -47,7 +46,6 @@ class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
         if (changeInfo !is ArendChangeInfo) return false
         val project = changeInfo.method.project
 
-        changeInfo.addNamespaceCommands()
         val documentManager = PsiDocumentManager.getInstance(project)
         val document = documentManager.getDocument(changeInfo.method.containingFile)
         document?.let { documentManager.doPostponedOperationsAndUnblockDocument(document) }
