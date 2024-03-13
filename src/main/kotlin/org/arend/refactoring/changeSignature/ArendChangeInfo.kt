@@ -166,8 +166,8 @@ data class ArendChangeInfo (
 
                         ParameterDescriptor(field)
                     }
-                    val prefix = clazzOldParameters.subList(0, modifiedArgumentStart)
-                    val suffix = clazzOldParameters.subList(modifiedArgumentEnd + 1, clazzOldParameters.size)
+                    val prefix = if (modifiedArgumentStart > 0) clazzOldParameters.subList(0, modifiedArgumentStart) else emptyList()
+                    val suffix = if (modifiedArgumentEnd + 1 < clazzOldParameters.size) clazzOldParameters.subList(modifiedArgumentEnd + 1, clazzOldParameters.size) else emptyList()
                     val allClassFields = d.classStatList.mapNotNull { it.classField } + d.classFieldList
                     val centerPiece = this.newParameters.filter {
                         it.oldIndex == -1 || notImplementedFields.contains(modifiedFieldDefIdentifiers[it.oldIndex])
