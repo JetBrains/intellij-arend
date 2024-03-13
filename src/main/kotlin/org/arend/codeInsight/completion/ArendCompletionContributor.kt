@@ -123,7 +123,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 JointOfStatementsProvider(WHERE_KW_LIST, noCrlfRequired = true, allowInsideBraces = false, completionBehavior = KeywordCompletionBehavior.ADD_BRACES))
 
         val inDefClassPattern = or(and(ofType(ID), withAncestors(ArendDefIdentifier::class.java, ArendDefClass::class.java)),
-                and(ofType(RPAREN), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)),
+                and(or(ofType(RPAREN), ofType(RBRACE)), withAncestors(ArendFieldTele::class.java, ArendDefClass::class.java)),
                 and(ofType(ID), withAncestors(ArendAliasIdentifier::class.java, ArendAlias::class.java, ArendDefClass::class.java)))
 
         val noExtendsPattern = elementPattern {

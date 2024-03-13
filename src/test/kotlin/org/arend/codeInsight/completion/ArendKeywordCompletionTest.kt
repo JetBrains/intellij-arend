@@ -285,6 +285,8 @@ class ArendKeywordCompletionTest : ArendCompletionTestBase() {
                     "\\class Lol {-caret-}{}",
                     "\\class Lol (n : Nat){-caret-}",
                     "\\class Lol (n : Nat){-caret-}{}",
+                    "\\class Lol {n : Nat}{-caret-}",
+                    "\\class Lol {n : Nat}{-caret-}{}",
                     "\\class Lol \\alias Lol1 {-caret-}")
 
     fun `test absence of extends`() =
