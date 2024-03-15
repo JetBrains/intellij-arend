@@ -34,7 +34,7 @@ class ParameterDescriptor private constructor(
             this(isExplicit, type, referable.refName, false, null,
                 if (referable is PsiElement) createSmartLink(referable) else null)
 
-    override fun toString(): String = "${if (isExplicit) "(" else "{"}${getNameOrUnderscore()}${if (getType1() != null) ": " + getType1() else ""}${if (isExplicit) ")" else "}"}"
+    override fun toString(): String = "${if (isExplicit) "(" else "{"}${getNameOrUnderscore()}${if (getType1() != null) " : " + getType1() else ""}${if (isExplicit) ")" else "}"}"
 
     fun getType1(): String? = if (envelopingClass != null) envelopingClass.element?.refName else
         type ?: (oldParameter?.getReferable()?.let{ computeType(it) } ?: oldParameter?.getType1())
