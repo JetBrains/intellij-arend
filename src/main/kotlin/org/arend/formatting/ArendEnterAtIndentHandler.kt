@@ -11,9 +11,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiFile
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.endOffset
 import org.arend.documentation.AREND_DOC_COMMENT_TABS_SIZE
 import org.arend.documentation.CONTEXT_ELEMENTS
-import org.arend.parser.ParserMixin
 import org.arend.parser.ParserMixin.*
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendTuple
@@ -43,7 +43,7 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
 
         val comment = file.findElementAt(currentOffset)
 
-        if (comment != null && (comment.node.elementType == ParserMixin.DOC_COMMENT)) {
+        if (comment != null && comment.node.elementType == DOC_COMMENT) {
             val commentStart = comment.node.treePrev
             val relativeOffset = currentOffset - commentStart.startOffset
             val commentStartPortion = (commentStart.text + comment.text).substring(0, relativeOffset)
@@ -53,11 +53,29 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
                 insertLineBreak(editor, dashIndex, "- ")
                 return EnterHandlerDelegate.Result.Stop
             }
+        } else if (comment?.elementType == DOC_NEWLINE &&
+                    file.findElementAt(currentOffset - 1)?.elementType == DOC_START) {
+            val document = editor.document
+            document.insertString(currentOffset, "\n - ")
+            if (!hasDocEnd(currentOffset + 1, file) && file.findElementAt(currentOffset + 1)?.elementType == DOC_TEXT) {
+                document.insertString(currentOffset + 4, "\n -}")
+            }
+            editor.caretModel.moveToOffset(currentOffset + 4)
+            return EnterHandlerDelegate.Result.Stop
         }
 
         return if (BackspaceHandler.isWhitespaceBeforeCaret(editor)) {
             EnterHandlerDelegate.Result.DefaultSkipIndent
         } else EnterHandlerDelegate.Result.Continue
+    }
+
+    private fun hasDocEnd(startOffset: Int, file: PsiFile): Boolean {
+        for (offset in startOffset..file.endOffset) {
+            if (file.findElementAt(offset)?.elementType == DOC_END) {
+                return true
+            }
+        }
+        return false
     }
 
     override fun postProcessEnter(
