@@ -90,7 +90,7 @@ class ArendStartupActivity : ProjectActivity {
 
     private fun changeColors() {
         val colorManager = EditorColorsManager.getInstance()
-        val highContrastColorScheme = colorManager.getScheme("_@user_High contrast")
+        val highContrastColorScheme = colorManager.getScheme("_@user_High contrast") ?: return
         val inlayDefaultTextColor = TextAttributesKey.createTextAttributesKey("INLAY_DEFAULT")
         val attributes = highContrastColorScheme.getAttributes(inlayDefaultTextColor)
         attributes.foregroundColor = JBColor.YELLOW

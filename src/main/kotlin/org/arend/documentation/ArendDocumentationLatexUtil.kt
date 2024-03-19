@@ -36,7 +36,7 @@ internal fun getHtmlLatexCode(title: String, latexCode: String, project: Project
         val image = ImageUtil.createImage(icon.iconWidth, icon.iconHeight, BufferedImage.TYPE_INT_ARGB)
 
         val label = JLabel()
-        label.setForeground(JBUI.CurrentTheme.RunWidget.FOREGROUND)
+        label.setForeground(UIManager.getColor("PopupMenu.foreground"))
 
         val graphics = image.createGraphics()
         graphics.color = EditorColorsManager.getInstance().globalScheme.getColor(EditorColors.DOCUMENTATION_COLOR)
@@ -50,7 +50,7 @@ internal fun getHtmlLatexCode(title: String, latexCode: String, project: Project
         val file = File(latexImagesDir.path + File.separator + title + ".png")
         ImageIO.write(image, "png", file.getAbsoluteFile())
 
-        return "<img ${if (isNewlineLatexCode) "style=\"margin: 0 auto;display: block;\"" else "style=\"margin: 5;\""} " +
+        return "<img ${if (isNewlineLatexCode) "style=\"margin: 0 auto;display: block;\"" else "style=\"vertical-align: middle;margin: 1;\""} " +
                 "src=\"file:///${file.absolutePath}\" title=$title width=\"${icon.iconWidth}\" height=\"${icon.iconHeight}\">"
     } catch (e: Exception) {
         if (e is ParseException) {

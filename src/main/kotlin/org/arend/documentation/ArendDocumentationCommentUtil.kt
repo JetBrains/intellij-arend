@@ -1,6 +1,6 @@
 package org.arend.documentation
 
-import com.intellij.codeInsight.documentation.DocumentationManagerProtocol
+import com.intellij.codeInsight.documentation.DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL
 import com.intellij.psi.PsiElement
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
@@ -106,7 +106,7 @@ private fun StringBuilder.processDocCommentElement(
             docCommentInfo.wasPrevRow = false
             append("<br>")
             if (elementType == DOC_PARAGRAPH_SEP && !full) {
-                append("<a href=\"psi_element://$FULL_PREFIX${ref.refName}\">more...</a>")
+                append("<a href=\"${PSI_ELEMENT_PROTOCOL}$FULL_PREFIX${ref.refName}\">more...</a>")
                 return docElements.lastIndex + 1
             }
         }
@@ -120,7 +120,7 @@ private fun StringBuilder.processDocCommentElement(
             val link = longName.refIdentifierList.joinToString(".") { it.id.text.htmlEscape() }
             val isLink = longName.resolve is PsiReferable
             if (isLink) {
-                append("<a href=\"${DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL}$link\">")
+                append("<a href=\"${PSI_ELEMENT_PROTOCOL}$link\">")
             }
 
             append("<code>")
