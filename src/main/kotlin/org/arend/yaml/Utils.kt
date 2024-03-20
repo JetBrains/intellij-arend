@@ -2,11 +2,15 @@ package org.arend.yaml
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runUndoTransparentWriteAction
+import com.intellij.openapi.components.service
+import com.intellij.openapi.module.ModuleUtil
+
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.libraryConfig
 import org.arend.util.FileUtils
 import org.jetbrains.yaml.YAMLFileType
@@ -32,7 +36,7 @@ private fun YAMLFile.getProp(name: String) = (documents?.firstOrNull()?.topLevel
 
 fun yamlSeqFromList(lst: List<String>): String =  "[" + lst.reduce { acc, x -> "$acc, $x" } + "]"
 
-private fun createFromText(code: String, project: Project): YAMLFile? =
+internal fun createFromText(code: String, project: Project): YAMLFile? =
     PsiFileFactory.getInstance(project).createFileFromText("DUMMY.yaml", YAMLFileType.YML, code) as? YAMLFile
 
 private fun YAMLFile.setProp(name: String, value: String?) {
@@ -117,6 +121,8 @@ var YAMLFile.version
 fun YAMLFile.write(block: YAMLFile.() -> Unit) {
     ApplicationManager.getApplication().runWriteAction { runUndoTransparentWriteAction {
         block()
+        val yamlFileService = project.service<YamlFileService>()
+        yamlFileService.removeChangedFile(this.virtualFile)
     } }
 }
 

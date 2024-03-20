@@ -5,6 +5,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -47,6 +48,7 @@ import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.computation.ComputationRunner
+import org.arend.typechecking.dfs.DFS
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.execution.PsiElementComparator
@@ -55,7 +57,6 @@ import org.arend.typechecking.instance.pool.LocalInstancePool
 import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
 import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.instance.provider.SimpleInstanceProvider
-import org.arend.typechecking.dfs.DFS
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.util.*
@@ -191,7 +192,9 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             service<ArendPsiChangeService>().addListener(this)
 
             // Listen for YAML files changes
-            YAMLFileListener(project).register()
+            val yamlFileListener = YAMLFileListener(project)
+            yamlFileListener.register()
+            EditorFactory.getInstance().eventMulticaster.addDocumentListener(yamlFileListener, project)
 
             ModuleSynchronizer(project).install()
 

@@ -252,6 +252,15 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         }
     }
 
+    fun updateBinDirFromIDEA(newBinDir: String) {
+        if (binariesDirectory != newBinDir) {
+            binariesDirectory = newBinDir
+            yamlFile?.write {
+                binariesDir = newBinDir
+            }
+        }
+    }
+
     companion object {
         fun getInstance(module: Module?) =
             if (module != null && ArendModuleType.has(module)) ModuleServiceManager.getService(module, ArendModuleConfigService::class.java) else null

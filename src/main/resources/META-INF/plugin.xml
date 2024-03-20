@@ -383,6 +383,8 @@
 
         <projectService serviceImplementation="org.arend.ui.console.ArendConsoleService"/>
 
+        <projectService serviceImplementation="org.arend.yaml.YamlFileService"/>
+
         <applicationService serviceImplementation="org.arend.typechecking.TypecheckingTaskQueue"/>
 
         <!-- Task Execution Listener -->
@@ -390,6 +392,8 @@
         <externalSystemTaskNotificationListener implementation="org.arend.typechecking.ArendExtensionChangeListener"/>
 
         <applicationService serviceImplementation="org.arend.typechecking.ArendExtensionChangeListener"/>
+
+        <editorNotificationProvider implementation="org.arend.yaml.YamlNotificationProvider"/>
 
         <!-- Configuration Options -->
 
@@ -562,13 +566,16 @@
             <add-to-group group-id="NavBarToolBar"
                           relative-to-action="ToolbarRunGroup" anchor="after"/>
         </group>
-        <group id="MarkArendSourceRootActionGroup"
-               class="org.arend.actions.MarkArendSourceRootActionGroup">
-            <add-to-group group-id="MarkRootGroup" anchor="last"/>
+        <group id="Arend.MarkRootGroup" searchable="false">
+            <action id="ArendMarkSourceRootAction" class="org.arend.actions.mark.ArendMarkSourceRootAction"/>
+            <action id="ArendMarkTestSourceRootAction" class="org.arend.actions.mark.ArendMarkTestSourceRootAction"/>
+            <action id="ArendMarkBinSourceRootAction" class="org.arend.actions.mark.ArendMarkBinRootAction"/>
+            <action id="ArendUnmarkRootAction" class="org.arend.actions.mark.ArendUnmarkRootAction"/>
+            <action id="ArendMarkResourceRootAction" class="org.arend.actions.mark.ArendMarkResourceRootAction"/>
+            <action id="ArendMarkResourceTestRootAction" class="org.arend.actions.mark.ArendMarkResourceTestRootAction"/>
+            <action id="ArendMarkExcludeRootAction" class="org.arend.actions.mark.ArendMarkExcludeRootAction"/>
+            <add-to-group group-id="MarkRootGroup"/>
         </group>
-        <action id="ArendUnmarkRootAction" class="org.arend.actions.ArendUnmarkRootAction">
-            <add-to-group group-id="MarkRootGroup" anchor="first"/>
-        </action>
     </actions>
 
     <resource-bundle>messages.ArendBundle</resource-bundle>
