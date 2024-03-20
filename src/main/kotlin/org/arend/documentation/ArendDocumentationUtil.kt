@@ -11,6 +11,7 @@ import org.jsoup.nodes.Element
 internal val LOG: Logger = Logger.getInstance("#org.arend.documentation")
 
 const val FULL_PREFIX = "\\full:"
+const val ACTION_PREFIX = "\\action:"
 const val AREND_SECTION_START = 0
 const val AREND_DOCUMENTATION_BASE_PATH = "https://arend-lang.github.io/documentation/language-reference/"
 const val DEFINITION_CHAPTER = "definitions/"

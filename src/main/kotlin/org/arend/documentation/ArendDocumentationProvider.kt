@@ -1,5 +1,6 @@
 package org.arend.documentation
 
+import com.intellij.codeInsight.documentation.DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL
 import com.intellij.ide.IdeEventQueue
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup.*
@@ -26,28 +27,31 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.ext.*
-import org.arend.term.abs.Abstract
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.handler.CefLoadHandlerAdapter
-import java.awt.AWTEvent
-import java.awt.Dimension
-import java.awt.MouseInfo
-import java.awt.Rectangle
-import java.awt.event.AWTEventListener
+import java.awt.*
 import java.awt.event.MouseEvent
 import java.io.File
-import javax.swing.SwingUtilities
 import javax.swing.UIManager
 
 
 class ArendDocumentationProvider : AbstractDocumentationProvider() {
+
+    private var popupCefBrowserHtml = ""
 
     override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, false)
 
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, true)
 
     override fun getDocumentationElementForLink(psiManager: PsiManager?, link: String, context: PsiElement?): PsiElement? {
+        if (link.startsWith(ACTION_PREFIX)) {
+            val elementText = link.removePrefix(ACTION_PREFIX)
+            invokeLater {
+                showInCefBrowser(popupCefBrowserHtml, elementText)
+            }
+            return null
+        }
         val longName = link.removePrefix(FULL_PREFIX)
         val scope = ArendDocComment.getScope((context as? ArendDocComment)?.owner ?: context) ?: return null
         val ref = RedirectingReferable.getOriginalReferable(Scope.resolveName(scope, LongName.fromString(longName).toList()))
@@ -86,22 +90,23 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         val ref = element as? PsiReferable ?: (element as? ArendDocComment)?.owner
         ?: return if (element.isArendKeyword()) generateDocForKeywords(element) else null
         val docCommentInfo = ArendDocCommentInfo(hasLatexCode = false, wasPrevRow = false)
-        val html = buildString { wrapTag("html") {
+        var offsetStartText = -1
+        val htmlBuilder = StringBuilder().apply { wrapTag("html") {
             wrapTag("head") {
                 wrapTag("style") {
                     append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
                     val font = UIManager.getDefaults().getFont("Label.font").size
-                    append(".row { display: flex;align-items: center; font-size: $font;}")
+                    append(".row { font-size: $font;}")
                     append(".definition { font-size: $font;}")
                     append(".content { font-size: $font;}")
                 }
             }
 
             append("<body ")
-            append("style=\"color:${getHtmlRgbFormat(UIManager.getColor("MenuItem.foreground").rgb)};" +
-                    "background-color:${getHtmlRgbFormat(
-                        EditorColorsManager.getInstance().globalScheme.getColor(
-                            EditorColors.DOCUMENTATION_COLOR)?.rgb ?: 0)};\">")
+            val scheme = EditorColorsManager.getInstance().globalScheme
+            append("style=\"color:${getHtmlRgbFormat(UIManager.getColor("PopupMenu.foreground").rgb)};" +
+                    "background-color:${getHtmlRgbFormat(scheme.getColor(EditorColors.DOCUMENTATION_COLOR)?.rgb ?: 0)};\">")
+            offsetStartText = this.length
             wrap(DEFINITION_START, DEFINITION_END) {
                 generateDefinition(ref)
             }
@@ -116,42 +121,32 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                     File(LATEX_IMAGES_DIR).deleteRecursively()
                     docCommentInfo.hasLatexCode = hasLatexCode(doc)
 
-                    append(CONTENT_START)
-                    generateDocComments(ref, doc, element is ArendDocComment, docCommentInfo)
-                    append(CONTENT_END)
+                    wrap(CONTENT_START, CONTENT_END) {
+                        generateDocComments(ref, doc, element is ArendDocComment, docCommentInfo)
+                    }
                 }
             }
             append("</body>")
         } }
         if (docCommentInfo.hasLatexCode) {
-            showInCefBrowser(html)
+            val elementText = ref.textRepresentation()
+            popupCefBrowserHtml = htmlBuilder.toString()
+            htmlBuilder.insert(offsetStartText, "<a href=\"${PSI_ELEMENT_PROTOCOL}${ACTION_PREFIX}$elementText\">Open in another browser</a>")
         }
-        return html
+        return htmlBuilder.toString()
     }
 
-    private fun showInCefBrowser(html: String) {
+    private fun showInCefBrowser(html: String, title: String) {
         val browser = JBCefBrowser()
         browser.component.preferredSize = Dimension(1, 1)
 
         val popup = JBPopupFactory.getInstance()
-            .createComponentPopupBuilder(browser.component, null)
+            .createComponentPopupBuilder(browser.component, browser.component)
             .setResizable(true)
             .setMovable(true)
+            .setTitle(title)
             .setRequestFocus(true)
             .createPopup()
-
-        val listener = AWTEventListener { event: AWTEvent ->
-            if (event is MouseEvent && popup.isVisible && !Rectangle(popup.locationOnScreen, popup.size).contains(event.locationOnScreen)) {
-                popup.closeOk(event)
-            }
-        }
-
-        IdeEventQueue.getInstance().addDispatcher({ event ->
-            if (event is MouseEvent && event.getID() === MouseEvent.MOUSE_MOVED) {
-                SwingUtilities.invokeLater { listener.eventDispatched(event) }
-            }
-            false
-        }, null)
 
         val queryWidth = JBCefJSQuery.create(browser as JBCefBrowserBase)
         val queryHeight = JBCefJSQuery.create(browser as JBCefBrowserBase)
@@ -174,20 +169,34 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         browser.jbCefClient.addLoadHandler(cefLoadHandler, browser.cefBrowser)
         browser.loadHTML(html)
 
+        val screenSize = Toolkit.getDefaultToolkit().screenSize
+        val screenWidth = screenSize.getWidth().toInt()
+        val screenHeight = screenSize.getHeight().toInt()
+
         val response = JBCefJSQuery.Response("")
         queryWidth.addHandler { result ->
-            val width = result.toIntOrNull() ?: return@addHandler response
             try {
-                popup.width = width + WIDTH_PADDING
+                val widthResult = result.toIntOrNull() ?: return@addHandler response
+                val diffWidth = screenWidth - popup.locationOnScreen.x
+                if (widthResult > diffWidth) {
+                    popup.width = diffWidth
+                } else {
+                    popup.width = widthResult
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
             response
         }
         queryHeight.addHandler { result ->
-            val height = result.toIntOrNull() ?: return@addHandler response
             try {
-                popup.height = height
+                val heightResult = result.toIntOrNull() ?: return@addHandler response
+                val diffHeight = screenHeight - popup.locationOnScreen.y
+                if (heightResult > diffHeight) {
+                    popup.height = diffHeight
+                } else {
+                    popup.height = heightResult
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -195,7 +204,24 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         invokeLater {
+            val ideEventQueue = IdeEventQueue.getInstance()
+            ideEventQueue.popupManager.closeAllPopups()
             popup.show(RelativePoint(MouseInfo.getPointerInfo().location))
+
+            ideEventQueue.addDispatcher({ event ->
+                if (event is MouseEvent && event.getID() === MouseEvent.MOUSE_MOVED && popup.isVisible && popup.canClose()) {
+                    try {
+                        val leftUpCorner = Point(popup.locationOnScreen.x - 10, popup.locationOnScreen.y - 10)
+                        val area = Dimension(popup.width + 20, popup.height + 20)
+                        if (!Rectangle(leftUpCorner, area).contains(event.locationOnScreen)) {
+                            popup.closeOk(event)
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                false
+            }, null)
         }
     }
 
@@ -284,9 +310,5 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         return null
-    }
-
-    companion object {
-        const val WIDTH_PADDING = 60
     }
 }
