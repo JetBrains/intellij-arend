@@ -393,7 +393,11 @@
 
         <applicationService serviceImplementation="org.arend.typechecking.ArendExtensionChangeListener"/>
 
+        <!-- Editor Notification -->
+
         <editorNotificationProvider implementation="org.arend.yaml.YamlNotificationProvider"/>
+
+        <editorNotificationProvider implementation="org.arend.notification.FileOutsideSourcesProvider"/>
 
         <!-- Configuration Options -->
 
