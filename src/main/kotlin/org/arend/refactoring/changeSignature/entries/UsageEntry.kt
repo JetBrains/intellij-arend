@@ -13,7 +13,6 @@ import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
-import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.refactoring.changeSignature.*
 import java.util.*
 import kotlin.collections.ArrayList
@@ -188,7 +187,10 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
             val contextName = getContextName()
             defaultBuilder.append(contextName); parenthesizedPrefixBuilder.append(if (globalReferable?.precedence?.isInfix == true) "($contextName)" else contextName)
 
-            printParams(newParameters.filter { !defClassMode || !oldArgToLambdaArgMap.keys.contains(it.oldParameter) })
+            val lastParameter = newParameters.lastOrNull { parameterMap[it.oldParameter] != null && !oldArgToLambdaArgMap.contains(it.oldParameter) }
+            val lastIndex = if (lastParameter != null) newParameters.indexOf(lastParameter) else -1
+            val relevantSegment = if (defClassMode) newParameters.subList(0, lastIndex + 1) else newParameters
+            printParams(relevantSegment)
 
             while (j < getArguments().size) {
                 append(" ${getArguments()[j].printResult.text}")

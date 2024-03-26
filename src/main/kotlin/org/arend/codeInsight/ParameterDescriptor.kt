@@ -12,50 +12,62 @@ import org.arend.psi.ext.*
 import org.arend.term.abs.Abstract
 import java.util.*
 
+enum class ClassParameterKind {CLASS_FIELD, INHERITED_PARAMETER, OWN_PARAMETER}
 class ParameterDescriptor private constructor(
-    val isExplicit: Boolean,
-    val type: String?,
     val name: String?,
+    val isExplicit: Boolean,
+    val typeGetter: () -> String?,
     val isDataParameter: Boolean,
-    private val externalScope: SmartPsiElementPointer<ArendGroup>? = null,
-    private val psiReferable: SmartPsiElementPointer<PsiElement>? = null,
-    private val envelopingClass: SmartPsiElementPointer<ArendDefClass>? = null,
-    val oldParameter: ParameterDescriptor? = null
+    private val externalScopeLink: SmartPsiElementPointer<ArendGroup>? = null,
+    private val referableLink: SmartPsiElementPointer<PsiElement>? = null,
+    private val envelopingClassLink: SmartPsiElementPointer<ArendDefClass>? = null,
+    val oldParameter: ParameterDescriptor? = null,
+    val classParameterKind: ClassParameterKind? = null
 ) {
     init {
-        if (externalScope != null) when (externalScope.element) {
+        if (externalScopeLink != null) when (externalScopeLink.element) {
             is ArendDefFunction, is ArendDefData, is ArendDefInstance/*, is ArendDefModule */-> {}
             else -> throw IllegalArgumentException()
         }
     }
 
-    constructor(isExplicit: Boolean, type: String?, name: String?): this(isExplicit, type, name, false)
-    constructor (referable: Referable, isExplicit: Boolean = computeExplicitness(referable as PsiElement), type: String? = computeType(referable as PsiElement)):
-            this(isExplicit, type, referable.refName, false, null,
-                if (referable is PsiElement) createSmartLink(referable) else null)
+    constructor(
+        name: String?,
+        isExplicit: Boolean,
+        type: String?,
+        classParameterKind: ClassParameterKind?,
+        externalScope: ArendGroup? = null
+    ):
+            this(
+                name,
+                isExplicit,
+                { type },
+                false,
+                externalScopeLink = createSmartLink(externalScope),
+                classParameterKind = classParameterKind
+            )
 
-    override fun toString(): String = "${if (isExplicit) "(" else "{"}${getNameOrUnderscore()}${if (getType1() != null) " : " + getType1() else ""}${if (isExplicit) ")" else "}"}"
+    override fun toString(): String = "${if (isExplicit) "(" else "{"}${getNameOrUnderscore()}${if (getType() != null) " : " + getType() else ""}${if (isExplicit) ")" else "}"}"
 
-    fun getType1(): String? = if (envelopingClass != null) envelopingClass.element?.refName else
-        type ?: (oldParameter?.getReferable()?.let{ computeType(it) } ?: oldParameter?.getType1())
+    fun getType(): String? = typeGetter.invoke()
 
     fun getNameOrUnderscore(): String = getNameOrNull() ?: "_"
 
     fun getNameOrNull(): String? = name ?: oldParameter?.name
 
-    fun isExternal() = externalScope != null
+    fun isExternal() = externalScopeLink != null
 
-    fun isThis() = envelopingClass != null
+    fun isThis() = envelopingClassLink != null
 
-    fun getThisDefClass(): ArendDefClass? = envelopingClass?.element
+    fun getThisDefClass(): ArendDefClass? = envelopingClassLink?.element
 
-    fun getExternalScope() = externalScope?.element
+    fun getExternalScope() = externalScopeLink?.element
 
-    fun getReferable() = psiReferable?.element
+    fun getReferable() = referableLink?.element
 
     companion object {
-        private fun <T : PsiElement> createSmartLink(obj : T): SmartPsiElementPointer<T> =
-            SmartPointerManager.getInstance(obj.project).createSmartPsiElementPointer(obj)
+        private fun <T : PsiElement> createSmartLink(obj : T?): SmartPsiElementPointer<T>? =
+            obj?.let { SmartPointerManager.getInstance(it.project).createSmartPsiElementPointer(it) }
 
         private fun computeType(psi: PsiElement): String? = when (val p = psi.parent) {
             is ArendNameTele -> p.type?.text
@@ -73,7 +85,7 @@ class ParameterDescriptor private constructor(
             is ArendNameTele -> p.isExplicit
             is ArendTypeTele -> p.isExplicit
             is ArendFieldTele -> p.isExplicit
-            is ArendPattern -> p.isExplicit // TODO: Make sure that this is correct
+            is ArendPattern -> p.isExplicit
             is ArendFieldDefIdentifier -> p.isExplicitField
             is ArendClassStat, is ArendDefClass -> true
             is ArendTypedExpr -> computeExplicitness(p.parent)
@@ -81,11 +93,17 @@ class ParameterDescriptor private constructor(
             else -> throw IllegalArgumentException()
         }
 
-        fun createUnnamedDataParameter(type: String?) = ParameterDescriptor(false, type, null, true)
+        fun createUnnamedDataParameter(type: String?) = ParameterDescriptor(null, false, { type }, true)
 
-        fun createUnnamedParameter(tele: ArendTypeTele) = ParameterDescriptor(tele.isExplicit, tele.type?.text, null, false)
+        fun createUnnamedParameter(tele: ArendTypeTele) =
+            ParameterDescriptor(null, tele.isExplicit, { tele.type?.text }, false)
 
-        fun createUnnamedParameter(tele: ArendNameTele) = ParameterDescriptor(tele.isExplicit, tele.type?.text, null, false)
+        fun createUnnamedParameter(tele: ArendNameTele) = ParameterDescriptor(
+            null,
+            tele.isExplicit,
+            { tele.type?.text },
+            false
+        )
 
         /**
          * Creates implicit parameter descriptor for a constructor
@@ -93,50 +111,123 @@ class ParameterDescriptor private constructor(
          * @param data -- constructor's parent datatype (needed only to decide whether passed referable is external)
          */
         fun createNamedDataParameter(referable: Referable, data: ArendDefData) = ParameterDescriptor(
-            false, computeType(referable as PsiElement), referable.refName, true,
+            referable.refName, false, { computeType(referable as PsiElement) }, true,
             (referable as PsiElement).ancestor<ArendGroup>()
                 ?.let { if (it != data) createSmartLink(it) else null }, // not null only for external parameters
             createSmartLink(referable)
         )
 
-        fun createExternalParameter(referable: Referable, isExplicit: Boolean, type: ArendExpr?) =
-            ParameterDescriptor(false, type?.text, referable.refName, false,
-                (referable as PsiElement).ancestor<ArendGroup>()?.let { createSmartLink(it) }, createSmartLink(referable)
+        fun createExternalParameter(referable: Referable,
+                                    typeGetter: () -> String? = smartLazyTypeGetter(referable as PsiReferable) { computeType(it) },
+                                    parameterKind: ClassParameterKind? = null) =
+            ParameterDescriptor(
+                name = referable.refName,
+                isExplicit = false,
+                typeGetter = typeGetter,
+                isDataParameter = false,
+                externalScopeLink = createSmartLink((referable as PsiElement).ancestor<ArendGroup>()),
+                referableLink = createSmartLink(referable),
+                classParameterKind = parameterKind
+            )
+
+        fun createFromReferable(referable: Referable,
+                     isExplicit: Boolean = computeExplicitness(referable as PsiElement),
+                     externalScope: ArendGroup? = null,
+                     classParameterKind: ClassParameterKind? = null) =
+            ParameterDescriptor(
+                name = referable.refName,
+                isExplicit = isExplicit,
+                typeGetter = smartLazyTypeGetter(referable as PsiElement) { psi -> computeType(psi) },
+                isDataParameter = false,
+                externalScopeLink = createSmartLink(externalScope),
+                referableLink = createSmartLink(referable),
+                classParameterKind = classParameterKind
             )
 
         fun createFromTeles(params: List<Abstract.Parameter>): List<ParameterDescriptor> = params.map { tele -> when (tele) {
             is ArendTypeTele -> if (tele.typedExpr?.identifierOrUnknownList.isNullOrEmpty()) Collections.singletonList(
                 createUnnamedParameter(tele)
             ) else
-                tele.typedExpr?.identifierOrUnknownList!!.map { iou -> iou.defIdentifier?.let { ParameterDescriptor(it) } ?: createUnnamedParameter(tele)}
+                tele.typedExpr?.identifierOrUnknownList!!.map { iou -> iou.defIdentifier?.let { createFromReferable(it) } ?: createUnnamedParameter(tele)}
             is ArendNameTele -> if (tele.identifierOrUnknownList.isEmpty()) Collections.singletonList(
                 createUnnamedParameter(tele)
             ) else
-                tele.identifierOrUnknownList.map { iou -> iou.defIdentifier?.let { ParameterDescriptor(it, tele.isExplicit, tele.type?.text) } ?: createUnnamedParameter(tele)}
-            is ArendFieldTele -> tele.referableList.map { ParameterDescriptor(tele.isExplicit, tele.type?.text, it.name) }
+                tele.identifierOrUnknownList.map { iou -> iou.defIdentifier?.let { createFromReferable(it, tele.isExplicit) } ?: createUnnamedParameter(tele)}
+            is ArendFieldTele -> tele.referableList.map { createFromReferable(it, tele.isExplicit) }
             else ->
                 throw java.lang.IllegalArgumentException()
         }}.flatten()
 
-        fun createThisParameter(defClass: ArendDefClass) = ParameterDescriptor(false, null, "this", false, null, null, createSmartLink(defClass))
+        fun createThisParameter(defClass: ArendDefClass) =
+            ParameterDescriptor(
+                name = "this",
+                isExplicit = false,
+                typeGetter = smartLazyTypeGetter(defClass) { clazz -> clazz.refName },
+                isDataParameter = false,
+                externalScopeLink = null,
+                referableLink = null,
+                envelopingClassLink = createSmartLink(defClass)
+            )
 
-        fun createDataParameter_(oldParameter: ParameterDescriptor?, externalScope: ArendGroup?, name: String?, type: String?) =
-            ParameterDescriptor(false, type, name, true, externalScope?.let { createSmartLink(it) }, null, null, oldParameter)
+        fun createDataParameter(oldParameter: ParameterDescriptor?, externalScope: ArendGroup?, name: String?, typeGetter: () -> String?, referable: PsiReferable?) =
+            ParameterDescriptor(
+                name = name,
+                isExplicit = false,
+                typeGetter = typeGetter,
+                isDataParameter = true,
+                externalScopeLink = createSmartLink(externalScope),
+                referableLink = createSmartLink(referable),
+                envelopingClassLink = null,
+                oldParameter = oldParameter
+            )
 
         fun createThisParameter(oldParameter: ParameterDescriptor) =
             if (!oldParameter.isThis()) throw IllegalArgumentException() else
-                ParameterDescriptor(false, null, "this", false, null, null, oldParameter.envelopingClass, oldParameter)
+                ParameterDescriptor(
+                    name = "this",
+                    isExplicit = false,
+                    typeGetter = { oldParameter.envelopingClassLink?.element?.refName },
+                    isDataParameter = false,
+                    externalScopeLink = null,
+                    referableLink = null,
+                    envelopingClassLink = oldParameter.envelopingClassLink,
+                    oldParameter = oldParameter
+                )
 
         fun identityTransform(list: List<ParameterDescriptor>): List<ParameterDescriptor> = list.map { pd ->
-            ParameterDescriptor(pd.isExplicit, if (pd.getReferable() != null) null else pd.getType1(), pd.name, pd.isDataParameter,
-                externalScope = pd.getExternalScope()?.let{ createSmartLink(it) },
-                psiReferable = pd.getReferable()?.let{ createSmartLink(it) },
-                envelopingClass = pd.getThisDefClass()?.let{ createSmartLink(it) },
-                oldParameter = pd)
+            ParameterDescriptor(
+                name = pd.name,
+                isExplicit = pd.isExplicit,
+                typeGetter = pd.typeGetter,
+                isDataParameter = pd.isDataParameter,
+                externalScopeLink = pd.externalScopeLink,
+                referableLink = pd.referableLink,
+                envelopingClassLink = pd.envelopingClassLink,
+                oldParameter = pd,
+                classParameterKind = pd.classParameterKind
+            )
         }
 
-        fun createNewParameter(isExplicit: Boolean, oldParameter: ParameterDescriptor?, externalScope: ArendGroup?, newName: String?, newType: String?) =
-            ParameterDescriptor(isExplicit, newType, newName, false, externalScope?.let{ createSmartLink(it) }, null, null, oldParameter)
+        fun createNewParameter(isExplicit: Boolean, oldParameter: ParameterDescriptor?, externalScope: ArendGroup?, newName: String?, newType: () -> String?, classParameterKind: ClassParameterKind? = null) =
+            ParameterDescriptor(
+                newName,
+                isExplicit,
+                newType,
+                false,
+                createSmartLink(externalScope),
+                null,
+                null,
+                oldParameter,
+                classParameterKind
+            )
+
+        fun<T : PsiElement> smartLazyTypeGetter(psi: T, getter: (T) -> String?): () -> String? {
+            val smartLink = createSmartLink(psi)!!
+            return {
+                val psiNew = smartLink.element
+                if (psiNew != null) getter.invoke(psiNew) else null
+            }
+        }
     }
 }
 /**

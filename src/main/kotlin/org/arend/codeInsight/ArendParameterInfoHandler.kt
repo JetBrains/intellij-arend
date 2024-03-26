@@ -41,7 +41,7 @@ class ArendParameterInfoHandler: ParameterInfoHandler<ArendReferenceContainer, L
             if (pm.isExplicit) numberOfExplicitParameters++
 
             val isReliableParameter = numberOfExplicitParameters > 0 || !isDumbMode || pm.isThis()
-            var varText = pm.getNameOrUnderscore() + if (pm.getType1() != null) " : " + pm.getType1() else ""
+            var varText = pm.getNameOrUnderscore() + if (pm.getType() != null) " : " + pm.getType() else ""
             if (!pm.isExplicit) {
                 varText = "{$varText}"
             }

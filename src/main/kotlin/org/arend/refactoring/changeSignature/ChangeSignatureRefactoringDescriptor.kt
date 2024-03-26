@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
+import org.arend.codeInsight.ClassParameterKind
 import org.arend.codeInsight.ParameterDescriptor
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.childrenWithLeaves
@@ -61,10 +62,14 @@ class ChangeSignatureRefactoringDescriptor(val affectedDefinition: PsiReferable,
     }
 
     fun toParametersInfo(): ArendParametersInfo? {
-        val properOldParameters = oldParameters.filter { !it.isThis() && !it.isExternal() }
-        val properNewParameters = newParameters.filter { !it.isThis() && !it.isExternal() }
+        val properOldParameters = oldParameters.filter {
+            !it.isThis() && !it.isExternal() && !it.isDataParameter && it.getReferable() !is ArendClassField && (it.classParameterKind == null || it.classParameterKind == ClassParameterKind.OWN_PARAMETER)
+        }
+        val properNewParameters = newParameters.filter {
+            val referable = it.oldParameter?.getReferable()
+            !it.isThis() && !it.isExternal() && !it.isDataParameter && referable !is ArendClassField && (it.classParameterKind == null || it.classParameterKind == ClassParameterKind.OWN_PARAMETER)
+        }
         val parameterInfo = getParameterInfo(affectedDefinition as? PsiLocatedReferable ?: return null)
-        if (properOldParameters.size != parameterInfo.size) return null
         val newParameterInfo = ArrayList<ArendTextualParameter>()
 
         for (nP in properNewParameters) {
@@ -74,7 +79,7 @@ class ChangeSignatureRefactoringDescriptor(val affectedDefinition: PsiReferable,
             val isProperty = if (oldIndex == -1) false else parameterInfo[oldIndex].isCoerce
             val accessModifier = if (oldIndex == -1) AccessModifier.PUBLIC else parameterInfo[oldIndex].accessModifier
             val correspondingReferable = if (oldIndex == -1) null else parameterInfo[oldIndex].correspondingReferable
-            newParameterInfo.add(ArendTextualParameter(nP.getNameOrUnderscore(), nP.getType1(), oldIndex, nP.isExplicit, isClassifying, isCoerce, isProperty, accessModifier, correspondingReferable))
+            newParameterInfo.add(ArendTextualParameter(nP.getNameOrUnderscore(), nP.getType(), oldIndex, nP.isExplicit, isClassifying, isCoerce, isProperty, accessModifier, correspondingReferable))
         }
 
         return ArendParametersInfo(affectedDefinition, newParameterInfo)

@@ -10,12 +10,16 @@ import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.ArendLanguage
 import org.arend.codeInsight.ArendCodeInsightUtils
+import org.arend.codeInsight.ClassParameterKind
 import org.arend.codeInsight.ParameterDescriptor
 import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.FieldReferable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.NsCmdRefactoringAction
+import org.arend.resolving.DataLocatedReferable
+import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.search.ClassDescendantsSearch
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.Abstract.ClassDefinition
@@ -49,8 +53,6 @@ data class ArendChangeInfo (
     init {
         val newParamsInDialog = newParameters.toList().map { it as ArendTextualParameter }
         val definition = method as ParametersHolder
-
-        // TODO: Think whether we *really* need external parameters for the refactoring
         val externalParameters = ArendCodeInsightUtils.getExternalParameters(definition as PsiLocatedReferable) ?: throw IllegalStateException()
         val ownParameters = ParameterDescriptor.createFromTeles(definition.parameters)
 
@@ -59,7 +61,9 @@ data class ArendChangeInfo (
 
         for (newParam in newParamsInDialog) {
             val oldIndex = newParam.oldIndex
-            newParameters.add(ParameterDescriptor.createNewParameter(newParam.isExplicit(), ownParameters.getOrNull(oldIndex), ownParameters.getOrNull(oldIndex)?.getExternalScope(), newParam.name, newParam.typeText))
+            newParameters.add(
+                ParameterDescriptor.createNewParameter(newParam.isExplicit(), ownParameters.getOrNull(oldIndex), ownParameters.getOrNull(oldIndex)?.getExternalScope(), newParam.name, { newParam.typeText })
+            )
         }
 
         refactoringDescriptors.addAll(getRefactoringDescriptors(externalParameters + ownParameters, newParameters))
@@ -118,91 +122,129 @@ data class ArendChangeInfo (
         newParameters: List<ParameterDescriptor>
     ): List<ChangeSignatureRefactoringDescriptor> {
         val refactoringDescriptors = ArrayList<ChangeSignatureRefactoringDescriptor>()
-        when (val d = locatedReferable) {
+        when (val changedDefinition = locatedReferable) {
             is ArendClassField -> {
-                val thisParameter = ArendCodeInsightUtils.getThisParameter(d) ?: throw IllegalStateException()
+                val thisParameter = ArendCodeInsightUtils.getThisParameter(changedDefinition) ?: throw IllegalStateException()
                 refactoringDescriptors.add(
                     ChangeSignatureRefactoringDescriptor(
-                        d,
+                        changedDefinition,
                         Collections.singletonList(thisParameter) + oldParameters,
                         Collections.singletonList(ParameterDescriptor.createThisParameter(thisParameter)) + newParameters,
-                        newName = if (d.name != newName) newName else null
+                        newName = if (changedDefinition.name != newName) newName else null
                     )
                 )
             }
 
             is ArendConstructor -> {
-                val thisParameter = ArendCodeInsightUtils.getThisParameterAsList(d)
+                val thisParameter = ArendCodeInsightUtils.getThisParameterAsList(changedDefinition)
                 val thisNewParameter = thisParameter.firstOrNull()?.let {
                     Collections.singletonList(ParameterDescriptor.createThisParameter(it))
                 } ?: emptyList()
-                val data = d.ancestor<ArendDefData>() ?: throw java.lang.IllegalStateException()
+                val data = changedDefinition.ancestor<ArendDefData>() ?: throw java.lang.IllegalStateException()
                 val dataParameters = (ArendCodeInsightUtils.getExternalParameters(data)
                     ?: emptyList()) + ParameterDescriptor.createFromTeles(data.parameters)
-                val calculatedSignature = ArendCodeInsightUtils.getPartialExpectedConstructorSignature(d, dataParameters, ParameterDescriptor.identityTransform(dataParameters))
+                val calculatedSignature = ArendCodeInsightUtils.getPartialExpectedConstructorSignature(changedDefinition, dataParameters, ParameterDescriptor.identityTransform(dataParameters))
 
                 refactoringDescriptors.add(
-                    ChangeSignatureRefactoringDescriptor(d,
+                    ChangeSignatureRefactoringDescriptor(changedDefinition,
                         thisParameter + calculatedSignature.first + oldParameters,
                         thisNewParameter + calculatedSignature.second!! + newParameters,
-                        newName = if (d.name != newName) newName else null
+                        newName = if (changedDefinition.name != newName) newName else null
                     )
                 )
             }
 
             is ArendDefClass -> {
-                val descendants = ClassDescendantsSearch(d.project).getAllDescendants(d)
-                val modifiedFieldDefIdentifiers = d.fieldTeleList.map { it.referableList }.flatten()
-                for (clazz in descendants.filterIsInstance<ArendDefClass>().union(Collections.singletonList(d))) {
+                val classDescendants = ClassDescendantsSearch(changedDefinition.project).getAllDescendants(changedDefinition)
+                for (classDescendant in classDescendants.filterIsInstance<ArendDefClass>().union(Collections.singletonList(changedDefinition))) {
                     var modifiedArgumentStart = -1
                     var modifiedArgumentEnd = -1
-                    val notImplementedFields = ClassReferable.Helper.getNotImplementedFields(clazz)
-                    val clazzOldParameters = notImplementedFields.withIndex().map { (index, field) ->
-                        val classParent = (field as PsiElement).ancestor<ArendDefClass>()!!
-                        if (classParent == d) {
-                            if (modifiedArgumentStart == -1) modifiedArgumentStart = index
-                            modifiedArgumentEnd = index
-                        }
+                    val typecheckedNotImplementedFields = (classDescendant.tcReferable?.typechecked as? org.arend.core.definition.ClassDefinition)?.notImplementedFields
+                    val externalParameterData = HashMap<String, ArendGroup>()
+                    ArendCodeInsightUtils.getExternalParameters(classDescendant)?.forEach {
+                        val externalScope = it.getExternalScope()
+                        if (it.name != null && externalScope != null) externalParameterData[it.name] = externalScope
+                    }
 
-                        ParameterDescriptor(field)
-                    }
-                    val prefix = if (modifiedArgumentStart > 0) clazzOldParameters.subList(0, modifiedArgumentStart) else emptyList()
-                    val suffix = if (modifiedArgumentEnd + 1 < clazzOldParameters.size) clazzOldParameters.subList(modifiedArgumentEnd + 1, clazzOldParameters.size) else emptyList()
-                    val allClassFields = d.classStatList.mapNotNull { it.classField } + d.classFieldList
-                    val centerPiece = this.newParameters.filter {
-                        it.oldIndex == -1 || notImplementedFields.contains(modifiedFieldDefIdentifiers[it.oldIndex])
-                    }.map {
-                        if (it.oldIndex == -1) ParameterDescriptor.createNewParameter((it as ArendTextualParameter).isExplicit(), null, null, it.name, it.typeText) else {
-                            val index = notImplementedFields.indexOf(modifiedFieldDefIdentifiers[it.oldIndex])
-                            ParameterDescriptor.createNewParameter((it as ArendTextualParameter).isExplicit(), clazzOldParameters[index], null, it.name, it.typeText)
+                    val descendantOldParameters: List<ParameterDescriptor>
+                    val notImplementedFields = LinkedHashMap<String, ParameterDescriptor>()
+
+                    if (typecheckedNotImplementedFields != null) {
+                        descendantOldParameters = typecheckedNotImplementedFields.map {
+                            val psiReferable = (it.referable as? DataLocatedReferable)?.data?.element
+                            val (classParameterKind, externalScope) = when {
+                                psiReferable is ArendClassField -> Pair(ClassParameterKind.CLASS_FIELD, null)
+                                (it.parentClass.referable as? DataLocatedReferable)?.data?.element == classDescendant ->
+                                    Pair(ClassParameterKind.OWN_PARAMETER, externalParameterData[it.name])
+                                else -> Pair(ClassParameterKind.INHERITED_PARAMETER, null)
+                            }
+                            if (psiReferable != null)
+                                ParameterDescriptor.createFromReferable(psiReferable, externalScope = externalScope, classParameterKind = classParameterKind)
+                            else
+                                ParameterDescriptor(
+                                    it.referable.refName,
+                                    it.referable.isExplicitField,
+                                    it.resultType.toString(),
+                                    classParameterKind = classParameterKind,
+                                    externalScope = externalScope
+                                )
                         }
-                    } + allClassFields.filter { notImplementedFields.contains(it) }.map {
-                        val index = notImplementedFields.indexOf(it)
-                        ParameterDescriptor.createNewParameter(true, clazzOldParameters[index], null, it.name, it.resultType?.text)
+                        for ((index, field) in typecheckedNotImplementedFields.withIndex())
+                            if ((field.parentClass.referable as? DataLocatedReferable)?.data?.element == changedDefinition && (field.referable !is FieldDataLocatedReferable || field.referable.isParameterField)) {
+                                notImplementedFields[field.name] = descendantOldParameters[index]
+                                if (modifiedArgumentStart == -1) modifiedArgumentStart = index
+                                modifiedArgumentEnd = index
+                        }
+                    } else { // Fallback code for dumb mode
+                        descendantOldParameters = ClassReferable.Helper.getNotImplementedFields(classDescendant).filterIsInstance<PsiElement>().withIndex().map { (index, field) ->
+                            val classParent = field.ancestor<ArendDefClass>()!!
+                            val descriptor = ParameterDescriptor.createFromReferable(field as FieldReferable)
+                            if (classParent == changedDefinition) {
+                                notImplementedFields[field.refName] = descriptor
+                                if (modifiedArgumentStart == -1) modifiedArgumentStart = index
+                                modifiedArgumentEnd = index
+                            }
+                            descriptor
+                        }
                     }
+
+                    val prefix = if (modifiedArgumentStart > 0) descendantOldParameters.subList(0, modifiedArgumentStart) else emptyList()
+                    val suffix = if (modifiedArgumentEnd + 1 < descendantOldParameters.size) descendantOldParameters.subList(modifiedArgumentEnd + 1, descendantOldParameters.size) else emptyList()
+
+                    val centerPiece = newParameters.filter {parameterDescriptor ->
+                        parameterDescriptor.oldParameter == null ||
+                                parameterDescriptor.isExternal() ||
+                                parameterDescriptor.oldParameter.isExternal() ||
+                                descendantOldParameters.mapNotNull { it.getReferable() }.toSet().contains( parameterDescriptor.oldParameter.getReferable() )
+                    }.map {
+                        val oldDescriptor: ParameterDescriptor? = it.oldParameter?.let { descriptor -> notImplementedFields[descriptor.name] }
+                        val parameterKind = if (classDescendant == changedDefinition) ClassParameterKind.OWN_PARAMETER else ClassParameterKind.INHERITED_PARAMETER
+                        ParameterDescriptor.createNewParameter(it.isExplicit, oldDescriptor, oldDescriptor?.getExternalScope(), it.name, it.typeGetter, parameterKind)
+                    }
+
                     val clazzNewParameters = prefix.map {
-                        ParameterDescriptor.createNewParameter(it.isExplicit, it, null, it.getNameOrUnderscore(), it.getType1())
-                    } + centerPiece + suffix.map { ParameterDescriptor.createNewParameter(it.isExplicit, it, null, it.getNameOrUnderscore(), it.getType1()) }
+                        ParameterDescriptor.createNewParameter(it.isExplicit, it, it.getExternalScope(), it.getNameOrUnderscore(), it.typeGetter, it.classParameterKind)
+                    } + centerPiece + suffix.map { ParameterDescriptor.createNewParameter(it.isExplicit, it, it.getExternalScope(), it.getNameOrUnderscore(), it.typeGetter, classParameterKind = it.classParameterKind) }
                     refactoringDescriptors.add(
-                        ChangeSignatureRefactoringDescriptor(clazz, clazzOldParameters, clazzNewParameters, newName = if (d == clazz) newName else null)
+                        ChangeSignatureRefactoringDescriptor(classDescendant, descendantOldParameters, clazzNewParameters, newName = if (changedDefinition == classDescendant) newName else null)
                     )
                 }
             }
 
             is ArendDefData, is ArendFunctionDefinition<*> -> {
-                val thisParameter = ArendCodeInsightUtils.getThisParameterAsList(d)
+                val thisParameter = ArendCodeInsightUtils.getThisParameterAsList(changedDefinition)
                 val thisNewParameter =
                     thisParameter.firstOrNull()?.let { Collections.singletonList(ParameterDescriptor.createThisParameter(it)) }
                         ?: emptyList()
                 val mainRefactoringDescriptor = ChangeSignatureRefactoringDescriptor(
-                    d,
+                    changedDefinition,
                     thisParameter + oldParameters,
                     thisNewParameter + newParameters,
-                    newName = if (d.name != newName) newName else null
+                    newName = if (changedDefinition.name != newName) newName else null
                 )
 
                 refactoringDescriptors.add(mainRefactoringDescriptor)
-                val childDefinitions = getDefinitionsWithExternalParameters(d as ParametersHolder)
+                val childDefinitions = getDefinitionsWithExternalParameters(changedDefinition as ParametersHolder)
                 for (childDef in childDefinitions) {
                     val childDefOldParameters =
                         ArendCodeInsightUtils.getParameterList(childDef as ParametersHolder).first!!
@@ -211,7 +253,7 @@ data class ArendChangeInfo (
                     }
                 }
 
-                if (d is ArendDefData && !mainRefactoringDescriptor.isSetOrOrderPreserved()) for (cons in d.constructors) {
+                if (changedDefinition is ArendDefData && !mainRefactoringDescriptor.isSetOrOrderPreserved()) for (cons in changedDefinition.constructors) {
                     val constructorDataParameters =
                         ArendCodeInsightUtils.getPartialExpectedConstructorSignature(cons, oldParameters, newParameters)
                     val ownParameters = ParameterDescriptor.createFromTeles(cons.parameters)
@@ -276,12 +318,6 @@ data class ArendChangeInfo (
                 is ArendConstructor -> {
                     ph.ancestor<ArendDefData>()?.let { result.add(it) }
                 }
-                /*is ArendClassField -> {
-                    ph.ancestor<ArendDefClass>()?.let { result.add(it) }
-                }
-                is ArendDefClass -> {
-                    result.add(ph)
-                }*/
             }
 
             return result

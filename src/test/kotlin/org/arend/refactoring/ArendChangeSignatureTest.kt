@@ -613,4 +613,76 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
        }
     """, listOf(-1, 2))
 
+    fun testExternalParametersInClasses1() = changeSignature("""
+       \func foo{-caret-} (A : \Type) (a : A) => 101 \where {
+         \class C (b : A) {
+           | field : a = b
+         }
+
+         \class D (c : A) \extends foo.C {
+           | field2 : a = c
+         }
+       }
+
+       \func lol : foo.D => \new foo.D {Nat} {101} 101 {Nat} {42} 42 idp idp
+    """, """
+       \func foo (A : \Type) => 101 \where {
+         \class C {a : A} (b : A) {
+           | field : a = b
+         }
+
+         \class D {a : A} (c : A) \extends foo.C {
+           | field2 : a = c
+         }
+       }
+
+       \func lol : foo.D => \new foo.D {Nat} {101} 101 {Nat} {42} 42 idp idp
+    """, listOf(1), typecheck = true)
+
+    fun testExternalParametersInClasses2() = changeSignature("""
+       \func foo (A : \Type) (a : A) => 101 \where {
+         \class C{-caret-} (b1 b2 : A) {
+           | field : a = b1
+         }
+
+         \class D (c : A) \extends foo.C {
+           | field2 : a = c
+         }
+       }
+
+       \class E \extends foo.C {
+         | b1 => b2
+       }
+
+       \func lol : foo.D => \new foo.D {Nat} {101} 101 {Nat} {42} 42 42 idp idp
+
+       \func lol2 : foo.D {Nat} {101} 101 {Nat} {42} 42 => {?}
+
+       \func lol3 : foo.D {Nat} {101} 101 {Nat} {42} 42 42 idp => {?}
+
+       \func lol4 : E => \new E {Nat} {101} 101 idp
+    """, """
+       \func foo (A : \Type) (a : A) => 101 \where {
+         \class C (bb b2 : A) {x : A} {
+           | field : a = bb
+         }
+
+         \class D (c : A) \extends foo.C {
+           | field2 : a = c
+         }
+       }
+
+       \class E \extends foo.C {
+         | bb => b2
+       }
+
+       \func lol : foo.D => \new foo.D {Nat} {101} 101 {Nat} {42} 42 42 {{?}} idp idp
+
+       \func lol2 : foo.D {Nat} {101} 101 {Nat} {42} 42 => {?}
+
+       \func lol3 : foo.D {Nat} {101} 101 {Nat} {42} 42 42 {{?}} idp => {?}
+
+       \func lol4 : E => \new E {Nat} {101} 101 {{?}} idp
+    """, listOf(Pair(1, "bb"), 2, "x"), listOf(Pair("x", Pair(false, "A"))), typecheck = true)
+
 }

@@ -63,10 +63,11 @@ fun modifyExternalParameters(oldParameters: List<ParameterDescriptor>,
     for (parameter in newParameters) if (parameter.oldParameter != null) {
         val oldReferable = parameter.oldParameter.getReferable()!!
         if (relevantReferables.keys.contains(oldReferable)) {
-            val correspondingParameter = relevantReferables[parameter.oldParameter.getReferable()]!!
-            val isData = correspondingParameter.isDataParameter
-            val newParameter = if (isData) ParameterDescriptor.createDataParameter_(correspondingParameter, correspondingParameter.getExternalScope(), parameter.getNameOrNull(), parameter.getType1()) else
-                ParameterDescriptor.createNewParameter(false, correspondingParameter, correspondingParameter.getExternalScope(), parameter.getNameOrNull(), parameter.type)
+            val oldParameter = relevantReferables[oldReferable]!!
+            val isData = oldParameter.isDataParameter
+            val newParameter = if (isData)
+                ParameterDescriptor.createDataParameter(oldParameter, oldParameter.getExternalScope(), parameter.getNameOrNull(), parameter.typeGetter, oldReferable as? PsiReferable) else
+                ParameterDescriptor.createNewParameter(false, oldParameter, oldParameter.getExternalScope(), parameter.getNameOrNull(), parameter.typeGetter)
             newRelevantSegment.add(newParameter)
             relevantReferables.remove(oldReferable)
         }
@@ -75,8 +76,8 @@ fun modifyExternalParameters(oldParameters: List<ParameterDescriptor>,
     for (entry in relevantReferables) {
         val isData = entry.value.isDataParameter
         val newParameter = if (isData)
-            ParameterDescriptor.createDataParameter_(entry.value, null, null, null) else
-                ParameterDescriptor.createNewParameter(entry.value.isExplicit, entry.value, null, null, entry.value.type)
+            ParameterDescriptor.createDataParameter(entry.value, null, null, entry.value.typeGetter, entry.value.oldParameter?.getReferable() as? PsiReferable) else
+                ParameterDescriptor.createNewParameter(entry.value.isExplicit, entry.value, null, null, entry.value.typeGetter)
         internalizedSegment.add(newParameter)
     }
 
