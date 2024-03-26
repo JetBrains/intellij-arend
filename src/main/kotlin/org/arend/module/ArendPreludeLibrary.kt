@@ -83,6 +83,7 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
     }
 
     companion object {
-        const val PRELUDE_FILE_NAME = "Prelude" + FileUtils.EXTENSION
+        const val PRELUDE = "Prelude"
+        const val PRELUDE_FILE_NAME = PRELUDE + FileUtils.EXTENSION
     }
 }

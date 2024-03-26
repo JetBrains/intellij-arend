@@ -1,5 +1,6 @@
 package org.arend.module
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
@@ -12,6 +13,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiModuleReferable
+import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 
 
@@ -53,7 +55,10 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig?,
             result.add(ModuleReferable(ModulePath(prefix + path[0])))
         }
         if (rootDirs == null) {
-            result.add(ModuleReferable(Prelude.MODULE_PATH))
+            val psiManager = libraryConfig?.project?.let { PsiManager.getInstance(it) }
+            libraryConfig?.project?.service<TypeCheckingService>()?.prelude?.let { psiManager?.findFile(it.virtualFile) }?.let {
+                result.add(PsiModuleReferable(listOf(it), Prelude.MODULE_PATH))
+            }
         }
         return result
     }
