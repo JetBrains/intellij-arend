@@ -54,7 +54,7 @@ abstract class ArendChangeSignatureTestBase: ArendTestBase() {
         if (!ArendChangeSignatureHandler.checkExternalParametersOk(sourceElement as ParametersHolder))
             throw AssertionError("External parameters have not been inferred properly")
 
-        ArendChangeSignatureProcessor(project, ArendChangeInfo(ArendParametersInfo(sourceElement, newParams), null, newNameActual, sourceElement)).run()
+        ArendChangeSignatureProcessor(project, ArendChangeInfo(ArendParametersInfo(sourceElement, newParams), null, newNameActual, sourceElement), false).run()
         myFixture.checkResult(fileName, resultingContent.trimIndent(), false)
     }
 }

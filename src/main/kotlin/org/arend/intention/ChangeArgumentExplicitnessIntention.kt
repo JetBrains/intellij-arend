@@ -49,7 +49,7 @@ class ChangeArgumentExplicitnessIntention : SelfTargetingIntention<ArendComposit
         val externalParametersOk = if (def is ParametersHolder) ArendChangeSignatureHandler.checkExternalParametersOk(def) else null
         val primaryChangeInfo = ArendChangeInfo(modifiedParameterInfo, null, def.name!!, def)
         if (externalParametersOk == true)
-            ArendChangeSignatureProcessor(project, primaryChangeInfo).run()
+            ArendChangeSignatureProcessor(project, primaryChangeInfo, false, true).run()
     }
 
     override fun startInWriteAction(): Boolean = false

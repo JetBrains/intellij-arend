@@ -133,7 +133,7 @@ class ArendChangeSignatureDialog(project: Project,
         ArendParameterTableModel( descriptor, this, myDefaultValueContext)
 
     override fun createRefactoringProcessor(): BaseRefactoringProcessor =
-        ArendChangeSignatureProcessor(project, evaluateChangeInfo(myParametersTableModel))
+        ArendChangeSignatureProcessor(project, evaluateChangeInfo(myParametersTableModel), isPreviewUsages)
 
     override fun createReturnTypeCodeFragment(): PsiCodeFragment {
         val referable = myMethod.method

@@ -34,10 +34,11 @@ import org.arend.util.getBounds
 import org.arend.util.patternToConcrete
 import java.util.Collections.singletonList
 
-class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInfo) :
+class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInfo, val needsPreview: Boolean, val changeExplicitnessMode: Boolean = false) :
     ChangeSignatureProcessorBase(project, changeInfo) {
     private val fileChangeMap = LinkedHashMap<PsiFile, SortedList<Pair<TextRange, Pair<String, String?>>>>()
     private val deferredNsCmds = ArrayList<NsCmdRefactoringAction>()
+    override fun isPreviewUsages(usages: Array<out UsageInfo>): Boolean = needsPreview
 
     override fun createUsageViewDescriptor(usages: Array<out UsageInfo>): UsageViewDescriptor =
         BaseUsageViewDescriptor(changeInfo?.method)
@@ -176,7 +177,7 @@ class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInf
 
                 }, changeSignatureName, true, myProject)) return false
 
-            if (rootPsiWithErrors.size > 0) {
+            if (rootPsiWithErrors.size > 0 || rootPsiWithArendErrors.size > 0) {
                 val conflictDescriptions = MultiMap<PsiElement, String>()
 
                 for (psi in rootPsiWithErrors)
@@ -185,7 +186,7 @@ class ArendChangeSignatureProcessor(project: Project, changeInfo: ArendChangeInf
                 for (psi in rootPsiWithArendErrors)
                     conflictDescriptions.put(psi, singletonList(ArendBundle.message("arend.changeSignature.ambientError")))
 
-                setPrepareSuccessfulSwingThreadCallback { }
+                if (changeExplicitnessMode) setPrepareSuccessfulSwingThreadCallback { }
 
                 return showConflicts(conflictDescriptions, usages.toTypedArray())
             }
