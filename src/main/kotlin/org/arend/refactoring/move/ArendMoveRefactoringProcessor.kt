@@ -69,12 +69,16 @@ class ArendMoveRefactoringProcessor(project: Project,
     override fun findUsages(): Array<UsageInfo> {
         val usagesList = ArrayList<UsageInfo>()
         val statCmdsToFix = HashMap<ArendStatCmd, PsiReference>()
+        val containers = HashSet<ArendGroup>()
+        val containerUsages = MultiMap<ArendGroup, ArendGroup>()
 
         for (psiReference in ReferencesSearch.search(mySourceContainer)) {
             val statCmd = isStatCmdUsage(psiReference, true)
             if (statCmd is ArendStatCmd && psiReference.element.findNextSibling(DOT) !is ArendReferenceElement &&
-                    myMembers.any { getImportedNames(statCmd, it.name).isNotEmpty() })
+                    myMembers.any { getImportedNames(statCmd, it.name).isNotEmpty() }) {
                 statCmdsToFix[statCmd] = psiReference
+                statCmd.ancestor<ArendGroup>()?.let{ containers.add(it) }
+            }
         }
 
         for ((index, member) in myMembers.withIndex())
@@ -84,6 +88,9 @@ class ArendMoveRefactoringProcessor(project: Project,
                 for (psiReference in ReferencesSearch.search(entry.first)) {
                     val referenceElement = psiReference.element
                     val referenceParent = referenceElement.parent
+                    val cmdContainer = referenceElement.ancestors.filterIsInstance<ArendGroup>().toList().reversed().firstOrNull { containers.contains(it) }
+                    if (cmdContainer != null) containerUsages.putValue(cmdContainer, member)
+
                     if (!isInMovedMember(psiReference.element)) {
                         val statCmd = isStatCmdUsage(psiReference, false)
                         val isUsageInHiding = referenceElement is ArendRefIdentifier && referenceParent is ArendStatCmd
@@ -92,9 +99,14 @@ class ArendMoveRefactoringProcessor(project: Project,
                     }
                 }
             }
-        //TODO: Somehow determine which of the statCmd usages are not relevant and filter them out
 
-        for (statCmd in statCmdsToFix) usagesList.add(ArendStatCmdUsageInfo(statCmd.key, statCmd.value))
+        for (statCmd in statCmdsToFix) {
+            val statCmdContainer = statCmd.key.ancestor<ArendGroup>()
+            val usedMembers = statCmdContainer?.let { containerUsages.get(it) }
+            if ((usedMembers?.size ?: 0) > 0) {
+                usagesList.add(ArendStatCmdUsageInfo(statCmd.key, statCmd.value))
+            }
+        }
 
         var usageInfos = usagesList.toTypedArray()
         usageInfos = UsageViewUtil.removeDuplicatedUsages(usageInfos)
@@ -413,7 +425,7 @@ class ArendMoveRefactoringProcessor(project: Project,
         if (containingClass is ArendDefClass) for (definition in definitionsThatNeedThisParameter) if (definition is ArendFunctionDefinition<*> || definition is ArendDefData) {
             val (targetName, namespaceCommand) = getTargetName(containingClass, definition)
             namespaceCommand?.execute()
-            val className = targetName.let { if (it.isEmpty()) containingClass.defIdentifier?.textRepresentation() else it }
+            val className = targetName.let { it.ifEmpty { containingClass.defIdentifier?.textRepresentation() } }
             if (className != null) {
                 val thisVarName = addImplicitClassDependency(psiFactory, definition, className)
                 val classifyingField = getClassifyingField(containingClass)

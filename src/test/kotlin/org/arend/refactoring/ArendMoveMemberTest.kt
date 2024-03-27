@@ -1,11 +1,9 @@
 package org.arend.refactoring
 
-import org.junit.Ignore
-
-class ArendMoveStaticMemberTest : ArendMoveTestBase() {
+class ArendMoveMemberTest : ArendMoveTestBase() {
 
     fun testSimpleMove1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
             {- | Block
              - Doc -}
@@ -20,7 +18,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "def")
 
     fun testSimpleMove2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
              -- | LineDoc 1
             \func abc{-caret-} => 1
@@ -36,14 +34,14 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "foo")
 
     fun testForbiddenRefactoring1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
             \func foo{-caret-} => 2 \where
               \func bar => 3
             """, null, "Main", "foo.bar")
 
     fun testSimpleMove3() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
             \func abc{-caret-} => 1
             \module Foo
@@ -59,7 +57,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Foo")
 
     fun testForbiddenRefactoring2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
             \func foo{-caret-} => 0
             \module Foo \where {
@@ -68,7 +66,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, null, "Main", "Foo")
 
     fun testForbiddenRefactoring3() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
             \func foo{-caret-} => 0
             \module Foo \where {
@@ -77,7 +75,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, null, "Main", "Foo")
 
     fun testLongName1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
             \module Foo \where {
               \func foo{-caret-} => 1
@@ -98,7 +96,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Foo.bar")
 
     fun testMoveModule() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
             \module abc{-caret-} \where {}
             \module def \where {}
@@ -109,7 +107,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "def")
 
     fun testMovedContent1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                  -- ! DirB/Main.ard
                 \module Foo \where {
                   \func foo => 101
@@ -132,7 +130,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "DirB.Main", "Foo")
 
     fun testMoveData1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! Main.ard
                 \module Foo \where {}
 
@@ -154,7 +152,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Foo")
 
     fun testClashingNames() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
              -- ! Main.ard
             \data MyNat{-caret-}
               | myZero
@@ -183,7 +181,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Foo")
 
     fun testMovedContent2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                  -- ! Main.ard
                 \import Main
                 \open Nat
@@ -227,7 +225,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "goo")
 
     fun testMovedContent3() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                  -- ! Main.ard
                 \class C{-caret-} {
                   | foo : Nat
@@ -257,7 +255,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Foo")
 
     fun testMoveData2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! Main.ard
                 \module Foo \where {}
 
@@ -283,7 +281,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 """, "Main", "Foo")
 
     fun testMoveStatCmds() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! Goo.ard
                 \module GooM \where {
                   \func lol => 1
@@ -305,7 +303,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Foo", "FooM", "Goo", "GooM.lol")
 
     fun testMoveFromWhereBlock1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! A.ard
 
                 \func lol => 1
@@ -319,7 +317,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "A", "lol")
 
     fun testMoveFromWhereBlock2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! A.ard
 
                 \func lol => 1
@@ -335,7 +333,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "A", "lol")
 
     fun testCleanFromHiding1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! A.ard
                 \func foo => 1
 
@@ -356,7 +354,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Bar", "A", "foo")
 
     fun testCleanFromHiding2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! A.ard
                 \module Foo \where {
                   \func foo => 1
@@ -381,7 +379,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Bar", "A", "Foo.foo")
 
     fun testRemainderInEmptyFile() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! A.ard
                 \func foo{-caret-} => 1
 
@@ -391,7 +389,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "B", "Bar")
 
     fun testRemovingEmptyImportCommand() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! Main.ard
                 \module Foo \where {
                   \func foo{-caret-} => 1
@@ -410,7 +408,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Bar")
 
     fun testMultipleMove1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! A.ard
                 \module Foo \where {
                   \func foo => 1
@@ -459,7 +457,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Bar", "A", "Foo.foo", "Foo.bar")
 
     fun testObstructedScopes() = //Should refactoring be prohibited in this situation?
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
             -- ! A.ard
             \open Nat
 
@@ -499,7 +497,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "A", "FooBar")
 
     fun testMoveData3() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! Main.ard
                 \module Bar \where {
                   \data MyNat2{-caret-}
@@ -549,7 +547,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Foo")
 
     fun testMultipleMove2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! Foo.ard
                \import Main
                \data D1 {-caret-}
@@ -568,7 +566,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleMove3() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! Foo.ard
                \import Main ()
                \data D1 {-caret-}
@@ -591,7 +589,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleMove4() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! Foo.ard
                \data D1 {-caret-}
                  | A
@@ -617,7 +615,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "", "Foo", "D1", "D2")
 
     fun testMultipleRenaming1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! Main.ard
                \open Nat
 
@@ -649,7 +647,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "Bar")
 
     fun testMultipleRenaming2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! Foo.ard
                \func foo => 1
 
@@ -673,7 +671,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Bar", "", "Foo", "foo")
 
     fun testRenaming() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! Main.ard
                \module Foo \where {
                  \open Foo (lol \as lol1)
@@ -697,7 +695,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                 """, "Main", "Bar")
 
     fun testMultipleMove5() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 -- ! Main.ard
                 \open Nat
                 \class C{-caret-} {
@@ -766,7 +764,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                }""", "Main", "FooBar", "Main", "C", "D")
 
     fun testPlainImportFix() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! A.ard
                \func foo => 1
                -- ! B.ard
@@ -783,7 +781,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
         """, "B", "", "A", "foo")
 
     fun testMinimalImport1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! A.ard
                \func foo => 1
 
@@ -802,7 +800,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
         """, "B", "", "A", "foo")
 
     fun testPlainImportFix2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! A.ard
                \func foo => 1
 
@@ -821,7 +819,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
         """, "B", "", "A", "foo")
 
     fun testMoveOutside() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! A.ard
                \module Foo \where {
                  \open Bar (fooBar)
@@ -844,7 +842,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "A", "")
 
     fun testClassField() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! A.ard
                \class Foo{-caret-} (U : Nat) {
                  \func foo => U
@@ -864,7 +862,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "A", "Bar")
 
     fun testInfixArguments1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! A.ard
                \module Bar \where {
                  \func foo{-caret-} (a b : Nat) => 101
@@ -884,7 +882,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "A", "Bar.FooBar")
 
     fun testMoveOutOfClass1() =
-            testMoveRefactoring(""" 
+            doTestMoveRefactoring(""" 
                \class C {
                  | f : Nat
                  \func foo{-caret-} (a : Nat) (b : a = f) => \lam this => \this
@@ -902,7 +900,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "")
 
     fun testMoveOutOfClass2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 \class C {
                   | foo : Nat
                   
@@ -921,7 +919,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "M")
 
     fun testMoveOutOfClass3() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 \class C1 (E : \Type)
 
                 \class C2 \extends C1 {
@@ -945,7 +943,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
 
 
     fun testMoveOutOfClass4() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \class C {
                  | carrier : \Type
 
@@ -969,7 +967,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "C")
 
     fun testMoveOutOfRecord0() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \record R {
                  \func F => 101
 
@@ -988,7 +986,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "M")
 
     fun testMoveOutOfRecord1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \class C1 (E : \Type)
 
                \record C2 \extends C1 {
@@ -1015,7 +1013,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "M")
 
     fun testMoveOutOfRecord2() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 \class C1 (E : \Type) {
                   | field1 : Nat
                 }
@@ -1050,7 +1048,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "M2")
 
     fun testMoveOutOfRecord3() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \record C1 (E : \Type) {
                  \func fubar1 (n : Nat) => 101
                }
@@ -1105,7 +1103,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "M2")
 
     fun testMoveOutOfRecord4() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \record C1 (E : \Type) {
                  \func fubar1 (n : Nat) => 101
                }
@@ -1144,7 +1142,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "M2")
 
     fun testMoveOutOfRecord5() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \record R {
                  \func bar (n m : Nat) => {?}
                  
@@ -1250,7 +1248,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                     "R.foo17", "R.foo18", "R.foo19")
 
     fun testMoveOutOfRecord6() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \record R {
                  \data D{-caret-}
                    | C1
@@ -1279,7 +1277,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "M")
 
     fun testMoveOutOfRecord7() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 \record R {
                   \data D
                     
@@ -1298,7 +1296,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "M")
 
     fun testMoveIntoDynamic1() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \class C1 {
                  | carrier : \Type
                }
@@ -1313,7 +1311,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "C1", targetIsDynamic = true)
 
     fun testMoveIntoDynamic2() =
-            testMoveRefactoring("""  
+            doTestMoveRefactoring("""  
                -- ! Main.ard
                
                \class C1 {
@@ -1334,7 +1332,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "C1", "Main", "foo", "goo", targetIsDynamic = true)
 
     fun testMoveIntoDynamic3() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \class C1
                  | carrier : \Type
                  
@@ -1348,7 +1346,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "C1", targetIsDynamic = true)
 
     fun testMoveIntoDynamic4() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                \class C1
                  
                \func foo{-caret-} => 1  
@@ -1359,7 +1357,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "C1", targetIsDynamic = true)
 
     fun testMoveIntoDynamic5() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                 \class C1
                   
                 -- | fubar
@@ -1373,7 +1371,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "C1", targetIsDynamic = true)
 
     fun testMoveBetweenDynamics1() =
-            testMoveRefactoring(""" 
+            doTestMoveRefactoring(""" 
                \record C {
                  | number : Nat
                  
@@ -1406,7 +1404,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 
     fun testMoveBetweenDynamics2() =
-            testMoveRefactoring(""" 
+            doTestMoveRefactoring(""" 
                \record C {
                  | number : Nat
                  
@@ -1438,7 +1436,26 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
                } 
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 
-    fun _testMoveBetweenDynamics3() = testMoveRefactoring("""
+    fun test456() = doTestMoveRefactoring(
+        """
+           -- ! A.ard
+           \func foo{-caret-} => 42
+                       
+           -- ! B.ard           
+           \import A
+           
+           -- ! Main.ard
+           \import A
+           
+           \func foobar => foo
+        """,
+        """
+           \import A
+        """,
+        "Main", "", fileToCheck = "B.ard"
+    )
+
+    fun _testMoveBetweenDynamics3() = doTestMoveRefactoring("""
        \class C {foo : Nat} {
          \func ba{-caret-}r (a : Nat) => a Nat.+ C.foo
 
@@ -1463,7 +1480,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
     """, "Main", "D", targetIsDynamic = true)
 
     fun testInstanceRefFix() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
                -- ! A.ard
                \record C (f : Nat -> Nat)
                 
@@ -1499,7 +1516,7 @@ class ArendMoveStaticMemberTest : ArendMoveTestBase() {
   \func bar4 : C3 => \new C3 (1, 2)"""
 
     fun testMoveOutOfRecord8() =
-            testMoveRefactoring("""
+            doTestMoveRefactoring("""
 $testMOR8Header
 
   \func fubar{-caret-} => (bar1.1,
@@ -1521,7 +1538,7 @@ $testMOR8Header
                            (C3.f {D.bar4 {this}}).1,
                            suc (C3.f {D.bar4 {this}}).1)""", "Main", "")
 
-    fun testInstances() = testMoveRefactoring("""
+    fun testInstances() = doTestMoveRefactoring("""
                \module Foo
                \instance foo{-caret-} => 1 
             """, """ 
@@ -1532,7 +1549,7 @@ $testMOR8Header
                \open Foo (foo) 
             """, "Main", "Foo")
 
-    fun testOpenMode() = testMoveRefactoring("""
+    fun testOpenMode() = doTestMoveRefactoring("""
            \module Foo \where {
              \func foo => 101
            }
@@ -1562,7 +1579,7 @@ $testMOR8Header
            } 
         """, "Main", "Bar", useOpenCommands = true)
 
-    fun _testParentImplicitParams() = testMoveRefactoring("""
+    fun _testParentImplicitParams() = doTestMoveRefactoring("""
        \func foo (x : Nat) => x
          \where
            \func bar{-caret-} => x
@@ -1576,7 +1593,7 @@ $testMOR8Header
        }
     """, "Main", "M", typecheck = true)
 
-    fun _testParentImplicitParams2() = testMoveRefactoring("""
+    fun _testParentImplicitParams2() = doTestMoveRefactoring("""
        \func foo (x : Nat) => x
          \where
            \func fubar (y : Nat) => y
@@ -1595,7 +1612,7 @@ $testMOR8Header
        \func lol => foo.bar 102 42
     """, "Main", "foo", typecheck = true)
 
-    fun _testParentImplicitClass() = testMoveRefactoring("""
+    fun _testParentImplicitClass() = doTestMoveRefactoring("""
        \class C {
          | foo : Nat
          \func lol (bar : Nat) => bar \where
@@ -1614,7 +1631,7 @@ $testMOR8Header
        }
     """, "Main", "M", typecheck = true)
 
-    fun _testParentImplicitUsage() = testMoveRefactoring("""
+    fun _testParentImplicitUsage() = doTestMoveRefactoring("""
        \func foo (x : Nat) => x
          \where {
            \func bar{-caret-} (p : x = x) : Nat => \case x \with {
@@ -1650,7 +1667,7 @@ $testMOR8Header
        }
     """, "Main", "M", typecheck = true)
 
-    fun _testComplicatedUsage() = testMoveRefactoring("""
+    fun _testComplicatedUsage() = doTestMoveRefactoring("""
        \func foo (x : Nat) => x
          \where {
            \func bar {y : Nat} => y \where {
@@ -1704,7 +1721,7 @@ $testMOR8Header
       }
     """, "Main", "M", typecheck = true)
 
-    fun _testComplicatedUsage2() = testMoveRefactoring("""
+    fun _testComplicatedUsage2() = doTestMoveRefactoring("""
        \class Foo {u : Nat} {
          | v : Nat
 
@@ -1744,7 +1761,7 @@ $testMOR8Header
        } 
     """, "Main", "Bar", typecheck = true, targetIsDynamic = true)
 
-    fun _testComplicatedUsage3() = testMoveRefactoring("""
+    fun _testComplicatedUsage3() = doTestMoveRefactoring("""
       \class Foo {u : Nat} {
         | v : Nat
 
