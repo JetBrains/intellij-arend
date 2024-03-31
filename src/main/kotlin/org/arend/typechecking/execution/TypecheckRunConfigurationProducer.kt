@@ -13,7 +13,7 @@ import org.arend.typechecking.execution.configurations.TypeCheckConfiguration
 import org.arend.typechecking.execution.configurations.TypecheckRunConfigurationType
 
 class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckConfiguration>() {
-    override fun getConfigurationFactory() = ArendRunConfigurationFactory(TypecheckRunConfigurationType())
+    override fun getConfigurationFactory() = TYPECHECK_CONFIGURATION_FACTORY
 
     override fun isConfigurationFromContext(configuration: TypeCheckConfiguration, context: ConfigurationContext): Boolean {
         val myConfiguration = configurationFromContext(context, null) ?: return false
@@ -49,5 +49,9 @@ class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckC
             }
             else -> return null
         }
+    }
+
+    companion object {
+        private val TYPECHECK_CONFIGURATION_FACTORY = ArendRunConfigurationFactory(TypecheckRunConfigurationType())
     }
 }
