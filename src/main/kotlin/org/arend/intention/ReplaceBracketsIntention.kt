@@ -33,7 +33,7 @@ class ReplaceBracketsIntention : SelfTargetingIntention<PsiElement>(PsiElement::
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
         val (left, right) = getBrackets(element)
-        return left != null && right != null
+        return left == element || right == element
     }
 
     private fun changeBrackets(element: PsiElement, document: Document) {

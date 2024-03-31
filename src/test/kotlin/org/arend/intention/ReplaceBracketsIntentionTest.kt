@@ -8,7 +8,7 @@ class ReplaceBracketsIntentionTest : QuickFixTestBase() {
     private fun doTest(contents: String, result: String) = simpleQuickFixTest(fixName, contents, result)
 
     fun testReplaceBrackets1() = doTest(
-        """\func foo (a{-caret-} : Nat) => 1""",
+        """\func foo ({-caret-}a : Nat) => 1""",
         """\func foo {a : Nat} => 1"""
     )
 
