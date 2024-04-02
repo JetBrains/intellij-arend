@@ -95,7 +95,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             wrapTag("head") {
                 wrapTag("style") {
                     append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
-                    val font = UIManager.getDefaults().getFont("Label.font").size
+                    val font = UIManager.getDefaults().getFont("Label.font").size * 1.2
                     append(".row { font-size: $font;}")
                     append(".definition { font-size: $font;}")
                     append(".content { font-size: $font;}")
@@ -145,7 +145,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             .setResizable(true)
             .setMovable(true)
             .setTitle(title)
-            .setRequestFocus(true)
+            .setRequestFocus(false)
+            .setCancelOnWindowDeactivation(true)
             .createPopup()
 
         val queryWidth = JBCefJSQuery.create(browser as JBCefBrowserBase)
@@ -204,24 +205,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         invokeLater {
-            val ideEventQueue = IdeEventQueue.getInstance()
-            ideEventQueue.popupManager.closeAllPopups()
+            IdeEventQueue.getInstance().popupManager.closeAllPopups()
             popup.show(RelativePoint(MouseInfo.getPointerInfo().location))
-
-            ideEventQueue.addDispatcher({ event ->
-                if (event is MouseEvent && event.getID() === MouseEvent.MOUSE_MOVED && popup.isVisible && popup.canClose()) {
-                    try {
-                        val leftUpCorner = Point(popup.locationOnScreen.x - 10, popup.locationOnScreen.y - 10)
-                        val area = Dimension(popup.width + 20, popup.height + 20)
-                        if (!Rectangle(leftUpCorner, area).contains(event.locationOnScreen)) {
-                            popup.closeOk(event)
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-                false
-            }, null)
         }
     }
 
