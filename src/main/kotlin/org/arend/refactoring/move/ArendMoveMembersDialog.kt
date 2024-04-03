@@ -23,8 +23,7 @@ import com.intellij.util.Alarm
 import org.arend.ArendFileType
 import org.arend.codeInsight.ArendCodeInsightUtils
 import org.arend.ext.module.ModulePath
-import org.arend.module.ModuleLocation
-import org.arend.module.ModuleScope
+import org.arend.module.AllArendFilesScope
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
@@ -37,6 +36,7 @@ import org.arend.util.FullName
 import org.arend.util.aligned
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.Toolkit
 import java.util.*
 import java.util.function.Predicate
 import javax.swing.Icon
@@ -45,6 +45,7 @@ import javax.swing.JRadioButton
 import javax.swing.SwingUtilities
 import kotlin.math.roundToInt
 import kotlin.collections.ArrayList
+import kotlin.math.min
 
 class ArendMoveMembersDialog(project: Project,
                              elements: List<ArendGroup>,
@@ -73,7 +74,7 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         val containingFile = container.containingFile as? ArendFile
-        val globalScope = containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == ModuleLocation.LocationKind.TEST) } ?: EmptyScope.INSTANCE
+        val globalScope = containingFile?.libraryConfig?.let { AllArendFilesScope(it) } ?: EmptyScope.INSTANCE
 
         targetFileField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.modulePath?.toString() ?: "", null, customScopeGetter = { globalScope })), project, ArendFileType.INSTANCE)
         targetModuleField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.longName?.toString() ?: "", null, customScopeGetter = {
@@ -146,11 +147,13 @@ class ArendMoveMembersDialog(project: Project,
     }
 
     private fun updateSize() {
+        val screenHeight = Toolkit.getDefaultToolkit().screenSize.getHeight().toInt()
+
         val rowHeight = memberSelectionPanel.table.rowHeight
         val additionalHeight = (ADDITIONAL_BASE_HEIGHT / rowHeight).roundToInt()
         val height = size.height - memberSelectionPanel.height + memberSelectionPanel.getTitledSeparator().height +
                 (memberSelectionPanel.memberInfo.size + 1) * rowHeight + additionalHeight
-        setSize(size.width, height)
+        setSize(size.width, min(screenHeight, height))
     }
 
     override fun beforeShowCallback() {
