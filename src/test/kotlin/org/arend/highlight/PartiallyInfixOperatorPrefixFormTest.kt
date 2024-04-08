@@ -1,5 +1,6 @@
-package org.arend.inspection
+package org.arend.highlight
 
+import org.arend.inspection.doWarningsCheck
 import org.arend.quickfix.QuickFixTestBase
 import org.arend.util.ArendBundle
 

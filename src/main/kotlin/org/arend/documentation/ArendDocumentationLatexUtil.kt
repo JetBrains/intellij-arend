@@ -50,9 +50,9 @@ internal fun getHtmlLatexCode(title: String, latexCode: String, project: Project
         val file = File(latexImagesDir.path + File.separator + title + ".png")
         ImageIO.write(image, "png", file.getAbsoluteFile())
 
-        val shift = ((1 - icon.baseLine) + icon.iconDepth / (font * FONT_DIFF_COEFFICIENT)) * 100
+        val shift = -((1 - icon.baseLine) + icon.iconDepth / (font * FONT_DIFF_COEFFICIENT)) * 100
 
-        return "<img ${if (isNewlineLatexCode) "style=\"margin: 0 auto;display: block;\"" else "style=\"vertical-align: -$shift%;margin: 1;\""} " +
+        return "<img ${if (isNewlineLatexCode) "style=\"margin: 0 auto;display: block;\"" else "style=\"vertical-align: $shift%;margin: 1;\""} " +
                 "src=\"file:///${file.absolutePath}\" title=$title width=\"${icon.iconWidth}\" height=\"${icon.iconHeight}\">"
     } catch (e: Exception) {
         if (e is ParseException) {

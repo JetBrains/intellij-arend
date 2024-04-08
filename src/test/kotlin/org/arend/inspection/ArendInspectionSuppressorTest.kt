@@ -2,7 +2,7 @@ package org.arend.inspection
 
 import com.intellij.codeInspection.NonAsciiCharactersInspection
 import org.arend.ArendTestBase
-import org.arend.inspection.PartiallyInfixOperatorPrefixFormInspectionTest.Companion.infixWarning
+import org.arend.highlight.PartiallyInfixOperatorPrefixFormInspectionTest.Companion.infixWarning
 
 class ArendInspectionSuppressorTest : ArendTestBase() {
     override fun setUp() {
