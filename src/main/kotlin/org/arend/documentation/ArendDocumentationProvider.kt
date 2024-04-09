@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.util.Pair
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
@@ -30,15 +31,22 @@ import org.arend.psi.ext.*
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.handler.CefLoadHandlerAdapter
-import java.awt.*
-import java.awt.event.MouseEvent
+import java.awt.Dimension
+import java.awt.MouseInfo
+import java.awt.Toolkit
+import java.awt.event.ActionListener
+import java.awt.event.KeyEvent
 import java.io.File
+import javax.swing.KeyStroke
 import javax.swing.UIManager
+import kotlin.math.roundToInt
 
 
 class ArendDocumentationProvider : AbstractDocumentationProvider() {
 
     private var popupCefBrowserHtml = ""
+    private var lastElement: PsiElement? = null
+    private var lastOriginalElement: PsiElement? = null
 
     override fun getQuickNavigateInfo(element: PsiElement, originalElement: PsiElement?) = generateDoc(element, originalElement, false)
 
@@ -48,7 +56,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         if (link.startsWith(ACTION_PREFIX)) {
             val elementText = link.removePrefix(ACTION_PREFIX)
             invokeLater {
-                showInCefBrowser(popupCefBrowserHtml, elementText)
+                showInCefBrowser(elementText)
             }
             return null
         }
@@ -86,19 +94,26 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         } }
     }
 
-    private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean): String? {
+    private fun generateDoc(element: PsiElement, originalElement: PsiElement?, withDocComments: Boolean, suggestedFont: Int? = null): String? {
         val ref = element as? PsiReferable ?: (element as? ArendDocComment)?.owner
         ?: return if (element.isArendKeyword()) generateDocForKeywords(element) else null
-        val docCommentInfo = ArendDocCommentInfo(hasLatexCode = false, wasPrevRow = false)
+
+        val font = suggestedFont ?:
+            (UIManager.getDefaults().getFont("Label.font")
+                ?.size?.times(COEFFICIENT_HTML_FONT))?.roundToInt()
+        val docCommentInfo = ArendDocCommentInfo(hasLatexCode = false, wasPrevRow = false,
+            suggestedFont = font?.times(COEFFICIENT_LATEX_FONT)?.toFloat() ?: DEFAULT_FONT)
+
         var offsetStartText = -1
         val htmlBuilder = StringBuilder().apply { wrapTag("html") {
             wrapTag("head") {
                 wrapTag("style") {
                     append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
-                    val font = UIManager.getDefaults().getFont("Label.font").size * 1.2
-                    append(".row { font-size: $font;}")
-                    append(".definition { font-size: $font;}")
-                    append(".content { font-size: $font;}")
+                    if (font != null) {
+                        append("$ROW_FONT_HTML$font$END_FONT_HTML")
+                        append("$DEFINITION_FONT_HTML$font$END_FONT_HTML")
+                        append("$CONTENT_FONT_HTML$font$END_FONT_HTML")
+                    }
                 }
             }
 
@@ -131,22 +146,45 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         if (docCommentInfo.hasLatexCode) {
             val elementText = ref.textRepresentation()
             popupCefBrowserHtml = htmlBuilder.toString()
+            lastElement = element
+            lastOriginalElement = originalElement
             htmlBuilder.insert(offsetStartText, "<a href=\"${PSI_ELEMENT_PROTOCOL}${ACTION_PREFIX}$elementText\">Open in another browser</a>")
         }
         return htmlBuilder.toString()
     }
 
-    private fun showInCefBrowser(html: String, title: String) {
+    private fun changeCefBrowserSize(browser: JBCefBrowser, shift: Double) {
+        val startOffset = popupCefBrowserHtml.indexOf(ROW_FONT_HTML) + ROW_FONT_HTML.length
+        val endOffset = popupCefBrowserHtml.indexOf(END_FONT_HTML, startOffset)
+        val font = (popupCefBrowserHtml.substring(startOffset, endOffset).toDouble() + shift).roundToInt()
+        if (font <= 0) {
+            return
+        }
+
+        lastElement?.let { generateDoc(it, lastOriginalElement, true, font) }
+        browser.loadHTML(popupCefBrowserHtml)
+    }
+
+    private fun showInCefBrowser(title: String) {
         val browser = JBCefBrowser()
         browser.component.preferredSize = Dimension(1, 1)
+
+        val actions = mutableListOf<Pair<ActionListener, KeyStroke>>()
+        actions.add(Pair(ActionListener {
+            changeCefBrowserSize(browser, 1.0)
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, KeyEvent.CTRL_DOWN_MASK)))
+        actions.add(Pair(ActionListener {
+            changeCefBrowserSize(browser, -1.0)
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, KeyEvent.CTRL_DOWN_MASK)))
 
         val popup = JBPopupFactory.getInstance()
             .createComponentPopupBuilder(browser.component, browser.component)
             .setResizable(true)
             .setMovable(true)
             .setTitle(title)
-            .setRequestFocus(false)
+            .setRequestFocus(true)
             .setCancelOnWindowDeactivation(true)
+            .setKeyboardActions(actions)
             .createPopup()
 
         val queryWidth = JBCefJSQuery.create(browser as JBCefBrowserBase)
@@ -168,7 +206,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         browser.jbCefClient.addLoadHandler(cefLoadHandler, browser.cefBrowser)
-        browser.loadHTML(html)
+        browser.loadHTML(popupCefBrowserHtml)
 
         val screenSize = Toolkit.getDefaultToolkit().screenSize
         val screenWidth = screenSize.getWidth().toInt()
@@ -295,5 +333,16 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         }
 
         return null
+    }
+
+    companion object {
+        const val COEFFICIENT_HTML_FONT = 1.2
+        const val COEFFICIENT_LATEX_FONT = 1.25
+        const val DEFAULT_FONT = 15.0f
+
+        const val END_FONT_HTML = ";}"
+        const val ROW_FONT_HTML = ".row { font-size: "
+        const val DEFINITION_FONT_HTML = ".definition { font-size: "
+        const val CONTENT_FONT_HTML = ".content { font-size: "
     }
 }
