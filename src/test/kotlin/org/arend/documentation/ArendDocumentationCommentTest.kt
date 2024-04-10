@@ -26,7 +26,7 @@ class ArendDocumentationCommentTest : ArendTestBase() {
         val hasLatexCode = hasLatexCode(doc!!)
         assertEquals(withLatexCode, hasLatexCode)
 
-        val docCommentInfo = ArendDocCommentInfo(hasLatexCode = hasLatexCode, wasPrevRow = false)
+        val docCommentInfo = ArendDocCommentInfo(hasLatexCode = hasLatexCode, wasPrevRow = false, suggestedFont = ArendDocumentationProvider.DEFAULT_FONT)
         val stringBuilder = StringBuilder()
         stringBuilder.generateDocComments(ref, doc, true, docCommentInfo)
 

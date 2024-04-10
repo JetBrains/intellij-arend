@@ -13,7 +13,7 @@ import org.arend.psi.doc.ArendDocReferenceText
 import org.arend.psi.ext.PsiReferable
 import java.net.URL
 
-internal data class ArendDocCommentInfo(var hasLatexCode: Boolean, var wasPrevRow: Boolean, var itemContextLastIndex: Int = -1)
+internal data class ArendDocCommentInfo(var hasLatexCode: Boolean, var wasPrevRow: Boolean, var itemContextLastIndex: Int = -1, val suggestedFont: Float)
 
 internal fun hasLatexCode(doc: PsiElement) = doc.childrenWithLeaves.any { it.elementType == DOC_LATEX_CODE }
 
@@ -68,11 +68,14 @@ private fun StringBuilder.processDocCommentElement(
         }
         elementType == TokenType.WHITE_SPACE || elementType == DOC_TABS -> append(" ")
         elementType == DOC_CODE -> append("<code>${docElement.text.htmlEscape()}</code>")
-        elementType == DOC_LATEX_CODE -> append(getHtmlLatexCode("image${counterLatexImages++}",
-            docElement.text.replace(REGEX_AREND_DOC_NEW_LINE, " "),
-            ref.project,
-            docElement.textOffset,
-            docElements.getOrNull(index - 1).elementType == DOC_NEWLINE_LATEX_CODE)
+        elementType == DOC_LATEX_CODE ->
+            append(getHtmlLatexCode("image${counterLatexImages++}",
+                docElement.text.replace(REGEX_AREND_DOC_NEW_LINE, " "),
+                ref.project,
+                docElement.textOffset,
+                docElements.getOrNull(index - 1).elementType == DOC_NEWLINE_LATEX_CODE,
+                docCommentInfo.suggestedFont
+            )
         )
         elementType == DOC_NEWLINE_LATEX_CODE -> {
             val prevElementType = docElements.getOrNull(index - 1).elementType
