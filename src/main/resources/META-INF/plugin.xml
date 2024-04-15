@@ -385,6 +385,8 @@
 
         <projectService serviceImplementation="org.arend.yaml.YamlFileService"/>
 
+        <projectService serviceImplementation="org.arend.toolWindow.errors.tree.ArendErrorTreeCellRendererService"/>
+
         <applicationService serviceImplementation="org.arend.typechecking.TypecheckingTaskQueue"/>
 
         <!-- Task Execution Listener -->
