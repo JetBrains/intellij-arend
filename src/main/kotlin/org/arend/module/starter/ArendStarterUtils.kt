@@ -143,9 +143,8 @@ object ArendStarterUtils {
         val arendLib = LibraryDependency(AREND_LIB)
 
         VfsUtil.findFile(Paths.get(librariesRoot), true)?.let { libRoot ->
-            VfsUtil.markDirtyAndRefresh(false, false, true, libRoot)
             libRoot.children.mapNotNull { file ->
-                if (file.name != LIBRARY_CONFIG_FILE && file.refreshed.configFile != null) {
+                if (file.name != LIBRARY_CONFIG_FILE && file.configFile != null) {
                     file.libraryName?.let { LibraryDependency(it) }
                 } else null
             }.forEach {
