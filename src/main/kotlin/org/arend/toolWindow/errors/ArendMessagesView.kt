@@ -5,6 +5,7 @@ import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -22,6 +23,7 @@ import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.impl.SingleHeightTabs
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
+import kotlinx.coroutines.runBlocking
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
@@ -35,12 +37,16 @@ import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.util.ArendBundle
+import java.util.*
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
+import kotlin.collections.HashMap
+import kotlin.collections.LinkedHashMap
+import kotlin.collections.LinkedHashSet
 
 class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : ArendErrorTreeListener,
     TreeSelectionListener, ProjectManagerListener {
@@ -83,7 +89,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
         setupTreeDetailsSplitter(!toolWindow.anchor.isHorizontal)
 
-        tree.cellRenderer = ArendErrorTreeCellRenderer()
+        tree.cellRenderer = ArendErrorTreeCellRenderer(project)
         tree.addTreeSelectionListener(this)
 
         val actionGroup = DefaultActionGroup()
@@ -327,17 +333,31 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         }
     }
 
+    private fun getArendFilesWithErrors(filterSet: EnumSet<MessageType>, errorsMap: Map<ArendFile, List<ArendError>>): List<ArendFile> {
+        return errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }
+            .map { it.key }
+    }
+
     fun update() {
+        val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
+        val errorsMap = project.service<ErrorService>().errors
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            getArendFilesWithErrors(filterSet, errorsMap).forEach {
+                it.arendLibrary
+                it.moduleLocation
+            }
+        }.get()
+
         runInEdt {
             val expandedPaths = TreeUtil.collectExpandedPaths(tree)
             val selectedPath = tree.selectionPath
 
-            val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
-            val errorsMap = project.service<ErrorService>().errors
             val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
             tree.update(root) { node ->
-                if (node == root) errorsMap.entries.filter { entry -> entry.value.any { it.error.satisfies(filterSet) } }
-                .map { it.key }
+                if (node == root) {
+                    getArendFilesWithErrors(filterSet, errorsMap)
+                }
                 else when (val obj = node.userObject) {
                     is ArendFile -> {
                         val arendErrors = errorsMap[obj]
@@ -346,20 +366,17 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                             if (!arendError.error.satisfies(filterSet)) {
                                 continue
                             }
-
-                        val def = arendError.definition
-                        if (def == null) {
-                            children.add(ArendErrorTreeElement(arendError))
-                        } else {
-                            children.add(def)
-                            map.computeIfAbsent(def) { LinkedHashMap() }
-                                .computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
+                            val def = arendError.definition
+                            if (def == null) {
+                                children.add(ArendErrorTreeElement(arendError))
+                            } else {
+                                children.add(def)
+                                map.computeIfAbsent(def) { LinkedHashMap() }
+                                    .computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
+                            }
                         }
+                        children
                     }
-                    children
-                }
-
-
                     is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
                     else -> emptySet()
                 }
