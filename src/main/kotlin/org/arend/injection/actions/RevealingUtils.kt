@@ -36,7 +36,7 @@ private class DocMapper(val config: PrettyPrinterConfig) : DocVisitor<(Expressio
     }
 
     override fun visitTermLine(doc: TermLineDoc, params: (Expression) -> Expression): Doc {
-        return DocFactory.termLine(params(doc.term as Expression), config)
+        return DocFactory.termLine(params(doc.term as Expression), doc.prettifier, config)
     }
 
     override fun visitPattern(doc: PatternDoc, params: (Expression) -> Expression): Doc {
@@ -44,6 +44,6 @@ private class DocMapper(val config: PrettyPrinterConfig) : DocVisitor<(Expressio
     }
 
     override fun visitTerm(doc: TermDoc, params: (Expression) -> Expression): Doc {
-        return if (doc is TermWithSubtermDoc) TermWithSubtermDoc(params(UncheckedExpressionImpl.extract(doc.term)), doc.subterm, doc.levels, config) else DocFactory.termDoc(params(UncheckedExpressionImpl.extract(doc.term)), config)
+        return if (doc is TermWithSubtermDoc) TermWithSubtermDoc(params(UncheckedExpressionImpl.extract(doc.term)), doc.subterm, doc.levels, doc.prettifier, config) else DocFactory.termDoc(params(UncheckedExpressionImpl.extract(doc.term)), doc.prettifier, config)
     }
 }
