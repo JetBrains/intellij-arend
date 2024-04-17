@@ -70,7 +70,7 @@ intellij {
     pluginName.set("Arend")
     updateSinceUntilBuild.set(true)
     instrumentCode.set(true)
-    plugins.set(listOf("org.jetbrains.plugins.yaml", "com.intellij.java", "IdeaVIM:2.7.5"))
+    plugins.set(listOf("org.jetbrains.plugins.yaml", "com.intellij.java", "IdeaVIM:2.10.2"))
 }
 
 tasks.named<JavaExec>("runIde") {
