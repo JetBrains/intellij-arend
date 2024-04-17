@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
+import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotificationProvider
 import org.arend.psi.ArendFile
@@ -18,7 +19,8 @@ import javax.swing.JComponent
 class FileOutsideSourcesProvider : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, virtualFile: VirtualFile): Function<in FileEditor, out JComponent?>? {
         val file = PsiManager.getInstance(project).findFile(virtualFile)
-        if (file !is ArendFile || ProjectFileIndex.getInstance(project).isInSource(virtualFile) || project.service<TypeCheckingService>().prelude == file) {
+        if (file !is ArendFile || ProjectFileIndex.getInstance(project).isInSource(virtualFile) ||
+                project.service<TypeCheckingService>().prelude == file || virtualFile is LightVirtualFile) {
             return null
         }
 
