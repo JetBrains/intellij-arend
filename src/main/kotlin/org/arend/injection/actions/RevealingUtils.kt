@@ -1,13 +1,15 @@
 package org.arend.injection.actions
 
 import org.arend.core.expr.Expression
+import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.*
 import org.arend.extImpl.UncheckedExpressionImpl
 import org.arend.term.prettyprint.TermWithSubtermDoc
+import org.arend.typechecking.error.local.TypeMismatchWithSubexprError
 
-fun Doc.withNormalizedTerms(cache: NormalizationCache, ppConfig: PrettyPrinterConfig): Doc {
-    return this.accept(DocMapper(ppConfig), cache::getNormalizedExpression)
+fun Doc.withNormalizedTerms(cache: NormalizationCache, ppConfig: PrettyPrinterConfig, error: GeneralError): Doc {
+    return if (error is TypeMismatchWithSubexprError) this else this.accept(DocMapper(ppConfig), cache::getNormalizedExpression)
 }
 
 private class DocMapper(val config: PrettyPrinterConfig) : DocVisitor<(Expression) -> Expression, Doc> {

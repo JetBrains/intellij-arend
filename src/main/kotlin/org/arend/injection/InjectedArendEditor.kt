@@ -43,6 +43,7 @@ import org.arend.psi.ext.ArendDefMeta
 import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
+import org.arend.term.prettyprint.TermWithSubtermDoc
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
 import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.toolWindow.errors.tree.ArendErrorTreeElement
@@ -91,7 +92,7 @@ abstract class InjectedArendEditor(
             panel.add(editor.component, BorderLayout.CENTER)
 
             val toolbar = ActionManager.getInstance().createActionToolbar("ArendEditor.toolbar", actionGroup, false)
-            toolbar.setTargetComponent(panel)
+            toolbar.targetComponent = panel
             panel.add(toolbar.component, BorderLayout.WEST)
         } else {
             panel = null
@@ -128,7 +129,8 @@ abstract class InjectedArendEditor(
             val builder = StringBuilder()
             val visitor = CollectingDocStringBuilder(builder, treeElement.sampleError.error)
             var fileScope: Scope = EmptyScope.INSTANCE
-            var error: GeneralError? = null
+            var lastError: GeneralError? = null
+            val newErrorRanges = ArrayList<TextRange>()
 
             runReadAction {
                 var first = true
@@ -139,17 +141,34 @@ abstract class InjectedArendEditor(
                         builder.append("\n\n")
                     }
 
-                    error = arendError.error
-                    val (resolve, scope) = resolveCauseReference(error!!)
+                    val error = arendError.error
+                    val (resolve, scope) = resolveCauseReference(error)
                     if (scope != null) {
                         fileScope = scope
                     }
-                    val doc = getDoc(treeElement, error!!, resolve, scope)
+                    val doc = getDoc(treeElement, error, resolve, scope)
                     currentDoc = doc
                     doc.accept(visitor, false)
+
+                    val injectionRanges = visitor.textRanges
+                    if (error is TypeMismatchWithSubexprError && injectionRanges.size >= 2) {
+                        val ppConfig = getCurrentConfig(scope)
+                        val expectedDoc = TermWithSubtermDoc(error.result.wholeExpr2, error.result.subExpr2, error.result.levels2, null, ppConfig)
+                        expectedDoc.init()
+                        if (expectedDoc.end > expectedDoc.begin) {
+                            addErrorRange(TextRange(expectedDoc.begin, expectedDoc.end), injectionRanges[injectionRanges.size - 2], newErrorRanges)
+                        }
+                        val actualDoc = TermWithSubtermDoc(error.result.wholeExpr1, error.result.subExpr1, error.result.levels1, null, ppConfig)
+                        actualDoc.init()
+                        if (actualDoc.end > actualDoc.begin) {
+                            addErrorRange(TextRange(actualDoc.begin, actualDoc.end), injectionRanges[injectionRanges.size - 1], newErrorRanges)
+                        }
+                    }
+
+                    lastError = error
                 }
             }
-            val info = mapToTypeDiffInfo(error)
+            val info = mapToTypeDiffInfo(lastError)
             val (startDiff, finishDiff) = if (info != null) {
                 builder.appendLine()
                 val start = builder.lastIndex + 1
@@ -170,21 +189,7 @@ abstract class InjectedArendEditor(
                     injectionRanges = visitor.textRanges
                     scope = fileScope
                     injectedExpressions = visitor.expressions
-                    errorRanges.clear()
-                    var i = 0
-                    for (arendError in treeElement.errors) {
-                        val error = arendError.error as? TypeMismatchWithSubexprError ?: continue
-                        error.termDoc2.init()
-                        if (error.termDoc2.end > error.termDoc2.begin) {
-                            addErrorRange(TextRange(error.termDoc2.begin, error.termDoc2.end), injectionRanges[i])
-                        }
-                        if (++i >= injectionRanges.size) break
-                        error.termDoc1.init()
-                        if (error.termDoc1.end > error.termDoc1.begin) {
-                            addErrorRange(TextRange(error.termDoc1.begin, error.termDoc1.end), injectionRanges[i])
-                        }
-                        if (++i >= injectionRanges.size) break
-                    }
+                    errorRanges = newErrorRanges
                 }
                 postWriteCallback()
                 UndoManager.getInstance(project)
@@ -203,6 +208,26 @@ abstract class InjectedArendEditor(
         }
     }
 
+    private fun insertPosition(pos: Int, injectionRanges: List<TextRange>, inclusive: Boolean): Int {
+        var skipped = 0
+        for (injectionRange in injectionRanges) {
+            val newSkipped = skipped + injectionRange.length + 1
+            if (if (inclusive) pos <= newSkipped else pos < newSkipped) {
+                return injectionRange.startOffset + pos - skipped
+            }
+            skipped = newSkipped
+        }
+        return -1
+    }
+
+    private fun addErrorRange(range: TextRange, injectionRanges: List<TextRange>, errorRanges: MutableList<TextRange>) {
+        val start = insertPosition(range.startOffset, injectionRanges, false)
+        val end = insertPosition(range.endOffset, injectionRanges, true)
+        if (start >= 0 && end >= 0) {
+            errorRanges.add(TextRange(start, end))
+        }
+    }
+
     fun getCurrentConfig(scope: Scope?): PrettyPrinterConfig {
         return ProjectPrintConfig(
             project,
@@ -216,11 +241,11 @@ abstract class InjectedArendEditor(
     fun getDoc(treeElement: ArendErrorTreeElement, error: GeneralError, resolve: Referable?, scope: Scope?): Doc {
         val ppConfig = getCurrentConfig(scope)
         return if (causeIsMetaExpression(error.causeSourceNode, resolve)) {
-            error.getDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
+            error.getDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig, error)
         } else {
             DocFactory.vHang(
-                error.getHeaderDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig),
-                error.getBodyDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig)
+                error.getHeaderDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig, error),
+                error.getBodyDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig, error)
             )
         }
     }

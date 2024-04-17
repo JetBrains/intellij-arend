@@ -15,12 +15,14 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
     val expressions = ArrayList<Expression?>()
     private var last: ArrayList<TextRange>? = null
 
+    private fun decreaseOffset(offset: Int, newLine: Boolean) = if (newLine) offset - 1 else offset
+
     override fun visitReference(doc: ReferenceDoc, newLine: Boolean): Void? {
         val start = builder.length
         super.visitReference(doc, newLine)
         val hyperlink = createHyperlinkInfo(doc.reference, error).first
         if (hyperlink != null) {
-            hyperlinks.add(Pair(TextRange(start, builder.length), hyperlink))
+            hyperlinks.add(Pair(TextRange(start, decreaseOffset(builder.length, newLine)), hyperlink))
         }
         last = null
         return null
@@ -30,7 +32,7 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
         expressions.add(doc.term as? Expression)
         val start = builder.length
         super.visitTermLine(doc, newLine)
-        textRanges.add(listOf(TextRange(start, builder.length)))
+        textRanges.add(listOf(TextRange(start, decreaseOffset(builder.length, newLine))))
         last = null
         return null
     }
@@ -39,7 +41,7 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
         expressions.add(null)
         val start = builder.length
         super.visitPattern(doc, newLine)
-        textRanges.add(listOf(TextRange(start, builder.length)))
+        textRanges.add(listOf(TextRange(start, decreaseOffset(builder.length, newLine))))
         last = null
         return null
     }
@@ -60,7 +62,7 @@ class CollectingDocStringBuilder(private val builder: StringBuilder, private val
 
         val start = builder.length
         super.visitText(doc, newLine)
-        last!!.add(TextRange(start, builder.length))
+        last!!.add(TextRange(start, decreaseOffset(builder.length, newLine)))
 
         return null
     }

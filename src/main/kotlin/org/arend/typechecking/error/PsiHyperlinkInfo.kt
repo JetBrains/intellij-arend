@@ -22,7 +22,6 @@ import org.arend.ext.reference.ArendRef
 import org.arend.ext.reference.DataContainer
 import org.arend.highlight.BasePass
 import org.arend.psi.navigate
-import org.arend.typechecking.error.local.TypeMismatchWithSubexprError
 import org.arend.util.ArendBundle
 
 private class PsiHyperlinkInfo(private val sourceElement: SmartPsiElementPointer<out PsiElement>) : HyperlinkInfo {
@@ -45,17 +44,12 @@ private class FixedHyperlinkInfo(private val error: GeneralError) : HyperlinkInf
 
 fun mapToTypeDiffInfo(error: GeneralError?): Pair<DocumentContent, DocumentContent>? {
     val diffContentFactory = DiffContentFactory.getInstance()
-    return when (error) {
-        is TypeMismatchWithSubexprError -> Pair(error.termDoc2?.toString(), error.termDoc1?.toString())
-        is TypeMismatchError -> Pair(error.expected?.toString(), error.actual?.toString())
-        is ArgInferenceError -> Pair(error.expected?.toString(), error.actual?.toString())
+    val pair = when (error) {
+        is TypeMismatchError -> Pair(error.expected, error.actual)
+        is ArgInferenceError -> if (error.expected != null && error.actual != null) Pair(error.expected, error.actual) else null
         else -> null
-    }?.let {
-        if (it.first == null || it.second == null) {
-            return null
-        }
-        Pair(diffContentFactory.create(it.first!!, ArendFileType.INSTANCE), diffContentFactory.create(it.second!!, ArendFileType.INSTANCE))
-    }
+    } ?: return null
+    return Pair(diffContentFactory.create(pair.first.toString(), ArendFileType.INSTANCE), diffContentFactory.create(pair.second.toString(), ArendFileType.INSTANCE))
 }
 
 class DiffHyperlinkInfo(private val typeDiffInfo: Pair<DocumentContent, DocumentContent>): HyperlinkInfo {
