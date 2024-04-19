@@ -26,10 +26,14 @@ enum class Choice {
 }
 
 fun InjectedArendEditor.performPrettyPrinterManipulation(editor: Editor, choice: Choice) {
-    val (_, scope) = treeElement?.sampleError?.error?.let(InjectedArendEditor.Companion::resolveCauseReference)
-        ?: return
+    val error = treeElement?.sampleError?.error
+    val (resolve, scope) = error?.let(InjectedArendEditor.Companion::resolveCauseReference) ?: return
+
     val ppConfig = getCurrentConfig(scope)
     val offset = editor.caretModel.offset
+    val doc = treeElement?.let { getDoc(it, error, resolve, scope) } ?: return
+    currentDoc = doc
+
     val revealableFragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return
     val id = "Arend Verbose level increase " + Random.nextInt()
     val revealingAction = getModificationAction(revealableFragment, editor, id, false, choice)
