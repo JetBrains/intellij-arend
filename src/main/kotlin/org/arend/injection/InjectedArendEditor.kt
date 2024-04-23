@@ -1,5 +1,6 @@
 package org.arend.injection
 
+import com.intellij.diff.contents.DocumentContent
 import com.intellij.execution.impl.EditorHyperlinkSupport
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -121,6 +122,13 @@ abstract class InjectedArendEditor(
         collection.forEach { panel?.remove(it) }
     }
 
+    private data class DiffInfo(
+        val firstDocumentContent: DocumentContent,
+        val secondDocumentContent: DocumentContent,
+        val startOffset: Int,
+        val endOffset: Int
+    )
+
     fun updateErrorText(id: String? = null, postWriteCallback: () -> Unit = {}) {
         if (editor == null) return
         val treeElement = treeElement ?: return
@@ -129,8 +137,8 @@ abstract class InjectedArendEditor(
             val builder = StringBuilder()
             val visitor = CollectingDocStringBuilder(builder, treeElement.sampleError.error)
             var fileScope: Scope = EmptyScope.INSTANCE
-            var lastError: GeneralError? = null
             val newErrorRanges = ArrayList<TextRange>()
+            val diffInfos = mutableListOf<DiffInfo>()
 
             runReadAction {
                 var first = true
@@ -165,18 +173,14 @@ abstract class InjectedArendEditor(
                         }
                     }
 
-                    lastError = error
+                    mapToTypeDiffInfo(error)?.let {
+                        builder.appendLine()
+                        val start = builder.lastIndex + 1
+                        builder.append(ArendBundle.message("arend.click.to.see.diff.link"))
+                        val finish = builder.lastIndex + 1
+                        diffInfos.add(DiffInfo(it.first, it.second, start, finish))
+                    }
                 }
-            }
-            val info = mapToTypeDiffInfo(lastError)
-            val (startDiff, finishDiff) = if (info != null) {
-                builder.appendLine()
-                val start = builder.lastIndex + 1
-                builder.append(ArendBundle.message("arend.click.to.see.diff.link"))
-                val finish = builder.lastIndex + 1
-                Pair(start, finish)
-            } else {
-                Pair(-1, -1)
             }
 
             val text = builder.toString()
@@ -202,8 +206,12 @@ abstract class InjectedArendEditor(
                 support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
             }
 
-            info?.let {
-                support.createHyperlink(startDiff, finishDiff, null, DiffHyperlinkInfo(it))
+            for (diffInfo in diffInfos) {
+                support.createHyperlink(
+                    diffInfo.startOffset,
+                    diffInfo.endOffset,
+                    null,
+                    DiffHyperlinkInfo(Pair(diffInfo.firstDocumentContent, diffInfo.secondDocumentContent)))
             }
         }
     }
