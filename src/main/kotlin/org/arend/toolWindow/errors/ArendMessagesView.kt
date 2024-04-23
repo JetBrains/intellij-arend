@@ -192,6 +192,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 updateEditor(errorEditor!!, treeElement)
                 updatePanel(errorsPanel, errorEditor?.component ?: errorEmptyPanel)
             }
+            if (errorEditor?.isEmptyActionGroup() == true) {
+                errorEditor?.setupActions()
+            }
         } else {
             if (!isGoalTextPinned()) {
                 goalEditor?.treeElement?.sampleError?.let { currentGoal ->

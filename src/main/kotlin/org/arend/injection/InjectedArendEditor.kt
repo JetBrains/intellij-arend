@@ -65,6 +65,8 @@ abstract class InjectedArendEditor(
     private val panel: JPanel?
     protected val actionGroup: DefaultActionGroup = DefaultActionGroup()
 
+    fun isEmptyActionGroup() = actionGroup.childrenCount == 0
+
     protected abstract val printOptionKind: PrintOptionKind
 
     var currentDoc: Doc? = null
