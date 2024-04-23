@@ -1,5 +1,6 @@
 package org.arend.tracer
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiElement
@@ -64,9 +65,11 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
                 return
             }
             val psiElement = getSourcePositionElement(traceEntry)
-            val psiText = psiElement?.text?.let(::shorten) ?: ArendBundle.message("arend.tracer.unknown.expression")
-            component.append(psiText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-            setPositionText(component, positionComponents())
+            ApplicationManager.getApplication().runReadAction {
+                val psiText = psiElement?.text?.let(::shorten) ?: ArendBundle.message("arend.tracer.unknown.expression")
+                component.append(psiText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                setPositionText(component, positionComponents())
+            }
         }
 
         override fun computeChildren(node: XCompositeNode) {

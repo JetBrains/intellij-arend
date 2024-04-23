@@ -377,14 +377,21 @@ abstract class InjectedArendEditor(
             val causeSourceNode = error.causeSourceNode
             val data = (causeSourceNode?.data as? DataContainer)?.data ?: causeSourceNode?.data
             val unresolvedRef = (data as? Reference)?.referent
-            val scope =
-                if (unresolvedRef != null || error.hasExpressions())
-                    (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) }
-                else null
-            val ref =
-                if (unresolvedRef != null && scope != null)
-                    ExpressionResolveNameVisitor.resolve(unresolvedRef, scope)
-                else null
+
+            var scope: Scope? = null
+            var ref: Referable? = null
+            ApplicationManager.getApplication().run {
+                executeOnPooledThread {
+                    runReadAction {
+                        if (unresolvedRef != null || error.hasExpressions()) {
+                            scope = (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) }
+                        }
+                        if (unresolvedRef != null && scope != null) {
+                            ref = ExpressionResolveNameVisitor.resolve(unresolvedRef, scope)
+                        }
+                    }
+                }.get()
+            }
             return Pair(ref, scope)
         }
 

@@ -1,6 +1,7 @@
 package org.arend.module.editor
 
 import com.intellij.notification.Notifications
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
@@ -129,7 +130,9 @@ class ArendModuleConfigurationView(
         get() = libRootTextField.text
         set(value) {
             libRootTextField.text = value
-            textFieldChangeListener.fireEvent()
+            ApplicationManager.getApplication().executeOnPooledThread {
+                textFieldChangeListener.fireEvent()
+            }.get()
         }
 
     override var sourcesDir: String
