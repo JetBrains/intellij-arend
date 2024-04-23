@@ -40,7 +40,7 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
         treeElement = null
     }
 
-    private fun setupActions() {
+    fun setupActions() {
         if (isGoalEditor) {
             actionGroup.add(ActionManager.getInstance().getAction(ArendPinGoalAction.ID))
             actionGroup.add(ActionManager.getInstance().getAction(ArendClearGoalAction.ID))
