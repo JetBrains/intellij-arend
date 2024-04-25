@@ -345,49 +345,55 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
         val errorsMap = project.service<ErrorService>().errors
 
-        ApplicationManager.getApplication().executeOnPooledThread {
-            getArendFilesWithErrors(filterSet, errorsMap).forEach {
-                it.arendLibrary
-                it.moduleLocation
-            }
-        }.get()
-
-        runInEdt {
-            val expandedPaths = TreeUtil.collectExpandedPaths(tree)
-            val selectedPath = tree.selectionPath
-
-            val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
-            tree.update(root) { node ->
-                if (node == root) {
-                    getArendFilesWithErrors(filterSet, errorsMap)
+        ApplicationManager.getApplication().run {
+            executeOnPooledThread {
+                val arendFilesWithErrors = getArendFilesWithErrors(filterSet, errorsMap).onEach {
+                    it.arendLibrary
+                    it.moduleLocation
                 }
-                else when (val obj = node.userObject) {
-                    is ArendFile -> {
-                        val arendErrors = errorsMap[obj]
-                        val children = LinkedHashSet<Any>()
-                        for (arendError in arendErrors ?: emptyList()) {
-                            if (!arendError.error.satisfies(filterSet)) {
-                                continue
-                            }
-                            val def = arendError.definition
-                            if (def == null) {
-                                children.add(ArendErrorTreeElement(arendError))
-                            } else {
-                                children.add(def)
-                                map.computeIfAbsent(def) { LinkedHashMap() }
-                                    .computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
-                            }
+                runInEdt {
+                    val expandedPaths = TreeUtil.collectExpandedPaths(tree)
+                    val selectedPath = tree.selectionPath
+
+                    val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
+                    tree.update(root) { node ->
+                        if (node == root) {
+                            arendFilesWithErrors
                         }
-                        children
+                        else when (val obj = node.userObject) {
+                            is ArendFile -> {
+                                val arendErrors = errorsMap[obj]
+                                val children = LinkedHashSet<Any>()
+                                for (arendError in arendErrors ?: emptyList()) {
+                                    if (!arendError.error.satisfies(filterSet)) {
+                                        continue
+                                    }
+
+                                    var def: PsiConcreteReferable? = null
+                                    executeOnPooledThread {
+                                        runReadAction {
+                                            def = arendError.definition
+                                        }
+                                    }.get()
+                                    if (def == null) {
+                                        children.add(ArendErrorTreeElement(arendError))
+                                    } else {
+                                        children.add(def!!)
+                                        map.computeIfAbsent(def!!) { LinkedHashMap() }
+                                            .computeIfAbsent(arendError.cause) { ArendErrorTreeElement() }.add(arendError)
+                                    }
+                                }
+                                children
+                            }
+                            is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
+                            else -> emptySet()
+                        }
                     }
-                    is PsiConcreteReferable -> map[obj]?.values ?: emptySet()
-                    else -> emptySet()
+                    treeModel.reload()
+                    TreeUtil.restoreExpandedPaths(tree, expandedPaths)
+                    tree.selectionPath = tree.getExistingPrefix(selectedPath)
                 }
             }
-
-            treeModel.reload()
-            TreeUtil.restoreExpandedPaths(tree, expandedPaths)
-            tree.selectionPath = tree.getExistingPrefix(selectedPath)
         }
     }
 }

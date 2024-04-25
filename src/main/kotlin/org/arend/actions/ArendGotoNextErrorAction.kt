@@ -3,6 +3,8 @@ package org.arend.actions
 import com.intellij.codeInsight.daemon.impl.GotoNextErrorHandler
 import com.intellij.codeInsight.daemon.impl.actions.GotoNextErrorAction
 import com.intellij.codeInsight.daemon.impl.actions.GotoPreviousErrorAction
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.MarkupModelEx
@@ -43,23 +45,37 @@ fun selectErrorFromEditor(project: Project, editor: Editor, file: ArendFile?, al
         return
     }
 
-    val arendFile = file ?: PsiDocumentManager.getInstance(project).getPsiFile(document) as? ArendFile ?: return
-    val arendErrors = project.service<ErrorService>().getErrors(arendFile)
-    if (arendErrors.isEmpty()) {
-        return
-    }
-
-    val service = project.service<ArendProjectSettings>()
-    for (arendError in arendErrors) {
-        if (always || arendError.error.satisfies(service.autoScrollFromSource)) {
-            val textRange = BasePass.getImprovedTextRange(arendError.error) ?: continue
-            if (textRange.containsOffset(offset)) {
-                val messagesService = project.service<ArendMessagesService>()
-                messagesService.view?.tree?.select(arendError.error)
-                if (activate) {
-                    messagesService.activate(project, false)
+    var arendFile = file
+    if (arendFile == null) {
+        ApplicationManager.getApplication().run {
+            executeOnPooledThread {
+                runReadAction {
+                    arendFile = PsiDocumentManager.getInstance(project).getPsiFile(document) as? ArendFile
                 }
-                break
+                if (arendFile == null) {
+                    return@executeOnPooledThread
+                }
+                runInEdt {
+                    val arendErrors = project.service<ErrorService>().getErrors(arendFile!!)
+                    if (arendErrors.isEmpty()) {
+                        return@runInEdt
+                    }
+
+                    val service = project.service<ArendProjectSettings>()
+                    for (arendError in arendErrors) {
+                        if (always || arendError.error.satisfies(service.autoScrollFromSource)) {
+                            val textRange = BasePass.getImprovedTextRange(arendError.error) ?: continue
+                            if (textRange.containsOffset(offset)) {
+                                val messagesService = project.service<ArendMessagesService>()
+                                messagesService.view?.tree?.select(arendError.error)
+                                if (activate) {
+                                    messagesService.activate(project, false)
+                                }
+                                break
+                            }
+                        }
+                    }
+                }
             }
         }
     }
