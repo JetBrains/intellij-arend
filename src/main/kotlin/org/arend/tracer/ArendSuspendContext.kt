@@ -1,5 +1,6 @@
 package org.arend.tracer
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
@@ -56,20 +57,22 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
         override fun customizePresentation(component: ColoredTextContainer) {
             component.setIcon(icon)
 
-            val (resolve, _) = InjectedArendEditor.resolveCauseReference(traceEntry.goalDataHolder)
-            if (InjectedArendEditor.causeIsMetaExpression(traceEntry.goalDataHolder.cause, resolve)) {
-                val metaExpressionText = traceEntry.goalDataHolder.getCauseDoc(PrettyPrinterConfig.DEFAULT).toString()
-                component.append(shorten(metaExpressionText), SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                val psiElement = traceEntry.psiElement
-                setPositionText(component, positionComponents() + listOfNotNull(psiElement?.text))
-                return
+            ApplicationManager.getApplication().executeOnPooledThread {
+                runReadAction {
+                    val (resolve, _) = InjectedArendEditor.resolveCauseReference(traceEntry.goalDataHolder)
+                    if (InjectedArendEditor.causeIsMetaExpression(traceEntry.goalDataHolder.cause, resolve)) {
+                        val metaExpressionText = traceEntry.goalDataHolder.getCauseDoc(PrettyPrinterConfig.DEFAULT).toString()
+                        component.append(shorten(metaExpressionText), SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                        val psiElement = traceEntry.psiElement
+                        setPositionText(component, positionComponents() + listOfNotNull(psiElement?.text))
+                        return@runReadAction
+                    }
+                }
             }
             val psiElement = getSourcePositionElement(traceEntry)
-            runReadAction {
-                val psiText = psiElement?.text?.let(::shorten) ?: ArendBundle.message("arend.tracer.unknown.expression")
-                component.append(psiText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                setPositionText(component, positionComponents())
-            }
+            val psiText = psiElement?.text?.let(::shorten) ?: ArendBundle.message("arend.tracer.unknown.expression")
+            component.append(psiText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
+            setPositionText(component, positionComponents())
         }
 
         override fun computeChildren(node: XCompositeNode) {

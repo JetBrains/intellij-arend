@@ -142,78 +142,80 @@ abstract class InjectedArendEditor(
             val newErrorRanges = ArrayList<TextRange>()
             val diffInfos = mutableListOf<DiffInfo>()
 
-            runReadAction {
-                var first = true
-                for (arendError in treeElement.errors) {
-                    if (first) {
-                        first = false
-                    } else {
-                        builder.append("\n\n")
-                    }
-
-                    val error = arendError.error
-                    val (resolve, scope) = resolveCauseReference(error)
-                    if (scope != null) {
-                        fileScope = scope
-                    }
-                    val doc = getDoc(treeElement, error, resolve, scope)
-                    currentDoc = doc
-                    doc.accept(visitor, false)
-
-                    val injectionRanges = visitor.textRanges
-                    if (error is TypeMismatchWithSubexprError && injectionRanges.size >= 2) {
-                        val ppConfig = getCurrentConfig(scope)
-                        val expectedDoc = TermWithSubtermDoc(error.result.wholeExpr2, error.result.subExpr2, error.result.levels2, null, ppConfig)
-                        expectedDoc.init()
-                        if (expectedDoc.end > expectedDoc.begin) {
-                            addErrorRange(TextRange(expectedDoc.begin, expectedDoc.end), injectionRanges[injectionRanges.size - 2], newErrorRanges)
+            ApplicationManager.getApplication().executeOnPooledThread {
+                runReadAction {
+                    var first = true
+                    for (arendError in treeElement.errors) {
+                        if (first) {
+                            first = false
+                        } else {
+                            builder.append("\n\n")
                         }
-                        val actualDoc = TermWithSubtermDoc(error.result.wholeExpr1, error.result.subExpr1, error.result.levels1, null, ppConfig)
-                        actualDoc.init()
-                        if (actualDoc.end > actualDoc.begin) {
-                            addErrorRange(TextRange(actualDoc.begin, actualDoc.end), injectionRanges[injectionRanges.size - 1], newErrorRanges)
-                        }
-                    }
 
-                    mapToTypeDiffInfo(error)?.let {
-                        builder.appendLine()
-                        val start = builder.lastIndex + 1
-                        builder.append(ArendBundle.message("arend.click.to.see.diff.link"))
-                        val finish = builder.lastIndex + 1
-                        diffInfos.add(DiffInfo(it.first, it.second, start, finish))
+                        val error = arendError.error
+                        val (resolve, scope) = resolveCauseReference(error)
+                        if (scope != null) {
+                            fileScope = scope
+                        }
+                        val doc = getDoc(treeElement, error, resolve, scope)
+                        currentDoc = doc
+                        doc.accept(visitor, false)
+
+                        val injectionRanges = visitor.textRanges
+                        if (error is TypeMismatchWithSubexprError && injectionRanges.size >= 2) {
+                            val ppConfig = getCurrentConfig(scope)
+                            val expectedDoc = TermWithSubtermDoc(error.result.wholeExpr2, error.result.subExpr2, error.result.levels2, null, ppConfig)
+                            expectedDoc.init()
+                            if (expectedDoc.end > expectedDoc.begin) {
+                                addErrorRange(TextRange(expectedDoc.begin, expectedDoc.end), injectionRanges[injectionRanges.size - 2], newErrorRanges)
+                            }
+                            val actualDoc = TermWithSubtermDoc(error.result.wholeExpr1, error.result.subExpr1, error.result.levels1, null, ppConfig)
+                            actualDoc.init()
+                            if (actualDoc.end > actualDoc.begin) {
+                                addErrorRange(TextRange(actualDoc.begin, actualDoc.end), injectionRanges[injectionRanges.size - 1], newErrorRanges)
+                            }
+                        }
+
+                        mapToTypeDiffInfo(error)?.let {
+                            builder.appendLine()
+                            val start = builder.lastIndex + 1
+                            builder.append(ArendBundle.message("arend.click.to.see.diff.link"))
+                            val finish = builder.lastIndex + 1
+                            diffInfos.add(DiffInfo(it.first, it.second, start, finish))
+                        }
                     }
                 }
-            }
 
-            val text = builder.toString()
-            if (editor.isDisposed) return@invokeLater
-            val action: () -> Unit = {
-                UndoManager.getInstance(project)
-                    .undoableActionPerformed(UnblockingDocumentAction(editor.document, id, false))
-                modifyDocument { setText(text) }
-                getInjectionFile()?.apply {
-                    injectionRanges = visitor.textRanges
-                    scope = fileScope
-                    injectedExpressions = visitor.expressions
-                    errorRanges = newErrorRanges
+                val text = builder.toString()
+                if (editor.isDisposed) return@executeOnPooledThread
+                val action: () -> Unit = {
+                    UndoManager.getInstance(project)
+                        .undoableActionPerformed(UnblockingDocumentAction(editor.document, id, false))
+                    modifyDocument { setText(text) }
+                    getInjectionFile()?.apply {
+                        injectionRanges = visitor.textRanges
+                        scope = fileScope
+                        injectedExpressions = visitor.expressions
+                        errorRanges = newErrorRanges
+                    }
+                    postWriteCallback()
+                    UndoManager.getInstance(project)
+                        .undoableActionPerformed(UnblockingDocumentAction(editor.document, id, true))
                 }
-                postWriteCallback()
-                UndoManager.getInstance(project)
-                    .undoableActionPerformed(UnblockingDocumentAction(editor.document, id, true))
-            }
-            WriteCommandAction.runWriteCommandAction(project, null, id, action)
-            val support = EditorHyperlinkSupport.get(editor)
-            support.clearHyperlinks()
-            for (hyperlink in visitor.hyperlinks) {
-                support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
-            }
+                WriteCommandAction.runWriteCommandAction(project, null, id, action)
+                val support = EditorHyperlinkSupport.get(editor)
+                support.clearHyperlinks()
+                for (hyperlink in visitor.hyperlinks) {
+                    support.createHyperlink(hyperlink.first.startOffset, hyperlink.first.endOffset, null, hyperlink.second)
+                }
 
-            for (diffInfo in diffInfos) {
-                support.createHyperlink(
-                    diffInfo.startOffset,
-                    diffInfo.endOffset,
-                    null,
-                    DiffHyperlinkInfo(Pair(diffInfo.firstDocumentContent, diffInfo.secondDocumentContent)))
+                for (diffInfo in diffInfos) {
+                    support.createHyperlink(
+                        diffInfo.startOffset,
+                        diffInfo.endOffset,
+                        null,
+                        DiffHyperlinkInfo(Pair(diffInfo.firstDocumentContent, diffInfo.secondDocumentContent)))
+                }
             }
         }
     }
@@ -375,6 +377,7 @@ abstract class InjectedArendEditor(
     companion object {
         val AREND_GOAL_EDITOR: Key<InjectedArendEditor> = Key.create("Arend goal editor")
 
+        // Don't call this method on EDT
         fun resolveCauseReference(error: GeneralError): Pair<Referable?, Scope?> {
             val causeSourceNode = error.causeSourceNode
             val data = (causeSourceNode?.data as? DataContainer)?.data ?: causeSourceNode?.data
@@ -382,17 +385,11 @@ abstract class InjectedArendEditor(
 
             var scope: Scope? = null
             var ref: Referable? = null
-            ApplicationManager.getApplication().run {
-                executeOnPooledThread {
-                    runReadAction {
-                        if (unresolvedRef != null || error.hasExpressions()) {
-                            scope = (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) }
-                        }
-                        if (unresolvedRef != null && scope != null) {
-                            ref = ExpressionResolveNameVisitor.resolve(unresolvedRef, scope)
-                        }
-                    }
-                }.get()
+            if (unresolvedRef != null || error.hasExpressions()) {
+                scope = (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) }
+            }
+            if (unresolvedRef != null && scope != null) {
+                ref = ExpressionResolveNameVisitor.resolve(unresolvedRef, scope)
             }
             return Pair(ref, scope)
         }

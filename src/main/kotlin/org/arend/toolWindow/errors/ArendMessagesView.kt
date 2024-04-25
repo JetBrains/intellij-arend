@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -23,7 +24,6 @@ import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.impl.SingleHeightTabs
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
-import kotlinx.coroutines.runBlocking
 import org.arend.ArendIcons
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
@@ -171,7 +171,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun valueChanged(e: TreeSelectionEvent?) = updateEditors()
 
     fun updateEditors() {
-        var treeElement = getSelectedMessage()
+        val treeElement = getSelectedMessage()
         if (treeElement != null) {
             if (isGoal(treeElement) && !isGoalTextPinned()) {
                 if (goalEditor == null) {
@@ -196,37 +196,41 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 errorEditor?.setupActions()
             }
         } else {
-            if (!isGoalTextPinned()) {
-                goalEditor?.treeElement?.sampleError?.let { currentGoal ->
-                    if (isParentDefinitionPsiInvalid(currentGoal)) {
-                        goalEditor?.clear()
-                        updateGoalsView(goalEmptyPanel)
-                    } else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) {
-                        val error = currentGoal.error
-                        val (resolve, scope) = InjectedArendEditor.resolveCauseReference(error)
-                        val doc = goalEditor?.treeElement?.let { goalEditor?.getDoc(it, error, resolve, scope) }
+            ApplicationManager.getApplication().executeOnPooledThread {
+                runReadAction {
+                    if (!isGoalTextPinned()) {
+                        goalEditor?.treeElement?.sampleError?.let { currentGoal ->
+                            if (isParentDefinitionPsiInvalid(currentGoal)) {
+                                goalEditor?.clear()
+                                updateGoalsView(goalEmptyPanel)
+                            } else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) {
+                                val error = currentGoal.error
+                                val (resolve, scope) = InjectedArendEditor.resolveCauseReference(error)
+                                val doc = goalEditor?.treeElement?.let { goalEditor?.getDoc(it, error, resolve, scope) }
 
-                        if (isParentDefinitionRemovedFromTree(currentGoal)) {
-                            goalEditor?.clear()
-                            updateGoalsView(goalEmptyPanel)
-                        } else if (isCausePsiInvalid(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
-                            runInEdt {
-                                goalsTabInfo.append(
-                                    " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})",
-                                    SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES
-                                )
+                                if (isParentDefinitionRemovedFromTree(currentGoal)) {
+                                    goalEditor?.clear()
+                                    updateGoalsView(goalEmptyPanel)
+                                } else if (isCausePsiInvalid(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
+                                    runInEdt {
+                                        goalsTabInfo.append(
+                                            " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})",
+                                            SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES
+                                        )
+                                    }
+                                } else if (goalEditor?.currentDoc.toString() != doc.toString()) {
+                                    updateGoalText()
+                                }
                             }
-                        } else if (goalEditor?.currentDoc.toString() != doc.toString()) {
-                            updateGoalText()
                         }
                     }
-                }
-            }
-            if (isShowErrorsPanel() && !isErrorTextPinned()) {
-                val currentError = errorEditor?.treeElement?.sampleError
-                if (currentError != null && isParentDefinitionRemovedFromTree(currentError)) {
-                    errorEditor?.clear()
-                    updatePanel(errorsPanel, errorEmptyPanel)
+                    if (isShowErrorsPanel() && !isErrorTextPinned()) {
+                        val currentError = errorEditor?.treeElement?.sampleError
+                        if (currentError != null && isParentDefinitionRemovedFromTree(currentError)) {
+                            errorEditor?.clear()
+                            updatePanel(errorsPanel, errorEmptyPanel)
+                        }
+                    }
                 }
             }
         }
