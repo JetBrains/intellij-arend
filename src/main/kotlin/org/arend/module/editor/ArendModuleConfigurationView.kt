@@ -132,7 +132,7 @@ class ArendModuleConfigurationView(
             libRootTextField.text = value
             ApplicationManager.getApplication().executeOnPooledThread {
                 textFieldChangeListener.fireEvent()
-            }.get()
+            }
         }
 
     override var sourcesDir: String
