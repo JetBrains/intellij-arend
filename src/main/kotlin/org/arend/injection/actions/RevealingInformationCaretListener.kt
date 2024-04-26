@@ -1,5 +1,7 @@
 package org.arend.injection.actions
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.editor.Editor
@@ -26,23 +28,27 @@ enum class Choice {
 }
 
 fun InjectedArendEditor.performPrettyPrinterManipulation(editor: Editor, choice: Choice) {
-    val error = treeElement?.sampleError?.error
-    val (resolve, scope) = error?.let(InjectedArendEditor.Companion::resolveCauseReference) ?: return
+    ApplicationManager.getApplication().executeOnPooledThread {
+        runReadAction {
+            val error = treeElement?.sampleError?.error
+            val (resolve, scope) = error?.let(InjectedArendEditor.Companion::resolveCauseReference) ?: return@runReadAction
 
-    val ppConfig = getCurrentConfig(scope)
-    val offset = editor.caretModel.offset
-    val doc = treeElement?.let { getDoc(it, error, resolve, scope) } ?: return
-    currentDoc = doc
+            val ppConfig = getCurrentConfig(scope)
+            val offset = editor.caretModel.offset
+            val doc = treeElement?.let { getDoc(it, error, resolve, scope) } ?: return@runReadAction
+            currentDoc = doc
 
-    val revealableFragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return
-    val id = "Arend Verbose level increase " + Random.nextInt()
-    val revealingAction = getModificationAction(revealableFragment, editor, id, false, choice)
-    val hidingAction = getModificationAction(revealableFragment, editor, id, true, choice)
+            val revealableFragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return@runReadAction
+            val id = "Arend Verbose level increase " + Random.nextInt()
+            val revealingAction = getModificationAction(revealableFragment, editor, id, false, choice)
+            val hidingAction = getModificationAction(revealableFragment, editor, id, true, choice)
 
-    when (choice) {
-        Choice.SHOW_UI -> showManipulatePrettyPrinterHint(editor, revealableFragment, revealingAction, hidingAction)
-        Choice.REVEAL -> if (revealableFragment.revealLifetime > 0) revealingAction.invoke()
-        Choice.HIDE -> if (revealableFragment.hideLifetime > 0) hidingAction.invoke()
+            when (choice) {
+                Choice.SHOW_UI -> showManipulatePrettyPrinterHint(editor, revealableFragment, revealingAction, hidingAction)
+                Choice.REVEAL -> if (revealableFragment.revealLifetime > 0) revealingAction.invoke()
+                Choice.HIDE -> if (revealableFragment.hideLifetime > 0) hidingAction.invoke()
+            }
+        }
     }
 }
 
