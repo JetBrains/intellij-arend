@@ -59,7 +59,7 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
 
     override fun isCoerce() = hasChildOfType(COERCE_KW)
 
-    override fun getAccessModifier() = childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+    override fun getAccessModifier(): AccessModifier = (childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC).max(classAccessModifier)
 
     override fun getTypeClassReference(): ClassReferable? {
         val type = resultType ?: return null
@@ -71,6 +71,9 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
 
     override val psiElementType: PsiElement?
         get() = resultType
+
+    private val classAccessModifier: AccessModifier
+        get() = ancestor<ArendDefClass>()?.accessModifier ?: AccessModifier.PUBLIC
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
         FieldDataLocatedReferable(data, accessModifier, this, parent)

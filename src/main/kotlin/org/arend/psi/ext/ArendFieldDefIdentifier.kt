@@ -17,6 +17,7 @@ import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.ext.concrete.definition.ClassFieldKind
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ReferableExtractVisitor
+import org.arend.term.group.AccessModifier
 
 class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendInternalReferable, Abstract.ClassField, FieldReferable, ArendReferenceElement, StubBasedPsiElement<ArendClassFieldParamStub> {
     constructor(node: ASTNode) : super(node)
@@ -83,6 +84,12 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
 
     override val rangeInElement: TextRange
         get() = TextRange(0, text.length)
+
+    override fun getAccessModifier(): AccessModifier =
+        super<ReferableBase>.getAccessModifier().max(classAccessModifier)
+
+    private val classAccessModifier: AccessModifier
+        get() = ancestor<ArendDefClass>()?.accessModifier ?: AccessModifier.PUBLIC
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
         FieldDataLocatedReferable(data, accessModifier, this, parent)

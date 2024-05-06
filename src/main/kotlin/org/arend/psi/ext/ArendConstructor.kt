@@ -47,7 +47,8 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
 
     override fun isCoerce() = hasChildOfType(ArendElementTypes.COERCE_KW)
 
-    override fun getAccessModifier() = childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC
+    override fun getAccessModifier(): AccessModifier =
+        (childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC).max(dataAccessModifier)
 
     private val allParameters
         get() = (ancestor<ArendDefData>()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
@@ -59,6 +60,9 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
 
     override val psiElementType: ArendDefIdentifier?
         get() = ancestor<ArendDefData>()?.defIdentifier
+
+    private val dataAccessModifier: AccessModifier
+        get() = ancestor<ArendDefData>()?.accessModifier ?: AccessModifier.PUBLIC
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
         DataLocatedReferable(data, accessModifier, this, parent)
