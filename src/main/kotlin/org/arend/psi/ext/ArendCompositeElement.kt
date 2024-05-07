@@ -56,7 +56,7 @@ fun getArendScope(element: ArendCompositeElement): Scope {
         if (classDef != null) {
             isExtends = true
             // The last parameters is set to ONLY_EXTERNAL to prevent infinite recursion during resolving of references in \\extends
-            LexicalScope.insideOf(classDef, classDef.parentGroup?.groupScope ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
+            LexicalScope.insideOf(classDef, classDef.parentGroup?.getGroupScope(LexicalScope.Extent.ONLY_EXTERNAL) ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
         } else it.scope
     } ?: (sourceNode.containingFile as? IArendFile)?.scope ?: EmptyScope.INSTANCE
 
