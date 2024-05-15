@@ -1,6 +1,7 @@
 package org.arend.injection.actions
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.undo.UndoManager
@@ -43,10 +44,12 @@ fun InjectedArendEditor.performPrettyPrinterManipulation(editor: Editor, choice:
             val revealingAction = getModificationAction(revealableFragment, editor, id, false, choice)
             val hidingAction = getModificationAction(revealableFragment, editor, id, true, choice)
 
-            when (choice) {
-                Choice.SHOW_UI -> showManipulatePrettyPrinterHint(editor, revealableFragment, revealingAction, hidingAction)
-                Choice.REVEAL -> if (revealableFragment.revealLifetime > 0) revealingAction.invoke()
-                Choice.HIDE -> if (revealableFragment.hideLifetime > 0) hidingAction.invoke()
+            invokeLater {
+                when (choice) {
+                    Choice.SHOW_UI -> showManipulatePrettyPrinterHint(editor, revealableFragment, revealingAction, hidingAction)
+                    Choice.REVEAL -> if (revealableFragment.revealLifetime > 0) revealingAction.invoke()
+                    Choice.HIDE -> if (revealableFragment.hideLifetime > 0) hidingAction.invoke()
+                }
             }
         }
     }

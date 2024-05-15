@@ -2,6 +2,7 @@ package org.arend.toolWindow.errors.tree
 
 import com.intellij.codeInsight.hints.presentation.MouseButton
 import com.intellij.codeInsight.hints.presentation.mouseButton
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiElement
 import com.intellij.ui.treeStructure.Tree
@@ -92,19 +93,25 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         return lastCorrect
     }
 
-    override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String = runReadAction {
-        when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
-            is ArendFile -> obj.fullName
-            is ArendErrorTreeElement -> {
-                val messages = LinkedHashSet<String>()
-                for (arendError in obj.errors) {
-                    messages.add(DocStringBuilder.build(arendError.error.getShortHeaderDoc(PrettyPrinterConfig.DEFAULT)))
+    override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String {
+        var result: String? = null
+        ApplicationManager.getApplication().executeOnPooledThread {
+            result = runReadAction {
+                when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
+                    is ArendFile -> obj.fullName
+                    is ArendErrorTreeElement -> {
+                        val messages = LinkedHashSet<String>()
+                        for (arendError in obj.errors) {
+                            messages.add(DocStringBuilder.build(arendError.error.getShortHeaderDoc(PrettyPrinterConfig.DEFAULT)))
+                        }
+                        messages.joinToString("; ")
+                    }
+                    is Referable -> if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
+                    else -> obj?.toString() ?: ""
                 }
-                messages.joinToString("; ")
             }
-            is Referable -> if ((obj as? PsiElement)?.isValid == false) "" else obj.textRepresentation()
-            else -> obj?.toString() ?: ""
-        }
+        }.get()
+        return result!!
     }
 
     fun containsNode(definition: PsiConcreteReferable): Boolean {
@@ -142,13 +149,25 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
             }
             child
         } else {
-            val index = TreeUtil.indexedBinarySearch(parent, child, comparator)
-            if (index < 0) {
-                (treeModel as DefaultTreeModel).insertNodeInto(child, parent, -(index + 1))
+            var index: Int? = null
+            ApplicationManager.getApplication().run {
+                executeOnPooledThread {
+                    runReadAction {
+                        index = TreeUtil.indexedBinarySearch(parent, child, comparator)
+                    }
+                }.get()
+            }
+
+            if (index == null) {
+                return child
+            }
+
+            if (index!! < 0) {
+                (treeModel as DefaultTreeModel).insertNodeInto(child, parent, -(index!! + 1))
                 child
             } else {
                 @Suppress("UNCHECKED_CAST")
-                parent.getChildAt(index) as T
+                parent.getChildAt(index!!) as T
             }
         }
     }
