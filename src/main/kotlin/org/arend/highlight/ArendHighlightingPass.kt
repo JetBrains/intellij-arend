@@ -16,10 +16,7 @@ import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.psi.ArendExpressionCodeFragment
-import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.ArendResolverListener
-import org.arend.resolving.IntellijTCReferable
-import org.arend.resolving.PsiConcreteProvider
+import org.arend.resolving.*
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteCompareVisitor
@@ -118,6 +115,10 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
                     if (textRange != null) {
                         addHighlightInfo(textRange, ArendHighlightingColors.LONG_NAME)
                     }
+                }
+
+                if (data is ArendPattern && (referent as? GlobalReferable?)?.kind == GlobalReferable.Kind.CONSTRUCTOR) {
+                    addHighlightInfo(data.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
                 }
             }
 
