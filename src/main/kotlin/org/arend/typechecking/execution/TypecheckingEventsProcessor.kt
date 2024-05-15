@@ -139,31 +139,37 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
 
     fun onTestStarted(ref: PsiLocatedReferable) {
         addToInvokeLater {
-            synchronized(this@TypecheckingEventsProcessor) {
-                val modulePath = (ref.containingFile as? ArendFile)?.moduleLocation?.modulePath
-                if (modulePath != null) onSuiteStarted(modulePath)
+            ApplicationManager.getApplication().run {
+                executeOnPooledThread {
+                    runReadAction {
+                        synchronized(this@TypecheckingEventsProcessor) {
+                            val modulePath = (ref.containingFile as? ArendFile)?.moduleLocation?.modulePath
+                            if (modulePath != null) onSuiteStarted(modulePath)
 
-                val fullName = ref.fullName
-                if (definitionToProxy.containsKey(ref)) {
-                    logProblem("Typechecking [$fullName] has been already started")
-                    if (SMTestRunnerConnectionUtil.isInDebugMode()) return@addToInvokeLater
+                            val fullName = ref.fullName
+                            if (definitionToProxy.containsKey(ref)) {
+                                logProblem("Typechecking [$fullName] has been already started")
+                                if (SMTestRunnerConnectionUtil.isInDebugMode()) return@runReadAction
+                            }
+
+                            val parentSuite = modulePath?.let { fileToProxy[it] } ?: myTestsRootProxy
+                            val proxy = DefinitionProxy(fullName, false, null, true, ref)
+                            parentSuite.addChild(proxy)
+                            definitionToProxy[ref] = proxy
+
+                            val da = deferredActions.remove(ref)
+                            if (da != null) for (a in da) a.runAction(proxy)
+
+                            if (!isTypeCheckingFinished) {
+                                proxy.setStarted()
+                            } else {
+                                proxy.setTerminated()
+                            }
+
+                            fireOnTestStarted(proxy)
+                        }
+                    }
                 }
-
-                val parentSuite = modulePath?.let { fileToProxy[it] } ?: myTestsRootProxy
-                val proxy = DefinitionProxy(fullName, false, null, true, ref)
-                parentSuite.addChild(proxy)
-                definitionToProxy[ref] = proxy
-
-                val da = deferredActions.remove(ref)
-                if (da != null) for (a in da) a.runAction(proxy)
-
-                if (!isTypeCheckingFinished) {
-                    proxy.setStarted()
-                } else {
-                    proxy.setTerminated()
-                }
-
-                fireOnTestStarted(proxy)
             }
         }
     }
