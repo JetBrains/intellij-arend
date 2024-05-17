@@ -465,8 +465,8 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         val file = PsiDocumentManager.getInstance(definition.project).getPsiFile(mainDocument) as? ArendFile ?: return
         val elementUnderCaret = file.findElementAt(caret.offset)?.parentOfType<ArendCompositeElement>() ?: return
         val (action, representation) = runReadAction {
-            val locationData = LocationData(definition)
-            val (importAction, resultName) = calculateReferenceName(locationData, file, elementUnderCaret) ?: return@runReadAction null
+            val locationData = LocationData.createLocationData(definition)
+            val (importAction, resultName) = locationData?.let{ calculateReferenceName(it, file, elementUnderCaret) } ?: return@runReadAction null
             val representation = getInsertableRepresentation(definition, resultName)
             val resolveReferenceAction = ResolveReferenceAction(definition, locationData.getLongName(), importAction, null)
             representation?.run(resolveReferenceAction::to)

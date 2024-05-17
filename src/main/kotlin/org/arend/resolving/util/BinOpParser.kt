@@ -5,9 +5,7 @@ import com.intellij.psi.PsiElement
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.ErrorReporter
 import org.arend.naming.binOp.ExpressionBinOpEngine
-import org.arend.naming.reference.LongUnresolvedReference
-import org.arend.naming.reference.NamedUnresolvedReference
-import org.arend.naming.reference.Referable
+import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
 import org.arend.psi.ancestor
@@ -19,7 +17,7 @@ import org.arend.term.abs.BaseAbstractExpressionVisitor
 import org.arend.term.concrete.Concrete
 
 
-fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?, scope: Scope? = null): Concrete.Expression? {
+fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete.Expression? {
     return if (data is ArendCompositeElement) {
         val referentData = when (referent) {
             is NamedUnresolvedReference -> referent.data
@@ -47,7 +45,7 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?, scope: Sc
             refExpr.referent
         }
 
-        val referable = if (anchor != null) resolveCache.resolveCached(referentComputer, anchor) else referentComputer.invoke()
+        var referable = if (anchor != null) resolveCache.resolveCached(referentComputer, anchor) else referentComputer.invoke()
 
         if (fixity == Fixity.POSTFIX)
             arg = null
@@ -57,21 +55,12 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?, scope: Sc
         }
 
         if (arg == null && referent is LongUnresolvedReference && data is ArendLongName) {
-            val list = data.refIdentifierList.map { resolveCache.resolveCached(referentComputer, it) }.toMutableList()
-            val resolvedRefs = ArrayList<Referable?>()
-            var i = 0
-            var canResolve = true
-            while (i < list.size - 1) {
-                val curr = list[i]
-                resolvedRefs.add(curr)
-                val next = list[i+1]
-                if (curr !is ReferableBase<*> || next == null || curr.scope.resolveName(next.refName) == null) {
-                    canResolve = false
-                    break
-                }
-                i++
+            val referable1 = RedirectingReferable.getOriginalReferable(refExpr.referent)
+            val resolvedRefs = data.refIdentifierList.map { it.resolve as? Referable }.toMutableList()
+            if (referable1 is UnresolvedReference) {
+                arg = referable1.resolveArgument(scope1, resolvedRefs)
+                referable = referable1.resolve(scope1, null)
             }
-            if (!canResolve) arg = referent.resolveField(scope1, i, false, resolvedRefs)
         }
         if (referable != null) refExpr.referent = referable
 
@@ -81,10 +70,10 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?, scope: Sc
     }
 }
 
-private fun getExpression(expr: Abstract.Expression?, scope: Scope? = null): Concrete.Expression {
+private fun getExpression(expr: Abstract.Expression?): Concrete.Expression {
     val ref = expr?.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression?>(null) {
-        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null, scope)
-        override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) = resolveReference(data, referent, fixity, scope)    }, null)
+        override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) = resolveReference(data, referent, null)
+        override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) = resolveReference(data, referent, fixity)    }, null)
 
     return if (ref is Concrete.ReferenceExpression || ref is Concrete.AppExpression && ref.function is Concrete.ReferenceExpression) ref else Concrete.HoleExpression(expr)
 }
@@ -94,9 +83,9 @@ fun parseBinOp(left: Abstract.Expression, sequence: Collection<Abstract.BinOpSeq
 
 fun parseBinOp(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE, scope: Scope? = null): Concrete.Expression {
     val concreteSeq = mutableListOf<Concrete.BinOpSequenceElem<Concrete.Expression>>()
-    concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(left, scope)))
+    concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(left)))
     for (elem in sequence) {
-        concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(elem.expression, scope), if (elem.isVariable) Fixity.UNKNOWN else Fixity.NONFIX, elem.isExplicit))
+        concreteSeq.add(Concrete.BinOpSequenceElem(getExpression(elem.expression), if (elem.isVariable) Fixity.UNKNOWN else Fixity.NONFIX, elem.isExplicit))
     }
     return ExpressionBinOpEngine.parse(Concrete.BinOpSequenceExpression(data, concreteSeq, null), errorReporter)
 }

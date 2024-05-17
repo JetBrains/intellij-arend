@@ -1,5 +1,6 @@
 package org.arend.refactoring.changeSignature.entries
 
+import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getThisParameter
 import org.arend.codeInsight.ParameterDescriptor
 import org.arend.codeInsight.SignatureUsageContext
 import org.arend.ext.module.LongName
@@ -9,7 +10,10 @@ import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
+import org.arend.psi.ancestor
+import org.arend.psi.ancestors
 import org.arend.psi.ext.ArendCompositeElement
+import org.arend.psi.ext.ArendConstructor
 import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
@@ -25,15 +29,9 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
     private val myContextName: String
 
     init {
-        val affectedDefinition = descriptor?.affectedDefinition
-        if (affectedDefinition is PsiLocatedReferable) {
-            val data = ResolveReferenceAction.getTargetName(descriptor?.affectedDefinition as PsiLocatedReferable, contextPsi, refactoringContext.deferredNsCmds)
-            val longNameString = data.first
-            val namespaceCommand = data.second
-            if (namespaceCommand != null) {
-                refactoringContext.deferredNsCmds.add(namespaceCommand)
-            }
-
+        val affectedDefinition = descriptor?.getAffectedDefinition()
+        if (descriptor != null && affectedDefinition is PsiLocatedReferable) {
+            val longNameString = getContextName(affectedDefinition, contextPsi, refactoringContext)
             val longName = LongName.fromString(longNameString).toList()
             myContextName = if (target == affectedDefinition && descriptor.newName != null && longName.last() == affectedDefinition.name) {
                 LongName(longName.take(longName.size - 1) + Collections.singletonList(descriptor.newName)).toString()
@@ -47,7 +45,7 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
 
     private fun getTrailingParameters(): List<ParameterDescriptor> {
         val result = ArrayList<ParameterDescriptor>()
-        val newParameters = getParameters().second
+        val newParameters = getNewParameters()
         for (newParam in newParameters.reversed()) if (newParam.isExplicit != newParam.oldParameter?.isExplicit) break else {
             result.add(newParam.oldParameter)
         }
@@ -55,27 +53,27 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
     }
 
     open fun getLambdaParams(parameterMap: Set<ParameterDescriptor>, includingSuperfluousTrailingParams: Boolean): List<ParameterDescriptor> {
-        val lambdaParameters = ArrayList<ParameterDescriptor>(getParameters().first)
+        val lambdaParameters = ArrayList<ParameterDescriptor>(getOldParameters().filter { !it.isThis() && !it.isExternal() })
         lambdaParameters.removeAll(parameterMap)
         if (!includingSuperfluousTrailingParams) lambdaParameters.removeAll(getTrailingParameters().toSet())
         return lambdaParameters
     }
-    abstract fun getParameters(): Pair<List<ParameterDescriptor>, List<ParameterDescriptor>>
-    open fun getContextName(): String = myContextName
 
-    open fun getUnmodifiablePrefix(): String? = null
-    open fun getUnmodifiableSuffix(): String? = null
+    fun getOldParameters(): List<ParameterDescriptor> {
+        return usageContext.filterParameters(descriptor!!.oldParameters)
+    }
 
-    /* TODO: Get rid of explicit casts to descendants of UsageEntry, add & use class methods instead */
-    fun printUsageEntry(globalReferable: GlobalReferable? = null) :
-            Pair<String /* default version */, String? /* version with parenthesized operator; makes sense only for AppExpr */ > {
-        val defaultBuilder = StringBuilder()
-        val parenthesizedPrefixBuilder = StringBuilder()
-        fun append(text: String) { defaultBuilder.append(text); parenthesizedPrefixBuilder.append(text) }
+    fun getNewParameters(): List<ParameterDescriptor> {
+        return usageContext.filterParameters(descriptor!!.newParameters)
+    }
 
-        val (oldParameters, newParameters) = getParameters()
+    open fun getContextName(): String =
+        myContextName
 
-        getUnmodifiablePrefix()?.let { defaultBuilder.append(it); parenthesizedPrefixBuilder.append(it) }
+    fun printUsageEntry(globalReferable: GlobalReferable? = null): IntermediatePrintResult {
+        val doubleBuilder = DoubleStringBuilder()
+        val oldParameters = getOldParameters()
+        val newParameters = getNewParameters()
 
         var i = 0
         var j = 0
@@ -94,118 +92,192 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
             else throw IllegalArgumentException()
         }
 
-        val context = contextPsi.scope.elements.map { VariableImpl(it.textRepresentation()) }
-        val referables = ArrayList<Variable>()
-        val oldArgToLambdaArgMap = HashMap<ParameterDescriptor, String>()
-        var lambdaArgs = ""
-        val lambdaParams = getLambdaParams(parameterMap.keys, false)
-
-        lambdaParams.map {
-            val freshName = StringRenamer().generateFreshName(VariableImpl(it.getNameOrUnderscore()), context + referables)
-            referables.add(VariableImpl(freshName))
-            lambdaArgs += if (it.isExplicit) " $freshName" else " {$freshName}"
-            oldArgToLambdaArgMap[it] = freshName
-        }
-
-        val infixNotationSupported = newParameters.withIndex().filter { it.value.isExplicit }.let { explicitParams -> explicitParams.size == 2 && explicitParams.all { it.index >= newParameters.size - 2 } } &&
-                globalReferable?.precedence?.isInfix == true
         val hasExplicitExternalArgument = parameterMap.keys.filter { it.isExternal() }.any { parameterMap[it] != null }
 
-        fun renderParameter(oldParam: ParameterDescriptor?, newParam: ParameterDescriptor, parameterInfo: RenderedParameterKind? = null): Pair<String /* text */, String /* spacing */> {
-            val parameter = oldParam?.let{ parameterMap[oldParam] }
-            val referable = parameter?.printResult?.referable
-            val inhibitParens = if (referable != null && parameterInfo != null && globalReferable != null) {
-                if (referable == globalReferable) {
-                    parameterInfo == RenderedParameterKind.INFIX_LEFT && referable.precedence.associativity == Precedence.Associativity.LEFT_ASSOC ||
-                            parameterInfo == RenderedParameterKind.INFIX_RIGHT && referable.precedence.associativity == Precedence.Associativity.RIGHT_ASSOC
-                } else {
-                    referable.precedence.priority > globalReferable.precedence.priority
-                }
-            } else false
-
-            val (text, requiresParentheses) = when {
-                (oldParam == null) -> Pair("{?}", false)
-                (oldParam.isExternal() && parameter == null && oldParam.getExternalScope()?.let{ usageContext.envelopingGroups.contains(it) } == true && !hasExplicitExternalArgument) ->
-                    Pair(oldParam.getNameOrUnderscore(), false)
-                (parameter == null) -> Pair("_", false)
-                else -> Pair(if (parameterInfo == RenderedParameterKind.INFIX_RIGHT && parameter.printResult.parenthesizedPrefixText != null) parameter.printResult.parenthesizedPrefixText else
-                    parameter.printResult.strippedText ?: parameter.printResult.text, !parameter.printResult.isAtomic && !inhibitParens)
-            }
-
-            val result = if (newParam.isExplicit) (if (requiresParentheses) "(${text})" else text) else (if (text.startsWith("-")) "{ ${text}}" else "{${text}}")
-            val spacingText = parameter?.spacingText ?: " "
-            return Pair(result, spacingText)
+        if (newParameters.isNotEmpty() &&
+            newParameters.first().oldParameter?.isThis() == true &&
+            descriptor?.moveRefactoringContext != null &&
+            parameterMap[newParameters.first().oldParameter] == null) {
+            val thisName = contextPsi.ancestors.filterIsInstance<PsiLocatedReferable>().mapNotNull { descriptor.moveRefactoringContext.myThisVars[it] }.firstOrNull()
+            if (thisName != null)
+            parameterMap[newParameters.first().oldParameter!!] =
+                ArgumentPrintResult(IntermediatePrintResult(thisName, thisName, true, false, globalReferable), false, " ")
         }
 
-        fun printParams(params: List<ParameterDescriptor>) {
-            var implicitArgPrefix = ""
-            var spacingContents = ""
-            for ((index, newParam) in params.withIndex()) {
-                val oldParam = newParam.oldParameter
-                if (!lambdaParams.contains(oldParam) && getLambdaParams(parameterMap.keys, true).contains(oldParam)) break
+        val (isAtomicExpression, isLambda) = printUsageEntryInternal(globalReferable, newParameters, parameterMap, hasExplicitExternalArgument, j, doubleBuilder)
+        val normalText = doubleBuilder.defaultBuilder.toString()
+        val parenthesizedPrefixText = doubleBuilder.alternativeBuilder.toString()
 
-                if (newParam.getThisDefClass() != null && newParam.getThisDefClass() == usageContext.envelopingDynamicClass) {
-                    val nextParam = params.getOrNull(index+1)
-                    if (nextParam != null && nextParam.isExplicit) continue // No need to write implicit {this} argument inside the dynamic part of a class
-                }
+        return IntermediatePrintResult(
+            normalText,
+            if (!isLambda) parenthesizedPrefixText else null,
+            isAtomicExpression && !isLambda,
+            isLambda,
+            globalReferable)
+    }
 
-                val (text, spacing) = renderParameter(oldParam, newParam)
+    open fun printUsageEntryInternal(
+        globalReferable: GlobalReferable?,
+        newParameters: List<ParameterDescriptor>,
+        parameterMap: MutableMap<ParameterDescriptor, ArgumentPrintResult?>,
+        hasExplicitExternalArgument: Boolean,
+        argumentStartIndex: Int,
+        doubleBuilder: DoubleStringBuilder): Pair<Boolean, Boolean> {
+        val defClassMode = descriptor?.getAffectedDefinition() is ArendDefClass
+        val lambdaParams = getLambdaParams(parameterMap.keys, false)
+        val oldArgToLambdaArgMap = HashMap<ParameterDescriptor, String>()
+        var lambdaArgs = ""
+        val referables = ArrayList<Variable>()
 
-                if (text == "{_}") {
-                    implicitArgPrefix += spacing + text
-                    spacingContents += (if (spacing.endsWith(" ")) spacing.trimEnd() else spacing)
-                } else {
-                    if (!newParam.isExplicit) {
-                        append(implicitArgPrefix)
-                    } else {
-                        append(spacingContents)
-                    }
-                    append(spacing + text)
-                    implicitArgPrefix = ""
-                    spacingContents = ""
-                }
+        if (lambdaParams.isNotEmpty()) {
+            val context = contextPsi.scope.elements.map { VariableImpl(it.textRepresentation()) }
+            lambdaParams.forEach {
+                val freshName = StringRenamer().generateFreshName(VariableImpl(it.getNameOrUnderscore()), context + referables)
+                referables.add(VariableImpl(freshName))
+                lambdaArgs += if (it.isExplicit) " $freshName" else " {$freshName}"
+                oldArgToLambdaArgMap[it] = freshName
             }
         }
 
-        if (infixNotationSupported && (this is AppExpressionEntry || this is PatternEntry) && lambdaArgs == "") {
-            val (leftParam, rightParam) = newParameters.filter { it.isExplicit }.toList().let { Pair(it[0], it[1]) }
-            val (leftText, leftSpacing) = renderParameter(leftParam.oldParameter, leftParam, RenderedParameterKind.INFIX_LEFT)
-            val (rightText, rightSpacing) = renderParameter(rightParam.oldParameter, rightParam, RenderedParameterKind.INFIX_RIGHT)
+        val isLambda = lambdaArgs != "" && !defClassMode && this !is PatternEntry
+        if (isLambda) doubleBuilder.append("\\lam$lambdaArgs => ")
+        for (e in oldArgToLambdaArgMap) parameterMap[e.key] =
+            ArgumentPrintResult(IntermediatePrintResult(if (this is PatternEntry) "_" else e.value, null, true, false, null), true, null)
 
-            val contextName = getContextName()  //TODO: Fixme; we should take backticks into account
-            append("$leftText$leftSpacing$contextName")
+        val printedFirstParameter = newParameters.firstOrNull()?.oldParameter?.let { parameterMap[it]?.printResult }
+        val dotNotationSupported = newParameters.isNotEmpty() && newParameters.first().isThis() && printedFirstParameter?.text?.let { isIdentifier(it) } == true
+                && target !is ArendConstructor /* <-- This is due to a small bug in Arend scopes */
 
-            printParams(newParameters.filter { !it.isExplicit })
-            append("$rightSpacing$rightText")
+        val startIndex = if (printedFirstParameter != null && dotNotationSupported && descriptor?.moveRefactoringContext == null) {
+            doubleBuilder.append(printedFirstParameter.text)
+            doubleBuilder.append(".")
+            doubleBuilder.append(target?.refName!!)
+            1
         } else {
-            val defClassMode = descriptor?.affectedDefinition is ArendDefClass
-
-            if (lambdaArgs != "" && !defClassMode && this !is PatternEntry) append("\\lam$lambdaArgs => ")
-            for (e in oldArgToLambdaArgMap) parameterMap[e.key] =
-                ArgumentPrintResult(IntermediatePrintResult(if (this is PatternEntry) "_" else e.value, null, null, true, null), true, null)
-
             val contextName = getContextName()
-            defaultBuilder.append(contextName); parenthesizedPrefixBuilder.append(if (globalReferable?.precedence?.isInfix == true) "($contextName)" else contextName)
+            doubleBuilder.append(contextName, if (globalReferable?.precedence?.isInfix == true) "($contextName)" else contextName)
+            0
+        }
 
-            val lastParameter = newParameters.lastOrNull { parameterMap[it.oldParameter] != null && !oldArgToLambdaArgMap.contains(it.oldParameter) }
-            val lastIndex = if (lastParameter != null) newParameters.indexOf(lastParameter) else -1
-            val relevantSegment = if (defClassMode) newParameters.subList(0, lastIndex + 1) else newParameters
-            printParams(relevantSegment)
+        val lastParameter = newParameters.lastOrNull { parameterMap[it.oldParameter] != null && !oldArgToLambdaArgMap.contains(it.oldParameter) }
+        val lastIndex = if (lastParameter != null) newParameters.indexOf(lastParameter) else -1
+        val relevantSegment = if (defClassMode) newParameters.subList(startIndex, lastIndex + 1) else newParameters.subList(startIndex, newParameters.size)
+        var isAtomicExpression = !printParams(globalReferable, relevantSegment, lambdaParams, parameterMap, hasExplicitExternalArgument, doubleBuilder)
 
-            while (j < getArguments().size) {
-                append(" ${getArguments()[j].printResult.text}")
-                j++
+        var j = argumentStartIndex
+        while (j < getArguments().size) {
+            doubleBuilder.append(" ${getArguments()[j].printResult.text}")
+            j++
+            isAtomicExpression = false
+        }
+
+        return Pair(isAtomicExpression, isLambda)
+    }
+
+    protected fun printParam(globalReferable: GlobalReferable?,
+                             oldParam: ParameterDescriptor?,
+                             newParam: ParameterDescriptor,
+                             parameterMap: Map<ParameterDescriptor, ArgumentPrintResult?>,
+                             hasExplicitExternalArgument: Boolean,
+                             parameterInfo: RenderedParameterKind? = null,
+                             commentedText: String? = null): PrintedParameter {
+        val parameter = oldParam?.let{ parameterMap[oldParam] }
+        val referable = parameter?.printResult?.referable
+        val inhibitParens = if (referable != null && parameterInfo != null && globalReferable != null) {
+            if (referable == globalReferable) {
+                parameterInfo == RenderedParameterKind.INFIX_LEFT && referable.precedence.associativity == Precedence.Associativity.LEFT_ASSOC ||
+                        parameterInfo == RenderedParameterKind.INFIX_RIGHT && referable.precedence.associativity == Precedence.Associativity.RIGHT_ASSOC
+            } else {
+                referable.precedence.priority > globalReferable.precedence.priority
+            }
+        } else false
+
+        val refactoringContext = descriptor?.moveRefactoringContext
+        val thisText = if ((newParam.isThis() || oldParam?.isThis() == true) && refactoringContext != null && (parameter == null || parameter.printResult.text == "_")) {
+            val parameterClass = newParam.getThisDefClass() ?: oldParam?.getThisDefClass()
+            if (parameterClass != null) {
+                val contextReferable = contextPsi.ancestor<PsiLocatedReferable>()
+                val contextClass = contextReferable?.ancestors?.mapNotNull { refactoringContext.membersEnvelopingClasses[it] }?.firstOrNull() ?:
+                if (contextReferable != null) { getThisParameter(contextReferable)?.getThisDefClass() } else null
+
+                when {
+                    commentedText == "_" || commentedText == "{?}" || commentedText == "\\this" ->
+                        "{?}"
+                    commentedText != null ->
+                        "{?} {-${commentedText}-}"
+                    contextClass != null && contextClass.isSubClassOf(parameterClass) ->
+                        "\\this"
+                    else -> "{?}"
+                }
+            } else null
+        } else null
+
+        val (text, requiresParentheses) = when {
+            thisText != null -> Pair(thisText, false)
+            (oldParam == null) -> Pair("{?}", false)
+            (oldParam.isExternal() && parameter == null && oldParam.getExternalScope()?.let{ usageContext.envelopingGroups.contains(it) } == true && !hasExplicitExternalArgument) ->
+                Pair(oldParam.getNameOrUnderscore(), false)
+            (parameter == null) -> Pair("_", false)
+            else -> Pair(if (parameterInfo == RenderedParameterKind.INFIX_RIGHT && parameter.printResult.parenthesizedPrefixText != null) parameter.printResult.parenthesizedPrefixText else
+                parameter.printResult.text, !parameter.printResult.isAtomic && !parameter.printResult.isLambda && !inhibitParens)
+        }
+
+        val result = if (newParam.isExplicit) (if (requiresParentheses) "(${text})" else text) else (if (text.startsWith("-")) "{ ${text}}" else "{${text}}")
+        val spacingText = parameter?.spacingText ?: " "
+        return PrintedParameter(result, spacingText)
+    }
+
+   protected fun printParams(globalReferable: GlobalReferable?,
+                    params: List<ParameterDescriptor>,
+                    lambdaParams: List<ParameterDescriptor>,
+                    parameterMap: Map<ParameterDescriptor, ArgumentPrintResult?>,
+                    hasExplicitExternalArgument: Boolean,
+                    builder: DoubleStringBuilder): Boolean {
+        var implicitArgPrefix = ""
+        var spacingContents = ""
+        var somethingWasPrinted = false
+        val oldThisParam = parameterMap.keys.firstOrNull{ it.isThis() }
+
+        for (newParam in params) {
+            val oldParam = newParam.oldParameter
+            if (!lambdaParams.contains(oldParam) && getLambdaParams(parameterMap.keys, true).contains(oldParam)) break
+
+            val commentedText = if (oldThisParam != null && newParam.isThis() && newParam.oldParameter == null && params.all { it.oldParameter?.isThis() != true }) parameterMap[oldThisParam]?.printResult?.text else null
+            val (text, spacing) = printParam(globalReferable, oldParam, newParam, parameterMap, hasExplicitExternalArgument, null, commentedText)
+
+            if (text == "{_}") {
+                implicitArgPrefix += spacing + text
+                spacingContents += (if (spacing.endsWith(" ")) spacing.trimEnd() else spacing)
+            } else {
+                somethingWasPrinted = true
+                if (!newParam.isExplicit) {
+                    builder.append(implicitArgPrefix)
+                } else {
+                    builder.append(spacingContents)
+                }
+                builder.append(spacing + text)
+                implicitArgPrefix = ""
+                spacingContents = ""
             }
         }
 
-        getUnmodifiableSuffix()?.let {
-            append(it)
-        }
-        return Pair(defaultBuilder.toString(), if (lambdaArgs == "") parenthesizedPrefixBuilder.toString() else null)
+       return somethingWasPrinted
     }
 
     companion object {
-        private enum class RenderedParameterKind {INFIX_LEFT, INFIX_RIGHT}
+        enum class RenderedParameterKind {INFIX_LEFT, INFIX_RIGHT}
+
+        data class PrintedParameter(val text: String, val spacing: String)
+
+        fun getContextName(affectedDefinition: PsiLocatedReferable, contextPsi: ArendCompositeElement, refactoringContext: ChangeSignatureRefactoringContext): String {
+            val data = ResolveReferenceAction.getTargetName(affectedDefinition, contextPsi, refactoringContext.deferredNsCmds)
+            val longNameString = data.first
+            val namespaceCommand = data.second
+            if (namespaceCommand != null) {
+                refactoringContext.deferredNsCmds.add(namespaceCommand)
+            }
+            return longNameString
+        }
     }
 
 }

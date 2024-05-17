@@ -39,18 +39,18 @@ class ArendCodeInsightUtils {
         )
 
         fun getThisParameter(def: PsiReferable): ParameterDescriptor? {
-            if (def is ArendDefClass) return null //Classes never have leading this parameters
+            if (def is ArendDefClass || def is ArendDefModule) return null //Classes and modules never have leading this parameters
             val defAncestors = (def as? PsiElement)?.ancestors?.toList()?.filterIsInstance<PsiReferable>()
 
             val containingClass = (def as? PsiElement)?.ancestor<ArendDefClass>()?.let { defClass ->
-                if (def is ArendClassField || defAncestors != null && defAncestors.any {
+                if (def is ArendClassField || def is ArendFieldDefIdentifier || defAncestors != null && defAncestors.any {
                         defClass.dynamicSubgroups.contains<PsiElement>(
                             it
                         )
                     }) defClass else null
             }
 
-            return containingClass?.let { ParameterDescriptor.createThisParameter(it) }
+            return containingClass?.let { DefaultParameterDescriptorFactory.createThisParameter(it) }
         }
 
         fun getThisParameterAsList(def: PsiReferable): List<ParameterDescriptor> {
@@ -96,7 +96,7 @@ class ArendCodeInsightUtils {
                     if (firstInternalIndex != -1) throw AssertionError() // external parameters should occur as a starting segment of dataOldParameters
                     val referable =
                         eP.getReferable() as Referable // safe to write since external parameters should all have this field initialised
-                    val newPD = ParameterDescriptor.createNamedDataParameter(referable, data)
+                    val newPD = DefaultParameterDescriptorFactory.createNamedDataParameter(referable, data)
                     patternsMap[eP] = singletonList(newPD)
                     params.add(newPD)
                 } else if (firstInternalIndex == -1) firstInternalIndex = index
@@ -108,8 +108,8 @@ class ArendCodeInsightUtils {
                 for (tele in containingData.parameters)
                     for (p in tele.referableList)
                         params.add(
-                            if (p is PsiReferable) ParameterDescriptor.createNamedDataParameter(p, containingData) else
-                                ParameterDescriptor.createUnnamedDataParameter(tele.type?.text)
+                            if (p is PsiReferable) DefaultParameterDescriptorFactory.createNamedDataParameter(p, containingData) else
+                                DefaultParameterDescriptorFactory.createUnnamedDataParameter(tele.type?.text)
                         )
 
                 if (dataNewParameters != null) {
@@ -128,7 +128,7 @@ class ArendCodeInsightUtils {
                             i
                         }
                         val oldParameter = if (oldIndex != -1) params[oldIndex] else null
-                        newParameters.add(ParameterDescriptor.createDataParameter(oldParameter, dataNewParameter.getExternalScope(), dataNewParameter.getNameOrNull(), dataNewParameter.typeGetter, dataNewParameter.getReferable() as? PsiReferable))
+                        newParameters.add(DefaultParameterDescriptorFactory.createDataParameter(oldParameter, dataNewParameter.getExternalScope(), dataNewParameter.getNameOrNull(), dataNewParameter.typeGetter, dataNewParameter.getReferable() as? PsiReferable))
                     }
                 }
             } else { // Case 2: Constructor defined via pattern matching
@@ -171,8 +171,8 @@ class ArendCodeInsightUtils {
                     collectNamePatterns(pattern).map { nP ->
                         val psiReferable = nP.referable?.underlyingReferable as? PsiReferable
                         if (psiReferable != null)
-                            ParameterDescriptor.createNamedDataParameter(psiReferable, data) else
-                            ParameterDescriptor.createUnnamedDataParameter(null) // In principle, we could try to `guess` names of these unnamed parameters
+                            DefaultParameterDescriptorFactory.createNamedDataParameter(psiReferable, data) else
+                            DefaultParameterDescriptorFactory.createUnnamedDataParameter(null) // In principle, we could try to `guess` names of these unnamed parameters
                     }
 
                 when {
@@ -201,8 +201,8 @@ class ArendCodeInsightUtils {
                             if (oldArgument != null) {
                                 val referable = oldArgument.getReferable()
                                 val parameter = if (referable is Referable)
-                                    ParameterDescriptor.createNamedDataParameter(referable, data) else
-                                    ParameterDescriptor.createUnnamedDataParameter(oldArgument.getType())
+                                    DefaultParameterDescriptorFactory.createNamedDataParameter(referable, data) else
+                                    DefaultParameterDescriptorFactory.createUnnamedDataParameter(oldArgument.getType())
                                 patternsMap[oldArgument] = singletonList(parameter)
                                 params.add(parameter)
                             }
@@ -224,11 +224,11 @@ class ArendCodeInsightUtils {
                                 if (elimIndex == -1 || elimIndex >= clausePatterns.size) { //Not eliminated parameter
                                     singletonList(
                                         if (referable is PsiReferable)
-                                            ParameterDescriptor.createNamedDataParameter(
+                                            DefaultParameterDescriptorFactory.createNamedDataParameter(
                                                 referable,
                                                 data
                                             ) else //Named not eliminated parameter
-                                            ParameterDescriptor.createUnnamedDataParameter(null)
+                                            DefaultParameterDescriptorFactory.createUnnamedDataParameter(null)
                                     ) //Unnamed not eliminated parameter
                                 } else collectNamePatternDescriptors(clausePatterns[elimIndex]) // Eliminated parameter
                             params.addAll(patternParameterDescriptors)
@@ -245,12 +245,12 @@ class ArendCodeInsightUtils {
 
                         val oldParameter = nP.oldParameter
                         if (oldParameter == null) { // newly created internal data parameter, there will be an autogenerated "_" dummy pattern for it
-                            newParameters.add(ParameterDescriptor.createDataParameter(null, nP.getExternalScope(), nP.getNameOrNull(), nP.typeGetter, null))
+                            newParameters.add(DefaultParameterDescriptorFactory.createDataParameter(null, nP.getExternalScope(), nP.getNameOrNull(), nP.typeGetter, null))
                         } else {
                             if (!dataOldParameters.contains(oldParameter)) throw AssertionError()
                             val patternParameterDescriptors = patternsMap[oldParameter] ?: emptyList()
                             newParameters.addAll(patternParameterDescriptors.map {
-                                ParameterDescriptor.createDataParameter(it, nP.getExternalScope(), nP.getNameOrNull(), nP.typeGetter, nP.oldParameter.getReferable() as? PsiReferable)})
+                                DefaultParameterDescriptorFactory.createDataParameter(it, nP.getExternalScope(), nP.getNameOrNull(), nP.typeGetter, nP.oldParameter.getReferable() as? PsiReferable)})
                         }
                     }
                 }
@@ -259,22 +259,24 @@ class ArendCodeInsightUtils {
             return Pair(params, if (dataNewParameters == null) null else newParameters)
         }
 
-        fun getParameterList(def: Abstract.ParametersHolder, addTailParameters: Boolean = false): Pair<List<ParameterDescriptor>?, Boolean> {
-            val externalParameters = if (def is PsiLocatedReferable) getExternalParameters(def) else null
+        fun getParameterList(def: Abstract.ParametersHolder,
+                             addTailParameters: Boolean = false,
+                             predefinedExternalParameters: List<ParameterDescriptor>? = null): Pair<List<ParameterDescriptor>?, Boolean> {
+            val externalParameters = predefinedExternalParameters ?: if (def is PsiLocatedReferable) getExternalParameters(def) else null
             val externalParametersOrEmpty = externalParameters ?: emptyList()
 
             val parameters = when (def) {
-                is ArendDefFunction -> getThisParameterAsList(def) + externalParametersOrEmpty + ParameterDescriptor.createFromTeles(def.parameters) + (if (addTailParameters) getTailParameters(def.resultType) else emptyList())
+                is ArendDefFunction -> getThisParameterAsList(def) + externalParametersOrEmpty + DefaultParameterDescriptorFactory.createFromTeles(def.parameters) + (if (addTailParameters) getTailParameters(def.resultType) else emptyList())
 
-                is ArendDefInstance -> getThisParameterAsList(def) + externalParametersOrEmpty + ParameterDescriptor.createFromTeles(def.parameters) + (if (addTailParameters) getTailParameters(def.resultType) else emptyList())
+                is ArendDefInstance -> getThisParameterAsList(def) + externalParametersOrEmpty + DefaultParameterDescriptorFactory.createFromTeles(def.parameters) + (if (addTailParameters) getTailParameters(def.resultType) else emptyList())
 
-                is ArendConstructor -> getThisParameterAsList(def) + getPartialExpectedConstructorSignature(def, externalParametersOrEmpty).first + ParameterDescriptor.createFromTeles(def.parameters)
+                is ArendConstructor -> getThisParameterAsList(def) + getPartialExpectedConstructorSignature(def, externalParametersOrEmpty).first + DefaultParameterDescriptorFactory.createFromTeles(def.parameters)
 
-                is ArendDefData -> getThisParameterAsList(def) + externalParametersOrEmpty + ParameterDescriptor.createFromTeles(def.parameters)
+                is ArendDefData -> getThisParameterAsList(def) + externalParametersOrEmpty + DefaultParameterDescriptorFactory.createFromTeles(def.parameters)
 
-                is ArendClassField -> getThisParameterAsList(def) + ParameterDescriptor.createFromTeles(def.parameters) + (if (addTailParameters) getTailParameters(def.resultType) else emptyList())
+                is ArendClassField -> getThisParameterAsList(def) + DefaultParameterDescriptorFactory.createFromTeles(def.parameters) + (if (addTailParameters) getTailParameters(def.resultType) else emptyList())
 
-                is ArendDefClass -> return getClassParameterList(def, externalParameters)
+                is ArendDefClass -> return getClassParameterList(def, externalParameters, DefaultParameterDescriptorFactory)
 
                 is ArendFieldDefIdentifier -> getThisParameterAsList(def) + (if (addTailParameters) getTailParameters(def.resultType) else emptyList())
 
@@ -298,13 +300,13 @@ class ArendCodeInsightUtils {
                             is ArendTypeTele ->
                                 if (tele.typedExpr?.identifierOrUnknownList.isNullOrEmpty()) singletonList(null) else
                                     tele.typedExpr?.identifierOrUnknownList!!.map { iou -> iou.defIdentifier?.let { defIdentifier ->
-                                        ParameterDescriptor.createExternalParameter(defIdentifier) }
+                                        DefaultParameterDescriptorFactory.createExternalParameter(defIdentifier) }
                                     }
 
                             is ArendNameTele ->
                                 if (tele.identifierOrUnknownList.isEmpty()) singletonList(null) else
                                     tele.identifierOrUnknownList.map { iou -> iou.defIdentifier?.let { defIdentifier ->
-                                        ParameterDescriptor.createExternalParameter(defIdentifier)
+                                        DefaultParameterDescriptorFactory.createExternalParameter(defIdentifier)
                                     } }
 
                             else ->
@@ -438,7 +440,7 @@ class ArendCodeInsightUtils {
                 } else if (def is ArendDefIdentifier && def.parent is ArendLetClause) {
                     val clause = def.parent as ArendLetClause
                     resType = clause.resultType
-                    result.addAll(ParameterDescriptor.createFromTeles(clause.parameters))
+                    result.addAll(DefaultParameterDescriptorFactory.createFromTeles(clause.parameters))
                 }
 
                 if (addTailParameters) result.addAll(getTailParameters(resType))
@@ -453,7 +455,7 @@ class ArendCodeInsightUtils {
 
         }
 
-        private fun getClassParameterList(def: ArendDefClass, externalParameters: List<ParameterDescriptor>?): Pair<List<ParameterDescriptor>, Boolean> {
+        private fun getClassParameterList(def: ArendDefClass, externalParameters: List<ParameterDescriptor>?, parameterDescriptorFactory: ParameterDescriptor.Companion.Factory = DefaultParameterDescriptorFactory): Pair<List<ParameterDescriptor>, Boolean> {
             val externalParametersMap = HashMap<String, ParameterDescriptor>()
             if (externalParameters != null) for (eP in externalParameters) eP.name?.let{ externalParametersMap[it] = eP }
 
@@ -467,10 +469,10 @@ class ArendCodeInsightUtils {
 
                 val sampleDescriptor = externalParametersMap[it.name]
                 if (sampleDescriptor != null)
-                    ParameterDescriptor.createExternalParameter(sampleDescriptor.getReferable() as Referable, sampleDescriptor.typeGetter, classParameterKind)
+                    parameterDescriptorFactory.createExternalParameter(sampleDescriptor.getReferable() as Referable, sampleDescriptor.typeGetter, classParameterKind)
                 else {
                     if (psiReferable != null)
-                        ParameterDescriptor.createFromReferable(psiReferable, it.referable.isExplicitField, classParameterKind = classParameterKind)
+                        parameterDescriptorFactory.createFromReferable(psiReferable, it.referable.isExplicitField, classParameterKind = classParameterKind)
                     else
                         ParameterDescriptor(
                             it.name,
@@ -487,7 +489,7 @@ class ArendCodeInsightUtils {
                     (it as? ArendFieldDefIdentifier)?.ancestor<ArendDefClass>() == def -> ClassParameterKind.OWN_PARAMETER
                     else -> ClassParameterKind.INHERITED_PARAMETER
                 }
-                ParameterDescriptor.createFromReferable(it, classParameterKind = classParameterKind)
+                parameterDescriptorFactory.createFromReferable(it, classParameterKind = classParameterKind)
             }.toList(), false)
         }
 
@@ -647,7 +649,7 @@ class ArendCodeInsightUtils {
                     }
                     is ArendPiExpr -> {
                         result.addAll(resTypeVar.parameters.map { tele -> tele.referableList.map {
-                            if (it != null) ParameterDescriptor.createFromReferable(it) else ParameterDescriptor.createUnnamedParameter(tele) }
+                            if (it != null) DefaultParameterDescriptorFactory.createFromReferable(it) else DefaultParameterDescriptorFactory.createUnnamedParameter(tele) }
                         }.flatten())
                         resTypeVar.codomain
                     }

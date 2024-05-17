@@ -3,7 +3,7 @@ package org.arend.refactoring.changeSignature.entries
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import org.arend.codeInsight.ParameterDescriptor
-import org.arend.codeInsight.SignatureUsageContext
+import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.childrenWithLeaves
 import org.arend.psi.ext.*
@@ -12,7 +12,7 @@ import java.util.HashMap
 
 class CoClauseEntry(private val psiLocalCoClause: CoClauseBase,
                     refactoringContext: ChangeSignatureRefactoringContext,
-                    private val descriptor1: ChangeSignatureRefactoringDescriptor
+                    descriptor1: ChangeSignatureRefactoringDescriptor
 ): UsageEntry(refactoringContext, psiLocalCoClause, descriptor1, null) {
     private val procArguments = ArrayList<ArgumentPrintResult>()
     init {
@@ -36,8 +36,7 @@ class CoClauseEntry(private val psiLocalCoClause: CoClauseBase,
                 }
                 break
             }
-            val text = refactoringContext.textGetter(data)
-            val strippedText = if (data1 != null) refactoringContext.textGetter(data1) else null
+            val text = if (data1 != null) refactoringContext.textGetter(data1) else refactoringContext.textGetter(data)
             val isExplicit = when (data) {
                 is ArendNameTele -> data.isExplicit
                 is ArendPattern -> data.isExplicit
@@ -47,9 +46,9 @@ class CoClauseEntry(private val psiLocalCoClause: CoClauseBase,
                 ArgumentPrintResult(
                     IntermediatePrintResult(
                         text,
-                        strippedText,
                         null,
                         data1 is ArendIdentifierOrUnknown,
+                        false,
                         null
                     ), isExplicit, spacingMap[arg]
                 )
@@ -60,22 +59,25 @@ class CoClauseEntry(private val psiLocalCoClause: CoClauseBase,
 
     override fun getArguments(): List<ArgumentPrintResult> = procArguments
 
-    override fun getParameters(): Pair<List<ParameterDescriptor>, List<ParameterDescriptor>> {
-        val context = SignatureUsageContext.getParameterContext(psiLocalCoClause.lamParamList.firstOrNull() ?: psiLocalCoClause)
-        return Pair(context.filterParameters(descriptor1.oldParameters), context.filterParameters(descriptor1.newParameters))
-    }
-
-    override fun getUnmodifiableSuffix(): String? {
+    override fun printUsageEntryInternal(globalReferable: GlobalReferable?,
+                                         newParameters: List<ParameterDescriptor>,
+                                         parameterMap: MutableMap<ParameterDescriptor, ArgumentPrintResult?>,
+                                         hasExplicitExternalArgument: Boolean,
+                                         argumentStartIndex: Int,
+                                         doubleBuilder: DoubleStringBuilder): Pair<Boolean, Boolean> {
         val children = psiLocalCoClause.childrenWithLeaves.toList()
-        val index = psiLocalCoClause.fatArrow?.let { children.indexOf(it) } ?: -1
-        return if (index != -1) buildString {
-            for (c in children.subList(index - 1, children.size)) append(refactoringContext.textGetter(c))
-        } else null
-    }
+        val longNameIndex = psiLocalCoClause.longName?.let{ children.indexOf(it) } ?: 1
+        for (c in children.subList(0, longNameIndex))
+            doubleBuilder.append(refactoringContext.textGetter(c))
 
-    override fun getUnmodifiablePrefix(): String = buildString {
-        val children = psiLocalCoClause.childrenWithLeaves.toList()
-        val index = psiLocalCoClause.longName?.let{ children.indexOf(it) } ?: 1
-        for (c in children.subList(0, index)) append(refactoringContext.textGetter(c))
+        val result = super.printUsageEntryInternal(globalReferable, newParameters, parameterMap, hasExplicitExternalArgument, argumentStartIndex, doubleBuilder)
+
+        val arrowIndex = psiLocalCoClause.fatArrow?.let { children.indexOf(it) } ?: -1
+        if (arrowIndex != -1) {
+            for (c in children.subList(arrowIndex - 1, children.size))
+                doubleBuilder.append(refactoringContext.textGetter(c))
+        }
+
+        return result
     }
 }

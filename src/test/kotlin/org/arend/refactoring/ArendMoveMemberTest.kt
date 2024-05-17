@@ -146,7 +146,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                     | myCons (n : MyNat)
                 }
 
-                \open Foo (MyNat, myZero, myCons)
+                \open Foo (MyNat, myCons, myZero)
 
                 \func foo => myCons myZero
             """, "Main", "Foo")
@@ -209,13 +209,13 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 \module Bar \where {
                   \open Foo
 
-                  \func lol => foo + Foo.foo + bar.foobar + Foo.bar.foobar
+                  \func lol => foo + foo + bar.foobar + bar.foobar
                 }
 
                 \func goo => 4
                   \where {
                     \module Foo \where {
-                      \func foo => bar.foobar + Foo.bar.foobar + bar.foobar
+                      \func foo => bar.foobar + bar.foobar + bar.foobar
                 
                       \func bar => 2 \where {
                         \func foobar => foo + bar
@@ -230,7 +230,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 \class C{-caret-} {
                   | foo : Nat
 
-                  \func bar(a : Nat) => foobar a
+                  \func bar (a : Nat) => foobar a
                 } \where {
                   \func foobar (a : Nat) => a
                 }
@@ -245,13 +245,13 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                   \class C {
                     | foo : Nat
 
-                    \func bar(a : Nat) => foobar a
+                    \func bar (a : Nat) => foobar a
                   } \where {
                     \func foobar (a : Nat) => a
                   }
                 }
 
-                \func lol (L : C) => (C.bar (C.foobar (foo {L})))
+                \func lol (L : C) => (C.bar {{?}} (C.foobar (foo {L})))
             """, "Main", "Foo")
 
     fun testMoveData2() =
@@ -273,7 +273,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                     | myCons (n : MyNat)
                 }
 
-                \open Foo (MyNat, myZero, myCons)
+                \open Foo (MyNat, myCons, myZero)
 
                 \func foo (m : MyNat) \elim m
                   | myZero => myZero
@@ -642,7 +642,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                \module FooBar \where {
                  \open Bar (foo \as foo1, foo \as foo2)
 
-                 \func lol => foo1 + foo2
+                 \func lol => foo1 + foo1
                }
             """, "Main", "Bar")
 
@@ -666,7 +666,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                \open Nat
 
                \module FooBar \where {
-                 \func lol => foo1 + foo2
+                 \func lol => foo1 + foo1
                }
             """, "Bar", "", "Foo", "foo")
 
@@ -753,7 +753,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                   | c1
                   | c2
                  \where {
-                   \func lol => C.bar
+                   \func lol => C.bar {{?}}
 
                    \func lol' => C.foobar
 
@@ -829,8 +829,6 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                  \func fooBar{-caret-} => 1
                }
             ""","""
-               \import A
-
                \module Foo \where {
                  \open A (fooBar)
                }
@@ -878,25 +876,25 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                  }
                }
 
-               \func bar : Nat -> Nat => (1 Bar.FooBar.`foo` 1) Bar.FooBar.`foo 
+               \func bar : Nat -> Nat => Bar.FooBar.foo (Bar.FooBar.foo 1 1)               
             """, "A", "Bar.FooBar")
 
     fun testMoveOutOfClass1() =
             doTestMoveRefactoring(""" 
                \class C {
                  | f : Nat
-                 \func foo{-caret-} (a : Nat) (b : a = f) => \lam this => \this
+                 \func foo{-caret-} (a : Nat) (this : a = f) => {?}
                }
 
                \func goo (CI : C) => C.foo 101 
             """, """
                \class C {
-                 | f : Nat 
+                 | f : Nat
                }
 
-               \func goo (CI : C) => foo 101 
-               
-               \func foo {this1 : C} (a : Nat) (b : a = f) => \lam this => this1
+               \func goo (CI : C) => foo {{?}} 101
+
+               \func foo {this1 : C} (a : Nat) (this : a = f {this1}) => {?}
             """, "Main", "")
 
     fun testMoveOutOfClass2() =
@@ -914,7 +912,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 }
                 
                 \module M \where {
-                  \data D {this : C} (p : foo = foo)
+                  \data D {this : C} (p : foo {this} = foo {this})
                 }
             """, "Main", "M")
 
@@ -928,16 +926,16 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                       \func bar (y : E) => {?}
                 }
 
-                \module M 
+                \module M
             """, """
                 \class C1 (E : \Type)
 
                 \class C2 \extends C1 {}
 
                 \module M \where {
-                  \func foo {this : C2} (e : this) => {?}
+                  \func foo {this : C2} (e : C1.E {this}) => {?}
                     \where 
-                      \func bar {this : C2} (y : this) => {?}
+                      \func bar {this : C2} (y : C1.E {this}) => {?}
                 }
             """, "Main", "M")
 
@@ -960,9 +958,9 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                  \func foo : Nat => 101 \where {
                  }
 
-                 \func foobar => bar
+                 \func foobar => bar {\this}
                } \where {
-                 \func bar {this : C} (X : carrier) => 101
+                 \func bar {this : C} (X : carrier {this}) => 101
                } 
             """, "Main", "C")
 
@@ -974,7 +972,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                  \func lol{-caret-} : Nat => F
                }
 
-               \module M 
+               \module M
             """, """
                \record R {
                  \func F => 101
@@ -982,7 +980,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
 
                \module M \where {
                  \func lol {this : R} : Nat => R.F {this}
-               } 
+               }
             """, "Main", "M")
 
     fun testMoveOutOfRecord1() =
@@ -992,23 +990,27 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                \record C2 \extends C1 {
                  | bar : Nat
                  
-                 \func foo{-caret-} (e : E) => {?}
+                 \func foo{-caret-} (e : E) => e
                    \where
                      \func goo => bar
                }
+               
+               \func usage (r : C2 Nat) => r.foo 101 Nat.+ C2.foo.goo {r} 
 
-               \module M 
+               \module M
             """, """
                \class C1 (E : \Type)
 
                \record C2 \extends C1 {
                  | bar : Nat 
                }
+               
+               \func usage (r : C2 Nat) => M.foo {r} 101 Nat.+ M.foo.goo {r}
 
                \module M \where {
-                 \func foo {this : C2} (e : this.E) => {?}
+                 \func foo {this : C2} (e : C1.E {this}) => e
                    \where
-                     \func goo {this : C2} => this.bar
+                     \func goo {this : C2} => bar {this}
                }  
             """, "Main", "M")
 
@@ -1043,9 +1045,9 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 }
 
                 \module M2 \where {
-                  \func foo {this : M.R} (a : C1) => (this.field1, this.field2.field1, this.field2, a.field1)
+                  \func foo {this : M.R} (a : C1) => (field1 {this}, field1 {M.field2 {this}}, M.field2 {this}, field1 {a})
                 }
-            """, "Main", "M2")
+            """, "Main", "M2", typecheck = true)
 
     fun testMoveOutOfRecord3() =
             doTestMoveRefactoring("""
@@ -1066,6 +1068,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                       M.C2.fubar2 1, 
                       fubar3 1, 
                       zoo M.C2.fubar2,
+                      suc (M.C2.fubar2 1),
                       C1.fubar1 {\this}, 
                       C1.fubar1 1 = C1.fubar1 1)
                  }
@@ -1073,7 +1076,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                
                \func zoo (f : Nat -> Nat) => f 0
 
-               \module M2 
+               \module M2
             """, """
                \record C1 (E : \Type) {
                  \func fubar1 (n : Nat) => 101
@@ -1092,14 +1095,15 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                \func zoo (f : Nat -> Nat) => f 0
 
                \module M2 \where {
-                 \func foo2 {this : M.S} => 
-                   (C1.fubar1 {this} 1, 
-                    M.C2.fubar2 {this} 1, 
+                 \func foo2 {this : M.S} =>
+                   (C1.fubar1 {this} 1,
+                    M.C2.fubar2 {this} 1,
                     M.S.fubar3 {this} 1,
                     zoo (M.C2.fubar2 {this}),
+                    suc (M.C2.fubar2 {this} 1),
                     C1.fubar1 {this},
-                    C1.fubar1 {this} 1 = (C1.fubar1 {this}) 1)
-               } 
+                    C1.fubar1 {this} 1 = C1.fubar1 {this} 1)
+               }
             """, "Main", "M2")
 
     fun testMoveOutOfRecord4() =
@@ -1129,7 +1133,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                \module M \where {
                  \class C2 \extends C1 {
                    \func fubar2 (n : Nat) => 101
-                 } 
+                 }
 
                  \class S \extends C2 {
                    \func fubar3 (n : Nat) => 101
@@ -1137,7 +1141,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                }
 
                \module M2 \where {
-                 \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 1, M.S.fubar3 1)
+                 \func foo2 {this : M.S} => (C1.fubar1 {this} 1, M.C2.fubar2 {this} 1, M.S.fubar3 {this} 1)
                }
             """, "Main", "M2")
 
@@ -1195,53 +1199,53 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
             """, """
                \record R {
                  \func bar (n m : Nat) => {?}
-                 
+
                  \func lol {A : \Type} (n m : A) => n
-                 
+
                  \func fubar (n : Nat) {X : \Type} => n
-                 
+
                  \func succ (n : Nat) => Nat.suc n
-                 
+
                  \func \infixl 1 ibar (n m : Nat) => n
                }
-               
-               \func foo {this : R} : Nat -> Nat => R.`bar` {this} 1
-               
-               \func foo2 {this : R} : Nat -> Nat => (\lam n => R.bar {this} n 1)
-                 
-               \func foo3 {this : R} : Nat -> Nat => 1 R.`bar` {this}
-               
+
+               \func foo {this : R} : Nat -> Nat => R.bar {this} 1
+
+               \func foo2 {this : R} : Nat -> Nat => \lam n => R.bar {this} n 1
+
+               \func foo3 {this : R} : Nat -> Nat => R.bar {this} 1
+
                \func foo4 {this : R} : Nat -> Nat => R.bar {this} 1
-               
-               \func foo5 {this : R} : Nat => 1 R.`bar` {this} (R.succ {this}) 2 
-                
+
+               \func foo5 {this : R} : Nat => R.bar {this} 1 (R.succ {this} 2)
+
                \func foo6 {this : R} : Nat => R.bar {this} 1 2
-               
-               \func foo7 {this : R} : Nat => 1 R.`lol` {this} {Nat} 2
-                
+
+               \func foo7 {this : R} : Nat => R.lol {this} {Nat} 1 2
+
                \func foo8 {this : R} : Nat => R.fubar {this} 1 {Nat}
-               
-               \func foo9 {this : R} : Nat => 1 R.`bar` {this} 2 R.`bar` {this} 3
-               
-               \func foo10 {this : R} : Nat => 1 R.`bar` {this} (R.bar {this} 2 3)
-               
-               \func foo11 {this : R} => (R.bar {this} 1 2) R.`bar` {this} 3
-               
+
+               \func foo9 {this : R} : Nat => R.bar {this} 1 (R.bar {this} 2 3)
+
+               \func foo10 {this : R} : Nat => R.bar {this} 1 (R.bar {this} 2 3)
+
+               \func foo11 {this : R} => R.bar {this} (R.bar {this} 1 2) 3
+
                \func foo12 {this : R} : Nat => R.bar {this} (R.succ {this} 2) 3
-               
+
                \func foo13 {this : R} : Nat => R.bar {this} (R.succ {this} {- lol -} 2) 3
-               
-               \func foo14 {this : R} => \lam (n : Nat) => (\lam n1 => R.bar {this} n1 n)
-               
-               \func foo15 {this : R} : Nat -> Nat => 1 R.ibar {this}
-                 
+
+               \func foo14 {this : R} => \lam (n : Nat) => \lam n1 => R.bar {this} n1 n
+
+               \func foo15 {this : R} : Nat -> Nat => R.ibar {this} 1
+
                \func foo16 {this : R} : Nat => 1 R.ibar {this} 2
-               
+
                \func foo17 {this : R} : Nat -> Nat => (\lam n => R.bar {this} n 2)
-               
-               \func foo18 {this : R} : Nat => ((R.bar)) {this} 1 2
-               
-               \func foo19 {this : R} => ((\lam n => R.bar {this} n 202) : Nat -> Nat)
+
+               \func foo18 {this : R} : Nat => R.bar {this} 1 2
+
+               \func foo19 {this : R} => (\lam n => R.bar {this} n 202 : Nat -> Nat)
             """, "Main", "", "Main",
                     "R.foo", "R.foo2", "R.foo3", "R.foo4", "R.foo5", "R.foo6", "R.foo7", "R.foo8",
                     "R.foo9", "R.foo10", "R.foo11", "R.foo12", "R.foo13", "R.foo14", "R.foo15", "R.foo16",
@@ -1250,30 +1254,34 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
     fun testMoveOutOfRecord6() =
             doTestMoveRefactoring("""
                \record R {
+                 | bar : Nat
+                 
                  \data D{-caret-}
-                   | C1
+                   | C1 (p : bar = bar)
                    | C2 
   
                  \func foo (a : D) : D \with
-                   | C1 => C1
+                   | C1 x => C1 x
                    | C2 => C2  
                }
 
                \module M
             """, """
                \record R {
+                 | bar : Nat
+
                  \func foo (a : D {\this}) : D {\this} \with
-                   | C1 => C1
-                   | C2 => C2  
+                   | C1 x => C1 {\this} x
+                   | C2 => C2 {\this}
                } \where {
-                 \open M (D, C1, C2)
+                 \open M (C1, C2, D)
                }
 
                \module M \where {
                  \data D {this : R}
-                   | C1
+                   | C1 (p : bar {this} = bar {this})
                    | C2
-               } 
+               }
             """, "Main", "M")
 
     fun testMoveOutOfRecord7() =
@@ -1281,7 +1289,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 \record R {
                   \data D
                     
-                  \func foo{-caret-} (a : \Sigma D) : D => a.1   
+                  \func foo{-caret-} (a : \Sigma D Nat) : D => a.1   
                 }
                 
                 \module M
@@ -1291,7 +1299,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 }
 
                 \module M \where {
-                  \func foo {this : R} (a : \Sigma (R.D {this})) : R.D {this} => a.1
+                  \func foo {this : R} (a : \Sigma (R.D {this}) Nat) : R.D {this} => a.1
                 }
             """, "Main", "M")
 
@@ -1370,40 +1378,48 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 }
             """, "Main", "C1", targetIsDynamic = true)
 
-    fun testMoveBetweenDynamics1() =
-            doTestMoveRefactoring(""" 
+    fun testMoveIntoUnrelatedClass() =
+            doTestMoveRefactoring("""
                \record C {
                  | number : Nat
                  
-                 \func foo{-caret-} => bar Nat.+ (bar {\this}) Nat.+ number
+                 \func foo{-caret-} {n : Nat} => (bar Nat.+ n, bar {\this} Nat.+ n, number Nat.+ n)
                  
                  \func bar => 202
                  
                  \func foobar => foo
                }
+               
+               \class E \extends C {
+                 \func fubar => foo {\this} {101}
+               }
                 
                \class D {
-                 \func fubar => C.foo {\new C {| number => 1}}
+                 \func fubar => C.foo {\new C {| number => 1}} {101}
                }
             """, """
                \record C {
-                 | number : Nat               
-               
+                 | number : Nat
+
                  \func bar => 202
 
-                 \func foobar => foo {_} {\this}
+                 \func foobar => foo {{?}} {\this}
                } \where {
                  \open D (foo)
                }
 
-               \class D {
-                 \func fubar => foo {\this} {\new C {| number => 1}}
+               \class E \extends C {
+                 \func fubar => D.foo {{?}} {\this} {101}
+               }
 
-                 \func foo {this : C} => C.bar {this} Nat.+ (C.bar {this}) Nat.+ this.number 
+               \class D {
+                 \func fubar => foo {\this} {\new C {| number => 1}} {101}
+
+                 \func foo {this : C} {n : Nat} => (C.bar {this} Nat.+ n, C.bar {this} Nat.+ n, number {this} Nat.+ n)
                }
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 
-    fun testMoveBetweenDynamics2() =
+    fun testMoveIntoDescendant() =
             doTestMoveRefactoring(""" 
                \record C {
                  | number : Nat
@@ -1420,20 +1436,20 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                }
             """, """
                \record C {
-                 | number : Nat               
-               
+                 | number : Nat
+
                  \func bar => 202
 
-                 \func foobar => foo
+                 \func foobar => foo {{?}}
                } \where {
                  \open D (foo)
                }
 
                \class D \extends C {
-                 \func fubar => foo {\new C {| number => 1}}
+                 \func fubar => foo {{?} {-\new C {| number => 1}-}}
 
-                 \func foo => bar Nat.+ (bar {\this}) Nat.+ number 
-               } 
+                 \func foo => bar Nat.+ (bar {\this}) Nat.+ number
+               }
             """, "Main", "D", targetIsDynamic = true) //Note: There are instance inference errors in the resulting code
 
     fun test456() = doTestMoveRefactoring(
@@ -1455,7 +1471,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
         "Main", "", fileToCheck = "B.ard"
     )
 
-    fun _testMoveBetweenDynamics3() = doTestMoveRefactoring("""
+    fun testMoveIntoDescendant2() = doTestMoveRefactoring("""
        \class C {foo : Nat} {
          \func ba{-caret-}r (a : Nat) => a Nat.+ C.foo
 
@@ -1467,17 +1483,43 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
        }
     """, """
        \class C {foo : Nat} {
-         \func usage => bar {_} 101
+         \func usage => bar {{?}} 101
        } \where {
          \open D (bar)
        }
 
        \class D \extends C {
-         \func lol => bar
+         \func lol => bar {\this}
 
          \func bar (a : Nat) => a Nat.+ C.foo
        }
     """, "Main", "D", targetIsDynamic = true)
+
+    fun testMoveIntoAncestor() = doTestMoveRefactoring("""
+       \class C {
+         | number : Nat
+       } \where {
+         \func bar {m : Nat} => D.foo {\new D 42 101} {m}
+       }
+
+       \class D \extends C {
+         | number2 : Nat
+       
+         \func foo{-caret-} {n : Nat} => number Nat.+ n Nat.+ number2
+       }
+    """, """
+       \class C {
+         | number : Nat
+         
+         \func foo {n : Nat} => number Nat.+ n Nat.+ number2 {{?}}
+       } \where {
+         \func bar {m : Nat} => D.foo {\new D 42 101} {m}
+       }
+
+       \class D \extends C {
+         | number2 : Nat
+       }
+    """, "Main", "C", targetIsDynamic = true)
 
     fun testInstanceRefFix() =
             doTestMoveRefactoring("""
@@ -1532,11 +1574,36 @@ $testMOR8Header
 
 \func fubar {this : D} => ((D.bar1 {this}).1,
                            suc (D.bar1 {this}).1,
-                           C.f {D.bar2 {this}} 1, 
+                           C.f {D.bar2 {this}} 1,
                            P.a {C2.f {D.bar3 {this}}},
                            suc (P.a {C2.f {D.bar3 {this}}}),
                            (C3.f {D.bar4 {this}}).1,
                            suc (C3.f {D.bar4 {this}}).1)""", "Main", "")
+
+    fun testMoveOutOfClass5() = doTestMoveRefactoring("""
+       \class Foo {
+         | n : Nat
+
+         \func {-caret-}succ : Foo => \new Foo (Nat.suc n)
+
+         \func usage3 => succ.succ.succ
+       }
+
+       \func foo (x : Foo) => Foo.succ.succ.succ
+    """, """
+       \class Foo {
+         | n : Nat
+
+         \func usage3 => succ {succ {succ {\this}}}
+       } \where {
+         \open foo (succ)
+       }
+
+       \func foo (x : Foo) => succ {succ {succ {{?}}}} 
+         \where {
+           \func succ {this : Foo} : Foo => \new Foo (suc (n {this}))
+         }  
+    """, "Main", "foo")
 
     fun testInstances() = doTestMoveRefactoring("""
                \module Foo
@@ -1579,7 +1646,7 @@ $testMOR8Header
            } 
         """, "Main", "Bar", useOpenCommands = true)
 
-    fun _testParentImplicitParams() = doTestMoveRefactoring("""
+    fun testParentImplicitParams() = doTestMoveRefactoring("""
        \func foo (x : Nat) => x
          \where
            \func bar{-caret-} => x
@@ -1589,30 +1656,30 @@ $testMOR8Header
        \func foo (x : Nat) => x
             
        \module M \where {
-         \func bar (x : Nat) => x
+         \func bar {x : Nat} => x
        }
     """, "Main", "M", typecheck = true)
 
-    fun _testParentImplicitParams2() = doTestMoveRefactoring("""
+    fun testParentImplicitParams2() = doTestMoveRefactoring("""
        \func foo (x : Nat) => x
          \where
            \func fubar (y : Nat) => y
              \where
                \func bar{-caret-} => x Nat.+ y
 
-       \func lol => foo.fubar.bar 101 42
+       \func lol => foo.fubar.bar {101} {42}
     """, """
        \func foo (x : Nat) => x
          \where {
            \func fubar (y : Nat) => y
            
-           \func bar (y : Nat) => x Nat.+ y
+           \func bar {y : Nat} => x Nat.+ y
          }   
        
-       \func lol => foo.bar 102 42
+       \func lol => foo.bar {101} {42}
     """, "Main", "foo", typecheck = true)
 
-    fun _testParentImplicitClass() = doTestMoveRefactoring("""
+    fun testParentImplicitClass() = doTestMoveRefactoring("""
        \class C {
          | foo : Nat
          \func lol (bar : Nat) => bar \where
@@ -1627,11 +1694,11 @@ $testMOR8Header
        }
        
        \module M \where {
-         \func fubar {this : C} (bar : Nat) => foo Nat.+ bar
+         \func fubar {this : C} {bar : Nat} => foo {this} Nat.+ bar
        }
     """, "Main", "M", typecheck = true)
 
-    fun _testParentImplicitUsage() = doTestMoveRefactoring("""
+    fun testParentImplicitUsage() = doTestMoveRefactoring("""
        \func foo (x : Nat) => x
          \where {
            \func bar{-caret-} (p : x = x) : Nat => \case x \with {
@@ -1640,57 +1707,57 @@ $testMOR8Header
            }
 
            \func usage => bar idp
-           
+
            \func test (y : Nat) => x Nat.+ y
          }
 
        \module M \where {
-         \func fubar : Nat => foo.bar 101 idp
-       }
+         \func fubar : Nat => foo.bar {101} idp
+       }               
     """, """
        \func foo (x : Nat) => x
          \where {
            \open M (bar)
            
-           \func usage => bar x idp
+           \func usage => bar {x} idp
            
            \func test (y : Nat) => x Nat.+ y
          }
 
        \module M \where {
-         \func fubar : Nat => bar 101 idp
+         \func fubar : Nat => bar {101} idp
          
-         \func bar (x : Nat) (p : x = x) : Nat => \case x \with {
+         \func bar {x : Nat} (p : x = x) : Nat => \case x \with {
            | 0 => 0
-           | suc n' => foo.test x n'
+           | suc n' => foo.test {x} n'
          }
        }
     """, "Main", "M", typecheck = true)
 
-    fun _testComplicatedUsage() = doTestMoveRefactoring("""
+    fun testComplicatedUsage() = doTestMoveRefactoring("""
        \func foo (x : Nat) => x
          \where {
            \func bar {y : Nat} => y \where {
              \func foobar (z : Nat) => z \where {
-               \func fubar{-caret-} {w : Nat} => 
+               \func fubar{-caret-} (w : Nat) =>
                  usage_x 0 Nat.+ usage_y 0 Nat.+ usage_z Nat.+ w
 
                \func usage_z => z
-               \func usage_fubar1 => fubar {fubar {1}}
+               \func usage_fubar1 => fubar (fubar 1)
              }
 
            \func usage_y (p : Nat) => y Nat.+ p
 
-           \func usage_fubar2 => foobar.fubar 0 {foobar.fubar 0 {0}}
+           \func usage_fubar2 => foobar.fubar {x} {y} {0} (foobar.fubar {x} {y} {0} 0)
          }
 
          \func usage_x (q : Nat) => x Nat.+ q
 
-         \func usage_fubar3 => bar.foobar.fubar {0} 0 {bar.foobar.fubar {0} 0 {0}}
+         \func usage_fubar3 => bar.foobar.fubar {x} {0} {0} (bar.foobar.fubar {x} {0} {0} 0)
        }
 
        \module M \where {
-         \func usage_outer : Nat => foo.bar.foobar.fubar 1 {1} 1 {1}
+         \func usage_outer : Nat => foo.bar.foobar.fubar {1} {1} {1} 1
        }
     """,  """
       \func foo (x : Nat) => x
@@ -1700,42 +1767,42 @@ $testMOR8Header
               \open M (fubar)
 
               \func usage_z => z
-              \func usage_fubar1 => fubar x {y} z {fubar x {y} z {1}}
+              \func usage_fubar1 => fubar {x} {y} {z} (fubar {x} {y} {z} 1)
             }
 
           \func usage_y (p : Nat) => y Nat.+ p
 
-          \func usage_fubar2 => M.fubar x {y} 0 {M.fubar x {y} 0 {0}}
+          \func usage_fubar2 => M.fubar {x} {y} {0} (M.fubar {x} {y} {0} 0)
         }
 
         \func usage_x (q : Nat) => x Nat.+ q
 
-        \func usage_fubar3 => M.fubar x {0} 0 {M.fubar x {0} 0 {0}}
+        \func usage_fubar3 => M.fubar {x} {0} {0} (M.fubar {x} {0} {0} 0)
       }
 
       \module M \where {
-        \func usage_outer : Nat => fubar 1 {1} 1 {1}
+        \func usage_outer : Nat => fubar {1} {1} {1} 1
 
-        \func fubar (x : Nat) {y : Nat} (z : Nat) {w : Nat} =>
-          foo.usage_x x 0 Nat.+ foo.bar.usage_y {y} 0 Nat.+ foo.bar.foobar.usage_z z Nat.+ w
+        \func fubar {x y z : Nat} (w : Nat) =>
+          foo.usage_x {x} 0 Nat.+ foo.bar.usage_y {y} 0 Nat.+ foo.bar.foobar.usage_z {z} Nat.+ w
       }
     """, "Main", "M", typecheck = true)
 
-    fun _testComplicatedUsage2() = doTestMoveRefactoring("""
+    fun testComplicatedUsage2() = doTestMoveRefactoring("""
        \class Foo {u : Nat} {
          | v : Nat
 
          \func foo {w : Nat} => u Nat.+ v Nat.+ w \where {
-           \func \infixl 1 +{-caret-}++ (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+           \func \infixl 1 {-caret-}+++ (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
 
            \func usage1 (a b c : Nat) => a +++ b +++ c
          }
 
-         \func usage2 (a b c : Nat) => a foo.+++ {0} b foo.+++ {0} c
+         \func usage2 (a b c : Nat) => a foo.+++ {_} {0} b foo.+++ {_} {0} c
        }
 
        \class Bar \extends Foo {
-         \func lol1 => 101 Foo.foo.+++ {0} 102
+         \func lol1 => 101 Foo.foo.+++ {_} {0} 102
        } \where {
          \func lol2 => 101 Foo.foo.+++ {\new Foo {101} 102} {0} 102
        }
@@ -1744,60 +1811,140 @@ $testMOR8Header
          | v : Nat
 
          \func foo {w : Nat} => u Nat.+ v Nat.+ w \where {
-           \func usage1 (a b c : Nat) (_ : Bar) => a +++ {_} {\this} {w} b +++ {_} {\this} {w} c
+           \func usage1 (a b c : Nat) => a +++ {{?}} {w} b +++ {{?}} {w} c
 
            \open Bar (+++)
          }
 
-         \func usage2 (a b c : Nat) (_ : Bar) => a Bar.+++ {_} {\this} {0} b Bar.+++ {_} {\this} {0} c
+         \func usage2 (a b c : Nat) => a Bar.+++ {{?}} {0} b Bar.+++ {{?}} {0} c
        }
 
        \class Bar \extends Foo {
-         \func lol1 => 101 +++ {_} {_} {0} 102
+         \func lol1 => 101 +++ {{?}} {0} 102
 
-         \func \infixl 1 +++ {this : Foo} {w : Nat} (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+         \func \infixl 1 +++ {w : Nat} (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
        } \where {
-         \func lol2 => 101 +++ {_} {\new Foo {101} 102} {0} 102
-       } 
+         \func lol2 => 101 +++ {{?} {-\new Foo {101} 102-}} {0} 102
+       }       
     """, "Main", "Bar", typecheck = true, targetIsDynamic = true)
 
-    fun _testComplicatedUsage3() = doTestMoveRefactoring("""
-      \class Foo {u : Nat} {
-        | v : Nat
+    fun testComplicatedUsage3() = doTestMoveRefactoring("""
+       \class Foo {u : Nat} {
+         | v : Nat
 
-        \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
-          \func \infixl 1 +{-caret-}++ (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
+         \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
+           \func \infixl 1 {-caret-}+++ (x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
 
-          \func usage1 (a b c : Nat) => a +++ b +++ c
-        }
+           \func usage1 (a b c : Nat) => a +++ b +++ c
+         }
 
-       \func usage2 (a b c : Nat) => foo.+++ 0 (foo.+++ 0 a b) c
-      }
+         \func usage2 (a b c : Nat) => foo.+++ {_} {0} (foo.+++ {_} {0} a b) c
+       }
 
-      \class Bar \extends Foo {
-        \func lol1 => (Foo.foo.+++ 0) 101 102
-      } \where {
-        \func lol2 => Foo.foo.+++ {\new Foo {101} 102} 0 101 102
-      }
+       \class Bar \extends Foo {
+         \func lol1 => (Foo.foo.+++ {_} {0}) 101 102
+       } \where {
+         \func lol2 => Foo.foo.+++ {\new Foo {101} 102} {0} 101 102
+       }
     """, """
-    \class Foo {u : Nat} {
-      | v : Nat
+       \class Foo {u : Nat} {
+         | v : Nat
 
-      \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
-        \func usage1 (a b c : Nat) => +++ w (+++ w a b) c
+         \func foo (w : Nat) => u Nat.+ v Nat.+ w \where {
+           \func usage1 (a b c : Nat) => a +++ {\this} {w} b +++ {\this} {w} c
 
-        \open Bar (+++)
-      }
+           \open Bar (+++)
+         }
 
-     \func usage2 (a b c : Nat) => Bar.+++ 0 (Bar.+++ 0 a b) c
-    }
+         \func usage2 (a b c : Nat) => (a Bar.+++ {\this} {0} b) Bar.+++ {\this} {0} c
+       }
 
-    \class Bar \extends Foo {
-      \func lol1 => (+++ 0) 101 102
-    } \where {
-      \func lol2 => +++ {\new Foo {101} 102} 0 101 102
+       \class Bar \extends Foo {
+         \func lol1 => (+++ {\this} {0}) 101 102
+       } \where {
+         \func lol2 => 101 +++ {\new Foo {101} 102} {0} 102
 
-      \func \infixl 1 +++ {this : Foo} (w x y : Nat) => u Nat.+ v Nat.+ w Nat.+ x Nat.+ y
-    }  
+         \func \infixl 1 +++ {this : Foo} {w : Nat} (x y : Nat) => u {this} Nat.+ v {this} Nat.+ w Nat.+ x Nat.+ y
+       }
     """, "Main", "Bar", typecheck = true, targetIsDynamic = false)
+
+    fun testLongName() = doTestMoveRefactoring("""
+       \class Foo {
+         | n : Nat
+
+         \func {-caret-}succ : Foo => \new Foo (Nat.suc n)
+
+         \func \infix 1 +++ (a b : Nat) => 101
+
+         \func lol => 101 succ.succ.+++ 102
+       }
+       
+       \module M
+    """, """
+       \class Foo {
+         | n : Nat
+
+         \func \infix 1 +++ (a b : Nat) => 101
+
+         \func lol => 101 +++ {succ {succ {\this}}} 102
+       } \where {
+         \open M (succ)
+       }
+
+       \module M \where {
+         \func succ {this : Foo} : Foo => \new Foo (suc (n {this}))
+       }
+    """, "Main", "M")
+
+    fun testMutuallyRecursive() = doTestMoveRefactoring("""
+       \class Foo {
+         | n : Nat
+         \func foo1{-caret-} (m : Nat) : Nat \with
+           | zero => zero
+           | suc m => foo2 m Nat.+ n
+
+         \func foo2 (this : Nat) : Nat \with
+           | zero => zero
+           | suc m => foo1 m Nat.+ n
+       } 
+    """, """
+       \class Foo {
+         | n : Nat         
+       } \where {
+         \func foo1 {this : Foo} (m : Nat) : Nat \with
+           | {this}, zero => zero
+           | {this}, suc m => foo2 {this} m Nat.+ n {this}
+
+         \func foo2 {this1 : Foo} (this : Nat) : Nat \with
+           | {this1}, zero => zero
+           | {this1}, suc m => foo1 {this1} m Nat.+ n {this1}
+       }
+    """, "Main", "Foo", "Main",
+        "Foo.foo1", "Foo.foo2", targetIsDynamic = false)
+
+    fun testMoveOutClass6() = doTestMoveRefactoring("""
+       \class Foo {
+         \data Vec{-caret-} {X : \Type} (n : Nat) \with
+           | {X}, zero => nullV
+           | {X}, suc n => consV {X} (Vec {_} {X} n)
+
+         \func lol => consV {_} {Nat} {1} {101} (consV {_} {_} {0} {101} nullV)
+       }
+       
+       \class Bar {
+       }
+    """, """
+       \class Foo {
+         \func lol => consV {{?}} {\this} {Nat} {1} {101} (consV {{?}} {\this} {_} {0} {101} (nullV {{?}} {\this}))
+       } \where {
+         \open Bar (Vec, consV, nullV)
+       }
+
+       \class Bar {
+         \data Vec {this : Foo} {X : \Type} (n : Nat) \with
+           | {this}, {X}, zero => nullV
+           | {this}, {X}, suc n => consV {X} (Vec {this} {{?}} {X} n)
+       } 
+    """, "Main", "Bar", targetIsDynamic = true)
+
 }

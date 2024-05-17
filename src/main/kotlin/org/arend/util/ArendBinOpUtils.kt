@@ -11,7 +11,6 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
-import org.arend.psi.childOfType
 import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendExpr
 import org.arend.resolving.ArendReferableConverter
@@ -27,16 +26,22 @@ import org.arend.term.concrete.Concrete.NumberPattern
 fun appExprToConcrete(appExpr: ArendExpr): Concrete.Expression? = appExprToConcrete(appExpr, false)
 
 fun appExprToConcrete(appExpr: ArendExpr, setData: Boolean, errorReporter: ErrorReporter = DummyErrorReporter.INSTANCE): Concrete.Expression? {
-    //val scope = CachingScope.make(appExpr.scope)
     return appExpr.accept(object : BaseAbstractExpressionVisitor<Void, Concrete.Expression>(null) {
         override fun visitBinOpSequence(data: Any?, left: Abstract.Expression, sequence: Collection<Abstract.BinOpSequenceElem>, params: Void?): Concrete.Expression =
-                parseBinOp(if (setData) data else null, left, sequence, errorReporter/*, scope*/)
+                parseBinOp(if (setData) data else null, left, sequence, errorReporter)
 
         override fun visitReference(data: Any?, referent: Referable, lp: Int, lh: Int, params: Void?) =
-                resolveReference(data, referent, null/*, scope*/)
+                resolveReference(data, referent, null)
 
         override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) =
-                resolveReference(data, referent, fixity/*, scope*/)
+                resolveReference(data, referent, fixity)
+
+        override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableCollection<Int>, params: Void?): Concrete.Expression {
+            var result = expression.accept<Void, Concrete.Expression>(this, null)
+            for (fieldAcc in fieldAccs) result = Concrete.ProjExpression(data, result, fieldAcc - 1)
+            return result!!
+        }
+
     }, null)
 }
 

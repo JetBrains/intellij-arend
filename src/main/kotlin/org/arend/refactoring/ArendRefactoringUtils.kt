@@ -320,7 +320,8 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
             if (openedName.size > 1 && targetContainer != null) {
                 val containingFile = positionInFile.containingFile as? ArendFile
                 val openPrefix = (if (containingFile != null) {
-                    val data = calculateReferenceName(LocationData(targetContainer), containingFile, mySourceContainer)
+                    val locationData = LocationData.createLocationData(targetContainer)
+                    val data = locationData?.let{ calculateReferenceName(it, containingFile, mySourceContainer) }
                     data?.first?.execute()
                     if (data != null) LongName(data.second).toString() else null
                 } else null) ?: LongName(openedName.subList(0, openedName.size - 1)).toString()
@@ -493,7 +494,6 @@ fun getCompleteWhere(myTargetContainer: ArendGroup, psiFactory: ArendPsiFactory)
     }
     return actualWhereImpl
 }
-
 
 /**
  * @return a new let expression inserted psi tree

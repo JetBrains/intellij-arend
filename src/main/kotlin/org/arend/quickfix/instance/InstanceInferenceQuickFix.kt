@@ -97,8 +97,8 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
                     for (element in chosenElement) {
                         val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
                         val elementReferable = (element.referable as? DataLocatedReferable)?.data?.element ?: continue
-                        val targetLocation = LocationData(elementReferable)
-                        val importData = calculateReferenceName(targetLocation, sourceContainerFile, longName)
+                        val targetLocation = LocationData.createLocationData(elementReferable)
+                        val importData = targetLocation?.let { calculateReferenceName(it, sourceContainerFile, longName) }
 
                         if (importData != null) {
                             val openedName: List<String> = importData.second

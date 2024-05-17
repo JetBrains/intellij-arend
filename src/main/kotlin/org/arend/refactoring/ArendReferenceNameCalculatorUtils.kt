@@ -23,15 +23,14 @@ import java.util.Collections.singletonList
 fun doCalculateReferenceName(defaultLocation: LocationData,
                              currentFile: ArendFile,
                              anchor: ArendCompositeElement,
-                             allowSelfImport: Boolean = false,
                              deferredImports: List<NsCmdRefactoringAction>? = null): Pair<NsCmdRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
     val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write
     val alternativeLocation = when (defaultLocation.target) {
-        is ArendClassField, is ArendConstructor -> LocationData(defaultLocation.target, true)
+        is ArendClassField, is ArendConstructor -> LocationData.createLocationData(defaultLocation.target, true)
         else -> null
     }
-    val aliasLocation = if (defaultLocation.target.hasAlias()) LocationData(defaultLocation.target, alias = true) else null
+    val aliasLocation = if (defaultLocation.target.hasAlias()) LocationData.createLocationData(defaultLocation.target, alias = true) else null
     val locations: MutableList<LocationData> = ArrayList()
     alternativeLocation?.let { locations.add(it) }
     aliasLocation?.let { locations.add(it) }
@@ -116,7 +115,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 
         val statements: List<ArendStatCmd>? = containingGroup?.statements?.mapNotNull { it.namespaceCommand as? ArendStatCmd }
 
-        if (!allowSelfImport) if (psi is PsiLocatedReferable && psi.isAncestor(defaultLocation.target))
+        if (psi is PsiLocatedReferable && psi.isAncestor(defaultLocation.target))
             defaultLocation.processParentGroup(psi)
 
         if (statements != null)
@@ -173,7 +172,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     resultingDecisions.sort()
 
     val resultingName = resultingDecisions[0].refName // most optimal name comes first
-    val importAction = if (targetFile != currentFile || (resultingName.isNotEmpty() || allowSelfImport) && resultingName == veryLongName)
+    val importAction = if (targetFile != currentFile || (resultingName.isNotEmpty()) && resultingName == veryLongName)
         resultingDecisions[0].nsAction else null // If we use the long name of a file inside the file itself, we are required to import it first via a namespace command
 
     return Pair(importAction, resultingName)
@@ -195,43 +194,19 @@ fun isVisible(importFile: ArendFile, currentFile: ArendFile): Boolean {
 fun calculateReferenceName(defaultLocation: LocationData,
                            currentFile: ArendFile,
                            anchor: ArendCompositeElement,
-                           allowSelfImport: Boolean = false,
                            deferredImports: List<NsCmdRefactoringAction>? = null): Pair<NsCmdRefactoringAction?, List<String>>? {
     if (defaultLocation.target.accessModifier == AccessModifier.PRIVATE) return null
     if (!isVisible(defaultLocation.myContainingFile, currentFile)) return null
-    return doCalculateReferenceName(defaultLocation, currentFile, anchor, allowSelfImport, deferredImports)
+    return doCalculateReferenceName(defaultLocation, currentFile, anchor, deferredImports)
 }
 
-class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = false, val alias: Boolean = false) {
-    private val myLongNameWithRefs: List<Pair<String, Referable>>
+class LocationData private constructor (
+    val target: PsiLocatedReferable,
+    val alias: Boolean = false,
+    private val myLongNameWithRefs: List<Pair<String, Referable>>,
+    val myContainingFile: ArendFile) {
+
     private val myReferenceNames: MutableSet<List<String>> = HashSet()
-    val myContainingFile: ArendFile
-
-    init {
-        var psi: PsiElement? = target
-        var skipFlag = skipFirstParent
-        var containingFile: ArendFile? = null
-
-        myLongNameWithRefs = ArrayList()
-        while (psi != null) {
-            if (psi is PsiReferable && psi !is ArendFile) {
-                val name = if (psi is GlobalReferable) {
-                    if (alias) psi.representableName else psi.textRepresentation()
-                } else
-                    psi.name ?: throw IllegalStateException() //Fix later :)
-
-                if (skipFlag && myLongNameWithRefs.isNotEmpty()) {
-                    skipFlag = false
-                } else {
-                    myLongNameWithRefs.add(0, Pair(name, psi))
-                }
-            }
-            if (psi is ArendFile) containingFile = psi
-            psi = psi.parent
-        }
-
-        myContainingFile = containingFile ?: throw IllegalStateException() //Fix later :)
-    }
 
     fun getLongName(): List<String> = myLongNameWithRefs.map { it.first }.toList()
 
@@ -290,6 +265,36 @@ class LocationData(val target: PsiLocatedReferable, skipFirstParent: Boolean = f
             if (entry.second == referable) result = ArrayList()
         }
         return result
+    }
+
+    companion object {
+        fun createLocationData(target: PsiLocatedReferable, skipFirstParent: Boolean = false, alias: Boolean = false): LocationData? {
+            var psi: PsiElement? = target
+            var skipFlag = skipFirstParent
+            var containingFile: ArendFile? = null
+
+            val myLongNameWithRefs = ArrayList<Pair<String, Referable>>()
+            while (psi != null && psi.isValid) {
+                if (psi is PsiReferable && psi !is ArendFile) {
+                    val name = if (psi is GlobalReferable) {
+                        if (alias) psi.representableName else psi.textRepresentation()
+                    } else
+                        psi.name ?: return null
+
+                    if (skipFlag && myLongNameWithRefs.isNotEmpty()) {
+                        skipFlag = false
+                    } else {
+                        myLongNameWithRefs.add(0, Pair(name, psi))
+                    }
+                }
+                if (psi is ArendFile) containingFile = psi
+                psi = psi.parent
+            }
+
+            val myContainingFile = containingFile ?: return null
+
+            return LocationData(target, alias, myLongNameWithRefs, myContainingFile)
+        }
     }
 }
 

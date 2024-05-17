@@ -151,9 +151,9 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
        \func doubleZip2 ({-foo-} X Y Z : \Set) -- ... 
                (x : List X) 
                {-*-} (y : List Y) (z : List Z) : List (\Sigma Y X) \with
-         | _, _, _, _, nil, _ => nil
-         | _, _, _, nil, _, _ => nil
-         | _, _, _, cons y ys, cons x xs, _ => cons (x, y) (doubleZip2 _ _ {?} ys xs {?})
+         | X, Y, Z, _, nil, z => nil
+         | X, Y, Z, nil, _, z => nil
+         | X, Y, Z, cons y ys, cons x xs, z => cons (x, y) (doubleZip2 _ _ {?} ys xs {?})
 
        \func doubleZip (A B C : \Set) (x : List A) (y : List B) (z : List C) => doubleZip2 _ _ {?} z (doubleZip2 _ _ {?} y x {?}) {?}
        """, listOf(Pair(-2, "X"), Pair(-1, "Y"), "Z", Pair(4, "x"), Pair(3, "y"), "z"),
@@ -251,7 +251,7 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
        \class C {Z : \Type} {
          \data Bar \alias Fu (X : \Type) (n m : Nat) \elim n
            | zero => nil X Z
-           | suc n => cons X (Bar X n {?})
+           | suc n => cons X (Bar {\this} X n {?})
        }
 
        \func lol (I : C {Nat}) : C.Fu _ 2 {?} => C.cons {_} {_} {_} {{?}} 1 (C.cons {_} {_} {_} {{?}} 2 (C.nil {I} {_} {{?}} 3 4)) 
@@ -328,7 +328,7 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
          \func usage => cons1 {1}
     """, """
        \data Lol {m : Nat} (n : Nat) \with
-         | {1}, _ => cons1
+         | {1}, n => cons1
          | {p}, 0 => cons2 Nat
          | {suc p}, 1 => cons3 (Lol {p} 0)
          
@@ -684,5 +684,71 @@ class ArendChangeSignatureTest: ArendChangeSignatureTestBase() {
 
        \func lol4 : E => \new E {Nat} {101} 101 {{?}} idp
     """, listOf(Pair(1, "bb"), 2, "x"), listOf(Pair("x", Pair(false, "A"))), typecheck = true)
+
+    fun testLongNames() = changeSignature("""
+       \class Foo {
+         | n : Nat
+
+         \func {-caret-}succ : Foo => \new Foo (Nat.suc n)
+         
+         \func pred : Foo => \new Foo (\case n \with {
+           | zero => zero
+           | suc n => n
+         })
+         
+         \func lamReceiver (l : \Pi (F : Foo) -> Foo) => l
+  
+         \func usage1 => lamReceiver (succ {__})
+         
+         \func usage2 => succ.succ.succ
+
+         \func usage3 => succ.pred.succ.pred
+       }
+
+       \func foo (x : Foo) => Foo.pred.succ.pred.succ
+    """, """
+       \class Foo {
+         | n : Nat
+
+         \func succ {x : Nat} : Foo => \new Foo (Nat.suc n)
+         
+         \func pred : Foo => \new Foo (\case n \with {
+           | zero => zero
+           | suc n => n
+         })
+         
+         \func lamReceiver (l : \Pi (F : Foo) -> Foo) => l
+  
+         \func usage1 => lamReceiver (succ {__} {{?}})
+         
+         \func usage2 => succ {succ {succ {_} {{?}}} {{?}}} {{?}}
+
+         \func usage3 => pred {succ {pred {succ {_} {{?}}}} {{?}}}
+       }
+
+       \func foo (x : Foo) => Foo.succ {Foo.pred {Foo.succ {Foo.pred} {{?}}}} {{?}}
+    """, listOf("x"), listOf(Pair("x", Pair(false, "Nat"))))
+
+    fun testLongNames2() = changeSignature("""
+       \class Foo {
+         | n : Nat
+
+         \func {-caret-}succ : Foo => \new Foo (Nat.suc n)
+
+         \func \infix 1 +++ (a b : Nat) => 101
+
+         \func lol => 101 succ.succ.+++ 102
+       }
+    """, """
+       \class Foo {
+         | n : Nat
+
+         \func succ {x : Nat} : Foo => \new Foo (Nat.suc n)
+
+         \func \infix 1 +++ (a b : Nat) => 101
+
+         \func lol => 101 +++ {succ {succ {_} {{?}}} {{?}}} 102
+       }
+    """, listOf("x"), listOf(Pair("x", Pair(false, "Nat"))))
 
 }

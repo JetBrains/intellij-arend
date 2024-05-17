@@ -73,7 +73,10 @@ abstract class ArendMoveTestBase : ArendTestBase() {
         val myTargetGroup = ArendMoveMembersDialog.locateTargetGroupWithChecks(targetFile, targetName, myFixture.module, container, sourceElements, determineClassPart(sourceElements), targetIsDynamic)
         val group = myTargetGroup.first
         if (group != null) {
-            val processor = ArendMoveRefactoringProcessor(myFixture.project, {}, sourceElements, container, group, targetIsDynamic, false, optimizeImportsAfterMove = false)
+            val processor = ArendMoveRefactoringProcessor(myFixture.project, {}, sourceElements, container, group, targetIsDynamic,
+                myOpenInEditor = false,
+                myOptimizeImportsAfterMove = false
+            )
             try {
                 processor.run()
             } catch (e: Exception) {

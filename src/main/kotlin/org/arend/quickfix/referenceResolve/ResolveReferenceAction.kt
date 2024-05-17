@@ -42,22 +42,30 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
                 is ArendExpressionCodeFragment -> file.context?.containingFile as? ArendFile ?: return null
                 else -> return null
             }
-            val location = LocationData(target)
-            val (importAction, resultName) = calculateReferenceName(location, containingFile, element, true) ?: return null
-            val renameAction = when {
-                !fixRequired -> RenameReferenceAction(element, element.longName) // forces idle behavior of renameAction
-                target is ArendFile -> RenameReferenceAction(element, target.moduleLocation?.modulePath?.toList() ?: return null)
-                else -> RenameReferenceAction(element, resultName, target as? ArendGroup)
+            val location = LocationData.createLocationData(target)
+            if (location != null) {
+                val (importAction, resultName) = calculateReferenceName(location, containingFile, element) ?: return null
+                val renameAction = when {
+                    !fixRequired -> RenameReferenceAction(element, element.longName) // forces idle behavior of renameAction
+                    target is ArendFile -> RenameReferenceAction(element, target.moduleLocation?.modulePath?.toList() ?: return null)
+                    else -> RenameReferenceAction(element, resultName, target as? ArendGroup)
+                }
+
+                return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
             }
 
-            return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
+            return null
         }
 
         fun getTargetName(target: PsiLocatedReferable, element: ArendCompositeElement, deferredImports: List<NsCmdRefactoringAction>? = null): Pair<String, NsCmdRefactoringAction?> {
             val containingFile = element.containingFile as? ArendFile ?: return Pair("", null)
-            val location = LocationData(target)
-            val (importAction, resultName) = doCalculateReferenceName(location, containingFile, element, deferredImports = deferredImports)
-            return Pair(LongName(resultName.ifEmpty { listOf(target.name) }).toString(), importAction)
+            val location = LocationData.createLocationData(target)
+            if (location != null) {
+                val (importAction, resultName) = doCalculateReferenceName(location, containingFile, element, deferredImports = deferredImports)
+                return Pair(LongName(resultName.ifEmpty { listOf(target.name) }).toString(), importAction)
+            }
+
+            return Pair("", null)
         }
     }
 }

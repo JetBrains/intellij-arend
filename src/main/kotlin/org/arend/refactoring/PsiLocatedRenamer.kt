@@ -16,7 +16,8 @@ class PsiLocatedRenamer(private val element: ArendCompositeElement, private val 
 
     override fun renameDefinition(arendRef: ArendRef): LongName? = runReadAction {
         val ref = (arendRef as? LocatedReferable)?.let { service.getPsiReferable(it) } ?: return@runReadAction null
-        val pair = calculateReferenceName(LocationData(ref), file, element, false, deferredNsCmdActions) ?: return@runReadAction null
+        val locationData = LocationData.createLocationData(ref) ?: return@runReadAction null
+        val pair = calculateReferenceName(locationData, file, element, deferredNsCmdActions) ?: return@runReadAction null
         val action = pair.first
         if (action != null) deferredNsCmdActions.add(action)
         LongName(pair.second)
