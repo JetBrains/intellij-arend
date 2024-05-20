@@ -26,7 +26,7 @@ class DataUniverseQuickFix(
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val psiFactory = ArendPsiFactory(project)
-        val actualSort = psiFactory.createFromText("\\data D : ${error.actualSort}")?.descendantOfType<ArendUniverseExpr>()!!
+        val actualSort = psiFactory.createUniverse(error.actualSort.toString())
 
         cause.element?.parent?.replace(actualSort)
     }

@@ -5,22 +5,22 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.util.elementType
+import org.arend.psi.ArendElementTypes.CLASSIFYING_KW
 import org.arend.psi.deleteWithWhitespaces
-import org.arend.psi.ext.ArendDefData
 import org.arend.util.ArendBundle
 
-class RemoveTruncatedKeywordQuickFix(private val cause: SmartPsiElementPointer<ArendDefData>) : IntentionAction {
-
+class RemoveClassifyingFieldQuickFix(private val classifyingElement: PsiElement?) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
     override fun getFamilyName(): String = text
 
-    override fun getText(): String = ArendBundle.message("arend.truncated.remove")
+    override fun getText(): String = ArendBundle.message("arend.classifying.remove")
 
-    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
+    override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = classifyingElement != null &&
+            classifyingElement.elementType == CLASSIFYING_KW
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        cause.element?.truncatedKw?.deleteWithWhitespaces()
+        classifyingElement?.deleteWithWhitespaces()
     }
 }
