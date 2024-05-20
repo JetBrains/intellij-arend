@@ -56,7 +56,7 @@ class RedundantParameterNamePass(file: ArendFile, editor: Editor, highlightInfoP
             override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
                 val psiFactory = ArendPsiFactory(project)
                 val underlining = psiFactory.createUnderlining()
-                defIdentifier.replace(underlining)
+                defIdentifier.parent.replace(underlining)
             }
 
             override fun showHint(editor: Editor): Boolean = true

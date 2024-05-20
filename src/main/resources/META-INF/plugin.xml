@@ -419,6 +419,7 @@
         <highlightingPassFactory implementation="org.arend.highlight.NameShadowingHighlighterPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.RedundantParameterNamePassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.PartiallyInfixOperatorPrefixFormPassFactory"/>
+        <highlightingPassFactory implementation="org.arend.highlight.RedundantLocalBindingPassFactory"/>
 
         <!-- Tool Windows -->
 
