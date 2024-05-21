@@ -181,21 +181,23 @@ fun printAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, re
                         if (it.isExplicit || block == 0 && functionIsField) (
                             if (explicitArgCount == 2 && underlyingReferableIsInfix && it.printResult.parenthesizedPrefixText != null)
                                 it.printResult.parenthesizedPrefixText
-                            else if (it.printResult.isAtomic || inhibitParens) it.printResult.text else "(${it.printResult.text})")
+                            else if (it.printResult.isAtomic || inhibitParens)
+                                it.printResult.text
+                            else "(${it.printResult.text})")
                         else textInBrackets
 
-                    val parenthesizedText =
-                        if (it.isExplicit) (
-                            if (underlyingReferableIsInfix && it.printResult.parenthesizedPrefixText != null)
-                                it.printResult.parenthesizedPrefixText
-                            else it.printResult.text)
-                        else textInBrackets
+                    val parenthesizedPrefixText = if (it.isExplicit && underlyingReferableIsInfix && it.printResult.parenthesizedPrefixText != null) it.printResult.parenthesizedPrefixText else text
 
-                    doubleBuilder.append(text, parenthesizedText)
+                    doubleBuilder.append(text, parenthesizedPrefixText)
                 }
                 is PsiElement -> doubleBuilder.append(refactoringContext.textGetter(block))
             }
-            IntermediatePrintResult(doubleBuilder.defaultBuilder.toString().let { if (isAtomic && underlyingReferableIsInfix) "($it)" else it}, doubleBuilder.alternativeBuilder.toString(), isAtomic, false, underlyingReferable as? GlobalReferable)
+            IntermediatePrintResult(
+                doubleBuilder.defaultBuilder.toString().let { if (isAtomic && underlyingReferableIsInfix) "($it)" else it},
+                doubleBuilder.alternativeBuilder.toString(),
+                isAtomic,
+                false,
+                underlyingReferable as? GlobalReferable)
         }
     } else if (expr is Concrete.LamExpression && expr.data == null) {
         val builder = StringBuilder()
