@@ -31,6 +31,7 @@ import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.*
+import org.arend.refactoring.move.ArendMoveRefactoringProcessor.Companion.getUsagesToPreprocess
 import org.arend.util.ArendBundle
 import org.arend.util.FullName
 import org.arend.util.aligned
@@ -230,8 +231,10 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         //Validate that dynamically inferred implicit parameters of functions being moved are known
-        val problematicGroups = LinkedHashSet<ArendGroup>()
-        if (!showErrorMessage) {
+        val problematicGroups = LinkedHashSet<PsiLocatedReferable>()
+        if (!showErrorMessage && targetContainer != null) {
+            getUsagesToPreprocess(elementsToMove, dynamicGroup.isSelected, targetContainer, HashMap(), problematicGroups)
+
             for (def in elementsToMove) if (def is ArendDefinition<*>) {
                 val list = ArendCodeInsightUtils.getExternalParameters(def)
                 if (list == null) problematicGroups.add(def)
