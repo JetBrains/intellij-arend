@@ -62,8 +62,10 @@ import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.psi.ArendExpressionCodeFragment
+import org.arend.quickfix.instance.AddRecursiveInstanceArgumentQuickFix
 import org.arend.typechecking.error.local.inference.FunctionArgInferenceError
 import org.arend.typechecking.error.local.inference.LambdaInferenceError
+import org.arend.typechecking.error.local.inference.RecursiveInstanceInferenceError
 import org.arend.util.ArendBundle
 import java.util.*
 
@@ -252,6 +254,9 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                         registerFix(builder, MisplacedImportQuickFix(SmartPointerManager.createPointer(errorCause)))
                     }
                 }
+                CLASSIFYING_FIELD_IN_RECORD -> {
+                    registerFix(builder, RemoveClassifyingFieldQuickFix(file.findElementAt(textRange.startOffset)))
+                }
                 else -> {
                 }
             }
@@ -328,7 +333,30 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 LEVEL_IGNORED -> registerFix(builder, RemoveLevelQuickFix(SmartPointerManager.createPointer(cause)))
                 CASE_RESULT_TYPE -> registerFix(builder, AddReturnKeywordQuickFix(SmartPointerManager.createPointer(cause)))
                 TRUNCATED_WITHOUT_UNIVERSE -> {
-                    registerFix(builder, RemoveTruncatedKeywordQuickFix(SmartPointerManager.createPointer(cause)))
+                    if (cause is ArendDefData) {
+                        registerFix(builder, AddTruncatedUniverseQuickFix(SmartPointerManager.createPointer(cause)))
+                        registerFix(builder, RemoveTruncatedKeywordQuickFix(SmartPointerManager.createPointer(cause)))
+                    }
+                }
+                DATA_WONT_BE_TRUNCATED -> {
+                    if (cause is ArendTruncatedUniverseAppExpr) {
+                        registerFix(builder, RemoveTruncatedUniverseQuickFix(SmartPointerManager.createPointer(cause)))
+                    }
+                    var element: PsiElement? = cause
+                    while (element != null && element !is ArendDefData) {
+                        element = element.parent
+                    }
+                    if (element is ArendDefData) {
+                        registerFix(builder, RemoveTruncatedKeywordQuickFix(SmartPointerManager.createPointer(element)))
+                    }
+                }
+                NO_CLASSIFYING_IGNORED -> {
+                    registerFix(builder, RemoveNoClassifyingKeywordQuickFix(cause.childOfType(NO_CLASSIFYING_KW)))
+                }
+                USELESS_LEVEL -> {
+                    if (cause is ArendDefFunction) {
+                        registerFix(builder, RemoveUseLevelQuickFix(SmartPointerManager.createPointer(cause)))
+                    }
                 }
                 else -> {}
             }
@@ -360,6 +388,9 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 val isLocal = (classifyingExpression is ReferenceExpression) && DependentLink.Helper.toList((error.definition as DataLocatedReferable).typechecked.parameters).contains(classifyingExpression.binding)
                 if (isLocal) registerFix(builder, ReplaceWithLocalInstanceQuickFix(error, SmartPointerManager.createPointer(cause))) else registerFix(builder, InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
                 registerFix(builder, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
+                if (error is RecursiveInstanceInferenceError) {
+                    registerFix(builder, AddRecursiveInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
+                }
             }
 
             is DataUniverseError -> {
@@ -415,13 +446,26 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 }
             }
 
-            is TypecheckingError -> for (quickFix in error.quickFixes) {
-                val sourceNode = quickFix.replacement
-                if (sourceNode == null) {
-                    val target = getTargetPsiElement(quickFix, cause)
-                    when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
-                        is ArendArgument -> registerFix(builder, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
-                        is ArendTupleExpr -> registerFix(builder, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
+            is MissingArgumentsError -> {
+                registerFix(builder, AddMissingArgumentsQuickFix(error, SmartPointerManager.createPointer(cause)))
+            }
+
+            is IgnoredLevelsError -> {
+                registerFix(builder, RemoveIgnoredLevelsQuickFix(SmartPointerManager.createPointer(cause)))
+            }
+
+            is TypecheckingError -> {
+                if (error.message.contains("\\strict is ignored")) {
+                    registerFix(builder, RemoveStrictKeywordQuickFix(SmartPointerManager.createPointer(cause)))
+                }
+                for (quickFix in error.quickFixes) {
+                    val sourceNode = quickFix.replacement
+                    if (sourceNode == null) {
+                        val target = getTargetPsiElement(quickFix, cause)
+                        when (val parent = target?.ancestor<ArendExpr>()?.topmostEquivalentSourceNode?.parent) {
+                            is ArendArgument -> registerFix(builder, RemoveArgumentQuickFix(quickFix.message, SmartPointerManager.createPointer(parent)))
+                            is ArendTupleExpr -> registerFix(builder, RemoveTupleExprQuickFix(quickFix.message, SmartPointerManager.createPointer(parent), true))
+                        }
                     }
                 }
             }

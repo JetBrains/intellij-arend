@@ -6,21 +6,23 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
+import org.arend.psi.childOfType
 import org.arend.psi.deleteWithWhitespaces
-import org.arend.psi.ext.ArendDefData
+import org.arend.psi.ext.ArendLevelsExpr
 import org.arend.util.ArendBundle
 
-class RemoveTruncatedKeywordQuickFix(private val cause: SmartPsiElementPointer<ArendDefData>) : IntentionAction {
-
+class RemoveIgnoredLevelsQuickFix(private val cause: SmartPsiElementPointer<PsiElement>) : IntentionAction {
     override fun startInWriteAction(): Boolean = true
 
-    override fun getFamilyName(): String = text
+    override fun getText(): String = ArendBundle.message("arend.remove.levels")
 
-    override fun getText(): String = ArendBundle.message("arend.truncated.remove")
+    override fun getFamilyName(): String = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean = cause.element != null
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
-        cause.element?.truncatedKw?.deleteWithWhitespaces()
+        val parent = cause.element?.parent
+        val levels = parent?.childOfType<ArendLevelsExpr>()
+        levels?.deleteWithWhitespaces()
     }
 }

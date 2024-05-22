@@ -207,4 +207,6 @@ class ArendPsiFactory(
         ?.descendantOfType<ArendFunctionBody>()?.descendantOfType<ArendCaseExpr>()?.descendantOfType<ArendReturnExpr>() ?: error("Failed to create ArendReturnExpr")
 
     fun createUnderlining() = createFromText("\\func foo (_ : Nat)")?.descendantOfType<ArendNameTele>()?.descendantOfType<ArendIdentifierOrUnknown>() ?: error("Failed to create _")
+
+    fun createUniverse(universeName: String) = createFromText("\\data D : $universeName")?.descendantOfType<ArendUniverseExpr>() ?: error("Failed to create ArendUniverseExpr")
 }
