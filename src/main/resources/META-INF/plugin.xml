@@ -302,7 +302,7 @@
         <!-- Renaming of files -->
         <renamePsiElementProcessor implementation="org.arend.refactoring.ArendRenamePsiElementProcessor" />
         <moveFileHandler implementation="org.arend.refactoring.ArendMoveFileHandler"/>
-        <refactoring.moveHandler implementation="org.arend.refactoring.move.ArendMoveHandlerDelegate"/>
+        <refactoring.moveHandler order="first" implementation="org.arend.refactoring.move.ArendMoveHandlerDelegate"/>
         <renameHandler implementation="org.arend.refactoring.ArendRenameModuleHandler"/>
         <!-- Renaming of referables with aliases -->
         <renameHandler implementation="org.arend.refactoring.rename.ArendGlobalReferableRenameHandler"/>

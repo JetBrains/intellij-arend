@@ -62,7 +62,7 @@ class ArendMoveMembersDialog(project: Project,
     private val myUpdateSizeAlarm: Alarm
 
     init {
-        title = "Move Arend Static Members"
+        title = "Move Arend Members"
         containerRef = SmartPointerManager.createPointer(container)
         val memberInfos = ArrayList<ArendMemberInfo>()
 
@@ -170,7 +170,7 @@ class ArendMoveMembersDialog(project: Project,
 
     private fun initMemberInfo(container: ArendGroup, membersToMove: List<ArendGroup>, sink: MutableList<ArendMemberInfo>) {
         val addToSink = {c: ArendGroup ->
-            if (isMovable(c)) {
+            if (isMoveableGroup(c)) {
                 val memberInfo = ArendMemberInfo(c)
                 if (membersToMove.contains(c)) memberInfo.isChecked = true
                 sink.add(memberInfo)
@@ -266,7 +266,7 @@ class ArendMoveMembersDialog(project: Project,
 
     override fun getPreferredFocusedComponent() = targetFileField
 
-    override fun getRefactoringId() = "Move Arend static member"
+    override fun getRefactoringId() = "Move Arend member"
 
     override fun createCenterPanel() = centerPanel
 
@@ -293,7 +293,7 @@ class ArendMoveMembersDialog(project: Project,
             }
         }
 
-        fun isMovable(a: ArendGroup) = !(a is ArendDefFunction && a.functionKind.isUse)
+        fun isMoveableGroup(a: ArendGroup) = !(a is ArendDefFunction && a.functionKind.isUse)
 
         fun determineClassPart(elements: List<ArendGroup>): Boolean? {
             var isDynamic = true
