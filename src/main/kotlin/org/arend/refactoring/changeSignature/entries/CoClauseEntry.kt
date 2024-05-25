@@ -13,7 +13,7 @@ import java.util.HashMap
 class CoClauseEntry(private val psiLocalCoClause: CoClauseBase,
                     refactoringContext: ChangeSignatureRefactoringContext,
                     descriptor1: ChangeSignatureRefactoringDescriptor
-): UsageEntry(refactoringContext, psiLocalCoClause, descriptor1, null) {
+): UsageEntry(refactoringContext, psiLocalCoClause, descriptor1, psiLocalCoClause.resolvedImplementedField) {
     private val procArguments = ArrayList<ArgumentPrintResult>()
     init {
         val spacingMap = HashMap<ArendLamParam, String>()
@@ -55,7 +55,13 @@ class CoClauseEntry(private val psiLocalCoClause: CoClauseBase,
             )
         }
     }
+
     override fun getLambdaParams(parameterMap: Set<ParameterDescriptor>, includingSuperfluousTrailingParams: Boolean): List<ParameterDescriptor> = emptyList()
+
+    override fun getContextName(): String =
+        getCorrectedContextName(refactoringContext,
+            psiLocalCoClause.longName?.let { it.refIdentifierList.map { refId -> refId.reference }.zip(it.longName) } ?: emptyList())
+
 
     override fun getArguments(): List<ArgumentPrintResult> = procArguments
 

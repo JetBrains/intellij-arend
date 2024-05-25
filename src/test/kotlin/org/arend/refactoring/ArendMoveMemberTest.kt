@@ -209,13 +209,13 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 \module Bar \where {
                   \open Foo
 
-                  \func lol => foo + foo + bar.foobar + bar.foobar
+                  \func lol => foo + Foo.foo + bar.foobar + Foo.bar.foobar
                 }
 
                 \func goo => 4
                   \where {
                     \module Foo \where {
-                      \func foo => bar.foobar + bar.foobar + bar.foobar
+                      \func foo => bar.foobar + Foo.bar.foobar + bar.foobar
                 
                       \func bar => 2 \where {
                         \func foobar => foo + bar
@@ -251,7 +251,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                   }
                 }
 
-                \func lol (L : C) => (C.bar {{?}} (C.foobar (foo {L})))
+                \func lol (L : C) => (C.bar (C.foobar (foo {L})))
             """, "Main", "Foo")
 
     fun testMoveData2() =
@@ -642,7 +642,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                \module FooBar \where {
                  \open Bar (foo \as foo1, foo \as foo2)
 
-                 \func lol => foo1 + foo1
+                 \func lol => foo1 + foo2
                }
             """, "Main", "Bar")
 
@@ -666,7 +666,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                \open Nat
 
                \module FooBar \where {
-                 \func lol => foo1 + foo1
+                 \func lol => foo1 + foo2
                }
             """, "Bar", "", "Foo", "foo")
 
@@ -753,7 +753,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                   | c1
                   | c2
                  \where {
-                   \func lol => C.bar {{?}}
+                   \func lol => C.bar
 
                    \func lol' => C.foobar
 
@@ -892,7 +892,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                  | f : Nat
                }
 
-               \func goo (CI : C) => foo {{?}} 101
+               \func goo (CI : C) => foo 101
 
                \func foo {this1 : C} (a : Nat) (this : a = f {this1}) => {?}
             """, "Main", "")
@@ -1045,7 +1045,7 @@ class ArendMoveMemberTest : ArendMoveTestBase() {
                 }
 
                 \module M2 \where {
-                  \func foo {this : M.R} (a : C1) => (field1 {this}, field1 {M.field2 {this}}, M.field2 {this}, field1 {a})
+                  \func foo {this : M.R} (a : C1) => (field1 {this}, field1 {M.field2 {this}}, M.C2.field2 {this}, field1 {a})
                 }
             """, "Main", "M2", typecheck = true)
 
@@ -1599,9 +1599,9 @@ $testMOR8Header
          \open foo (succ)
        }
 
-       \func foo (x : Foo) => succ {succ {succ {{?}}}} 
+       \func foo (x : Foo) => succ {succ {succ}} 
          \where {
-           \func succ {this : Foo} : Foo => \new Foo (suc (n {this}))
+           \func succ {this : Foo} : Foo => \new Foo (Nat.suc (n {this}))
          }  
     """, "Main", "foo")
 
@@ -1892,7 +1892,7 @@ $testMOR8Header
        }
 
        \module M \where {
-         \func succ {this : Foo} : Foo => \new Foo (suc (n {this}))
+         \func succ {this : Foo} : Foo => \new Foo (Nat.suc (n {this}))
        }
     """, "Main", "M")
 
@@ -1946,5 +1946,51 @@ $testMOR8Header
            | {this}, {X}, suc n => consV {X} (Vec {this} {{?}} {X} n)
        } 
     """, "Main", "Bar", targetIsDynamic = true)
+
+    fun testMoveOutOfClassSimple() = doTestMoveRefactoring("""
+       \class C {
+         | field : Nat
+         \func foo{-caret-} => field
+       }
+
+       \func test {c : C} => C.foo
+    """, """
+       \class C {
+         | field : Nat
+       }
+
+       \func test {c : C} => foo 
+       
+       \func foo {this : C} => field {this}
+    """, "Main", "")
+
+    fun testImportPatterns() = doTestMoveRefactoring("""
+       -- ! A.ard
+       \func lol => 42
+       
+       -- ! B.ard
+       \import Main
+       
+       \func lol : Bool => true
+       
+       -- ! Main.ard
+       \import B
+       \data Bool | true | false
+       
+       \func f{-caret-}oobar : Nat => \case lol \with {
+         | true => 1
+         | false => 0
+       }
+    """, """
+       \import B
+       \import Main
+       
+       \func lol => 42
+       
+       \func foobar : Nat => \case B.lol \with {
+         | true => 1
+         | false => 0
+       }
+    """, "A", "", fileToCheck = "A.ard")
 
 }

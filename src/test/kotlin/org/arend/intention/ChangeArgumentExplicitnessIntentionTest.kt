@@ -301,12 +301,12 @@ class ChangeArgumentExplicitnessIntentionTest : QuickFixTestBase() {
 
     fun testInfixIESimple() = doTest(
         """
-        \func mp {{-caret-}A B : \Type} (a : A) (b : B) => a
-        \func g => 42 `mp` 41
+        \module M \where \func mp {{-caret-}A B : \Type} (a : A) (b : B) => a
+        \func g => 42 M.`mp` 41
         """,
         """
-        \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => a
-        \func g => mp _ 42 41
+        \module M \where \func mp ({-caret-}A : \Type) {B : \Type} (a : A) (b : B) => a
+        \func g => M.mp _ 42 41
         """
     )
 

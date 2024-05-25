@@ -12,34 +12,21 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.ancestor
 import org.arend.psi.ancestors
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.ArendConstructor
-import org.arend.psi.ext.ArendDefClass
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.psi.childOfType
+import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.changeSignature.*
+import org.arend.resolving.ArendReference
+import org.arend.term.concrete.Concrete
 import java.util.*
+import java.util.Collections.singletonList
 import kotlin.collections.ArrayList
 
 abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringContext,
                           val contextPsi: ArendCompositeElement,
                           val descriptor: ChangeSignatureRefactoringDescriptor?,
                           val target: Referable?) {
-    val usageContext = SignatureUsageContext.getParameterContext(contextPsi)
-    private val myContextName: String
-
-    init {
-        val affectedDefinition = descriptor?.getAffectedDefinition()
-        if (descriptor != null && affectedDefinition is PsiLocatedReferable) {
-            val longNameString = getContextName(affectedDefinition, contextPsi, refactoringContext)
-            val longName = LongName.fromString(longNameString).toList()
-            myContextName = if (target == affectedDefinition && descriptor.newName != null && longName.last() == affectedDefinition.name) {
-                LongName(longName.take(longName.size - 1) + Collections.singletonList(descriptor.newName)).toString()
-            } else longNameString
-        } else {
-            myContextName = ""
-        }
-    }
+    private val usageContext = SignatureUsageContext.getParameterContext(contextPsi)
 
     abstract fun getArguments(): List<ArgumentPrintResult>
 
@@ -67,8 +54,7 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
         return usageContext.filterParameters(descriptor!!.newParameters)
     }
 
-    open fun getContextName(): String =
-        myContextName
+    abstract fun getContextName(): String
 
     fun printUsageEntry(globalReferable: GlobalReferable? = null): IntermediatePrintResult {
         val doubleBuilder = DoubleStringBuilder()
@@ -197,8 +183,8 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
             val parameterClass = newParam.getThisDefClass() ?: oldParam?.getThisDefClass()
             if (parameterClass != null) {
                 val contextReferable = contextPsi.ancestor<PsiLocatedReferable>()
-                val contextClass = contextReferable?.ancestors?.mapNotNull { refactoringContext.membersEnvelopingClasses[it] }?.firstOrNull() ?:
-                if (contextReferable != null) { getThisParameter(contextReferable)?.getThisDefClass() } else null
+                val contextClass = contextReferable?.ancestors?.mapNotNull { refactoringContext.membersEnvelopingClasses[it] }?.firstOrNull()
+                    ?: if (contextReferable != null) { getThisParameter(contextReferable)?.getThisDefClass() } else null
 
                 when {
                     commentedText == "_" || commentedText == "{?}" || commentedText == "\\this" ->
@@ -207,7 +193,8 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
                         "{?} {-${commentedText}-}"
                     contextClass != null && contextClass.isSubClassOf(parameterClass) ->
                         "\\this"
-                    else -> "{?}"
+                    contextClass != null -> "{?}"
+                    else -> "_"
                 }
             } else null
         } else null
@@ -278,6 +265,59 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
             }
             return longNameString
         }
+
+        fun getContextName(context: ChangeSignatureRefactoringContext, concreteExpr: Concrete.SourceNode): String {
+            val referenceExpression = when (concreteExpr) {
+                is Concrete.AppExpression -> concreteExpr.function.data
+                is Concrete.ReferenceExpression -> concreteExpr.data
+                is Concrete.ConstructorPattern -> concreteExpr.constructorData
+                else -> null
+            }
+
+            val referent = when (concreteExpr) {
+                is Concrete.ReferenceExpression -> concreteExpr.referent
+                is Concrete.AppExpression -> (concreteExpr.function as? Concrete.ReferenceExpression)?.referent
+                is Concrete.ConstructorPattern -> concreteExpr.constructor
+                else -> null
+            }
+
+            val referenceList: List<ArendReference> = when (referenceExpression) {
+                is ArendLongName -> referenceExpression.refIdentifierList.map { it.reference }
+                is ArendPattern -> referenceExpression.childOfType<ArendLongName>()?.refIdentifierList?.map { it.reference } ?:
+                (referenceExpression.singleReferable?.reference?.let { singletonList(it) }) ?: emptyList()
+                is ArendIPName -> (referenceExpression.parentLongName?.refIdentifierList?.map { it.reference } ?: emptyList()) +
+                         singletonList(referenceExpression.reference)
+                else -> emptyList()
+            }
+
+            val longName: List<String> = when (referenceExpression) {
+                is ArendLongName -> referenceExpression.longName
+                is ArendPattern -> referenceList.map { it.element.text }
+                is ArendIPName -> referenceExpression.longName
+                else -> emptyList()
+            }
+
+            var resolvesOk = true
+            for (i in 0..referenceList.size - 2) {
+                val ref1 = referenceList[i].resolve() as? ArendGroup
+                val ref2 = referenceList[i+1].resolve() as? PsiLocatedReferable
+                if (ref1 == null || ref2 == null || !(ref1.dynamicSubgroups.contains(ref2) || ref1.internalReferables.contains(ref2) || ref1.statements.any { it.group == ref2 })) {
+                    resolvesOk = false
+                }
+            }
+
+            if (!resolvesOk && referent is PsiLocatedReferable && referenceExpression is ArendCompositeElement) {
+                return getContextName(referent, referenceExpression, context)
+            }
+
+            return getCorrectedContextName(context, referenceList.zip(longName))
+        }
+
+        fun getCorrectedContextName(context: ChangeSignatureRefactoringContext,
+                                    longName: List<Pair<ArendReference, String>>): String =
+            LongName(longName.map { (ref, name) ->
+                (ref.resolve() as? Referable)?.let { context.identifyDescriptor(it) }?.let {
+                    if (name == it.getAffectedDefinition()?.name) it.newName else name } ?: name}).toString()
     }
 
 }

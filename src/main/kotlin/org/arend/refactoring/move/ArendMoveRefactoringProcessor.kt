@@ -465,7 +465,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                 }
             }
             is ArendReferenceElement ->
-                if (element !is ArendDefIdentifier) element.reference?.resolve().let {
+                if (!(element is ArendDefIdentifier && element.reference?.resolve() == null)) element.reference?.resolve().let {
                     if (it is PsiLocatedReferable) {
                         var set = usagesData[it]
                         if (set == null) {
@@ -485,7 +485,7 @@ class ArendMoveRefactoringProcessor(project: Project,
 
     private fun restoreReferences(prefix: List<Int>, element: PsiElement, groupIndex: Int,
                                   fixMap: HashMap<LocationDescriptor, TargetReference>) {
-        if (element is ArendReferenceElement && element !is ArendDefIdentifier) {
+        if (element is ArendReferenceElement) {
             val descriptor = LocationDescriptor(groupIndex, prefix)
             val correctTarget = fixMap[descriptor]?.resolve()
             if (correctTarget != null && correctTarget !is ArendFile) {

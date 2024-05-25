@@ -8,13 +8,12 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.childrenWithLeaves
-import org.arend.psi.ext.ArendCompositeElement
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.ReferableBase
+import org.arend.psi.ext.*
 import org.arend.refactoring.changeSignature.*
 import org.arend.refactoring.changeSignature.entries.UsageEntry.Companion.RenderedParameterKind
 import org.arend.term.concrete.Concrete
-import java.util.HashMap
+import java.util.*
+import kotlin.collections.ArrayList
 
 abstract class AbstractExpressionEntry(
     refactoringContext: ChangeSignatureRefactoringContext,
@@ -33,7 +32,9 @@ abstract class AbstractExpressionEntry(
     val blocks: ArrayList<Any> = ArrayList(exprPsi ?: emptyList())
     private var isInfixNotation: Boolean = false
     private val partiallyPrintedArguments = ArrayList<ArgumentPrintResult>()
-    private var contextName = if (target is PsiLocatedReferable) getContextName(target, contextPsi, refactoringContext) else target?.refName ?: ""
+    private var contextName: String = ""
+
+    override fun getContextName(): String = contextName
 
     init {
         val replacementMap = HashMap<Pair<PsiElement, PsiElement>, Int>()
@@ -81,16 +82,18 @@ abstract class AbstractExpressionEntry(
         val functionIndex = blocks.indexOf(FUNCTION_INDEX)
         isInfixNotation = functionIndex != 0
 
+        contextName = getContextName(refactoringContext, concreteExpr)
+
         if (blocks.indexOf(0) == -1 && partiallyPrintedArguments.size >= 1) {
             val thisArgument = partiallyPrintedArguments[0]
-            if (!thisArgument.printResult.text.contains(" ")) {
+            if (!thisArgument.printResult.text.contains(" ") && descriptor == null) {
                 blocks.add(functionIndex, 0)
                 contextName = "." + target?.refName
             } else {
                 blocks.add(functionIndex + 1, ArendPsiFactory(contextPsi.project).createWhitespace(" "))
                 blocks.add(functionIndex + 2, 0)
             }
-        } else if (partiallyPrintedArguments.size == 1 && isInfixNotation && (target as? ReferableBase<*>)?.getPrecedence()?.isInfix == false) {
+        } else if (partiallyPrintedArguments.size == 1 && isInfixNotation && (target as? ReferableBase<*>)?.getPrecedence()?.isInfix == false && descriptor == null) {
             val longName = LongName.fromString(contextName)
             contextName = LongName(longName.toList().subList(0, longName.size() - 1) + "`${longName.lastName}").toString()
         }
