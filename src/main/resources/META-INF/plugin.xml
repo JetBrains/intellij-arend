@@ -469,9 +469,9 @@
             <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
         </action>
 
-        <action id="Arend.ReloadLibrary"
-                class="org.arend.module.ReloadLibrariesAction"
-                text="Reload Arend Libraries">
+        <action id="ArendModuleDependenciesGraphAction"
+                class="org.arend.module.ArendModuleDependenciesGraphAction"
+                text="Show Graph of Arend Modules">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
         </action>
 
@@ -526,13 +526,6 @@
             <add-to-group group-id="EditorPopupMenu" anchor="before" relative-to-action="EditorPopupMenu1"/>
         </action>
 
-        <action id="Arend.Repl.Show"
-                class="org.arend.toolWindow.repl.ArendShowReplAction"
-                text="Show Arend REPL"
-                description="Display the Arend REPL as a tool window">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
-        </action>
-
         <action id="Arend.Repl.OpenFile"
                 class="org.arend.actions.ArendOpenInReplAction"
                 text="REPL"
@@ -576,6 +569,18 @@
             <action id="ArendMarkExcludeRootAction" class="org.arend.actions.mark.ArendMarkExcludeRootAction"/>
             <add-to-group group-id="MarkRootGroup"/>
         </group>
+
+        <group id="ArendActions" class="org.arend.actions.ArendActions">
+            <action id="Arend.ReloadLibrary"
+                    class="org.arend.module.ReloadLibrariesAction"
+                    text="Reload Arend Libraries"/>
+            <action id="Arend.Repl.Show"
+                    class="org.arend.toolWindow.repl.ArendShowReplAction"
+                    text="Show Arend REPL"
+                    description="Display the Arend REPL as a tool window"/>
+            <add-to-group group-id="ToolsMenu" anchor="first" />
+        </group>
+
     </actions>
 
     <resource-bundle>messages.ArendBundle</resource-bundle>
