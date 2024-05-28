@@ -165,7 +165,7 @@ class ArendMoveMembersDialog(project: Project,
                 if (myProject.isDisposed) return@addRequest
                 PsiDocumentManager.getInstance(myProject)
                     .performLaterWhenAllCommitted { updateSize() }
-            }, 100)
+            }, 50)
         }
     }
 
