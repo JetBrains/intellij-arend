@@ -1,6 +1,8 @@
 package org.arend.module.editor
 
 import com.intellij.notification.Notifications
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.module.Module
@@ -17,9 +19,13 @@ import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.RowLayout
+import com.intellij.ui.dsl.builder.actionButton
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.selected
 import org.arend.ArendIcons
+import org.arend.graph.GraphEdge
+import org.arend.graph.GraphNode
+import org.arend.graph.GraphSimulator
 import org.arend.library.LibraryDependency
 import org.arend.module.AREND_LIB
 import org.arend.module.ArendModuleType
@@ -121,9 +127,11 @@ class ArendModuleConfigurationView(
 
     private val libRootTextField = TextFieldWithBrowseButton()
     private val textFieldChangeListener = libRootTextField.addBrowseAndChangeListener("Path to libraries", "Select the directory in which dependencies of module ${module.name} are located", module.project, FileChooserDescriptorFactory.createSingleFolderDescriptor()) {
-        dualList.availableList.content = (librariesList - dependencies.toSet()).sorted()
-        dualList.availableList.updateUI()
-        dualList.selectedList.updateUI()
+        ApplicationManager.getApplication().executeOnPooledThread {
+            dualList.availableList.content = (librariesList - dependencies.toSet()).sorted()
+            dualList.availableList.updateUI()
+            dualList.selectedList.updateUI()
+        }
     }
 
     override var librariesRoot: String
@@ -200,6 +208,44 @@ class ArendModuleConfigurationView(
         get() = getLibraryDependencies(librariesRoot, module)
 
     fun createComponent() = panel {
+        row("Current graph of Arend modules: ") {
+            actionButton(object : AnAction("Show Current Graph of Arend Modules", "A Graph of Arend Modules", ArendIcons.ORTHOGONAL_GRAPH) {
+                private val usedNodes = mutableSetOf<Module>()
+                private val edges = mutableSetOf<GraphEdge>()
+
+                private fun findEdges(currentNode: Module, modules: List<Module>) {
+                    usedNodes.add(currentNode)
+
+                    val from = currentNode.name
+                    val view = getInstance(currentNode)
+                    val dependencies = view?.dualList?.selectedList?.content?.map { it.name } ?: emptyList()
+                    val children = modules.filter { dependencies.contains(it.name) && it.name != from }.onEach {
+                        edges.add(GraphEdge(from, it.name))
+                    }
+
+                    for (child in children) {
+                        if (!usedNodes.contains(child)) {
+                            findEdges(child, modules)
+                        }
+                    }
+                }
+
+                override fun actionPerformed(e: AnActionEvent) {
+                    usedNodes.clear()
+                    edges.clear()
+
+                    val modules = e.project?.allModules ?: emptyList()
+                    for (module in modules) {
+                        if (!usedNodes.contains(module)) {
+                            findEdges(module, modules)
+                        }
+                    }
+
+                    val simulator = GraphSimulator(e.project, this.toString(), edges, usedNodes.map { GraphNode(it.name) }.toSet())
+                    simulator.displayOrthogonal()
+                }
+            })
+        }
         aligned("Language version: ", langVersionField)
         aligned("Library version: ", versionField)
         aligned("Sources directory: ", sourcesTextField)

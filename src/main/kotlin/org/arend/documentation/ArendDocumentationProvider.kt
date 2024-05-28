@@ -106,21 +106,25 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
 
         var offsetStartText = -1
         val htmlBuilder = StringBuilder().apply { wrapTag("html") {
-            wrapTag("head") {
-                wrapTag("style") {
-                    append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
-                    if (font != null) {
-                        append("$ROW_FONT_HTML$font$END_FONT_HTML")
-                        append("$DEFINITION_FONT_HTML$font$END_FONT_HTML")
-                        append("$CONTENT_FONT_HTML$font$END_FONT_HTML")
+            if (withDocComments) {
+                wrapTag("head") {
+                    wrapTag("style") {
+                        append(".normal_text { white_space: nowrap; }.code { white_space: pre; }")
+                        if (font != null) {
+                            append("$ROW_FONT_HTML$font$END_FONT_HTML")
+                            append("$DEFINITION_FONT_HTML$font$END_FONT_HTML")
+                            append("$CONTENT_FONT_HTML$font$END_FONT_HTML")
+                        }
                     }
                 }
             }
 
             append("<body ")
-            val scheme = EditorColorsManager.getInstance().globalScheme
-            append("style=\"color:${getHtmlRgbFormat(UIManager.getColor("PopupMenu.foreground").rgb)};" +
-                    "background-color:${getHtmlRgbFormat(scheme.getColor(EditorColors.DOCUMENTATION_COLOR)?.rgb ?: 0)};\">")
+            if (withDocComments) {
+                val scheme = EditorColorsManager.getInstance().globalScheme
+                append("style=\"color:${getHtmlRgbFormat(UIManager.getColor("PopupMenu.foreground").rgb)};" +
+                        "background-color:${getHtmlRgbFormat(scheme.getColor(EditorColors.DOCUMENTATION_COLOR)?.rgb ?: 0)};\">")
+            }
             offsetStartText = this.length
             wrap(DEFINITION_START, DEFINITION_END) {
                 generateDefinition(ref)
