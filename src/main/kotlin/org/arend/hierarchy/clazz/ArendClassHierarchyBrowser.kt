@@ -21,6 +21,7 @@ import com.intellij.ui.tree.StructureTreeModel
 import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ArendIcons
 import org.arend.graph.GraphEdge
+import org.arend.graph.GraphNode
 import org.arend.graph.GraphSimulator
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ext.ArendDefClass
@@ -166,41 +167,46 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         }
     }
 
-    inner class ArendHierarchyGraphAction : AnAction(ArendIcons.GRAPH) {
+    inner class ArendHierarchyGraphAction : AnAction(ArendIcons.ORTHOGONAL_GRAPH) {
         private val usedNodes = mutableSetOf<TreeNode>()
+        private val edges = mutableSetOf<GraphEdge>()
 
-        private fun findEdges(currentNode: DefaultMutableTreeNode): Set<GraphEdge> {
+        private fun findEdges(currentNode: DefaultMutableTreeNode) {
             usedNodes.add(currentNode)
 
             val from = ((currentNode.userObject as ArendHierarchyNodeDescriptor).psiElement as ArendDefClass).fullName
-            val edges = mutableSetOf<GraphEdge>()
 
             val children = TreeUtil.listChildren(currentNode)
             for (child in children) {
                 val to = (((child as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName
-                        ?: continue
+                    ?: continue
                 edges.add(GraphEdge(from, to))
 
                 if (!usedNodes.contains(child)) {
-                    edges.addAll(findEdges(child))
+                    findEdges(child)
                 }
             }
-            return edges
         }
 
         override fun actionPerformed(e: AnActionEvent) {
+            usedNodes.clear()
+            edges.clear()
+
             val tree = getJTree(currentViewType) ?: return
             val root = tree.model.root as DefaultMutableTreeNode
 
-            usedNodes.clear()
-            val simulator = GraphSimulator(
-                this.toString(),
-                findEdges(root),
-                usedNodes.map { (((it as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName!! }
-                    .toSet()
-            )
+            findEdges(root)
 
-            simulator.display()
+            val simulator = GraphSimulator(
+                e.project,
+                this.toString(),
+                edges,
+                usedNodes.map {
+                    GraphNode(
+                        (((it as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName!!
+                    ) }.toSet()
+            )
+            simulator.displayOrthogonal()
         }
     }
 }

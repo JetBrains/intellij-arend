@@ -41,7 +41,7 @@ object ArendIcons {
     val TURNSTILE = getIcon("/icons/turnstile.svg")
     val CHECKMARK = getIcon("/icons/checkmark.svg")
 
-    val GRAPH = getIcon("/icons/graph.svg")
+    val ORTHOGONAL_GRAPH = getIcon("/icons/orthogonal_graph.svg")
 
     // Source code elements
 

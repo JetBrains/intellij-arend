@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
-import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.*
@@ -26,6 +25,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.util.FileUtils
+import org.arend.util.allModules
 import org.arend.util.register
 import java.io.File
 import kotlin.system.exitProcess
@@ -45,8 +45,7 @@ internal fun generateHtmlForArendLib(
         return
     }
     try {
-        val moduleManager = ModuleManager.getInstance(psiProject)
-        val module = moduleManager.modules.getOrNull(0) ?: run {
+        val module = psiProject.allModules.getOrNull(0) ?: run {
             LOG.warn("Can't find the arend-lib module")
             return
         }
