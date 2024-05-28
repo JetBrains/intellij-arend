@@ -469,12 +469,6 @@
             <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
         </action>
 
-        <action id="ArendModuleDependenciesGraphAction"
-                class="org.arend.module.ArendModuleDependenciesGraphAction"
-                text="Show Graph of Arend Modules">
-            <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="ProjectViewPopupMenuModifyGroup"/>
-        </action>
-
         <action id="Arend.GotoNextError"
                 class="org.arend.actions.ArendGotoNextErrorAction"
                 text="Goto Next Error"
@@ -578,7 +572,7 @@
                     class="org.arend.toolWindow.repl.ArendShowReplAction"
                     text="Show Arend REPL"
                     description="Display the Arend REPL as a tool window"/>
-            <add-to-group group-id="ToolsMenu" anchor="first" />
+            <add-to-group group-id="ToolsMenu" anchor="last" />
         </group>
 
     </actions>
