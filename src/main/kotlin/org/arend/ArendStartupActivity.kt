@@ -76,17 +76,15 @@ class ArendStartupActivity : ProjectActivity {
 
     private fun disableActions() {
         val actionManager = ApplicationManager.getApplication().getServiceIfCreated(ActionManager::class.java)
-        val actionDisableGroupSource = ArendBundle.message("arend.disableGroupSource")
-        actionManager?.getAction(actionDisableGroupSource)?.let {
-            actionManager.unregisterAction(actionDisableGroupSource)
-        }
-        val actionDisableExclude = ArendBundle.message("arend.disableActionExclude")
-        actionManager?.getAction(actionDisableExclude)?.let {
-            actionManager.unregisterAction(actionDisableExclude)
-        }
-        val actionUnmarkRoot = ArendBundle.message("arend.disableActionUnmark")
-        actionManager?.getAction(actionUnmarkRoot)?.let {
-            actionManager.unregisterAction(actionUnmarkRoot)
+        listOf(
+            ArendBundle.message("arend.disableGroupSource"),
+            ArendBundle.message("arend.disableActionExclude"),
+            ArendBundle.message("arend.disableActionUnmark"),
+            ArendBundle.message("arend.disableActionCompile")
+        ).forEach { action ->
+            actionManager?.getAction(action)?.let {
+                actionManager.unregisterAction(action)
+            }
         }
         TypedHandlerDelegate.EP_NAME.point.unregisterExtension(SelectionQuotingTypedHandler::class.java)
     }
