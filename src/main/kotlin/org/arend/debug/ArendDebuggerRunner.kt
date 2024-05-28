@@ -9,5 +9,6 @@ class ArendDebuggerRunner: GenericDebuggerRunner() {
         return "ArendDebugRunner"
     }
 
-    override fun canRun(executorId: String, profile: RunProfile) = false
+    override fun canRun(executorId: String, profile: RunProfile) =
+        profile is TypeCheckConfiguration
 }
