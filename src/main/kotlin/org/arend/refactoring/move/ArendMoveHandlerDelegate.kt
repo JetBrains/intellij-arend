@@ -60,7 +60,7 @@ class ArendMoveHandlerDelegate: MoveHandlerDelegate() {
         }
 
         fun checkMoveable(element: PsiElement) =
-            element is ArendGroup && isMoveableGroup(element)
+            element is ArendGroup && element !is ArendFile && isMoveableGroup(element)
     }
 
 }
