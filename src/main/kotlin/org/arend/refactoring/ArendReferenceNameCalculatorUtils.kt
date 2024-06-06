@@ -26,18 +26,22 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
                              deferredImports: List<NsCmdRefactoringAction>? = null): Pair<NsCmdRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
     val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write
-    val alternativeLocation = when (defaultLocation.target) {
-        is ArendClassField, is ArendConstructor -> LocationData.createLocationData(defaultLocation.target, true)
-        else -> null
-    }
-    val aliasLocation = if (defaultLocation.target.hasAlias()) LocationData.createLocationData(defaultLocation.target, alias = true) else null
-    val locations: MutableList<LocationData> = ArrayList()
-    alternativeLocation?.let { locations.add(it) }
-    aliasLocation?.let { locations.add(it) }
-    locations.add(defaultLocation)
 
-    var modifyingImportsNeeded = false
-    var fallbackImportAction: NsCmdRefactoringAction? = null
+    val locations: MutableList<LocationData> = ArrayList()
+
+    locations.add(defaultLocation)
+    when (defaultLocation.target) {
+        is ArendClassField, is ArendConstructor -> LocationData.createLocationData(defaultLocation.target, true)?.let { locations.add(it) }
+    }
+
+    if (defaultLocation.target.hasAlias()) {
+        LocationData.createLocationData(defaultLocation.target, alias = true)?.let { locations.add(it) }
+        when (defaultLocation.target) {
+            is ArendClassField, is ArendConstructor -> LocationData.createLocationData(defaultLocation.target, true, alias = true)?.let { locations.add(it) }
+        }
+    }
+
+    var fallbackImportAction: NsCmdRefactoringAction?
 
     val fileGroup = object : Group by currentFile {
         override fun getStatements() = currentFile.statements.filter { it.group == null }
@@ -70,35 +74,23 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         }
     }
 
-    if (isPrelude(targetFile) && !preludeImportedManually) {
-        defaultLocation.addLongNameAsReferenceName() // items from prelude are visible in any context
-        alternativeLocation?.addLongNameAsReferenceName()
-        fallbackImportAction = ImportFileAction(currentFile, targetFile, null) // however if long name is to be used "\import Prelude" will be added to imports
-    }
-
-    if (locations.first().getReferenceNames().isEmpty() || protectedAccessModifier) { // target definition is inaccessible in current context
-        modifyingImportsNeeded = true
-
-        defaultLocation.addLongNameAsReferenceName()
-        aliasLocation?.addLongNameAsReferenceName()
-        if (alternativeLocation != null) {
-            val alternativeFullName = alternativeLocation.getLongName()
-            if (importedScope.resolveName(alternativeFullName[0]) == null) alternativeLocation.addLongNameAsReferenceName()
-        }
-
-        if (targetFileAlreadyImported) { // target definition is hidden or not included into using list but targetFile already has been imported
-            for (location in locations) if (location.getLongName().isNotEmpty())
+    if (targetFileAlreadyImported) { // target definition is hidden or not included into using list but targetFile already has been imported
+        for (location in locations)
+            if ((location.getReferenceNames().isEmpty() || protectedAccessModifier) && location.getLongName().isNotEmpty()) {
+                location.addLongNameAsReferenceName()
                 fileResolveActions[location] = AddIdToUsingAction(currentFile, targetFile, location)
-
-            fallbackImportAction = null
-        } else { // targetFile has not been imported
-            fallbackImportAction = ImportFileAction(currentFile, targetFile, if (minimalImportMode) emptyList() else null)
-
-            for (location in locations) {
-                val fName = location.getLongName()
-                val importList = if (fName.isEmpty()) emptyList() else singletonList(fName[0])
-                fileResolveActions[location] = if (minimalImportMode) ImportFileAction(currentFile, targetFile, importList) else fallbackImportAction
             }
+
+        fallbackImportAction = null
+    } else { // targetFile has not been imported
+        fallbackImportAction = ImportFileAction(currentFile, targetFile, if (minimalImportMode) emptyList() else null)
+        if (isPrelude(targetFile) && !preludeImportedManually) fallbackImportAction = null
+
+        for (location in locations) {
+            val fName = location.getLongName()
+            val importList = if (fName.isEmpty()) emptyList() else singletonList(fName[0])
+            location.addLongNameAsReferenceName()
+            fileResolveActions[location] = if (minimalImportMode) ImportFileAction(currentFile, targetFile, importList) else fallbackImportAction
         }
     }
 
@@ -139,7 +131,7 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         val scopes = singletonList(correctedScope) + deferredImports.map { it.getAmendedScope() }
         correctedScope = MergeScope(scopes)
     }
-    if (modifyingImportsNeeded && defaultLocation.getLongName().isNotEmpty())
+    if (defaultLocation.getLongName().isNotEmpty())
         correctedScope = MergeScope(correctedScope, defaultLocation.getComplementScope()) // calculate the scope imitating current scope after the imports have been fixed
 
 
@@ -165,6 +157,8 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 
     val veryLongName = ArrayList<String>()
     if (resultingDecisions.isEmpty()) {
+        if (isPrelude(targetFile) && !preludeImportedManually && fallbackImportAction == null)
+            fallbackImportAction = ImportFileAction(currentFile, targetFile, null)
         veryLongName.addAll(targetModulePath.modulePath.toList()) // If we cannot resolve anything -- then perhaps there is some obstruction in scopes
         veryLongName.addAll(defaultLocation.getLongName()) // Let us use the "longest possible name" when referring to the anchor
         resultingDecisions.add(ImportDecision(veryLongName, fallbackImportAction, false))
@@ -309,7 +303,7 @@ abstract class NsCmdRefactoringAction(val currentFile: ArendFile) {
 }
 
 class ImportFileAction(currentFile: ArendFile,
-                       val targetFile: ArendFile,
+                       private val targetFile: ArendFile,
                        private val usingList: List<String>?) : NsCmdRefactoringAction(currentFile) {
     override fun toString() = "Import file ${getLongName()}"
 
@@ -333,8 +327,8 @@ class ImportFileAction(currentFile: ArendFile,
 }
 
 class AddIdToUsingAction(currentFile: ArendFile,
-                         val targetFile: ArendFile,
-                         val locationData: LocationData) : NsCmdRefactoringAction(currentFile) {
+                         private val targetFile: ArendFile,
+                         private val locationData: LocationData) : NsCmdRefactoringAction(currentFile) {
     private val myId = locationData.getLongName()[0]
     override fun toString(): String = "Add $myId to the \"using\" list of the namespace command `${getLongName()}`"
 
