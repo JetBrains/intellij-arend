@@ -14,12 +14,14 @@ import org.arend.module.ArendRawLibrary
 import org.arend.module.IntellijClassLoaderDelegate
 import org.arend.module.ModuleLocation
 import org.arend.naming.reference.Referable
+import org.arend.prelude.Prelude.MODULE_PATH
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.util.getRelativeFile
 import org.arend.util.getRelativePath
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import org.arend.util.FileUtils.EXTENSION
 import org.arend.util.Range
 import org.arend.util.Version
 import org.arend.util.mapFirstNotNull
@@ -143,7 +145,7 @@ abstract class LibraryConfig(val project: Project) {
     }
 
     fun findArendFile(modulePath: ModulePath, inTests: Boolean): ArendFile? =
-        findParentDirectory(modulePath, inTests)?.findChild(modulePath.lastName + FileUtils.EXTENSION)?.let {
+        findParentDirectory(modulePath, inTests)?.findChild(modulePath.lastName + EXTENSION)?.let {
             PsiManager.getInstance(project).findFile(it) as? ArendFile
         }
 
@@ -154,6 +156,37 @@ abstract class LibraryConfig(val project: Project) {
             (if (withAdditional) additionalModules[modulePath] else null) ?:
                 findArendFile(modulePath, false) ?: if (withTests) findArendFile(modulePath, true) else null
         }
+
+    fun getArendDirectoryOrFile(modulePath: ModulePath, isTest: Boolean): PsiFileSystemItem? {
+        val psiManager = PsiManager.getInstance(project)
+        return if (modulePath.size() == 0) {
+            if (isTest) {
+                psiManager.findDirectory(testsDirFile!!)
+            } else {
+                psiManager.findDirectory(sourcesDirFile!!)
+            }
+        } else {
+            getArendSubdirectoryOrFile(modulePath, isTest)
+        }
+    }
+
+    fun getArendSubdirectoryOrFile(modulePath: ModulePath, isTest: Boolean): PsiFileSystemItem? {
+        val psiManager = PsiManager.getInstance(project)
+        if (modulePath == MODULE_PATH) {
+            return project.service<TypeCheckingService>().prelude
+        }
+        return if (isTest) {
+            (findArendFileOrDirectoryByModulePath(testsDirFile, modulePath) ?:
+                findArendFileOrDirectoryByModulePath(sourcesDirFile, modulePath))?.let {
+                    psiManager.findDirectory(it) ?: psiManager.findFile(it)
+            } ?: findArendFile(modulePath, withAdditional = false, withTests = true)
+        } else {
+            (findArendFileOrDirectoryByModulePath(sourcesDirFile, modulePath) ?:
+                findArendFileOrDirectoryByModulePath(testsDirFile, modulePath))?.let {
+                psiManager.findDirectory(it) ?: psiManager.findFile(it)
+            } ?: findArendFile(modulePath, withAdditional = false, withTests = true)
+        }
+    }
 
     fun findArendFileOrDirectory(modulePath: ModulePath, withAdditional: Boolean, withTests: Boolean): PsiFileSystemItem? {
         if (modulePath.size() == 0) {
@@ -168,7 +201,7 @@ abstract class LibraryConfig(val project: Project) {
         val psiManager = PsiManager.getInstance(project)
 
         val srcDir = findParentDirectory(modulePath, false)
-        srcDir?.findChild(modulePath.lastName + FileUtils.EXTENSION)?.let {
+        findArendFileOrDirectoryByModulePath(srcDir, modulePath)?.let {
             val file = psiManager.findFile(it)
             if (file is ArendFile) {
                 return file
@@ -176,14 +209,15 @@ abstract class LibraryConfig(val project: Project) {
         }
 
         val testDir = if (withTests) findParentDirectory(modulePath, true) else null
-        testDir?.findChild(modulePath.lastName + FileUtils.EXTENSION)?.let {
+        findArendFileOrDirectoryByModulePath(testDir, modulePath)?.let {
             val file = psiManager.findFile(it)
             if (file is ArendFile) {
                 return file
             }
         }
 
-        return (srcDir?.findChild(modulePath.lastName) ?: testDir?.findChild(modulePath.lastName))?.let {
+        return (findArendFileOrDirectoryByModulePath(sourcesDirFile, modulePath) ?:
+                findArendFileOrDirectoryByModulePath(testsDirFile, modulePath))?.let {
             psiManager.findDirectory(it)
         }
     }
@@ -234,5 +268,23 @@ abstract class LibraryConfig(val project: Project) {
 
         val libraryManager = project.service<TypeCheckingService>().libraryManager
         return deps.mapFirstNotNull { dep -> (libraryManager.getRegisteredLibrary(dep.name) as? ArendRawLibrary)?.config?.let { f(it) } }
+    }
+
+    companion object {
+        fun findArendFileOrDirectoryByModulePath(root: VirtualFile?, modulePath: ModulePath): VirtualFile? {
+            val path = modulePath.toList()
+            var curElement = root
+            for (index in path.indices) {
+                if (index == path.indices.last - 1 && path[index + 1] == EXTENSION.drop(1)) {
+                    curElement = curElement?.findChild(path[index] + EXTENSION)
+                    break
+                } else if (index == path.indices.last) {
+                    curElement = curElement?.findChild(path[index]) ?: curElement?.findChild(path[index] + EXTENSION)
+                } else {
+                    curElement = curElement?.findChild(path[index])
+                }
+            }
+            return curElement
+        }
     }
 }

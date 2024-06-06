@@ -23,7 +23,7 @@ import com.intellij.util.Alarm
 import org.arend.ArendFileType
 import org.arend.codeInsight.ArendCodeInsightUtils
 import org.arend.ext.module.ModulePath
-import org.arend.module.AllArendFilesScope
+import org.arend.module.AllArendFilesAndPackagesScope
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
@@ -75,7 +75,7 @@ class ArendMoveMembersDialog(project: Project,
         }
 
         val containingFile = container.containingFile as? ArendFile
-        val globalScope = containingFile?.libraryConfig?.let { AllArendFilesScope(it) } ?: EmptyScope.INSTANCE
+        val globalScope = containingFile?.libraryConfig?.let { AllArendFilesAndPackagesScope(it) } ?: EmptyScope.INSTANCE
 
         targetFileField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.modulePath?.toString() ?: "", null, customScopeGetter = { globalScope })), project, ArendFileType.INSTANCE)
         targetModuleField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.longName?.toString() ?: "", null, customScopeGetter = {

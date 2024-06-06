@@ -53,7 +53,7 @@ val Abstract.ParametersHolder.parametersText: String?
         return stringBuilder.toString()
     }
 
-class PsiModuleReferable(val modules: List<PsiFileSystemItem>, modulePath: ModulePath) : ModuleReferable(modulePath)
+open class PsiModuleReferable(val modules: List<PsiFileSystemItem>, val modulePath: ModulePath) : ModuleReferable(modulePath)
 
 abstract class PsiReferableImpl(node: ASTNode) : ArendCompositeElementImpl(node), PsiReferable {
 
