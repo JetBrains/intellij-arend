@@ -8,6 +8,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.SmartPointerManager
@@ -37,6 +38,7 @@ import org.arend.term.concrete.Concrete
 import org.arend.typechecking.*
 import org.arend.typechecking.error.ParserError
 import org.arend.typechecking.error.TypecheckingErrorReporter
+import org.arend.typechecking.execution.TypecheckRunConfigurationProducer.Companion.TEST_PREFIX
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
 import org.arend.util.afterTypechecking
@@ -118,22 +120,36 @@ class TypeCheckProcessHandler(
                         }
 
                         val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
-                        val modules = modulePaths.mapNotNull {
-                            val module = library.config.findArendFile(it, withAdditional = false, withTests = true)
-                            if (module == null) {
-                                typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
-                            } else if (command.definitionFullName == "") {
-                                val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
-                                val moduleScopeProvider = if (module.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST) {
-                                    val testsModuleScopeProvider = library.testsModuleScopeProvider
-                                    ModuleScopeProvider { modulePath ->
-                                        sourcesModuleScopeProvider.forModule(modulePath)
-                                            ?: testsModuleScopeProvider.forModule(modulePath)
-                                    }
-                                } else sourcesModuleScopeProvider
-                                DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))
+                        val modules = modulePaths.flatMap {
+                            var newModulePath = it
+                            val isTest = newModulePath.firstName == TEST_PREFIX ||
+                                    (newModulePath.size() == 1 && newModulePath.firstName == library.config.testsDirFile?.name)
+                            val isSource = newModulePath.firstName == library.config.sourcesDirFile?.name
+                            if (isTest || isSource) {
+                                newModulePath = ModulePath(newModulePath.toList().subList(1, newModulePath.size()))
                             }
-                            module
+                            val items = when (val fileItem = library.config.getArendDirectoryOrFile(newModulePath, isTest)) {
+                                is ArendFile -> listOf(fileItem)
+                                is PsiDirectory -> getAllFilesInDirectory(fileItem)
+                                else -> {
+                                    typecheckingErrorReporter.report(LibraryError.moduleNotFound(newModulePath, library.name))
+                                    emptyList()
+                                }
+                            }
+                             for (module in items) {
+                                if (command.definitionFullName == "") {
+                                    val sourcesModuleScopeProvider = typeCheckerService.libraryManager.getAvailableModuleScopeProvider(library)
+                                    val moduleScopeProvider = if (module.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST) {
+                                        val testsModuleScopeProvider = library.testsModuleScopeProvider
+                                        ModuleScopeProvider { modulePath ->
+                                            sourcesModuleScopeProvider.forModule(modulePath)
+                                                ?: testsModuleScopeProvider.forModule(modulePath)
+                                        }
+                                    } else sourcesModuleScopeProvider
+                                    DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))
+                                }
+                            }
+                            items
                         }
 
                         if (command.definitionFullName == "") {
@@ -200,6 +216,15 @@ class TypeCheckProcessHandler(
                 }
             }
         }
+    }
+
+    private fun getAllFilesInDirectory(directory: PsiDirectory): List<ArendFile> {
+        val arendFiles = mutableListOf<ArendFile>()
+        for (subDir in directory.subdirectories) {
+            arendFiles.addAll(getAllFilesInDirectory(subDir))
+        }
+        arendFiles.addAll(directory.files.filterIsInstance<ArendFile>())
+        return arendFiles
     }
 
     private fun resetGroup(group: ArendGroup) {
