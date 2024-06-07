@@ -96,7 +96,7 @@ class ArendChangeSignatureProcessor(project: Project,
                                   fileChangeMap: MutableMap<PsiFile, SortedList<Pair<TextRange, String>>>,
                                   rootPsiWithArendErrors: MutableSet<PsiElement>,
                                   rootPsiWithErrors: MutableSet<PsiElement>,
-                                  changeInfoNsCmds: MutableList<NsCmdRefactoringAction>,
+                                  changeInfoNsCmds: List<NsCmdRefactoringAction>,
                                   deferredNsCmds: MutableList<NsCmdRefactoringAction>): Runnable =
             Runnable {
             val concreteSet = LinkedHashSet<ConcreteDataItem>()
@@ -106,6 +106,10 @@ class ArendChangeSignatureProcessor(project: Project,
             val rootPsiEntries = usages.filter { it.psiParentRoot != null }.map { it.psiParentRoot }
                 .toCollection(LinkedHashSet())
             val referableData = usages.map { it.task }.toCollection(HashSet()).toList()
+
+            for (action in changeInfoNsCmds)
+                if (!deferredNsCmds.contains(action))
+                    deferredNsCmds.add(action)
 
             runReadAction {
                 val progressIndicator = ProgressManager.getInstance().progressIndicator
@@ -152,7 +156,7 @@ class ArendChangeSignatureProcessor(project: Project,
                 for ((index, callEntry) in concreteSet.withIndex()) {
                     progressIndicator.fraction = index.toDouble() / concreteSet.size
                     progressIndicator.checkCanceled()
-                    val refactoringContext = ChangeSignatureRefactoringContext(referableData, textReplacements, rangeData, changeInfoNsCmds)
+                    val refactoringContext = ChangeSignatureRefactoringContext(referableData, textReplacements, rangeData, deferredNsCmds)
                     rangeData.clear()
 
                     try {
@@ -211,8 +215,7 @@ class ArendChangeSignatureProcessor(project: Project,
                         rootPsiWithErrors.add(callEntry.psi)
                     }
 
-                    deferredNsCmds.clear()
-                    deferredNsCmds.addAll(refactoringContext.deferredNsCmds)
+                    for (action in refactoringContext.deferredNsCmds) if (!deferredNsCmds.contains(action)) deferredNsCmds.add(action)
                 }
 
                 for ((psi, text) in textReplacements) {
