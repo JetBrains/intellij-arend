@@ -113,6 +113,12 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
         if (statements != null)
             ancestorGroups.add(0, Pair(containingGroup, statements.filter { it.kind == NamespaceCommand.Kind.OPEN }))
 
+        if (psi is ArendDefClass) {
+            val scope = ClassFieldImplScope(psi, true)
+            for (location in locations)
+                location.checkShortNameInScope(scope)
+        }
+
         psi = psi.parent
     }
 
@@ -149,7 +155,9 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
 
     for (location in locations) {
         location.getReferenceNames().map { referenceName ->
-            if (referenceName.isEmpty() || Scope.resolveName(correctedScope, referenceName)?.underlyingReferable == defaultLocation.target) {
+            if (referenceName.isEmpty() ||
+                Scope.resolveName(correctedScope, referenceName)?.underlyingReferable
+                == defaultLocation.target) {
                 resultingDecisions.add(ImportDecision(referenceName, fileResolveActions[location], location.alias))
             }
         }
@@ -230,6 +238,14 @@ class LocationData private constructor (
         calculateRemainder(group)?.let { myReferenceNames.add(it) }
     }
 
+    fun checkShortNameInScope(scope: Scope) {
+        val elements = scope.elements.toList()
+        for (element in elements) {
+            val remainder = if (element is PsiLocatedReferable) calculateRemainder(element, withFirstName = true) else null
+            if (remainder != null) myReferenceNames.add(remainder)
+        }
+    }
+
     fun addLongNameAsReferenceName() {
         myReferenceNames.add(getLongName())
     }
@@ -252,11 +268,12 @@ class LocationData private constructor (
         return emptyList()
     }
 
-    private fun calculateRemainder(referable: PsiLocatedReferable): List<String>? {
+    private fun calculateRemainder(referable: PsiLocatedReferable, withFirstName: Boolean = false): List<String>? {
         var result: ArrayList<String>? = if (referable == myContainingFile) ArrayList() else null
         for (entry in myLongNameWithRefs) {
-            result?.add(entry.first)
+            if (!withFirstName) result?.add(entry.first)
             if (entry.second == referable) result = ArrayList()
+            if (withFirstName) result?.add(entry.first)
         }
         return result
     }
