@@ -10,7 +10,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
         myFixture.enableInspections(RedundantParensInspection::class.java)
     }
 
-    fun testNeverNeedsParens() = doWeakWarningsCheck("""
+    fun testNeverNeedsParens() = doWeakWarningsCheck(myFixture, """
        \open Nat (+)
 
        \func f2 {A : \Type} {B : \Type} (a : A) (b : B) => {?}
@@ -45,7 +45,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \func test14 => f2 (+) 1 
     """)
 
-    fun testNewExpression() = doWeakWarningsCheck("""
+    fun testNewExpression() = doWeakWarningsCheck(myFixture,"""
        \class Pair (x y : Nat)
 
        \func test1 => \new ${rp("(Pair 1 2)")}
@@ -55,7 +55,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \func test3 => (pair 0).1 
     """)
 
-    fun testReturnExpression() = doWeakWarningsCheck("""
+    fun testReturnExpression() = doWeakWarningsCheck(myFixture,"""
        \data Empty
 
        \func test1 : ${rp("(1 = 1)")} => idp
@@ -63,7 +63,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \func test2 : Empty $LEVEL ${rp("(prop-pi {Empty})")} => {?} 
     """)
 
-    fun testParameterType() = doWeakWarningsCheck("""
+    fun testParameterType() = doWeakWarningsCheck(myFixture,"""
        \func test1 {a : ${rp("(0 = 0)")}} (b : ${rp("(0 = 0)")}) => 1
 
        \record A (f : ${rp("(0 = 0)")} -> Nat)
@@ -81,7 +81,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
          | test6 (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) 
     """)
 
-    fun testBodyAndClauseAndCoClause() = doWeakWarningsCheck("""
+    fun testBodyAndClauseAndCoClause() = doWeakWarningsCheck(myFixture,"""
        \open Nat (+)
 
        \class Pair (x y : Nat)
@@ -104,7 +104,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \func test7 => \new Pair 0 { | y => ${rp("(0 + 0)")} } 
     """)
 
-    fun testClausePattern() = doWeakWarningsCheck("""
+    fun testClausePattern() = doWeakWarningsCheck(myFixture,"""
        \func test1 (p : 1 = 1) : Nat
          | p : ${rp("(1 = 1)")} => 1
 
@@ -112,36 +112,36 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
          | p \as p' : ${rp("(1 = 1)")} => 1 
     """)
 
-    fun testArrowExpression() = doWeakWarningsCheck("""
+    fun testArrowExpression() = doWeakWarningsCheck(myFixture,"""
        \func test1 => (Nat -> Nat) -> Nat
        -- False negatives. But removing parens might hurt readability, especially in the second case.
        \func test2 => ${rp("(0 = 1)")} -> Nat
        \func test3 => (\Sigma Nat Nat) -> Nat 
     """)
 
-    fun testSigmaExpression() = doWeakWarningsCheck("""
+    fun testSigmaExpression() = doWeakWarningsCheck(myFixture,"""
        \func test1 => \Sigma Nat (Nat -> Nat) -- Without parens this Sigma turns into Arrow
        \func test2 => \Sigma (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) 
     """)
 
-    fun testPiExpression() = doWeakWarningsCheck("""
+    fun testPiExpression() = doWeakWarningsCheck(myFixture,"""
        \func test1 => \Pi (n : Nat) -> ${rp("(Nat -> Nat)")}
        \func test2 => \Pi (n : Nat) -> ${rp("(0 = 0)")}
        \func test3 => \Pi (a : ${rp("(0 = 0)")}) (${rp("(0 = 0)")}) -> Nat 
     """)
 
-    fun testLambdaExpression() = doWeakWarningsCheck("""
+    fun testLambdaExpression() = doWeakWarningsCheck(myFixture,"""
        \func test1 => \lam (x : Nat) => ${rp("(0 = 0)")}
        \func test2 => \lam {a : ${rp("(0 = 0)")}} (b : ${rp("(0 = 0)")}) => 1 
     """)
 
-    fun testLetExpression() = doWeakWarningsCheck("""
+    fun testLetExpression() = doWeakWarningsCheck(myFixture,"""
        \func test1 => \let N => Nat \in ${rp("(N -> N)")}
        \func test2 => \let p => ${rp("(0 = 0)")} \in p
        \func test3 => \let p : ${rp("(1 = 1)")} => idp \in p 
     """)
 
-    fun testTupleExpression() = doWeakWarningsCheck("""
+    fun testTupleExpression() = doWeakWarningsCheck(myFixture,"""
        \open Nat (+)
 
        \func test1 => (${rp("(1 + 2)")} : Nat, ${rp("(3 + 4)")})
@@ -154,14 +154,14 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \func test5 : \Sigma (0 = 1 -> Nat) Nat => (${rp("(\\case __ \\return Nat)")}, 2) 
     """)
 
-    fun testMetaDefCallWithClauses() = doWeakWarningsCheck("""
+    fun testMetaDefCallWithClauses() = doWeakWarningsCheck(myFixture,"""
        \func f2 {A : \Type} {B : \Type} (a : A) (b : B) => {?}
 
        \meta mcases => 1
        \func test15 => f2 (mcases <error descr="Clauses are not allowed here">\with {}</error>) 1 
     """)
 
-    fun testApplicationUsedAsBinOpArgument() = doWeakWarningsCheck("""
+    fun testApplicationUsedAsBinOpArgument() = doWeakWarningsCheck(myFixture,"""
        \open Nat (+)
 
        \func test1 => ${rp("(f 1 2)")} + 3
@@ -213,7 +213,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
       \func test : 0 = 0 => idp
     """)
 
-    fun `test issues`() = doWeakWarningsCheck("""
+    fun `test issues`() = doWeakWarningsCheck(myFixture,"""
        \module Issue302 \where
          \func foo (F : Nat -> \Type) => ${rp("(F 0)")} -> ${rp("(F 0)")} 
        \module Issue326 \where {
@@ -231,7 +231,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        }              
     """)
 
-    fun testReturnExpr() = doWeakWarningsCheck("""       
+    fun testReturnExpr() = doWeakWarningsCheck(myFixture,"""       
          \data Bool | true | false
          
          \func lol (a : Bool) : Bool -> Bool => \case a \return (Bool -> Bool) \with { 
@@ -240,7 +240,7 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
          } 
     """)
 
-    fun test375() = doWeakWarningsCheck("""
+    fun test375() = doWeakWarningsCheck(myFixture,"""
        \module Issue375 \where {
          \class Ring (E : \Set)
            | \infixl 6 + : E -> E -> E
@@ -288,17 +288,6 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
         \func test => \Sigma \Prop (Nat -> Nat)
     """)
 
-    private fun doWeakWarningsCheck(contents: String, typecheck: Boolean = false) {
-        val fileTree = fileTreeFromText(contents)
-        fileTree.create(myFixture.project, myFixture.findFileInTempDir("."))
-        myFixture.configureFromTempProjectFile("Main.ard")
-        if (typecheck) {
-            //typecheck(fileTree.fileNames)
-            myFixture.doHighlighting()
-        }
-        myFixture.checkHighlighting(false, false, true)
-    }
-
     private fun doTypedQuickFixTest(before: String, after: String) =
             typedQuickFixTest(ArendBundle.message("arend.unwrap.parentheses.fix"), before, after)
 
@@ -306,6 +295,6 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
 
         fun rp(text: String): String = "<weak_warning descr=\"Redundant parentheses\">$text</weak_warning>"
 
-        val LEVEL = "<weak_warning descr=\"\\level is ignored\">\\level</weak_warning>"
+        const val LEVEL = "<weak_warning descr=\"\\level is ignored\">\\level</weak_warning>"
     }
 }
