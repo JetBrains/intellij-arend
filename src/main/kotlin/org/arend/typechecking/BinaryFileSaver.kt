@@ -1,5 +1,6 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -91,7 +92,9 @@ class BinaryFileSaver(private val project: Project) {
         synchronized(project) {
             val savedFiles = HashSet<VirtualFile>()
             for (entry in typecheckedModules) {
-                saveFile(entry.key, entry.value, typeCheckingService.libraryManager.libraryErrorReporter, savedFiles)
+                ApplicationManager.getApplication().executeOnPooledThread {
+                    saveFile(entry.key, entry.value, typeCheckingService.libraryManager.libraryErrorReporter, savedFiles)
+                }
             }
             typecheckedModules.clear()
             updateFiles(savedFiles)
