@@ -45,34 +45,34 @@ fun selectErrorFromEditor(project: Project, editor: Editor, file: ArendFile?, al
         return
     }
 
-    var arendFile = file
-    if (arendFile == null) {
-        ApplicationManager.getApplication().run {
-            executeOnPooledThread {
+    ApplicationManager.getApplication().run {
+        executeOnPooledThread {
+            var arendFile = file
+            if (arendFile == null) {
                 runReadAction {
                     arendFile = PsiDocumentManager.getInstance(project).getPsiFile(document) as? ArendFile
                 }
-                if (arendFile == null) {
-                    return@executeOnPooledThread
+            }
+            if (arendFile == null) {
+                return@executeOnPooledThread
+            }
+            runInEdt {
+                val arendErrors = project.service<ErrorService>().getErrors(arendFile!!)
+                if (arendErrors.isEmpty()) {
+                    return@runInEdt
                 }
-                runInEdt {
-                    val arendErrors = project.service<ErrorService>().getErrors(arendFile!!)
-                    if (arendErrors.isEmpty()) {
-                        return@runInEdt
-                    }
 
-                    val service = project.service<ArendProjectSettings>()
-                    for (arendError in arendErrors) {
-                        if (always || arendError.error.satisfies(service.autoScrollFromSource)) {
-                            val textRange = BasePass.getImprovedTextRange(arendError.error) ?: continue
-                            if (textRange.containsOffset(offset)) {
-                                val messagesService = project.service<ArendMessagesService>()
-                                messagesService.view?.tree?.select(arendError.error)
-                                if (activate) {
-                                    messagesService.activate(project, false)
-                                }
-                                break
+                val service = project.service<ArendProjectSettings>()
+                for (arendError in arendErrors) {
+                    if (always || arendError.error.satisfies(service.autoScrollFromSource)) {
+                        val textRange = BasePass.getImprovedTextRange(arendError.error) ?: continue
+                        if (textRange.containsOffset(offset)) {
+                            val messagesService = project.service<ArendMessagesService>()
+                            messagesService.view?.tree?.select(arendError.error)
+                            if (activate) {
+                                messagesService.activate(project, false)
                             }
+                            break
                         }
                     }
                 }

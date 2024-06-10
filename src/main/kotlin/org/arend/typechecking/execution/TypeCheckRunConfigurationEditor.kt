@@ -40,7 +40,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
             }
             val module = ModuleManager.getInstance(project).findModuleByName(library)
             val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
-            arendModuleConfigService?.let { AllArendFilesAndPackagesScope(it, ModulePath(), withPrelude = true) } ?: EmptyScope.INSTANCE
+            arendModuleConfigService?.let { AllArendFilesAndPackagesScope(it, ModulePath(), withPrelude = true, withArendExtension = false) } ?: EmptyScope.INSTANCE
         })
         modulePathComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(moduleDocument), project, ArendFileType.INSTANCE)
         definitionNameComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, DEFINITION_TEXT, null, customScopeGetter = {
