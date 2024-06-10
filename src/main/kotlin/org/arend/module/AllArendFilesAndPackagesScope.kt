@@ -18,7 +18,12 @@ import org.arend.typechecking.execution.TypecheckRunConfigurationProducer.Compan
 import org.arend.util.FileUtils
 import org.arend.util.getRelativePath
 
-class AllArendFilesAndPackagesScope(val libraryConfig: LibraryConfig, private val extraPath: ModulePath = ModulePath(), private val withPrelude: Boolean = true) : Scope {
+class AllArendFilesAndPackagesScope(
+    val libraryConfig: LibraryConfig,
+    private val extraPath: ModulePath = ModulePath(),
+    private val withPrelude: Boolean = true,
+    private val withArendExtension: Boolean = true
+) : Scope {
     override fun getElements(): Collection<Referable> {
         val result = ArrayList<Referable>()
 
@@ -64,7 +69,7 @@ class AllArendFilesAndPackagesScope(val libraryConfig: LibraryConfig, private va
     }
 
     private fun createPsiModuleReferable(psiItem: PsiFileSystemItem, root: VirtualFile, startFile: VirtualFile): PsiModuleReferable {
-        val listPath = startFile.getRelativePath(psiItem.virtualFile, FileUtils.EXTENSION)
+        val listPath = startFile.getRelativePath(psiItem.virtualFile, if (withArendExtension) FileUtils.EXTENSION else "")
             ?.apply {
                 if (root != startFile) {
                     if (size > 1) {

@@ -6,12 +6,19 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.notificationGroup
+import com.intellij.ui.util.minimumHeight
+import com.intellij.ui.util.minimumWidth
 import guru.nidi.graphviz.engine.Format
 import guru.nidi.graphviz.engine.Graphviz
 import guru.nidi.graphviz.model.Factory.graph
 import guru.nidi.graphviz.model.Factory.node
 import java.awt.Color
+import java.awt.Image
 import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.Transferable
+import java.awt.datatransfer.UnsupportedFlavorException
+import java.awt.event.ActionEvent
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import javax.swing.*
@@ -40,18 +47,42 @@ class GraphSimulator(
             }
 
             val graphviz = Graphviz.fromGraph(graph)
-            val baseImageIcon = ImageIcon(
-                graphviz.render(Format.PNG).toImage()
-            )
+            val image = graphviz.render(Format.PNG).toImage()
+            val imageIcon = ImageIcon(image)
 
             val screenSize = Toolkit.getDefaultToolkit().screenSize
             val screenWidth = screenSize.getWidth().toInt()
             val screenHeight = screenSize.getHeight().toInt()
 
-            var imageIcon = getImageIcon(baseImageIcon, graphviz, screenWidth, screenHeight)
-            var imageLabel = JLabel(imageIcon)
+            val baseImageIcon = if (imageIcon.iconWidth > screenWidth && imageIcon.iconHeight > screenHeight) {
+                ImageIcon(graphviz.width(screenWidth).height(screenHeight).render(Format.PNG).toImage())
+            } else if (imageIcon.iconWidth > screenWidth) {
+                ImageIcon(graphviz.width(screenWidth).height(imageIcon.iconHeight).render(Format.PNG).toImage())
+            } else if (imageIcon.iconWidth > screenWidth) {
+                ImageIcon(graphviz.width(imageIcon.iconWidth).height(screenHeight).render(Format.PNG).toImage())
+            } else {
+                imageIcon
+            }
+
+            var imageLabel = JLabel(baseImageIcon)
 
             val dialogWrapper = object : DialogWrapper(project, true) {
+                private var graphImage = image
+                private val copyImageAction = object : DialogWrapperAction("Copy Image") {
+                    override fun doAction(e: ActionEvent?) {
+                        val transferableImage = TransferableImage(graphImage)
+                        Toolkit.getDefaultToolkit().systemClipboard.setContents(transferableImage, null)
+                        buttonMap[this]?.isEnabled = false
+                    }
+                }
+
+                private val copyFullImageAction = object : DialogWrapperAction("Copy Full Image") {
+                    override fun doAction(e: ActionEvent?) {
+                        val transferableImage = TransferableImage(image)
+                        Toolkit.getDefaultToolkit().systemClipboard.setContents(transferableImage, null)
+                    }
+                }
+
                 init {
                     init()
                 }
@@ -62,18 +93,46 @@ class GraphSimulator(
                     panel.background = Color.WHITE
                     panel.addComponentListener(object : ComponentAdapter() {
                         override fun componentResized(e: ComponentEvent) {
-                            imageIcon = getImageIcon(baseImageIcon, graphviz, e.component.width, e.component.height)
+                            val component = panel.components.getOrNull(0) ?: return
+                            panel.minimumWidth = baseImageIcon.iconWidth + size.width - e.component.width
+                            panel.minimumHeight = baseImageIcon.iconHeight + size.height - e.component.height
+
+                            val imageIcon = getImageIcon(baseImageIcon, graphviz, e.component.width - component.bounds.x * 2, e.component.height - component.bounds.y * 2)
                             imageLabel = JLabel(imageIcon)
 
                             panel.removeAll()
                             panel.add(imageLabel)
                             panel.revalidate()
+                            buttonMap[copyImageAction]?.isEnabled = true
                         }
                     })
                     return panel
                 }
 
-                override fun createActions(): Array<Action> = emptyArray()
+                private fun getImageIcon(baseImageIcon: ImageIcon, graphviz: Graphviz, width: Int, height: Int): ImageIcon {
+                    return when {
+                        width <= baseImageIcon.iconWidth && height <= baseImageIcon.iconHeight -> {
+                            graphImage = image
+                            baseImageIcon
+                        }
+                        width <= baseImageIcon.iconWidth -> {
+                            graphImage = graphviz.width(baseImageIcon.iconWidth).height(height).render(Format.PNG).toImage()
+                            ImageIcon(graphImage)
+                        }
+                        height <= baseImageIcon.iconHeight -> {
+                            graphImage =graphviz.width(width).height(baseImageIcon.iconHeight).render(Format.PNG).toImage()
+                            ImageIcon(graphImage)
+                        }
+                        else -> {
+                            graphImage = graphviz.width(width).height(height).render(Format.PNG).toImage()
+                            ImageIcon(graphImage)
+                        }
+                    }
+                }
+
+                override fun createActions(): Array<Action> {
+                    return arrayOf(copyImageAction, copyFullImageAction)
+                }
             }
             dialogWrapper.pack()
             dialogWrapper.show()
@@ -84,14 +143,22 @@ class GraphSimulator(
         }
     }
 
-    private fun getImageIcon(baseImageIcon: ImageIcon, graphviz: Graphviz, width: Int, height: Int): ImageIcon {
-        return when {
-            width <= baseImageIcon.iconWidth || height <= baseImageIcon.iconHeight -> {
-                ImageIcon(
-                    graphviz.width(width).height(height).render(Format.PNG).toImage()
-                )
+    companion object {
+        class TransferableImage(private val image: Image) : Transferable {
+            override fun getTransferDataFlavors(): Array<DataFlavor> {
+                return arrayOf(DataFlavor.imageFlavor)
             }
-            else -> baseImageIcon
+
+            override fun isDataFlavorSupported(flavor: DataFlavor): Boolean {
+                return flavor.equals(DataFlavor.imageFlavor)
+            }
+
+            override fun getTransferData(flavor: DataFlavor): Any {
+                if (flavor.equals(DataFlavor.imageFlavor)) {
+                    return image
+                }
+                throw UnsupportedFlavorException(flavor)
+            }
         }
     }
 }
