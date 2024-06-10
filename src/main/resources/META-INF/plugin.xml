@@ -190,6 +190,12 @@
                          enabledByDefault="true"
                          unfair="true"
                          implementationClass="org.arend.inspection.ArendUnusedImportInspection"/>
+
+        <localInspection language="Arend" groupPath="Arend"
+                         bundle="messages.ArendBundle" key="arend.inspection.redundant.parameter.message"
+                         groupBundle="messages.InspectionsBundle" groupKey="group.names.declaration.redundancy"
+                         enabledByDefault="true" level="WARNING"
+                         implementationClass="org.arend.inspection.RedundantParameterInspection"/>
         <!-- Intention Actions -->
         <intentionAction>
             <language>Arend</language>
@@ -417,7 +423,6 @@
         <highlightingPassFactory implementation="org.arend.highlight.ArendUnusedImportHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.RedundantParensPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.NameShadowingHighlighterPassFactory"/>
-        <highlightingPassFactory implementation="org.arend.highlight.RedundantParameterNamePassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.PartiallyInfixOperatorPrefixFormPassFactory"/>
 
         <!-- Tool Windows -->

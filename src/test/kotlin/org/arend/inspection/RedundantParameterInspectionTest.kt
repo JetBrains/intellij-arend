@@ -3,7 +3,11 @@ package org.arend.inspection
 import org.arend.quickfix.QuickFixTestBase
 import org.arend.util.ArendBundle
 
-class RedundantParameterNameInspectionTest : QuickFixTestBase() {
+class RedundantParameterInspectionTest : QuickFixTestBase() {
+    override fun setUp() {
+        super.setUp()
+        myFixture.enableInspections(RedundantParameterInspection::class.java)
+    }
 
     fun testFunc() = doWarningsCheck(myFixture, """
        \func f (${rpnWarning("x")} : Nat) => 0
