@@ -87,5 +87,5 @@ class AllArendFilesAndPackagesScope(
 
     override fun getElements(kind: Referable.RefKind?): Collection<Referable> = if (kind == null || kind == Referable.RefKind.EXPR) elements else emptyList()
 
-    override fun resolveNamespace(name: String, onlyInternal: Boolean) = AllArendFilesAndPackagesScope(libraryConfig, ModulePath(extraPath.toList() + name), false)
+    override fun resolveNamespace(name: String, onlyInternal: Boolean) = AllArendFilesAndPackagesScope(libraryConfig, ModulePath(extraPath.toList() + name), false, withArendExtension)
 }
