@@ -21,12 +21,13 @@ class RedundantParameterInspection : ArendInspectionBase() {
             holder.registerProblem(element, message, RedundantParameterFix(element))
         }
 
+        val file = holder.file
+        val arendRefIdentifiers = file.descendantsOfType<ArendRefIdentifier>().map { it.resolve }.toList()
+
         return object : PsiElementVisitor() {
             override fun visitElement(element: PsiElement) {
                 super.visitElement(element)
                 if (element is ArendNameTele) {
-                    val file = element.containingFile
-                    val arendRefIdentifiers = file.descendantsOfType<ArendRefIdentifier>().map { it.resolve }.toList()
                     val identifiers = element.identifierOrUnknownList
                         .filter { identifier -> identifier.defIdentifier != null }
                         .map { identifier -> identifier.defIdentifier!! }

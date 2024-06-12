@@ -2,6 +2,7 @@ package org.arend.search.proof
 
 import com.intellij.ide.actions.SearchEverywherePsiRenderer
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.colors.EditorColors
@@ -78,57 +79,59 @@ class ArendProofSearchRenderer(val project: Project) : ListCellRenderer<ProofSea
         isSelected: Boolean,
         cellHasFocus: Boolean
     ): Component {
-        val bgColor = if (isSelected) selectionBgColor else UIUtil.getListBackground()
-        val fgColor = if (isSelected) selectionFgColor else list.foreground
-        return when (value) {
-            is DefElement -> {
-                val (def, renderingInfo) = value.entry
-                val (parameterRenders, codomainRender) = renderingInfo
-                val identifierRange: TextRange
-                val parameterRanges: List<TextRange>
-                val typeRange: TextRange
-                val locationRange: TextRange
-                val text = buildString {
-                    append("${def.name} : ")
-                    identifierRange = TextRange(0, length - 3)
-                    val ranges = mutableListOf<TextRange>()
-                    for (parameterIndex in parameterRenders.indices) {
-                        append("(")
+        return runReadAction {
+            val bgColor = if (isSelected) selectionBgColor else UIUtil.getListBackground()
+            val fgColor = if (isSelected) selectionFgColor else list.foreground
+            when (value) {
+                is DefElement -> {
+                    val (def, renderingInfo) = value.entry
+                    val (parameterRenders, codomainRender) = renderingInfo
+                    val identifierRange: TextRange
+                    val parameterRanges: List<TextRange>
+                    val typeRange: TextRange
+                    val locationRange: TextRange
+                    val text = buildString {
+                        append("${def.name} : ")
+                        identifierRange = TextRange(0, length - 3)
+                        val ranges = mutableListOf<TextRange>()
+                        for (parameterIndex in parameterRenders.indices) {
+                            append("(")
+                            val start = length
+                            append(parameterRenders[parameterIndex].typeRep)
+                            ranges.add(TextRange(start, length))
+                            append(")")
+                            append(" -> ")
+                        }
+                        parameterRanges = ranges
                         val start = length
-                        append(parameterRenders[parameterIndex].typeRep)
-                        ranges.add(TextRange(start, length))
-                        append(")")
-                        append(" -> ")
+                        append(codomainRender.typeRep)
+                        typeRange = TextRange(start, length)
+                        val location = getCompleteModuleLocation(def)
+                        locationRange = if (location != null) {
+                            append(" of $location")
+                            TextRange(typeRange.endOffset, length)
+                        } else {
+                            TextRange(0, 0)
+                        }
                     }
-                    parameterRanges = ranges
-                    val start = length
-                    append(codomainRender.typeRep)
-                    typeRange = TextRange(start, length)
-                    val location = getCompleteModuleLocation(def)
-                    locationRange = if (location != null) {
-                        append(" of $location")
-                        TextRange(typeRange.endOffset, length)
-                    } else {
-                        TextRange(0, 0)
+                    if (editor.document.text != text) {
+                        editor.document.deleteString(0, editor.document.textLength - 1)
+                        editor.document.insertString(0, text)
                     }
-                }
-                if (editor.document.text != text) {
-                    editor.document.deleteString(0, editor.document.textLength - 1)
-                    editor.document.insertString(0, text)
-                }
-                editor.backgroundColor = bgColor
+                    editor.backgroundColor = bgColor
 
-                setupHighlighting(isSelected, fgColor, text, identifierRange, parameterRanges, parameterRenders, typeRange, codomainRender, locationRange)
-                editor.component
-            }
-            is MoreElement -> {
-                textArea.background = bgColor
-                textArea.foreground = fgColor
-                panel.font = UIUtil.getLabelFont().deriveFont(UIUtil.getFontSize(UIUtil.FontSize.SMALL))
-                textArea.text = buildMoreHTML(fgColor)
-                panel.border = null
-                label.icon = null
-                panel
+                    setupHighlighting(isSelected, fgColor, text, identifierRange, parameterRanges, parameterRenders, typeRange, codomainRender, locationRange)
+                    editor.component
+                }
+                is MoreElement -> {
+                    textArea.background = bgColor
+                    textArea.foreground = fgColor
+                    panel.font = UIUtil.getLabelFont().deriveFont(UIUtil.getFontSize(UIUtil.FontSize.SMALL))
+                    textArea.text = buildMoreHTML(fgColor)
+                    panel.border = null
+                    label.icon = null
+                    panel
+                }
             }
         }
     }
