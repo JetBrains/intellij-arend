@@ -44,7 +44,15 @@ class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckC
                 val modulePath = file.moduleLocation ?: return null
                 sourceElement?.set(definition)
                 val fullName = definition.fullName
-                return MyConfiguration("Typecheck $fullName", TypeCheckCommand(file.libraryName ?: "", modulePath.toString(), fullName))
+
+                val test = ArendModuleConfigService.getInstance(context.module)?.testsDirFile
+                val fullNameTest = test?.getRelativePath(file.virtualFile)?.joinToString(".")
+
+                return if (fullNameTest != null) {
+                    MyConfiguration("Typecheck $fullName", TypeCheckCommand(file.libraryName ?: "", "$TEST_PREFIX.$modulePath$EXTENSION", fullName))
+                } else {
+                    MyConfiguration("Typecheck $fullName", TypeCheckCommand(file.libraryName ?: "", "$modulePath$EXTENSION", fullName))
+                }
             }
             is ArendFile -> {
                 sourceElement?.set(definition)
