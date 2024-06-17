@@ -5,7 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiParserFacade
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.InjectionTextLanguage
 import org.arend.psi.ext.*
 
@@ -175,7 +175,7 @@ class ArendPsiFactory(
     }
 
     fun createFromText(code: String): ArendFile? =
-        psiFactory().createFileFromText(fileName, ArendFileType, code) as? ArendFile
+        psiFactory().createFileFromText(fileName, ArendFileTypeInstance, code) as? ArendFile
 
     private fun psiFactory() = PsiFileFactory.getInstance(project)
 

@@ -8,7 +8,7 @@ import com.intellij.refactoring.changeSignature.ParameterTableModelBase
 import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
 import com.intellij.ui.BooleanTableCellEditor
 import com.intellij.ui.BooleanTableCellRenderer
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 
@@ -38,7 +38,6 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, d
         }
     }
 
-    @Suppress("UnstableApiUsage")
     override fun removeRow(idx: Int) {
         super.removeRow(idx)
     }
@@ -65,7 +64,7 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor, d
     private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor) :
         TypeColumn<ArendParameterInfo, ParameterTableModelItemBase<ArendParameterInfo>>(
             descriptor.method.project,
-            ArendFileType
+            ArendFileTypeInstance
         ) {
         override fun setValue(item: ParameterTableModelItemBase<ArendParameterInfo>?, value: PsiCodeFragment) {
             val fragment = value as? PsiTypeCodeFragment ?: return

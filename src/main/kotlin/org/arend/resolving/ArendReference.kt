@@ -5,7 +5,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.arend.ArendFileType
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.core.definition.Definition
@@ -28,6 +27,7 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.toolWindow.repl.getReplCompletion
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.FileUtils
 
 interface ArendReference : PsiReference {
     override fun getElement(): ArendReferenceElement
@@ -239,7 +239,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, private val
 }
 
 private fun doRename(oldNameIdentifier: PsiElement, rawName: String) {
-    val name = rawName.removeSuffix('.' + ArendFileType.defaultExtension)
+    val name = rawName.removeSuffix(FileUtils.EXTENSION)
     if (!ArendNamesValidator.isIdentifier(name, oldNameIdentifier.project)) return
     val factory = ArendPsiFactory(oldNameIdentifier.project)
     val newNameIdentifier = when (oldNameIdentifier) {

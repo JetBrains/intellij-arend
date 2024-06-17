@@ -7,13 +7,13 @@ import com.intellij.refactoring.changeSignature.*
 import com.intellij.refactoring.ui.ComboBoxVisibilityPanel
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.psi.ArendPsiFactory
 
 class ArendChangeSignatureDialog(project: Project, val descriptor: ArendChangeSignatureDescriptor) :
     ChangeSignatureDialogBase<ArendParameterInfo, PsiElement, String, ArendChangeSignatureDescriptor, ParameterTableModelItemBase<ArendParameterInfo>, ArendParameterTableModel>(project, descriptor, false, descriptor.method.context) {
 
-    override fun getFileType() = ArendFileType
+    override fun getFileType() = ArendFileTypeInstance
 
     override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
         ArendParameterTableModel(descriptor, myDefaultValueContext)

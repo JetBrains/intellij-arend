@@ -24,7 +24,7 @@ fun fileTreeFromText(@Language("Arend") text: String): FileTree {
         check(fileNames.size == fileTexts.size) { "Have you placed `-- ! filename.ard` markers?" }
     }
 
-    val modulePaths = fileNames.map { ModulePath(it.removeSuffix('.' + ArendFileType.defaultExtension).split('/')) }
+    val modulePaths = fileNames.map { ModulePath(it.removeSuffix(FileUtils.EXTENSION).split('/')) }
 
     fun fill(dir: Entry.Directory, path: List<String>, contents: String) {
         val name = path.first()

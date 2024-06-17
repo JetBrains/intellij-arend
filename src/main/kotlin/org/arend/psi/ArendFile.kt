@@ -15,7 +15,7 @@ import com.intellij.psi.impl.source.resolve.FileContextUtil
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.ext.module.LongName
@@ -41,6 +41,7 @@ import org.arend.resolving.ArendReference
 import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.BackgroundTypechecker
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.FileUtils
 import org.arend.util.libraryName
 import org.arend.util.mapFirstNotNull
 import java.util.concurrent.ConcurrentHashMap
@@ -116,13 +117,13 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     }
 
     fun cleanupTCRefMaps() {
-        for (refKind in RefKind.values()) {
+        for (refKind in RefKind.entries) {
             getTCRefMap(refKind).cleanup(project)
         }
     }
 
     override fun setName(name: String): PsiElement =
-        super.setName(if (name.endsWith('.' + ArendFileType.defaultExtension)) name else name + '.' + ArendFileType.defaultExtension)
+        super.setName(if (name.endsWith(FileUtils.EXTENSION)) name else name + FileUtils.EXTENSION)
 
     override fun getStub(): ArendFileStub? = super.getStub() as ArendFileStub?
 
@@ -228,9 +229,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getReference(): ArendReference? = null
 
-    override fun getFileType(): FileType = ArendFileType
+    override fun getFileType(): FileType = ArendFileTypeInstance
 
-    override fun textRepresentation(): String = name.removeSuffix("." + ArendFileType.defaultExtension)
+    override fun textRepresentation(): String = name.removeSuffix(FileUtils.EXTENSION)
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
