@@ -7,7 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.panel
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.definition.ArendFileDefinitionScope
 import org.arend.module.AllArendFilesScope
 import org.arend.module.AllModulesScope
@@ -29,7 +29,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
 
     init {
         libraryComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(
-            ArendLongNameCodeFragment(project, LIBRARY_TEXT, null, customScopeGetter = { AllModulesScope(project) })), project, ArendFileType.INSTANCE)
+            ArendLongNameCodeFragment(project, LIBRARY_TEXT, null, customScopeGetter = { AllModulesScope(project) })), project, ArendFileTypeInstance)
         val moduleDocument = ArendLongNameCodeFragment(project, MODULE_TEXT, null, customScopeGetter = {
             val library = libraryComponent.text
             if (library == PRELUDE) {
@@ -39,7 +39,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
             val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
             arendModuleConfigService?.let { AllArendFilesScope(it, withPrelude = false) } ?: EmptyScope.INSTANCE
         })
-        modulePathComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(moduleDocument), project, ArendFileType.INSTANCE)
+        modulePathComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(moduleDocument), project, ArendFileTypeInstance)
         definitionNameComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, DEFINITION_TEXT, null, customScopeGetter = {
             val library = libraryComponent.text
             val module = modulePathComponent.text
@@ -51,7 +51,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
             val arendFile = moduleDocument.scope.resolveName(module)?.underlyingReferable as? ArendFile?
                 ?: return@ArendLongNameCodeFragment EmptyScope.INSTANCE
             ArendFileDefinitionScope(arendFile)
-        })), project, ArendFileType.INSTANCE)
+        })), project, ArendFileTypeInstance)
     }
 
     override fun resetEditorFrom(configuration: TypeCheckConfiguration) {

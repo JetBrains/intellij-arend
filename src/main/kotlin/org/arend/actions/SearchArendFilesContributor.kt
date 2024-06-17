@@ -13,6 +13,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.util.arendModules
 import java.util.Collections.singletonList
 
@@ -32,7 +33,7 @@ class SearchArendFilesContributor(val event: AnActionEvent) : AbstractGotoSECont
                 return super.acceptItem(item)
             }
         }
-        model.setFilterItems(singletonList(FileTypeRef.forFileType(ArendFileType.INSTANCE)))
+        model.setFilterItems(singletonList(FileTypeRef.forFileType(ArendFileTypeInstance)))
         return model
     }
 

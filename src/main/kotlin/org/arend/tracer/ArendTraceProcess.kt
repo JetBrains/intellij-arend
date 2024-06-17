@@ -28,7 +28,7 @@ import com.intellij.xdebugger.impl.DebuggerSupport
 import com.intellij.xdebugger.impl.actions.*
 import com.intellij.xdebugger.impl.actions.handlers.XDebuggerActionHandler
 import com.intellij.xdebugger.ui.XDebugTabLayouter
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.psi.ext.ArendExpr
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
@@ -221,7 +221,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     private object EditorsProvider : XDebuggerEditorsProviderBase() {
-        override fun getFileType(): FileType = ArendFileType.INSTANCE
+        override fun getFileType(): FileType = ArendFileTypeInstance
         override fun createExpressionCodeFragment(
             project: Project,
             text: String,

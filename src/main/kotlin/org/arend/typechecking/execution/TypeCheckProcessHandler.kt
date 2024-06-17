@@ -1,6 +1,7 @@
 package org.arend.typechecking.execution
 
 import com.intellij.execution.process.ProcessHandler
+import com.intellij.ide.SaveAndSyncHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service

@@ -8,7 +8,7 @@ import com.intellij.refactoring.changeSignature.ParameterTableModelItemBase
 import com.intellij.refactoring.ui.CodeFragmentTableCellEditorBase
 import com.intellij.ui.BooleanTableCellEditor
 import com.intellij.ui.BooleanTableCellRenderer
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.ext.module.LongName
 import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.util.FileUtils.isCorrectDefinitionName
@@ -47,14 +47,14 @@ class ArendParameterTableModel(val descriptor: ArendChangeSignatureDescriptor,
     }
 
     private class ArendTypeColumn(descriptor: ArendChangeSignatureDescriptor, val dialog: ArendChangeSignatureDialog) :
-        TypeColumn<ArendTextualParameter, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileType.INSTANCE) {
+        TypeColumn<ArendTextualParameter, ArendChangeSignatureDialogParameterTableModelItem>(descriptor.method.project, ArendFileTypeInstance) {
         override fun setValue(item: ArendChangeSignatureDialogParameterTableModelItem?, value: PsiCodeFragment) {
             val fragment = value as? ArendExpressionCodeFragment ?: return
             item?.parameter?.setType(fragment.text)
         }
 
         override fun doCreateEditor(o: ArendChangeSignatureDialogParameterTableModelItem?): TableCellEditor {
-            return object: CodeFragmentTableCellEditorBase(myProject, ArendFileType.INSTANCE) {
+            return object: CodeFragmentTableCellEditorBase(myProject, ArendFileTypeInstance) {
                 override fun getTableCellEditorComponent(table: JTable?, value: Any?, isSelected: Boolean, row: Int, column: Int): Component {
                     clearListeners()
                     val result = super.getTableCellEditorComponent(table, value, isSelected, row, column)

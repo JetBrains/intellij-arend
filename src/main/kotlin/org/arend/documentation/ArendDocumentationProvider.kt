@@ -17,8 +17,6 @@ import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
-import com.intellij.ui.util.height
-import com.intellij.ui.util.width
 import org.arend.codeInsight.ArendCodeInsightUtils
 import org.arend.documentation.ArendKeyword.Companion.isArendKeyword
 import org.arend.ext.module.LongName
@@ -66,7 +64,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         return if (ref is PsiReferable && longName.length != link.length) ref.documentation else ref as? PsiElement
     }
 
-    override fun getCustomDocumentationElement(editor: Editor, file: PsiFile, contextElement: PsiElement?): PsiElement? {
+    override fun getCustomDocumentationElement(editor: Editor, file: PsiFile, contextElement: PsiElement?, targetOffset: Int): PsiElement? {
         if (contextElement?.isArendKeyword() == true) {
             return contextElement
         }
@@ -221,11 +219,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             try {
                 val widthResult = result.toIntOrNull() ?: return@addHandler response
                 val diffWidth = screenWidth - popup.locationOnScreen.x
-                if (widthResult > diffWidth) {
-                    popup.width = diffWidth
-                } else {
-                    popup.width = widthResult
-                }
+                popup.size = Dimension(if (widthResult > diffWidth) diffWidth else widthResult, popup.size.height)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -235,11 +229,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             try {
                 val heightResult = result.toIntOrNull() ?: return@addHandler response
                 val diffHeight = screenHeight - popup.locationOnScreen.y
-                if (heightResult > diffHeight) {
-                    popup.height = diffHeight
-                } else {
-                    popup.height = heightResult
-                }
+                popup.size = Dimension(popup.size.width, if (heightResult > diffHeight) diffHeight else heightResult)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

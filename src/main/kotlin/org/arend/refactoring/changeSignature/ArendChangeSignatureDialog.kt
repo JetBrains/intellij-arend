@@ -33,7 +33,7 @@ import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.TableView
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.Consumer
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.ext.module.LongName
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.ListScope
@@ -127,7 +127,7 @@ class ArendChangeSignatureDialog(project: Project,
         super.customizeParametersTable(table)
     }
 
-    override fun getFileType() = ArendFileType.INSTANCE
+    override fun getFileType() = ArendFileTypeInstance
 
     override fun createParametersInfoModel(descriptor: ArendChangeSignatureDescriptor) =
         ArendParameterTableModel( descriptor, this, myDefaultValueContext)
@@ -156,7 +156,7 @@ class ArendChangeSignatureDialog(project: Project,
             if (item.parameter.name.let { it.isEmpty() || isElim && it == "_" }) //We may need to transform "with-body" to "elim-body" so "_" may turn into a problem
                 return RefactoringBundle.message("refactoring.introduce.parameter.invalid.name", item.parameter.name)
         }
-        
+
         val allPsiTargets = HashSet<LocatedReferable>()
 
         fun processFragment(fragment: ArendExpressionCodeFragment) {
@@ -173,7 +173,7 @@ class ArendChangeSignatureDialog(project: Project,
         /* Validate namespace commands to be invoked upon refactoring start; purge unused namespace commands */
         val unusedNsCmds = HashSet<NsCmdRefactoringAction>()
         for (nsCmd in this.deferredNsCmds) if (nsCmd.getAmendedScope().elements.intersect(allPsiTargets).isEmpty()) unusedNsCmds.add(nsCmd)
-        this.deferredNsCmds.removeAll(unusedNsCmds)        
+        this.deferredNsCmds.removeAll(unusedNsCmds)
 
         /* Validate that code fragments for parameter types do not contain resolving errors */
         var hasErrors = false

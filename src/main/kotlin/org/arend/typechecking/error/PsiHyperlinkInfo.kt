@@ -13,7 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.ext.error.ArgInferenceError
 import org.arend.ext.error.GeneralError
 import org.arend.ext.error.SourceInfoReference
@@ -49,7 +49,7 @@ fun mapToTypeDiffInfo(error: GeneralError?): Pair<DocumentContent, DocumentConte
         is ArgInferenceError -> if (error.expected != null && error.actual != null) Pair(error.expected, error.actual) else null
         else -> null
     } ?: return null
-    return Pair(diffContentFactory.create(pair.first.toString(), ArendFileType.INSTANCE), diffContentFactory.create(pair.second.toString(), ArendFileType.INSTANCE))
+    return Pair(diffContentFactory.create(pair.first.toString(), ArendFileTypeInstance), diffContentFactory.create(pair.second.toString(), ArendFileTypeInstance))
 }
 
 class DiffHyperlinkInfo(private val typeDiffInfo: Pair<DocumentContent, DocumentContent>): HyperlinkInfo {

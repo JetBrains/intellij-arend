@@ -7,7 +7,7 @@ import com.intellij.openapi.roots.libraries.ui.AttachRootButtonDescriptor
 import com.intellij.openapi.roots.libraries.ui.DescendentBasedRootFilter
 import com.intellij.openapi.roots.libraries.ui.LibraryRootsComponentDescriptor
 import com.intellij.openapi.roots.libraries.ui.OrderRootTypePresentation
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.util.ArendLibraryChooserDescriptor
 import org.arend.util.FileUtils
 
@@ -15,7 +15,7 @@ import org.arend.util.FileUtils
 object ArendLibraryRootsComponentDescriptor : LibraryRootsComponentDescriptor() {
     override fun getRootDetectors() = listOf(
         ArendConfigRootDetector,
-        DescendentBasedRootFilter.createFileTypeBasedFilter(OrderRootType.SOURCES, false, ArendFileType.INSTANCE, "sources"),
+        DescendentBasedRootFilter.createFileTypeBasedFilter(OrderRootType.SOURCES, false, ArendFileTypeInstance, "sources"),
         DescendentBasedRootFilter(OrderRootType.CLASSES, false, "binaries") {
             it.name.endsWith(FileUtils.SERIALIZED_EXTENSION)
         },

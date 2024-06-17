@@ -3,7 +3,7 @@ package org.arend
 import com.intellij.testFramework.ParsingTestCase
 import org.arend.parser.ArendParserDefinition
 
-class ParsingTest : ParsingTestCase("org/arend/parser/fixtures", ArendFileType.INSTANCE.defaultExtension, ArendParserDefinition()) {
+class ParsingTest : ParsingTestCase("org/arend/parser/fixtures", ArendFileTypeInstance.defaultExtension, ArendParserDefinition()) {
 
     override fun getTestDataPath() = "src/test/resources"
 

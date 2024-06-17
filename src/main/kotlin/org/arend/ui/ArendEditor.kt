@@ -7,7 +7,7 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.project.Project
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.settings.ArendProjectSettings
 
 class ArendEditor(
@@ -23,7 +23,7 @@ class ArendEditor(
         editor.isViewer = readOnly
         editor.highlighter = EditorHighlighterFactory
                 .getInstance()
-                .createEditorHighlighter(project, ArendFileType.INSTANCE)
+                .createEditorHighlighter(project, ArendFileTypeInstance)
         project?.serviceIfCreated<ArendProjectSettings>()?.run {
             editor.setFontSize(data.popupFontSize)
         }

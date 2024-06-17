@@ -20,7 +20,7 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.Alarm
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.codeInsight.ArendCodeInsightUtils
 import org.arend.ext.module.ModulePath
 import org.arend.module.AllArendFilesScope
@@ -77,12 +77,12 @@ class ArendMoveMembersDialog(project: Project,
         val containingFile = container.containingFile as? ArendFile
         val globalScope = containingFile?.libraryConfig?.let { AllArendFilesScope(it) } ?: EmptyScope.INSTANCE
 
-        targetFileField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.modulePath?.toString() ?: "", null, customScopeGetter = { globalScope })), project, ArendFileType.INSTANCE)
+        targetFileField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.modulePath?.toString() ?: "", null, customScopeGetter = { globalScope })), project, ArendFileTypeInstance)
         targetModuleField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.longName?.toString() ?: "", null, customScopeGetter = {
             val group = simpleLocate(targetFileField.text, "", enclosingModule).first
             group?.let { FilteringScope(LexicalScope.insideOf(it, EmptyScope.INSTANCE)) { referable ->
                 referable !is ArendClassField && referable !is ArendConstructor && referable !is ArendFieldDefIdentifier
-            } } ?: EmptyScope.INSTANCE })), project, ArendFileType.INSTANCE)
+            } } ?: EmptyScope.INSTANCE })), project, ArendFileTypeInstance)
 
         memberSelectionPanel = ArendMemberSelectionPanel("Members to move", memberInfos)
         staticGroup = JRadioButton("Static")

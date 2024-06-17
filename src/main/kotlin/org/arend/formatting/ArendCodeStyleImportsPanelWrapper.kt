@@ -9,7 +9,7 @@ import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.selected
-import org.arend.ArendFileType
+import org.arend.ArendFileTypeInstance
 import org.arend.settings.ArendCustomCodeStyleSettings
 import org.arend.settings.ArendCustomCodeStyleSettings.OptimizeImportsPolicy
 import org.arend.util.ArendBundle
@@ -24,7 +24,7 @@ class ArendCodeStyleImportsPanelWrapper(settings: CodeStyleSettings) : CodeStyle
 
     override fun createHighlighter(scheme: EditorColorsScheme): EditorHighlighter? = null
 
-    override fun getFileType(): FileType = ArendFileType.INSTANCE
+    override fun getFileType(): FileType = ArendFileTypeInstance
 
     override fun getPreviewText(): String? = null
 

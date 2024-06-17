@@ -189,7 +189,7 @@ class ArendModuleConfigurationView(
         get() = dualList.selectedList.content
         set(value) {
             dualList.selectedList.content = value
-            dualList.availableList.content -= value
+            dualList.availableList.content = dualList.availableList.content - value
         }
 
     override var versionString: String
