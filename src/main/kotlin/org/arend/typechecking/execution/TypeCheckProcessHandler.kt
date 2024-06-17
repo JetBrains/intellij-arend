@@ -41,6 +41,7 @@ import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.TypecheckRunConfigurationProducer.Companion.TEST_PREFIX
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
+import org.arend.util.FileUtils.EXTENSION
 import org.arend.util.afterTypechecking
 import org.jetbrains.ide.PooledThreadExecutor
 import java.io.OutputStream
@@ -122,7 +123,7 @@ class TypeCheckProcessHandler(
                         val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
                         val modules = modulePaths.flatMap {
                             var newModulePath = it
-                            val isTest = newModulePath.firstName == TEST_PREFIX ||
+                            val isTest = (newModulePath.firstName == TEST_PREFIX && newModulePath.toList().getOrNull(1) != EXTENSION.drop(1)) ||
                                     (newModulePath.size() == 1 && newModulePath.firstName == library.config.testsDirFile?.name)
                             val isSource = newModulePath.firstName == library.config.sourcesDirFile?.name
                             if (isTest || isSource) {
