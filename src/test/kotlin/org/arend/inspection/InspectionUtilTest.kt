@@ -12,3 +12,13 @@ internal fun doWarningsCheck(myFixture: CodeInsightTestFixture, contents: String
     }
     myFixture.checkHighlighting(true, false, false)
 }
+
+internal fun doWeakWarningsCheck(myFixture: CodeInsightTestFixture, contents: String, typecheck: Boolean = false) {
+    val fileTree = fileTreeFromText(contents)
+    fileTree.create(myFixture.project, myFixture.findFileInTempDir("."))
+    myFixture.configureFromTempProjectFile("Main.ard")
+    if (typecheck) {
+        myFixture.doHighlighting()
+    }
+    myFixture.checkHighlighting(false, false, true)
+}

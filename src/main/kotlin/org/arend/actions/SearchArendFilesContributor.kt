@@ -1,9 +1,6 @@
 package org.arend.actions
 
-import com.intellij.ide.actions.searcheverywhere.AbstractGotoSEContributor
-import com.intellij.ide.actions.searcheverywhere.FileSearchEverywhereContributor
-import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
-import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributorFactory
+import com.intellij.ide.actions.searcheverywhere.*
 import com.intellij.ide.util.gotoByName.FileTypeRef
 import com.intellij.ide.util.gotoByName.FilteringGotoByModel
 import com.intellij.ide.util.gotoByName.GotoFileModel
@@ -44,6 +41,6 @@ class SearchArendFilesContributor(val event: AnActionEvent) : AbstractGotoSECont
 
 class ArendSECFactory : SearchEverywhereContributorFactory<Any> {
     override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<Any> {
-        return SearchArendFilesContributor(initEvent)
+        return PSIPresentationBgRendererWrapper(SearchArendFilesContributor(initEvent))
     }
 }

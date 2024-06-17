@@ -163,11 +163,15 @@ class ArendMoveRefactoringProcessor(project: Project,
 
             val (descriptors, changeSignatureUsages) = getUsagesToPreprocess(myMembers, insertIntoDynamicPart, myTargetContainer, thisVarNameMap)
             val fileChangeMap = LinkedHashMap<PsiFile, SortedList<Pair<TextRange, String>>>()
+            val deferredNsCmds = ArrayList<NsCmdRefactoringAction>()
             val usagesPreprocessor = getUsagesPreprocessor(changeSignatureUsages, myProject, fileChangeMap,
-                HashSet(), HashSet(), ArrayList(), ArrayList()) //TODO: properly initialize these parameters
+                HashSet(), HashSet(), ArrayList(), deferredNsCmds) //TODO: properly initialize these parameters
+
             usagesPreprocessor.run()
 
             writeFileChangeMap(myProject, fileChangeMap)
+
+            for (nsCmd in deferredNsCmds) nsCmd.execute()
 
             for (descriptor in descriptors)
                 descriptor.fixEliminator()

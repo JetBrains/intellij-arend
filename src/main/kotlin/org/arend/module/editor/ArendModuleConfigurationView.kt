@@ -209,7 +209,7 @@ class ArendModuleConfigurationView(
 
     fun createComponent() = panel {
         row("Current graph of Arend modules: ") {
-            actionButton(object : AnAction("Show Current Graph of Arend Modules", "A Graph of Arend Modules", ArendIcons.ORTHOGONAL_GRAPH) {
+            actionButton(object : AnAction("Show Current Graph of Arend Modules", "A graph of Arend modules", ArendIcons.ORTHOGONAL_GRAPH) {
                 private val usedNodes = mutableSetOf<Module>()
                 private val edges = mutableSetOf<GraphEdge>()
 

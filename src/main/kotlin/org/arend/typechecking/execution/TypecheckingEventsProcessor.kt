@@ -16,6 +16,7 @@ import org.arend.naming.reference.ModuleReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.fullName
+import java.util.concurrent.ConcurrentHashMap
 
 interface ProxyAction {
     fun runAction(p : SMTestProxy)
@@ -23,7 +24,7 @@ interface ProxyAction {
 
 class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTestProxy.SMRootTestProxy, typeCheckingFrameworkName: String)
     : GeneralTestEventsProcessor(project, typeCheckingFrameworkName, typeCheckingRootNode) {
-    private val definitionToProxy = mutableMapOf<PsiLocatedReferable, DefinitionProxy>()
+    private val definitionToProxy = ConcurrentHashMap<PsiLocatedReferable, DefinitionProxy>()
     private val fileToProxy = mutableMapOf<ModulePath, DefinitionProxy>()
     private val deferredActions = mutableMapOf<GlobalReferable, MutableList<ProxyAction>>()
     private var isTypeCheckingFinished = false

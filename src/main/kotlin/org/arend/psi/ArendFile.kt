@@ -80,7 +80,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     val libraryName: String?
         get() = arendLibrary?.name ?: if (name == ArendPreludeLibrary.PRELUDE_FILE_NAME) Prelude.LIBRARY_NAME else null
 
-    val concreteDefinitions = HashMap<LongName, Concrete.Definition>()
+    val concreteDefinitions = ConcurrentHashMap<LongName, Concrete.Definition>()
 
     fun getTCRefMap(refKind: RefKind): ConcurrentHashMap<LongName, IntellijTCReferable> {
         val location = moduleLocation ?: return ConcurrentHashMap<LongName, IntellijTCReferable>()

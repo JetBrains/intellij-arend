@@ -17,13 +17,22 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 
 
-class ModuleScope private constructor(private val libraryConfig: LibraryConfig?, private val inTests: Boolean, private val rootDirs: List<VirtualFile>?, private val prefix: List<String>, private val additionalPaths: List<List<String>>) : Scope {
-    constructor(libraryConfig: LibraryConfig, inTests: Boolean) : this(libraryConfig, inTests, null, emptyList(), ArrayList<List<String>>().also { result ->
-        libraryConfig.forAvailableConfigs { config ->
-            config.additionalModulesSet.mapTo(result) { it.toList() }
-            null
-        }
-    })
+class ModuleScope private constructor(
+    private val libraryConfig: LibraryConfig?,
+    private val inTests: Boolean,
+    private val rootDirs: List<VirtualFile>?,
+    private val additionalPaths: List<List<String>>
+) : Scope {
+    constructor(libraryConfig: LibraryConfig, inTests: Boolean) : this(
+        libraryConfig,
+        inTests,
+        null,
+        ArrayList<List<String>>().also { result ->
+            libraryConfig.forAvailableConfigs { config ->
+                config.additionalModulesSet.mapTo(result) { it.toList() }
+                null
+            }
+        })
 
     private fun calculateRootDirs() = rootDirs ?: libraryConfig!!.availableConfigs.flatMap { conf ->
         (conf.sourcesDirFile?.let { listOf(it) } ?: emptyList()) + if (inTests) conf.testsDirFile?.let { listOf(it) } ?: emptyList() else emptyList()
@@ -40,19 +49,19 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig?,
                         if (FileUtils.isModuleName(name)) {
                             val dir = psiManager.findDirectory(file)
                             if (dir != null) {
-                                result.add(PsiModuleReferable(listOf(dir), ModulePath(prefix + name)))
+                                result.add(PsiModuleReferable(listOf(dir), ModulePath(name)))
                             }
                         }
                     } else if (name.endsWith(FileUtils.EXTENSION)) {
                         (psiManager.findFile(file) as? ArendFile)?.let {
-                            result.add(PsiModuleReferable(listOf(it), ModulePath(prefix + name.substring(0, name.length - FileUtils.EXTENSION.length))))
+                            result.add(PsiModuleReferable(listOf(it), ModulePath(name.substring(0, name.length - FileUtils.EXTENSION.length))))
                         }
                     }
                 }
             }
         }
         for (path in additionalPaths) {
-            result.add(ModuleReferable(ModulePath(prefix + path[0])))
+            result.add(ModuleReferable(ModulePath(path[0])))
         }
         if (rootDirs == null) {
             val psiManager = libraryConfig?.project?.let { PsiManager.getInstance(it) }
@@ -75,6 +84,6 @@ class ModuleScope private constructor(private val libraryConfig: LibraryConfig?,
             return@mapNotNull null
         }
         val newPaths = additionalPaths.mapNotNull { if (it.size > 1 && it[0] == name) it.drop(1) else null }
-        return if (newRootDirs.isEmpty() && newPaths.isEmpty()) EmptyScope.INSTANCE else ModuleScope(if (newRootDirs.isEmpty()) null else libraryConfig, inTests, newRootDirs, prefix + name, newPaths)
+        return if (newRootDirs.isEmpty() && newPaths.isEmpty()) EmptyScope.INSTANCE else ModuleScope(if (newRootDirs.isEmpty()) null else libraryConfig, inTests, newRootDirs, newPaths)
     }
 }

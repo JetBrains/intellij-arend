@@ -9,16 +9,19 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.panel
 import org.arend.ArendFileTypeInstance
 import org.arend.definition.ArendFileDefinitionScope
-import org.arend.module.AllArendFilesScope
+import org.arend.ext.module.ModulePath
+import org.arend.module.AllArendFilesAndPackagesScope
 import org.arend.module.AllModulesScope
 import org.arend.module.ArendPreludeLibrary.Companion.PRELUDE
 import org.arend.module.ArendPreludeScope
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.scope.EmptyScope
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.PsiModuleReferable
 import org.arend.refactoring.move.ArendLongNameCodeFragment
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.configurations.TypeCheckConfiguration
+import org.arend.util.FileUtils
 import org.arend.util.aligned
 import javax.swing.JComponent
 
@@ -37,7 +40,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
             }
             val module = ModuleManager.getInstance(project).findModuleByName(library)
             val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
-            arendModuleConfigService?.let { AllArendFilesScope(it, withPrelude = false) } ?: EmptyScope.INSTANCE
+            arendModuleConfigService?.let { AllArendFilesAndPackagesScope(it, ModulePath(), withPrelude = true, withArendExtension = false) } ?: EmptyScope.INSTANCE
         })
         modulePathComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(moduleDocument), project, ArendFileTypeInstance)
         definitionNameComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, DEFINITION_TEXT, null, customScopeGetter = {
@@ -48,7 +51,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
             } else if (library == PRELUDE) {
                 return@ArendLongNameCodeFragment EmptyScope.INSTANCE
             }
-            val arendFile = moduleDocument.scope.resolveName(module)?.underlyingReferable as? ArendFile?
+            val arendFile = (moduleDocument.scope.resolveName(module) as? PsiModuleReferable)?.modules?.get(0) as? ArendFile?
                 ?: return@ArendLongNameCodeFragment EmptyScope.INSTANCE
             ArendFileDefinitionScope(arendFile)
         })), project, ArendFileTypeInstance)

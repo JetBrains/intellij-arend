@@ -107,6 +107,20 @@ class ArendFieldCompletionTest : ArendCompletionTestBase() {
             "\\func test (a : 0 + 1) => a.{-caret-}",
             listOf("f", "g"))
 
+    fun `test class field`() =
+        doSingleCompletionMultifile("""
+        -- ! A.ard
+        \class Foo {
+          | <=-transitive \alias <=o : Nat -> Nat
+        }
+        -- ! Main.ard
+        \func lol => <=-tran{-caret-}
+            """, """
+        \import A
+        
+        \func lol => <=o
+            """)
+
     fun `_test pattern`() =
         checkCompletionVariants(
             "\\class A (f g : Nat)\n" +
