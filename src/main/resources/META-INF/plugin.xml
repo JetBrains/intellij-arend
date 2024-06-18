@@ -441,7 +441,7 @@
         <liveTemplateContext contextId="AREND_STATEMENT" baseContextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Statement"/>
         <liveTemplateContext contextId="AREND_EXPRESSION" baseContextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Expression"/>
 
-        <!--TODO-->
+        <!-- Starters -->
         <appStarter id="generateArendLibHtml" implementation="org.arend.documentation.GenerateArendLibHtmlStarter"/>
 
     </extensions>

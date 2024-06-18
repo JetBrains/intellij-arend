@@ -1,13 +1,13 @@
 package org.arend.graph
 
-import com.intellij.notification.NotificationListener
+import com.intellij.ide.BrowserUtil
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.Notifications
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.notificationGroup
-import com.intellij.ui.util.minimumHeight
-import com.intellij.ui.util.minimumWidth
+import com.intellij.ui.components.JBPanel
 import guru.nidi.graphviz.engine.Format
 import guru.nidi.graphviz.engine.Graphviz
 import guru.nidi.graphviz.model.Factory.graph
@@ -88,17 +88,17 @@ class GraphSimulator(
                 }
 
                 override fun createCenterPanel(): JComponent {
-                    val panel = JPanel()
+                    val panel = JBPanel<JBPanel<*>>()
                     panel.add(imageLabel)
                     panel.background = Color.WHITE
                     panel.addComponentListener(object : ComponentAdapter() {
                         override fun componentResized(e: ComponentEvent) {
                             val component = panel.components.getOrNull(0) ?: return
-                            panel.minimumWidth = baseImageIcon.iconWidth + size.width - e.component.width
-                            panel.minimumHeight = baseImageIcon.iconHeight + size.height - e.component.height
+                            panel.withMinimumWidth(baseImageIcon.iconWidth + size.width - e.component.width)
+                            panel.withMinimumHeight(baseImageIcon.iconHeight + size.height - e.component.height)
 
-                            val imageIcon = getImageIcon(baseImageIcon, graphviz, e.component.width - component.bounds.x * 2, e.component.height - component.bounds.y * 2)
-                            imageLabel = JLabel(imageIcon)
+                            val newImageIcon = getImageIcon(baseImageIcon, graphviz, e.component.width - component.bounds.x * 2, e.component.height - component.bounds.y * 2)
+                            imageLabel = JLabel(newImageIcon)
 
                             panel.removeAll()
                             panel.add(imageLabel)
@@ -137,8 +137,10 @@ class GraphSimulator(
             dialogWrapper.pack()
             dialogWrapper.show()
         } catch (e: Exception) {
-            val notification = notificationGroup.createNotification("It is not possible to visualize the diagram on your device. Install <a href=https://graphviz.org/download/>Graphviz</a> please", MessageType.WARNING)
-            notification.setListener(NotificationListener.UrlOpeningListener(true))
+            val notification = notificationGroup.createNotification("It is not possible to visualize the diagram on your device. Install Graphviz please", MessageType.WARNING)
+                .addAction(NotificationAction.createSimple("Open Graphviz") {
+                    BrowserUtil.open("https://graphviz.org/download/")
+                })
             Notifications.Bus.notify(notification, project)
         }
     }

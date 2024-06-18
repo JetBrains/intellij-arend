@@ -13,6 +13,7 @@ import com.intellij.codeInsight.lookup.impl.actions.ChooseItemAction
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.BigPopupUI
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runInEdt
@@ -172,7 +173,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
         actionGroup.addAction(ShowInFindWindowAction(this, project))
         actionGroup.addAction(ShowHelpAction(this))
         val toolbar = ActionManager.getInstance().createActionToolbar("proof.search.top.toolbar", actionGroup, true)
-        toolbar.layoutPolicy = ActionToolbar.NOWRAP_LAYOUT_POLICY
+        toolbar.layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY
         toolbar.targetComponent = this
         val toolbarComponent = toolbar.component
         toolbarComponent.isOpaque = false

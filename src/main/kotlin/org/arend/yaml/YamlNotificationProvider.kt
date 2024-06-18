@@ -17,7 +17,7 @@ class YamlNotificationProvider : EditorNotificationProvider {
         if (!yamlFileService.containsChangedFile(virtualFile)) {
             return null
         }
-        return Function<FileEditor, JComponent> { fileEditor: FileEditor? ->
+        return Function<FileEditor, EditorNotificationPanel?> { fileEditor: FileEditor? ->
             fileEditor?.let { createPanel(yamlFileService, virtualFile, it) }
         }
     }

@@ -1,9 +1,9 @@
 package org.arend.documentation
 
 import com.intellij.openapi.application.ApplicationStarter
-import com.intellij.openapi.editor.colors.EditorColorsManager
 
 class GenerateArendLibHtmlStarter : ApplicationStarter {
+    @Suppress("OVERRIDE_DEPRECATION")
     override val commandName: String
         get() = "generateArendLibHtml"
 

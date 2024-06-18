@@ -24,7 +24,7 @@ class FileOutsideSourcesProvider : EditorNotificationProvider {
             return null
         }
 
-        return Function<FileEditor, JComponent> { fileEditor: FileEditor? ->
+        return Function<FileEditor, EditorNotificationPanel?> { fileEditor: FileEditor? ->
             fileEditor?.let { createPanel(fileEditor) }
         }
     }
