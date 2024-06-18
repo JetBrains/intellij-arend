@@ -176,7 +176,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun dropTypechecked() {}
     override fun moduleInitialized(): Boolean {
-        return ArendModuleConfigService.getInstance(module)?.isInitialized == true
+        return ArendModuleConfigService.getInstance(module)?.isInitialized != false
     }
 
     override fun dropTCReferable() {}
