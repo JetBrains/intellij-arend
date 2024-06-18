@@ -35,7 +35,7 @@ abstract class ArendDefinitionInlayProvider : InlayHintsProvider<NoSettings> {
                 val def = (arendDef.tcReferable as? TCDefReferable)?.typechecked ?: return true
                 val text = getText(def) ?: return true
 
-                val offset = arendDef.startOffset
+                val offset = (arendDef.parent ?: arendDef).startOffset
                 val inset = if (document == null) 0 else {
                     val width = EditorUtil.getPlainSpaceWidth(editor)
                     val line = document.getLineNumber(offset)
