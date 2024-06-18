@@ -14,9 +14,12 @@ import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.IArendFile
 import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersForReferable
+import org.arend.codeInsight.completion.STATEMENT_WT_KWS_TOKENS
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
 import org.arend.core.expr.ReferenceExpression
@@ -635,6 +638,13 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 if (next != null) {
                     val offset = next.textRange.startOffset
                     return TextRange(offset, offset + 1)
+                }
+            }
+
+            if (improvedElement is LeafPsiElement && STATEMENT_WT_KWS_TOKENS.contains(improvedElement.elementType)) {
+                val stat = improvedElement.ancestor<ArendDefinition<*>>()?.parent
+                if (stat != null) {
+                    return TextRange(stat.startOffset, improvedElement.endOffset)
                 }
             }
 
