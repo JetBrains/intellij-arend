@@ -16,7 +16,6 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.util.elementType
 import com.intellij.testFramework.LightVirtualFile
-import org.apache.commons.lang.StringEscapeUtils
 import org.arend.highlight.ArendHighlightingColors
 import org.arend.highlight.ArendHighlightingPass
 import org.arend.highlight.ArendSyntaxHighlighter
@@ -279,7 +278,7 @@ private fun generateHtmlForArend(
                         counter = result.second
 
                         append("<a${" id=\"$id\""}${href?.let { " href=\"$it\" style=\"text-decoration:none;\"" } ?: ""}${
-                            cssClass?.let { " class=\"$it\"" } ?: ""}>${StringEscapeUtils.escapeHtml(element.text)}</a>")
+                            cssClass?.let { " class=\"$it\"" } ?: ""}>${element.text.htmlEscape()}</a>")
                     }
                 })
                 append("<script src=\"$extraHtmlDir/$AREND_JS\"></script>")
