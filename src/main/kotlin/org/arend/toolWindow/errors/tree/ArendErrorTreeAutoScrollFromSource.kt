@@ -1,6 +1,7 @@
 package org.arend.toolWindow.errors.tree
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
@@ -86,6 +87,9 @@ class ArendErrorTreeAutoScrollFromSource(private val project: Project, private v
     }
 
     private inner class MyAction(private val type: MessageType) : ToggleAction("Autoscroll from ${type.toText()}s", null, null), DumbAware {
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
         override fun isSelected(e: AnActionEvent): Boolean {
             val settings = project.service<ArendProjectSettings>()
             return settings.autoScrollFromSource.contains(type) && settings.messagesFilterSet.contains(type) &&

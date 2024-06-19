@@ -1,5 +1,6 @@
 package org.arend.search.proof
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbService
@@ -258,7 +259,18 @@ class ProofSearchUISettings(private val project: Project) {
 }
 
 fun getCompleteModuleLocation(def: ReferableBase<*>): String? {
-    val file = def.location?.toString() ?: return null
+    var file: String? = null
+    ApplicationManager.getApplication().run {
+        executeOnPooledThread {
+            runReadAction {
+                file = def.location?.toString()
+            }
+        }.get()
+    }
+    if (file == null) {
+        return null
+    }
+
     val module = def.parentsOfType<ArendGroup>(false).toList().reversed().drop(1).map { it.name }
     return (listOf(file) + module).joinToString(".")
 }

@@ -3,6 +3,7 @@ package org.arend.search.proof
 import com.intellij.find.findUsages.PsiElement2UsageTargetAdapter
 import com.intellij.icons.AllIcons
 import com.intellij.ide.IdeBundle
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.progress.ProgressIndicator
@@ -22,6 +23,9 @@ class ShowInFindWindowAction(private val ui: ProofSearchUI, private val project:
     IdeBundle.messagePointer("show.in.find.window.button.name"),
     IdeBundle.messagePointer("show.in.find.window.button.description"), AllIcons.General.Pin_tab
 ) {
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun actionPerformed(e: AnActionEvent) {
         ui.close()
         val searchText: String = ui.editorSearchField.text

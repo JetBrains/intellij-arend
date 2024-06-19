@@ -2,10 +2,12 @@ package org.arend.navigation
 
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.navigation.ItemPresentation
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.psi.PsiElement
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.PsiReferable
+import javax.swing.Icon
 
 fun getPresentation(psi: ArendCompositeElement): ItemPresentation {
     val location = run {
@@ -14,7 +16,16 @@ fun getPresentation(psi: ArendCompositeElement): ItemPresentation {
     }
 
     val name = presentableName(psi)
-    return PresentationData(name, location, psi.getIcon(0), null)
+    var icon: Icon? = null
+    ApplicationManager.getApplication().run {
+        executeOnPooledThread {
+            runReadAction {
+                icon = psi.getIcon(0)
+            }
+        }.get()
+    }
+
+    return PresentationData(name, location, icon, null)
 }
 
 fun getPresentationForStructure(psi: ArendCompositeElement): ItemPresentation =

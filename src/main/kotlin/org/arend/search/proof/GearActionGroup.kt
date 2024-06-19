@@ -48,6 +48,9 @@ private abstract class ProofSearchToggleSettingsAction(
     val settingsProperty: KMutableProperty1<ArendProjectSettingsState, Boolean>,
     actionText: @Nls String
 ) : ToggleAction(actionText) {
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun isSelected(e: AnActionEvent): Boolean =
         settingsProperty.invoke(project.service<ArendProjectSettings>().data)
 
