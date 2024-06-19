@@ -7,10 +7,7 @@ import com.intellij.ide.hierarchy.TypeHierarchyBrowserBase
 import com.intellij.ide.util.treeView.AlphaComparator
 import com.intellij.ide.util.treeView.NodeDescriptor
 import com.intellij.ide.util.treeView.SourceComparator
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
@@ -149,6 +146,8 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
     inner class ArendShowImplFieldsAction : ToggleAction("Show Implemented Fields", "", ArendIcons.SHOW_FIELDS_IMPL) {
 
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
         override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showImplFields
 
         override fun setSelected(e: AnActionEvent, state: Boolean) {
@@ -158,6 +157,8 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     }
 
     inner class ArendShowNonImplFieldsAction : ToggleAction("Show Non-Implemented Fields", "", ArendIcons.SHOW_NON_IMPLEMENTED)  {
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
         override fun isSelected(e: AnActionEvent) = myProject.service<ArendProjectSettings>().data.showNonImplFields
 

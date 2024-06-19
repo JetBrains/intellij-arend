@@ -1,5 +1,6 @@
 package org.arend.toolWindow.errors
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
@@ -11,6 +12,9 @@ class ArendPinErrorAction : ToggleAction(
         ArendBundle.message("arend.pin.error.action.description"),
         ArendIcons.PIN
 ) {
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun isSelected(e: AnActionEvent): Boolean =
             e.project?.service<ArendMessagesService>()?.isErrorTextPinned ?: false
 

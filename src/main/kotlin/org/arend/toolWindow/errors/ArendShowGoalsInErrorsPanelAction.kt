@@ -1,6 +1,7 @@
 package org.arend.toolWindow.errors
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
@@ -12,6 +13,9 @@ class ArendShowGoalsInErrorsPanelAction : ToggleAction(
         ArendBundle.message("arend.show.goals.in.errors.panel.action.description"),
         ICON
 ) {
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun isSelected(e: AnActionEvent): Boolean =
             e.project?.service<ArendMessagesService>()?.isShowGoalsInErrorsPanel?.get() ?: true
 

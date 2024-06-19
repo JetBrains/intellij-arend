@@ -1,5 +1,6 @@
 package org.arend.toolWindow.errors
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.components.service
@@ -9,6 +10,8 @@ import org.arend.settings.ArendProjectSettings
 
 class ArendMessagesFilterAction(private val project: Project, private val type: MessageType, private val group: ArendMessagesFilterActionGroup)
     : ToggleAction("Show ${type.toText()}s", null, null), DumbAware {
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     val isSelected: Boolean
         get() {
