@@ -70,7 +70,9 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
                 }
             }
             val psiElement = getSourcePositionElement(traceEntry)
-            val psiText = psiElement?.text?.let(::shorten) ?: ArendBundle.message("arend.tracer.unknown.expression")
+            val psiText = runReadAction {
+                psiElement?.text?.let(::shorten) ?: ArendBundle.message("arend.tracer.unknown.expression")
+            }
             component.append(psiText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
             setPositionText(component, positionComponents())
         }

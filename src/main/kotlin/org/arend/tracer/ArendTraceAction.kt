@@ -123,16 +123,24 @@ class ArendTraceAction : ArendPopupAction() {
                 is ArendDefData -> {
                     val body = def.dataBody ?: return null
                     val constructors = body.constructorList
-                    val constructor = constructors.firstOrNull()
-                        ?: body.constructorClauseList.find { it.constructors.isNotEmpty() }?.constructors?.firstOrNull()
-                    constructor?.parameters?.firstOrNull()?.typedExpr?.type
+                    val constructor = constructors.find {
+                        it.parameters.isNotEmpty()
+                    } ?: body.constructorClauseList.find {
+                            it.constructors.any { constructor -> constructor.parameters.isNotEmpty() }
+                        }?.constructors?.find {
+                            it.parameters.isNotEmpty()
+                        }
+                    constructor?.parameters?.firstOrNull()?.type
                 }
                 is ArendDefClass -> {
-                    val classStat = def.classStatList.firstOrNull() ?: return null
-                    classStat.classField?.returnExpr?.type
-                        ?: classStat.classImplement?.expr
-                        ?: classStat.coClause?.expr
-                        ?: classStat.overriddenField?.returnExpr?.type
+                    val classStat = def.classStatList.firstOrNull()
+                    classStat?.classField?.returnExpr?.type
+                        ?: classStat?.classImplement?.expr?.type
+                        ?: classStat?.coClause?.expr?.type
+                        ?: classStat?.overriddenField?.returnExpr?.type
+                        ?: def.classFieldList.firstOrNull()?.returnExpr?.type
+                        ?: def.classImplementList.firstOrNull()?.expr?.type
+                        ?: def.fieldTeleList.firstOrNull()?.type
                 }
                 else -> return null
             } ?: return null
