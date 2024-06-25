@@ -21,4 +21,6 @@ class IntellijMetaReferable(private val underlyingRef: SmartPsiElementPointer<Ps
             val underlyingRef = underlyingRef?.element
             return underlyingRef != null && isEquivalent(underlyingRef)
         }
+
+    override var displayName: String? = refLongName.toString()
 }
