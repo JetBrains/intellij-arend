@@ -59,6 +59,8 @@ open class DataLocatedReferable(
             return underlyingRef != null && isEquivalent(underlyingRef)
         }
 
+    override var displayName: String? = refLongName.toString()
+
     override fun getUnderlyingReferable() =
         psiElementPointer?.let { runReadAction { it.element }?.underlyingReferable } ?: this
 

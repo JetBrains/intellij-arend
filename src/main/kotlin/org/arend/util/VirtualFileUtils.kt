@@ -1,5 +1,6 @@
 package org.arend.util
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -42,7 +43,13 @@ fun VirtualFile.getRelativeFile(path: Collection<String>, ext: String = "", crea
 
 val VirtualFile.configFile: VirtualFile?
     get() = when {
-        isDirectory -> findChild(FileUtils.LIBRARY_CONFIG_FILE)
+        isDirectory -> {
+            var configFile: VirtualFile? = null
+            ApplicationManager.getApplication().executeOnPooledThread {
+                configFile = findChild(FileUtils.LIBRARY_CONFIG_FILE)
+            }.get()
+            configFile
+        }
         name == FileUtils.LIBRARY_CONFIG_FILE -> this
         name.endsWith(FileUtils.ZIP_EXTENSION) -> JarFileSystem.getInstance().getJarRootForLocalFile(this)?.findChild(FileUtils.LIBRARY_CONFIG_FILE)
         else -> null

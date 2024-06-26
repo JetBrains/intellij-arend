@@ -201,7 +201,7 @@ abstract class LibraryConfig(val project: Project) {
         val psiManager = PsiManager.getInstance(project)
 
         val srcDir = findParentDirectory(modulePath, false)
-        findArendFileOrDirectoryByModulePath(srcDir, modulePath)?.let {
+        srcDir?.findChild(modulePath.lastName + EXTENSION)?.let {
             val file = psiManager.findFile(it)
             if (file is ArendFile) {
                 return file
@@ -209,7 +209,7 @@ abstract class LibraryConfig(val project: Project) {
         }
 
         val testDir = if (withTests) findParentDirectory(modulePath, true) else null
-        findArendFileOrDirectoryByModulePath(testDir, modulePath)?.let {
+        testDir?.findChild(modulePath.lastName + EXTENSION)?.let {
             val file = psiManager.findFile(it)
             if (file is ArendFile) {
                 return file
