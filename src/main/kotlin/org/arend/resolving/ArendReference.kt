@@ -10,8 +10,6 @@ import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
-import org.arend.module.AREND_LIB
-import org.arend.module.AllArendFilesAndPackagesScope
 import org.arend.naming.reference.*
 import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.converter.ReferableConverter
@@ -26,7 +24,6 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendDefMeta
 import org.arend.psi.ext.ReferableBase
 import org.arend.refactoring.ArendNamesValidator
-import org.arend.refactoring.move.ArendLongNameCodeFragment
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -136,25 +133,6 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                     when (module) {
                         null -> LookupElementBuilder.create(ref, ref.path.toString()).withIcon(ArendIcons.DIRECTORY)
                         is ArendFile -> LookupElementBuilder.create(module, ref.path.toString()).withIcon(ArendIcons.AREND_FILE)
-                        is PsiDirectory -> {
-                            val libraryConfig = ((containingFile as? ArendLongNameCodeFragment?)?.scope as? AllArendFilesAndPackagesScope?)?.libraryConfig
-                            if (ref is PsiModuleReferable) {
-                                if (ref.modulePath.size() == 0 || (ref.modulePath.size() == 1 && ref.modulePath.firstName == libraryConfig?.testsDirFile?.name)) {
-                                    if (libraryConfig?.sourcesDirFile == module.virtualFile ||
-                                            (libraryConfig?.testsDirFile == module.virtualFile && ref.modulePath.size() != 0)) {
-                                        LookupElementBuilder.create(module, module.name).withIcon(module.getIcon(0))
-                                    } else {
-                                        null
-                                    }
-                                } else if (ref.toString() == AREND_LIB) {
-                                    LookupElementBuilder.create(module, ref.modulePath.toString()).withIcon(ArendIcons.AREND)
-                                } else {
-                                    LookupElementBuilder.create(module, ref.modulePath.toString()).withIcon(ArendIcons.DIRECTORY)
-                                }
-                            } else {
-                                LookupElementBuilder.create(ref, ref.path.toString()).withIcon(ArendIcons.DIRECTORY)
-                            }
-                        }
                         else -> LookupElementBuilder.createWithIcon(module)
                     }
                 }

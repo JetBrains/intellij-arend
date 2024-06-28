@@ -6,11 +6,12 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.EditorTextField
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.panel
 import org.arend.ArendFileTypeInstance
 import org.arend.definition.ArendFileDefinitionScope
 import org.arend.ext.module.ModulePath
-import org.arend.module.AllArendFilesAndPackagesScope
+import org.arend.module.AllArendFilesScope
 import org.arend.module.AllModulesScope
 import org.arend.module.ArendPreludeLibrary.Companion.PRELUDE
 import org.arend.module.ArendPreludeScope
@@ -21,18 +22,21 @@ import org.arend.psi.ext.PsiModuleReferable
 import org.arend.refactoring.move.ArendLongNameCodeFragment
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.configurations.TypeCheckConfiguration
-import org.arend.util.FileUtils
 import org.arend.util.aligned
 import javax.swing.JComponent
 
 class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEditor<TypeCheckConfiguration>() {
     private val libraryComponent: EditorTextField
+    private val isTestComponent: JBCheckBox
     private val modulePathComponent: EditorTextField
     private val definitionNameComponent: EditorTextField
 
+
     init {
         libraryComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(
-            ArendLongNameCodeFragment(project, LIBRARY_TEXT, null, customScopeGetter = { AllModulesScope(project) })), project, ArendFileTypeInstance)
+            ArendLongNameCodeFragment(project, LIBRARY_TEXT, null, customScopeGetter = { AllModulesScope(project) })), project, ArendFileTypeInstance
+        )
+        isTestComponent = JBCheckBox()
         val moduleDocument = ArendLongNameCodeFragment(project, MODULE_TEXT, null, customScopeGetter = {
             val library = libraryComponent.text
             if (library == PRELUDE) {
@@ -40,7 +44,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
             }
             val module = ModuleManager.getInstance(project).findModuleByName(library)
             val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
-            arendModuleConfigService?.let { AllArendFilesAndPackagesScope(it, ModulePath(), withPrelude = true, withArendExtension = false) } ?: EmptyScope.INSTANCE
+            arendModuleConfigService?.let { AllArendFilesScope(it, ModulePath(), isTest = isTestComponent.isSelected) } ?: EmptyScope.INSTANCE
         })
         modulePathComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(moduleDocument), project, ArendFileTypeInstance)
         definitionNameComponent = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, DEFINITION_TEXT, null, customScopeGetter = {
@@ -60,6 +64,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
     override fun resetEditorFrom(configuration: TypeCheckConfiguration) {
         with(configuration.arendTypeCheckCommand) {
             libraryComponent.text = library
+            isTestComponent.isSelected = isTest
             modulePathComponent.text = modulePath
             definitionNameComponent.text = definitionFullName
         }
@@ -68,6 +73,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
     override fun applyEditorTo(configuration: TypeCheckConfiguration) {
         configuration.arendTypeCheckCommand = TypeCheckCommand(
             libraryComponent.text,
+            isTestComponent.isSelected,
             modulePathComponent.text,
             definitionNameComponent.text
         )
@@ -75,12 +81,17 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
 
     override fun createEditor(): JComponent = panel {
         aligned("$LIBRARY_TEXT:", libraryComponent)
+        aligned("$IS_TEST_TEXT:", isTestComponent)
         aligned("$MODULE_TEXT:", modulePathComponent)
         aligned("$DEFINITION_TEXT:", definitionNameComponent)
+        row {
+            text("If the definitions from the $MODULE_TEXT (Arend file) are not loaded, then either they are not there, or they have not loaded completely. Try opening the $MODULE_TEXT (Arend file) in the editor and re-view the list of definitions in the Run configuration window")
+        }
     }
 
     companion object {
         private const val LIBRARY_TEXT = "Arend library"
+        private const val IS_TEST_TEXT = "Search in the test directory"
         private const val MODULE_TEXT = "Arend module"
         private const val DEFINITION_TEXT = "Definition"
     }

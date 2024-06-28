@@ -34,9 +34,10 @@ class TypeCheckConfiguration(
     @get: com.intellij.util.xmlb.annotations.Transient
     @set: com.intellij.util.xmlb.annotations.Transient
     var arendTypeCheckCommand: TypeCheckCommand
-        get() = TypeCheckCommand(_arendArgs.library, _arendArgs.modulePath, _arendArgs.definitionFullName)
+        get() = TypeCheckCommand(_arendArgs.library, _arendArgs.isTest, _arendArgs.modulePath, _arendArgs.definitionFullName)
         set(value) = with(value) {
             _arendArgs.library = library
+            _arendArgs.isTest = isTest
             _arendArgs.modulePath = modulePath
             _arendArgs.definitionFullName = definitionFullName
         }
@@ -94,6 +95,7 @@ class TypeCheckConfiguration(
 @Tag(value = "parameters")
 data class SerializableTypeCheckCommand(
     var library: String = "",
+    var isTest: Boolean = false,
     var modulePath: String = "",
     var definitionFullName: String = ""
 )

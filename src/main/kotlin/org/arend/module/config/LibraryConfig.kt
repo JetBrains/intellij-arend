@@ -157,37 +157,6 @@ abstract class LibraryConfig(val project: Project) {
                 findArendFile(modulePath, false) ?: if (withTests) findArendFile(modulePath, true) else null
         }
 
-    fun getArendDirectoryOrFile(modulePath: ModulePath, isTest: Boolean): PsiFileSystemItem? {
-        val psiManager = PsiManager.getInstance(project)
-        return if (modulePath.size() == 0) {
-            if (isTest) {
-                psiManager.findDirectory(testsDirFile!!)
-            } else {
-                psiManager.findDirectory(sourcesDirFile!!)
-            }
-        } else {
-            getArendSubdirectoryOrFile(modulePath, isTest)
-        }
-    }
-
-    fun getArendSubdirectoryOrFile(modulePath: ModulePath, isTest: Boolean): PsiFileSystemItem? {
-        val psiManager = PsiManager.getInstance(project)
-        if (modulePath == MODULE_PATH) {
-            return project.service<TypeCheckingService>().prelude
-        }
-        return if (isTest) {
-            (findArendFileOrDirectoryByModulePath(testsDirFile, modulePath) ?:
-                findArendFileOrDirectoryByModulePath(sourcesDirFile, modulePath))?.let {
-                    psiManager.findDirectory(it) ?: psiManager.findFile(it)
-            } ?: findArendFile(modulePath, withAdditional = false, withTests = true)
-        } else {
-            (findArendFileOrDirectoryByModulePath(sourcesDirFile, modulePath) ?:
-                findArendFileOrDirectoryByModulePath(testsDirFile, modulePath))?.let {
-                psiManager.findDirectory(it) ?: psiManager.findFile(it)
-            } ?: findArendFile(modulePath, withAdditional = false, withTests = true)
-        }
-    }
-
     fun findArendFileOrDirectory(modulePath: ModulePath, withAdditional: Boolean, withTests: Boolean): PsiFileSystemItem? {
         if (modulePath.size() == 0) {
             return findArendDirectory(modulePath)
@@ -275,13 +244,10 @@ abstract class LibraryConfig(val project: Project) {
             val path = modulePath.toList()
             var curElement = root
             for (index in path.indices) {
-                if (index == path.indices.last - 1 && path[index + 1] == EXTENSION.drop(1)) {
-                    curElement = curElement?.findChild(path[index] + EXTENSION)
-                    break
-                } else if (index == path.indices.last) {
-                    curElement = curElement?.findChild(path[index]) ?: curElement?.findChild(path[index] + EXTENSION)
+                curElement = if (index == path.indices.last) {
+                    curElement?.findChild(path[index]) ?: curElement?.findChild(path[index] + EXTENSION)
                 } else {
-                    curElement = curElement?.findChild(path[index])
+                    curElement?.findChild(path[index])
                 }
             }
             return curElement
