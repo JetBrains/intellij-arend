@@ -326,5 +326,5 @@ class TypeCheckProcessHandler(
     override fun getProcessInput(): OutputStream? = null
 }
 
-private class DefinitionNotFoundError(definitionName: String, modulePath: ModulePath? = null) :
+class DefinitionNotFoundError(definitionName: String, modulePath: ModulePath? = null) :
     GeneralError(Level.ERROR, if (modulePath == null) "Definition '$definitionName' cannot be located without a module name" else "Definition $definitionName not found in module $modulePath")
