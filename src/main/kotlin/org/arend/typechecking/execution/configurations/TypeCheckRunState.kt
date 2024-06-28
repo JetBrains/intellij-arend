@@ -18,6 +18,7 @@ import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
 import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerUIActionsHandler
 import com.intellij.execution.testframework.sm.runner.ui.SMTestRunnerResultsForm
 import com.intellij.execution.ui.ConsoleView
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
@@ -74,7 +75,13 @@ class TypeCheckRunState(private val environment: ExecutionEnvironment, private v
                         NotificationErrorReporter(environment.project).report(ModuleNotFoundError(modulePath))
                         return null
                     }
-                    library.resetGroup(group)
+                    ApplicationManager.getApplication().run {
+                        executeOnPooledThread {
+                            runReadAction {
+                                library.resetGroup(group)
+                            }
+                        }
+                    }
                 } else {
                     val scope = library?.moduleScopeProvider?.forModule(modulePath) ?: library?.testsModuleScopeProvider?.forModule(modulePath)
                     if (library == null || scope == null) {
