@@ -26,6 +26,7 @@ import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.ext.*
+import org.arend.term.abs.Abstract
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.handler.CefLoadHandlerAdapter
@@ -250,8 +251,10 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             html(" $it")
         }
 
-        for (parameter in ArendCodeInsightUtils.getAllParametersForReferable(element, null)?.first ?: emptyList()) {
-            html(" $parameter")
+        for (parameter in (element as? Abstract.ParametersHolder)?.parameters ?: emptyList()) {
+            if (parameter is PsiElement) {
+                html(" ${parameter.text}")
+            }
         }
 
         element.psiElementType?.let { html(" : ${it.text}") }
