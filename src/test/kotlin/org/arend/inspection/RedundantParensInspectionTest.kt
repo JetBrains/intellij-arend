@@ -1,6 +1,5 @@
 package org.arend.inspection
 
-import org.arend.fileTreeFromText
 import org.arend.quickfix.QuickFixTestBase
 import org.arend.util.ArendBundle
 
@@ -286,6 +285,28 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
         \func test => \Sigma (\Prop){-caret-} (Nat -> Nat)
     """, """
         \func test => \Sigma \Prop (Nat -> Nat)
+    """)
+
+    fun testArendMaybeAtomLevelExprs() = doTypedQuickFixTest("""       
+        \func a : 1 = 1 => idp \levels _ (0){-caret-}
+    """, """
+        \func a : 1 = 1 => idp \levels _ 0
+    """)
+
+    fun `test a tuple with a tuple with case expression`() = doWeakWarningsCheck(myFixture,"""
+       \data Empty
+
+       \func foo : \Sigma (Empty -> Nat) Nat => (\lam e => (\case e), 0) 
+    """)
+
+    fun `test a tuple with a tuple with only one case expression`() = doTypedQuickFixTest("""
+       \data Empty
+
+       \func foo => (\lam e => (\case e)){-caret-}
+    """, """
+       \data Empty
+
+       \func foo => \lam e => (\case e)
     """)
 
     private fun doTypedQuickFixTest(before: String, after: String) =

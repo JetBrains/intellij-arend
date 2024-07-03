@@ -33,7 +33,6 @@ class RedundantParensPass(file: ArendFile, editor: Editor, highlightInfoProcesso
             progress.checkCanceled()
             val expression = unwrapParens(element) ?: continue
             if (isApplicationUsedAsBinOpArgument(element, expression)) {
-
                 val builder = HighlightInfo.newHighlightInfo(HighlightInfoType.WEAK_WARNING)
                     .range(element.textRange)
                     .severity(HighlightSeverity.WEAK_WARNING)
@@ -90,5 +89,4 @@ class RedundantParensPass(file: ArendFile, editor: Editor, highlightInfoProcesso
 
         }
     }
-
 }
