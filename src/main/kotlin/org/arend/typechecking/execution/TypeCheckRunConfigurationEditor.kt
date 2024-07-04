@@ -9,7 +9,6 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.panel
 import org.arend.ArendFileTypeInstance
-import org.arend.definition.ArendFileDefinitionScope
 import org.arend.ext.module.ModulePath
 import org.arend.module.AllArendFilesScope
 import org.arend.module.AllModulesScope
@@ -17,6 +16,7 @@ import org.arend.module.ArendPreludeLibrary.Companion.PRELUDE
 import org.arend.module.ArendPreludeScope
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.scope.EmptyScope
+import org.arend.naming.scope.LexicalScope
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiModuleReferable
 import org.arend.refactoring.move.ArendLongNameCodeFragment
@@ -57,7 +57,7 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
             }
             val arendFile = (moduleDocument.scope.resolveName(module) as? PsiModuleReferable)?.modules?.get(0) as? ArendFile?
                 ?: return@ArendLongNameCodeFragment EmptyScope.INSTANCE
-            ArendFileDefinitionScope(arendFile)
+            LexicalScope.opened(arendFile)
         })), project, ArendFileTypeInstance)
     }
 
@@ -84,9 +84,6 @@ class TypeCheckRunConfigurationEditor(private val project: Project) : SettingsEd
         aligned("$IS_TEST_TEXT:", isTestComponent)
         aligned("$MODULE_TEXT:", modulePathComponent)
         aligned("$DEFINITION_TEXT:", definitionNameComponent)
-        row {
-            text("If the definitions from the $MODULE_TEXT (Arend file) are not loaded, then either they are not there, or they have not loaded completely. Try opening the $MODULE_TEXT (Arend file) in the editor and re-view the list of definitions in the Run configuration window")
-        }
     }
 
     companion object {

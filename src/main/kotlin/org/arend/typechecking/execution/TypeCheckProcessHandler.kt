@@ -121,7 +121,7 @@ class TypeCheckProcessHandler(
 
                         val modulePaths = if (modulePath == null) library.loadedModules else listOf(modulePath)
                         val modules = modulePaths.mapNotNull {
-                            val module = library.config.findArendFile(it, withAdditional = false, withTests = command.isTest)
+                            val module = library.config.findArendFile(it, command.isTest)
                             if (module == null) {
                                 typecheckingErrorReporter.report(LibraryError.moduleNotFound(it, library.name))
                             } else if (command.definitionFullName == "") {

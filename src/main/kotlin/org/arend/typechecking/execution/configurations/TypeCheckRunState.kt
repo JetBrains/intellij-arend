@@ -70,7 +70,7 @@ class TypeCheckRunState(private val environment: ExecutionEnvironment, private v
                 }
             } else {
                 if (command.definitionFullName == "") {
-                    val group = library?.getModuleGroup(modulePath, false) ?: library?.getModuleGroup(modulePath, true)
+                    val group = library?.getModuleGroup(modulePath, command.isTest)
                     if (library == null || group == null) {
                         NotificationErrorReporter(environment.project).report(ModuleNotFoundError(modulePath))
                         return null
@@ -83,7 +83,7 @@ class TypeCheckRunState(private val environment: ExecutionEnvironment, private v
                         }
                     }
                 } else {
-                    val scope = library?.moduleScopeProvider?.forModule(modulePath) ?: library?.testsModuleScopeProvider?.forModule(modulePath)
+                    val scope = if (command.isTest) library?.testsModuleScopeProvider?.forModule(modulePath) else library?.moduleScopeProvider?.forModule(modulePath)
                     if (library == null || scope == null) {
                         NotificationErrorReporter(environment.project).report(ModuleNotFoundError(modulePath))
                         return null
