@@ -121,9 +121,11 @@ class ErrorService : ErrorReporter {
         val arendErrors = typecheckingErrors[file] ?: return emptyList()
 
         val list = ArrayList<Pair<GeneralError, PsiElement>>()
-        for (arendError in arendErrors) {
-            arendError.cause?.let {
-                list.add(Pair(arendError.error, it))
+        synchronized(arendErrors) {
+            for (arendError in arendErrors) {
+                arendError.cause?.let {
+                    list.add(Pair(arendError.error, it))
+                }
             }
         }
         return list
