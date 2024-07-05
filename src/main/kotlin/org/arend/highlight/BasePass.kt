@@ -118,7 +118,19 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
         return HighlightInfo.newHighlightInfo(type ?: levelToHighlightInfoType(error.level))
             .range(range)
             .severity(levelToSeverity(error.level))
-            .description(error.shortMessage)
+            .description(
+                run {
+                    var message: String? = null
+                    ApplicationManager.getApplication().run {
+                        executeOnPooledThread {
+                            runReadAction {
+                                message = error.shortMessage
+                            }
+                        }.get()
+                    }
+                    message ?: ""
+                }
+            )
             .escapedToolTip(XmlStringUtil.escapeString(DocStringBuilder.build(vHang(error.getShortHeaderDoc(ppConfig), error.getBodyDoc(ppConfig)))).replace("\n", "<br>"))
     }
 

@@ -5,19 +5,15 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInsight.daemon.impl.LineMarkerNavigator
 import com.intellij.codeInsight.daemon.impl.MarkerType
-import com.intellij.codeInsight.daemon.impl.PsiElementListNavigator
-import com.intellij.codeInsight.navigation.BackgroundUpdaterTask
+import com.intellij.codeInsight.navigation.PsiTargetNavigator
 import com.intellij.icons.AllIcons
-import com.intellij.ide.util.PsiElementListCellRenderer
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiElement
 import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.ArendDefIdentifier
-import org.arend.psi.ext.ArendDefinition
 import org.arend.search.ClassDescendantsSearch
-import org.arend.util.FullName
 import java.awt.event.MouseEvent
 
 class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
@@ -45,20 +41,8 @@ class ArendLineMarkerProvider: LineMarkerProviderDescriptor() {
             object : LineMarkerNavigator() {
                 override fun browse(e: MouseEvent, element: PsiElement) {
                     val clazz = element.parent.parent as? ArendDefClass ?: return
-                    PsiElementListNavigator.openTargets(e, clazz.project.service<ClassDescendantsSearch>().getAllDescendants(clazz).toTypedArray(), "Subclasses of " + clazz.name,
-                        CodeInsightBundle.message("goto.implementation.findUsages.title", clazz.refName), MyListCellRenderer, null as BackgroundUpdaterTask?)
+                    PsiTargetNavigator(clazz.project.service<ClassDescendantsSearch>().getAllDescendants(clazz).toTypedArray()).navigate(e, "Subclasses of " + clazz.name, element.project)
                 }
             })
-    }
-
-    private object MyListCellRenderer : PsiElementListCellRenderer<ArendDefinition<*>>() {
-        override fun getElementText(element: ArendDefinition<*>): String {
-            val fullName = FullName(element)
-            return fullName.longName.toString() + " in " + fullName.modulePath.toString()
-        }
-
-        override fun getContainerText(element: ArendDefinition<*>, name: String): String? = null
-
-        override fun getIconFlags() = 0
     }
 }
