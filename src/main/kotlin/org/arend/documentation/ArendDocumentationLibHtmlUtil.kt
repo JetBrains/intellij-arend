@@ -80,7 +80,7 @@ internal fun generateHtmlForArendLib(
 
         val indexFile = File(pathToArendLibInArendSite+ File.separator + "index.md")
         indexFile.readLines().find { REGEX_AREND_LIB_VERSION.find(it)?.groupValues?.getOrNull(1) == version }
-            ?: indexFile.appendText("\n * [$version]($version/$AREND_DIR_HTML/Base.html)")
+            ?: indexFile.appendText("\n * [$version]($version/${AREND_DIR_HTML}Base.html)")
 
 
         val psiManager = PsiManager.getInstance(psiProject)
