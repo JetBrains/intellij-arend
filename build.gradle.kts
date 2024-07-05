@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.9.0.5"
+version = "1.10.0"
 
 plugins {
     idea
