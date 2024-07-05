@@ -393,6 +393,8 @@
 
         <projectService serviceImplementation="org.arend.toolWindow.errors.tree.ArendErrorTreeCellRendererService"/>
 
+        <projectService serviceImplementation="org.arend.graph.GraphSimulator"/>
+
         <applicationService serviceImplementation="org.arend.typechecking.TypecheckingTaskQueue"/>
 
         <!-- Task Execution Listener -->

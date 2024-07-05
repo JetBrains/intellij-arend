@@ -4,6 +4,7 @@ import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
@@ -241,8 +242,7 @@ class ArendModuleConfigurationView(
                         }
                     }
 
-                    val simulator = GraphSimulator(e.project, this.toString(), edges, usedNodes.map { GraphNode(it.name) }.toSet())
-                    simulator.displayOrthogonal()
+                    module.project.service<GraphSimulator>().displayOrthogonal(this.toString(), "${e.project?.name}_modules", edges, usedNodes.map { GraphNode(it.name) }.toSet())
                 }
             })
         }

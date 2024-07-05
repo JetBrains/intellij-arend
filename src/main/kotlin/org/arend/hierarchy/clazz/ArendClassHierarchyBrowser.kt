@@ -23,11 +23,11 @@ import org.arend.graph.GraphSimulator
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ext.ArendDefClass
 import org.arend.psi.ext.fullName
+import org.arend.search.ClassDescendantsSearch
 import org.arend.settings.ArendProjectSettings
 import java.util.*
 import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
-import javax.swing.tree.TreeNode
 import javax.swing.tree.TreePath
 
 class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHierarchyBrowserBase(project, method) {
@@ -169,18 +169,21 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     }
 
     inner class ArendHierarchyGraphAction : AnAction("Visualize as Orthogonal Diagram", "A hierarchical class graph", ArendIcons.ORTHOGONAL_GRAPH) {
-        private val usedNodes = mutableSetOf<TreeNode>()
+        private val usedNodes = mutableSetOf<ArendDefClass>()
         private val edges = mutableSetOf<GraphEdge>()
 
-        private fun findEdges(currentNode: DefaultMutableTreeNode, isSuperTypes: Boolean) {
+        private fun findEdges(currentNode: ArendDefClass, isSuperTypes: Boolean) {
             usedNodes.add(currentNode)
 
-            val from = ((currentNode.userObject as ArendHierarchyNodeDescriptor).psiElement as ArendDefClass).fullName
+            val from = currentNode.fullName
 
-            val children = TreeUtil.listChildren(currentNode)
+            val children = if (isSuperTypes) {
+                currentNode.superClassReferences
+            } else {
+                myProject.service<ClassDescendantsSearch>().search(currentNode)
+            }.mapNotNull { it as? ArendDefClass? }
             for (child in children) {
-                val to = (((child as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName
-                    ?: continue
+                val to = child.refLongName.toString()
                 if (isSuperTypes) {
                     edges.add(GraphEdge(to, from))
                 } else {
@@ -198,20 +201,20 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
             edges.clear()
 
             val tree = getJTree(currentViewType) ?: return
-            val root = tree.model.root as DefaultMutableTreeNode
+            val root = ((tree.model.root as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as ArendDefClass
 
             findEdges(root, myProject.service<ArendProjectSettings>().data.hierarchyViewType == getSupertypesHierarchyType())
 
-            val simulator = GraphSimulator(
-                e.project,
+            myProject.service<GraphSimulator>().displayOrthogonal(
                 this.toString(),
+                if (currentViewType == getSubtypesHierarchyType()) {
+                    "Subtypes_${root.fullName}"
+                } else {
+                    "Supertypes_${root.fullName}"
+                },
                 edges,
-                usedNodes.map {
-                    GraphNode(
-                        (((it as DefaultMutableTreeNode).userObject as ArendHierarchyNodeDescriptor).psiElement as? ArendDefClass?)?.fullName!!
-                    ) }.toSet()
+                usedNodes.map { GraphNode(it.fullName) }.toSet()
             )
-            simulator.displayOrthogonal()
         }
     }
 }
