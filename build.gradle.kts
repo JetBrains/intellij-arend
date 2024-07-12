@@ -76,7 +76,7 @@ intellij {
 }
 
 tasks.named<JavaExec>("runIde") {
-    jvmArgs = listOf("-Xmx2g")
+    jvmArgs = listOf("-Xmx4g")
 }
 
 tasks.withType<PatchPluginXmlTask>().configureEach {
