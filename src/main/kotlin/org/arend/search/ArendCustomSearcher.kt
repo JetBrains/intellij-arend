@@ -17,6 +17,7 @@ import com.intellij.util.Processors
 import com.intellij.util.containers.mapSmartSet
 import com.intellij.util.indexing.FileBasedIndex
 import org.arend.psi.ArendFile
+import org.arend.psi.ArendFileScope
 import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Util.isDefIdentifierFromNsId
 import org.arend.typechecking.TypeCheckingService
@@ -42,14 +43,14 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
             val standardName = elementToSearch.refName
             val aliasName = elementToSearch.aliasName
             if (scope is GlobalSearchScope) {
-                collectSearchScopes(listOf(standardName), scope, project).forEach {
+                collectSearchScopes(listOf(standardName), scope.isSearchInLibraries, project).forEach {
                     val arendFile = PsiManager.getInstance(project).findFile(it) as? ArendFile
                     if (arendFile != null) {
                         tasks.add(standardName to LocalSearchScope(arendFile))
                     }
                 }
                 if (aliasName != null) {
-                    collectSearchScopes(listOf(aliasName), scope, project).forEach {
+                    collectSearchScopes(listOf(aliasName), scope.isSearchInLibraries, project).forEach {
                         val arendFile = PsiManager.getInstance(project).findFile(it) as? ArendFile
                         if (arendFile != null) {
                             tasks.add(aliasName to LocalSearchScope(arendFile))
@@ -88,7 +89,7 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
 /**
  * Every returned file contains **all** of identifiers specified in [namesToSearch]
  */
-fun collectSearchScopes(namesToSearch: List<String>, scope: GlobalSearchScope, project: Project): List<VirtualFile> =
+fun collectSearchScopes(namesToSearch: List<String>, isSearchInLibraries: Boolean, project: Project): List<VirtualFile> =
     runReadAction {
         val fileBasedIndex = FileBasedIndex.getInstance()
         val fileSet = HashSet<VirtualFile>()
@@ -96,14 +97,12 @@ fun collectSearchScopes(namesToSearch: List<String>, scope: GlobalSearchScope, p
             IdIndex.NAME,
             namesToSearch.mapSmartSet { IdIndexEntry(it, true) },
             Processors.cancelableCollectProcessor(fileSet),
-            scope
+            ArendFileScope(project)
         )
-        val localScopes = fileSet
-            .filterTo(ArrayList()) { PsiManager.getInstance(project).findFile(it) is ArendFile }
-        if (scope.isSearchInLibraries) {
+        if (isSearchInLibraries) {
             project.service<TypeCheckingService>().prelude?.let {
-                localScopes.add(it.virtualFile)
+                fileSet.add(it.virtualFile)
             }
         }
-        localScopes
+        fileSet.toList()
     }

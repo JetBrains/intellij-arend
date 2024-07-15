@@ -54,7 +54,7 @@ fun generateProofSearchResults(
     })
 
     val searchScope = if (listedIdentifiers.isNotEmpty()) {
-        val scopes = collectSearchScopes(listedIdentifiers, GlobalSearchScope.allScope(project), project)
+        val scopes = collectSearchScopes(listedIdentifiers, GlobalSearchScope.allScope(project).isSearchInLibraries, project)
         runReadAction {
             scopes.map { GlobalSearchScope.fileScope(project, it) }.reduce(GlobalSearchScope::union)
         }
@@ -80,7 +80,7 @@ fun generateProofSearchResults(
                 if (def !is ReferableBase<*>) return@processElements true
                 val (parameters, codomain, info) = getSignature(concreteProvider, def, query.shouldConsiderParameters())
                     ?: return@processElements true
-                val (parameterResults, codomainResults) = matcher.match(parameters, codomain, def.scope) ?: return@processElements true
+                val (parameterResults, codomainResults) = matcher.match(parameters, codomain, def.scope, def) ?: return@processElements true
                 val parameterRangesRegistry = mutableMapOf<Int, List<TextRange>>()
                 val rangeComputer = caching { e : Concrete.Expression -> if (e is Concrete.ReferenceExpression && e.referent is ArendDefData) (e.referent as ArendDefData).nameIdentifier!!.textRange else rangeOfConcrete(e) }
                 for ((parameterConcrete, ranges) in parameterResults) {

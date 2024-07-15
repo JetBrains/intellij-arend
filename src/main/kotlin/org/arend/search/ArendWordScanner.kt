@@ -6,6 +6,8 @@ import com.intellij.util.Processor
 import org.arend.lexer.ArendLexerAdapter
 import org.arend.psi.AREND_COMMENTS
 import org.arend.psi.AREND_NAMES
+import org.arend.psi.ArendElementTypes.NEGATIVE_NUMBER
+import org.arend.psi.ArendElementTypes.NUMBER
 
 open class ArendWordScanner : VersionedWordsScanner() {
     private val lexer = ArendLexerAdapter()
@@ -22,6 +24,9 @@ open class ArendWordScanner : VersionedWordsScanner() {
                 var end = lexer.tokenEnd
                 if (fileText[end - 1] == '`') end--
                 occurrence.init(fileText, start, end, WordOccurrence.Kind.CODE)
+                if (!processor.process(occurrence)) return
+            } else if (lexer.tokenType == NUMBER || lexer.tokenType == NEGATIVE_NUMBER) {
+                occurrence.init(fileText, lexer.tokenStart, lexer.tokenEnd, WordOccurrence.Kind.LITERALS)
                 if (!processor.process(occurrence)) return
             }
             lexer.advance()
