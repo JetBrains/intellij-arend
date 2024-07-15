@@ -1,14 +1,22 @@
 package org.arend.search.proof
 
+import com.intellij.psi.PsiElement
+import com.intellij.psi.util.elementType
+import com.jetbrains.rd.util.string.printToString
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.binOp.ExpressionBinOpEngine
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
+import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.childrenWithLeaves
+import org.arend.psi.ext.PsiReferable
 import org.arend.term.Fixity
 import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.Concrete.NumericLiteral
 import org.arend.term.prettyprint.FreeVariableCollectorConcrete
+import java.math.BigInteger
 
 internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
 
@@ -16,21 +24,21 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
      * @return null if the signature cannot be matched against [query],
      * list of concrete nodes where the matching occurred otherwise
      */
-    fun match(parameters: List<Concrete.Expression>, codomain: Concrete.Expression, scope: Scope): ProofSearchMatchingResult? {
+    fun match(parameters: List<Concrete.Expression>, codomain: Concrete.Expression, scope: Scope, def: PsiReferable): ProofSearchMatchingResult? {
         val cachingScope = CachingScope.make(scope)
         val qualifiedReferables = lazy(LazyThreadSafetyMode.NONE) {
             val set = mutableSetOf<Referable>()
             codomain.accept(FreeVariableCollectorConcrete(set), null)
             set.groupBy { it.refName }
         }
-        val codomainResult = matchDisjunct(query.codomain, codomain, cachingScope, qualifiedReferables) ?: return null
+        val codomainResult = matchDisjunct(query.codomain, codomain, cachingScope, qualifiedReferables, def) ?: return null
         if (parameters.isEmpty()) {
             return codomainResult.takeIf { query.parameters.isEmpty() }?.let { ProofSearchMatchingResult(emptyList(), it) }
         }
         val parameterResults = mutableListOf<Pair<Concrete.Expression, List<Concrete.Expression>>>()
         loop@ for (patternParameter in query.parameters) {
             for (matchParameter in parameters) {
-                val match = matchDisjunct(patternParameter, matchParameter, cachingScope, qualifiedReferables)
+                val match = matchDisjunct(patternParameter, matchParameter, cachingScope, qualifiedReferables, def)
                 if (match != null) {
                     parameterResults.add(matchParameter to match)
                     continue@loop
@@ -41,9 +49,9 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
         return ProofSearchMatchingResult(parameterResults, codomainResult)
     }
 
-    private fun matchDisjunct(jointPattern: ProofSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>) : List<Concrete.Expression>? {
+    private fun matchDisjunct(jointPattern: ProofSearchJointPattern, concrete: Concrete.Expression, scope: Scope, referables: Lazy<Map<String, List<Referable>>>, def: PsiReferable) : List<Concrete.Expression>? {
         return jointPattern.patterns.flatMap {
-            val patternConcrete = reassembleConcrete(it, scope, referables) ?: return@matchDisjunct null
+            val patternConcrete = reassembleConcrete(it, scope, referables, def) ?: return@matchDisjunct null
             performMatch(patternConcrete, concrete) ?: return@matchDisjunct null
         }
     }
@@ -120,6 +128,8 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
             return true
         } else if (pattern is Concrete.ReferenceExpression && matched is Concrete.ReferenceExpression) {
             return pattern.underlyingReferable?.recursiveReferable() == matched.underlyingReferable?.recursiveReferable()
+        } else if (pattern is NumericLiteral && matched is NumericLiteral && pattern.number == matched.number) {
+            return true
         } else {
             return false
         }
@@ -133,13 +143,14 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
     private fun reassembleConcrete(
         tree: PatternTree,
         scope: Scope,
-        references: Lazy<Map<String, List<Referable>>>
+        references: Lazy<Map<String, List<Referable>>>,
+        def: PsiReferable
     ): Concrete.Expression? =
         when (tree) {
             is PatternTree.BranchingNode -> {
                 val binOpList = ArrayList<Concrete.BinOpSequenceElem<Concrete.Expression>>(tree.subNodes.size)
                 for (i in tree.subNodes.indices) {
-                    val expr = reassembleConcrete(tree.subNodes[i].first, scope, references) ?: break
+                    val expr = reassembleConcrete(tree.subNodes[i].first, scope, references, def) ?: break
                     val explicitness = tree.subNodes[i].second.toBoolean()
                     val binOp = Concrete.BinOpSequenceElem(expr, if (i == 0 || expr !is Concrete.ReferenceExpression) Fixity.NONFIX else Fixity.UNKNOWN, explicitness)
                     binOpList.add(binOp)
@@ -156,12 +167,28 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
                 if (referable != null) {
                     val refExpr = Concrete.FixityReferenceExpression.make(null, referable, Fixity.UNKNOWN, null, null)
                     refExpr ?: Concrete.HoleExpression(tree.referenceName)
+                } else if (tree.referenceName[0].toIntOrNull() != null) {
+                    val number = tree.referenceName[0].toInt()
+                    findNumericalArgument(def, number)
                 } else {
                     null
                 }
             }
             PatternTree.Wildcard -> Concrete.HoleExpression(null)
         }
+}
+
+private fun findNumericalArgument(element: PsiElement, number: Int): Concrete.Expression? {
+    if ((element.elementType == NUMBER || element.elementType == NEGATIVE_NUMBER) && element.text.toInt() == number) {
+        return NumericLiteral(null, BigInteger.valueOf(number.toLong()))
+    }
+    for (child in element.childrenWithLeaves) {
+        val result = findNumericalArgument(child, number)
+        if (result != null) {
+            return result
+        }
+    }
+    return null
 }
 
 private fun doubleArgumentIterable(patternArguments : List<Concrete.Argument>, matchArguments : List<Concrete.Argument>) : Iterable<Pair<Concrete.Expression, Concrete.Expression>>? {

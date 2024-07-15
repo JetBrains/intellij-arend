@@ -192,10 +192,17 @@
                          implementationClass="org.arend.inspection.ArendUnusedImportInspection"/>
 
         <localInspection language="Arend" groupPath="Arend"
-                         bundle="messages.ArendBundle" key="arend.inspection.redundant.parameter.message"
+                         bundle="messages.ArendBundle" key="arend.inspection.redundant.parameter.name"
                          groupBundle="messages.InspectionsBundle" groupKey="group.names.declaration.redundancy"
                          enabledByDefault="true" level="WARNING"
                          implementationClass="org.arend.inspection.RedundantParameterInspection"/>
+
+        <localInspection language="Arend" groupPath="Arend"
+                         bundle="messages.ArendBundle" key="arend.inspection.unresolved.pattern.name"
+                         groupBundle="messages.InspectionsBundle" groupKey="group.names.probable.bugs"
+                         enabledByDefault="true" level="WARNING"
+                         implementationClass="org.arend.inspection.UnresolvedArendPatternInspection"/>
+
         <!-- Intention Actions -->
         <intentionAction>
             <language>Arend</language>

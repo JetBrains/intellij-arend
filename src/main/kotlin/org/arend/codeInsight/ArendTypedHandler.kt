@@ -56,6 +56,8 @@ class ArendTypedHandler : TypedHandlerDelegate() {
             if (BRACKETS.contains(selectedText)) {
                 changeCorrespondingBracket(c, project, editor, file)
                 return Result.CONTINUE
+            } else if (selectedText == "{?}") {
+                return Result.CONTINUE
             }
         }
         return SelectionQuotingTypedHandler().beforeSelectionRemoved(c, project, editor, file)
