@@ -1,5 +1,7 @@
 package org.arend.yaml
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -30,12 +32,21 @@ class YamlFileService(private val project: Project) {
 
     fun updateIdea(yamlVirtualFile: VirtualFile) {
         val yaml = PsiManager.getInstance(project).findFile(yamlVirtualFile) as? YAMLFile ?: return
-        val module = ModuleUtilCore.findModuleForFile(yamlVirtualFile, project)
+        var module: Module? = null
+        ApplicationManager.getApplication().executeOnPooledThread {
+            module = ModuleUtilCore.findModuleForFile(yamlVirtualFile, project)
+        }.get()
         val arendModuleConfigService = ArendModuleConfigService.getInstance(module) ?: return
 
         updateDirectories(yaml, yamlVirtualFile, arendModuleConfigService)
 
-        arendModuleConfigService.copyFromYAML(true)
+        ApplicationManager.getApplication().run {
+            executeOnPooledThread {
+                runReadAction {
+                    arendModuleConfigService.copyFromYAML(true)
+                }
+            }
+        }
     }
 
     private fun updateDirectories(yaml: YAMLFile, file: VirtualFile, arendModuleConfigService: ArendModuleConfigService) {
