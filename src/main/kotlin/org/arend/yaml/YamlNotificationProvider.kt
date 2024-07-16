@@ -1,5 +1,6 @@
 package org.arend.yaml
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.project.Project
@@ -28,7 +29,13 @@ class YamlNotificationProvider : EditorNotificationProvider {
         panel.createActionLabel(ArendBundle.message("arend.updateYamlConfiguration")) {
             panel.isVisible = false
             yamlFileService.removeChangedFile(file)
-            yamlFileService.updateIdea(file)
+            ApplicationManager.getApplication().run {
+                executeOnPooledThread {
+                    runReadAction {
+                        yamlFileService.updateIdea(file)
+                    }
+                }
+            }
         }
         return panel
     }

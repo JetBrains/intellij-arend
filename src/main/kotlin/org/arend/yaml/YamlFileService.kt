@@ -32,21 +32,12 @@ class YamlFileService(private val project: Project) {
 
     fun updateIdea(yamlVirtualFile: VirtualFile) {
         val yaml = PsiManager.getInstance(project).findFile(yamlVirtualFile) as? YAMLFile ?: return
-        var module: Module? = null
-        ApplicationManager.getApplication().executeOnPooledThread {
-            module = ModuleUtilCore.findModuleForFile(yamlVirtualFile, project)
-        }.get()
+        val module = ModuleUtilCore.findModuleForFile(yamlVirtualFile, project)
         val arendModuleConfigService = ArendModuleConfigService.getInstance(module) ?: return
 
         updateDirectories(yaml, yamlVirtualFile, arendModuleConfigService)
 
-        ApplicationManager.getApplication().run {
-            executeOnPooledThread {
-                runReadAction {
-                    arendModuleConfigService.copyFromYAML(true)
-                }
-            }
-        }
+        arendModuleConfigService.copyFromYAML(true)
     }
 
     private fun updateDirectories(yaml: YAMLFile, file: VirtualFile, arendModuleConfigService: ArendModuleConfigService) {

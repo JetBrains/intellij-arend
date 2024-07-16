@@ -5,7 +5,8 @@ import com.intellij.ide.projectView.actions.MarkRootActionBase
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.LangDataKeys
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.*
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -44,8 +45,12 @@ private fun getDirByType(directoryType: DirectoryType, arendModuleConfigService:
 }
 
 private fun commitModel(module: Module?, model: ModifiableRootModel?) {
-    ApplicationManager.getApplication().runWriteAction { model?.commit() }
-    module?.project?.let { SaveAndSyncHandler.getInstance().scheduleProjectSave(it) }
+    invokeLater {
+        runWriteAction {
+            model?.commit()
+        }
+        module?.project?.let { SaveAndSyncHandler.getInstance().scheduleProjectSave(it) }
+    }
 }
 
 internal fun removeOldFolder(virtualFile: VirtualFile?, arendModuleConfigService: ArendModuleConfigService?, directoryType: DirectoryType) {
