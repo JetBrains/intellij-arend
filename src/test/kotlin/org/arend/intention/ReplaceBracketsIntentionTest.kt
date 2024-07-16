@@ -4,15 +4,17 @@ import org.arend.quickfix.QuickFixTestBase
 import org.arend.util.ArendBundle
 
 class ReplaceBracketsIntentionTest : QuickFixTestBase() {
-    private val fixName = ArendBundle.message("arend.replaceBrackets")
-    private fun doTest(contents: String, result: String) = simpleQuickFixTest(fixName, contents, result)
+    private val fixNameBrackets = ArendBundle.message("arend.replaceBrackets")
+    private val fixNameParentheses = ArendBundle.message("arend.replaceParentheses")
+    private fun doTestBrackets(contents: String, result: String) = simpleQuickFixTest(fixNameBrackets, contents, result)
+    private fun doTestParentheses(contents: String, result: String) = simpleQuickFixTest(fixNameParentheses, contents, result)
 
-    fun testReplaceBrackets1() = doTest(
+    fun testReplaceBrackets() = doTestBrackets(
         """\func foo ({-caret-}a : Nat) => 1""",
         """\func foo {a : Nat} => 1"""
     )
 
-    fun testReplaceBrackets2() = doTest(
+    fun testReplaceParentheses() = doTestParentheses(
         """
             \func foo (a : Nat) => 1
             \func bar => foo {{-caret-}foo 0}

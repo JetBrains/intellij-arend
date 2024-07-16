@@ -35,6 +35,6 @@ class ArendCreateFileAction : CreateFileFromTemplateAction(CAPTION, "", ArendIco
     }
 
     private companion object {
-        private const val CAPTION = "New Arend File"
+        private const val CAPTION = "Arend File"
     }
 }

@@ -22,8 +22,10 @@ class ArendPsiChangeService {
     }
 
     fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        for (listener in listeners) {
-            listener.updateDefinition(def, file, isExternalUpdate)
+        synchronized(listeners) {
+            for (listener in listeners) {
+                listener.updateDefinition(def, file, isExternalUpdate)
+            }
         }
     }
 }

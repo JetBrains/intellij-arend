@@ -6,13 +6,14 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.elementType
 import com.intellij.refactoring.suggested.startOffset
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.childOfType
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.util.ArendBundle
 
-class ReplaceBracketsIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java,  ArendBundle.message("arend.replaceBrackets")) {
+class ReplaceBracketsIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, ArendBundle.message("arend.replaceBrackets")) {
 
     private fun getBrackets(element: PsiElement): Pair<PsiElement?, PsiElement?> {
         var currentElement: PsiElement? = element
@@ -33,6 +34,11 @@ class ReplaceBracketsIntention : SelfTargetingIntention<PsiElement>(PsiElement::
 
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
         val (left, right) = getBrackets(element)
+        text = if (left.elementType == LPAREN) {
+            ArendBundle.message("arend.replaceBrackets")
+        } else {
+            ArendBundle.message("arend.replaceParentheses")
+        }
         return left == element || right == element
     }
 

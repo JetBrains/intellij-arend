@@ -553,13 +553,6 @@
             <add-to-group group-id="GoToTargetEx" anchor="last" />
         </action>
 
-        <action class="org.arend.search.proof.ArendProofSearchAction"
-                text="Proof Search"
-                description="Run search for pattern expression in functions' signature">
-            <add-to-group group-id="SearchEverywhereActions" anchor="last" />
-            <keyboard-shortcut keymap="$default" first-keystroke="control alt P" />
-        </action>
-
         <group id="ToolbarArendGroup"
                class="org.arend.actions.ArendToolbarGroup"
                text="Arend Editor Toolbar"
@@ -586,6 +579,11 @@
                     class="org.arend.toolWindow.repl.ArendShowReplAction"
                     text="Show Arend REPL"
                     description="Display the Arend REPL as a tool window"/>
+            <action class="org.arend.search.proof.ArendProofSearchAction"
+                    text="Proof Search"
+                    description="Run search for pattern expression in functions' signature">
+                <keyboard-shortcut keymap="$default" first-keystroke="control alt P" />
+            </action>
             <add-to-group group-id="ToolsMenu" anchor="last" />
         </group>
 
