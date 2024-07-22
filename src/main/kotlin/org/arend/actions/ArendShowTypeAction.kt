@@ -13,14 +13,24 @@ import org.arend.codeInsight.ArendPopupHandler
 import org.arend.core.definition.Function
 import org.arend.core.elimtree.ElimBody
 import org.arend.core.expr.Expression
+import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.core.ops.NormalizationMode
+import org.arend.ext.error.ErrorReporter
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.refactoring.*
+import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
+import org.arend.tracer.ArendTraceAction
+import org.arend.typechecking.ArendExpressionTypechecker
+import org.arend.typechecking.LibraryArendExtensionProvider
+import org.arend.typechecking.PsiInstanceProviderSet
+import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.subexpr.FindBinding
+import org.arend.typechecking.visitor.DefinitionTypechecker
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
@@ -79,6 +89,25 @@ class ArendShowTypeAction : ArendPopupAction() {
             val ref = FindBinding.visitClauses(bind, body.clauses, coreBody.clauses) ?: throw e
             select(bind.textRange)
             hint(ref.typeExpr, null)
+            return
+        }
+
+        val (_, definitionRef) = ArendTraceAction.getElementAtCursor(file, editor)
+            ?: return displayErrorHint(editor, ArendBundle.message("arend.trace.action.cannot.find.expression"))
+        val result = (PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
+            .getConcrete(definitionRef) as? Concrete.Definition)?.let {
+            val extension = LibraryArendExtensionProvider(project.service<TypeCheckingService>().libraryManager)
+                .getArendExtension(it.data)
+            val errorReporter = ErrorReporter {  }
+            val typechecker = ArendExpressionTypechecker(sub.subConcrete, errorReporter, extension).apply {
+                instancePool = GlobalInstancePool(PsiInstanceProviderSet()[it.data], this)
+            }
+            it.accept(DefinitionTypechecker(typechecker, it.recursiveDefinitions).apply { updateState(false) }, null)
+            typechecker.checkedExprResult
+        }
+        if (result != null) {
+            select(rangeOfConcrete(sub.subConcrete))
+            hint(result.type, sub.subPsi)
             return
         }
 
