@@ -29,6 +29,17 @@ abstract class QuickFixTestBase : ArendTestBase() {
                 .map { it.text to it }
         assertEmpty("There must be no quick fixes available\n", intentions)
     }
+
+    protected fun checkNoQuickFixesWithMultifile(fixName: String, contents: String? = null) {
+        if (contents != null) {
+            fileTreeFromText(contents).createAndOpenFileWithCaretMarker()
+        }
+        val intentions = myFixture.filterAvailableIntentions(fixName)
+            .filter { !isToolOptionsAction(it) }
+            .map { it.text to it }
+        assertEmpty("There must be no quick fixes available\n", intentions)
+    }
+
     protected fun checkQuickFix(fixName: String, resultingContent: String) {
         myFixture.launchAction(myFixture.findSingleIntention(fixName))
         testCaret(resultingContent)

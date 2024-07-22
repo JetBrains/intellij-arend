@@ -1388,4 +1388,16 @@ class OptimizeImportsTest : QuickFixTestBase() {
        }
     """)
 
+    fun testOptimizeImports6() = checkNoQuickFixesWithMultifile(ArendBundle.message("arend.optimize.imports.intention.name"), """
+        -- ! A.ard
+        \module M \where {
+          \instance I => {?}
+        }
+        
+        -- ! Main.ard
+        \import A(M{-caret-})
+        \open M
+        
+        \instance f => M.I
+    """)
 }
