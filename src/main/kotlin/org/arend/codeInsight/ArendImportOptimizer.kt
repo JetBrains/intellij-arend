@@ -136,7 +136,7 @@ val importRemover : (ArendCompositeElement) -> Unit = { element ->
 }
 
 fun processRedundantImportedDefinitions(group : ArendGroup, fileImports: Map<FilePath, Set<ImportedName>>, moduleStructure: OptimalModuleStructure, action: (ArendCompositeElement) -> Unit) {
-    checkStatements(action, group.statements.filter { it is ArendStat && it.statCmd?.kind == NamespaceCommand.Kind.IMPORT }, fileImports, EMPTY_STRUCTURE)
+    checkStatements(action, group.statements.filter { it is ArendStat && it.statCmd?.kind == NamespaceCommand.Kind.IMPORT }, fileImports, EMPTY_STRUCTURE, moduleStructure)
     visitModuleInconsistencies(action, group, moduleStructure, moduleStructure.usages, emptyMap())
 }
 
@@ -146,8 +146,10 @@ fun processRedundantImportedDefinitions(group : ArendGroup, fileImports: Map<Fil
 private fun checkStatements(action: (ArendCompositeElement) -> Unit,
                             statements: List<ArendStatement>,
                             pattern: Map<ModulePath, Set<ImportedName>>,
-                            hierarchy: OptimalModuleStructure) : Map<ModulePath, Set<ImportedName>>{
+                            hierarchy: OptimalModuleStructure,
+                            openStructure: OptimalModuleStructure = EMPTY_STRUCTURE) : Map<ModulePath, Set<ImportedName>> {
     val deepStatements = mutableMapOf<ModulePath, MutableSet<ImportedName>>()
+    val openedImportedNames = openStructure.usages.flatMap { usage -> usage.value.map { import -> ImportedName(usage.key.toString(), import.renamed) } }
     for (stat in statements) {
         val statCmd = stat.namespaceCommand ?: continue
         val qualifiedReferences = statCmd.getQualifiedReferenceFromOpen()
@@ -157,14 +159,14 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit,
         val importedNamesHere = importedHere.map { ImportedName(it.refIdentifier.text, it.defIdentifier?.text, it.refIdentifier.resolve) }
         val importedTopLevelButUsedDeeply = deepPatterns intersect importedNamesHere.toSet()
         if ((importedPattern.isEmpty() && importedTopLevelButUsedDeeply.isEmpty()) || statCmd.nsUsing?.nsIdList?.let { it.isNotEmpty() && it.all { ref ->
-            ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text, ref.refIdentifier.resolve) !in (importedPattern + deepPatterns)
+            ImportedName(ref.refIdentifier.text, ref.defIdentifier?.text, ref.refIdentifier.resolve) !in (importedPattern + deepPatterns + openedImportedNames)
         } } == true)  {
             action(stat)
             continue
         }
         for ((idx, nsId) in importedHere.withIndex()) {
             val importedName = importedNamesHere[idx]
-            if (importedName !in importedTopLevelButUsedDeeply && importedName !in importedPattern) {
+            if (importedName !in (importedTopLevelButUsedDeeply + importedPattern + openedImportedNames)) {
                 action(nsId)
             } else if (importedName !in importedPattern) {
                 deepStatements.computeIfAbsent(qualifiedReferences[0]) { mutableSetOf() }.add(importedName)
@@ -178,7 +180,7 @@ private fun checkStatements(action: (ArendCompositeElement) -> Unit,
  * Record fields may be referenced without actual qualifier for an enclosing record
  */
 private fun ArendStatCmd.getQualifiedReferenceFromOpen() : List<ModulePath> {
-    val group = (openedReference as? ArendReferenceContainer)?.resolve?.takeIf { it !is ArendFile } as? ArendGroup
+    val group = openedReference?.resolve?.takeIf { it !is ArendFile } as? ArendGroup
     val groupQualifiedName = group?.qualifiedName()
     val groupReducedQualifiedName = if (group is ArendDefClass) groupQualifiedName?.dropLast(1) else null
     return (listOfNotNull(groupQualifiedName, groupReducedQualifiedName).takeIf { it.isNotEmpty() }
