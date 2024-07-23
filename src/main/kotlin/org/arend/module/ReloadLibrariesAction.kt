@@ -13,9 +13,5 @@ class ReloadLibrariesAction : AnAction("Reload Arend Libraries") {
         e.project?.service<TypeCheckingService>()?.reload(true)
     }
 
-    override fun update(e: AnActionEvent) {
-        e.presentation.isVisible = ArendModuleType.has(LangDataKeys.MODULE.getData(e.dataContext))
-    }
-
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
 }
