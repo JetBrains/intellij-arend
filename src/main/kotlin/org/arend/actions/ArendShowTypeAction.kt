@@ -72,6 +72,25 @@ class ArendShowTypeAction : ArendPopupAction() {
             }
         } else throw SubExprException("failed to synthesize type from given expr")
 
+        val (expr, definitionRef) = ArendTraceAction.getElementAtRange(file, editor)
+            ?: return displayErrorHint(editor, ArendBundle.message("arend.trace.action.cannot.find.expression"))
+        val result = (PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
+            .getConcrete(definitionRef) as? Concrete.Definition)?.let {
+            val extension = LibraryArendExtensionProvider(project.service<TypeCheckingService>().libraryManager)
+                .getArendExtension(it.data)
+            val errorReporter = ErrorReporter {  }
+            val typechecker = ArendExpressionTypechecker(expr, errorReporter, extension).apply {
+                instancePool = GlobalInstancePool(PsiInstanceProviderSet()[it.data], this)
+            }
+            it.accept(DefinitionTypechecker(typechecker, it.recursiveDefinitions).apply { updateState(false) }, null)
+            Pair(typechecker.checkedExprResult, typechecker.checkedExprRange)
+        }
+        if (result?.first != null && result.second != null) {
+            select(result.second!!)
+            hint(result.first?.type, expr)
+            return
+        }
+
         val sub = try {
             correspondedSubExpr(selected, file, project)
         } catch (e: SubExprException) {
@@ -89,25 +108,6 @@ class ArendShowTypeAction : ArendPopupAction() {
             val ref = FindBinding.visitClauses(bind, body.clauses, coreBody.clauses) ?: throw e
             select(bind.textRange)
             hint(ref.typeExpr, null)
-            return
-        }
-
-        val (_, definitionRef) = ArendTraceAction.getElementAtCursor(file, editor)
-            ?: return displayErrorHint(editor, ArendBundle.message("arend.trace.action.cannot.find.expression"))
-        val result = (PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
-            .getConcrete(definitionRef) as? Concrete.Definition)?.let {
-            val extension = LibraryArendExtensionProvider(project.service<TypeCheckingService>().libraryManager)
-                .getArendExtension(it.data)
-            val errorReporter = ErrorReporter {  }
-            val typechecker = ArendExpressionTypechecker(sub.subConcrete, errorReporter, extension).apply {
-                instancePool = GlobalInstancePool(PsiInstanceProviderSet()[it.data], this)
-            }
-            it.accept(DefinitionTypechecker(typechecker, it.recursiveDefinitions).apply { updateState(false) }, null)
-            typechecker.checkedExprResult
-        }
-        if (result != null) {
-            select(rangeOfConcrete(sub.subConcrete))
-            hint(result.type, sub.subPsi)
             return
         }
 

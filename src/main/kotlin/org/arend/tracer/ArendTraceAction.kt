@@ -89,6 +89,18 @@ class ArendTraceAction : ArendPopupAction() {
     companion object {
         private val TRACE_ICON = LayeredIcon.create(AllIcons.Actions.ListFiles, AllIcons.Nodes.RunnableMark)
 
+        fun getElementAtRange(file: PsiFile, editor: Editor): Pair<ArendExpr, TCDefReferable>? {
+            val range = EditorUtil.getSelectionInAnyMode(editor)
+            val sExpr = selectedExpr(file, range)
+            if (sExpr != null) {
+                val def = sExpr.ancestor<TCDefinition>()?.tcReferable
+                if (def != null) {
+                    return Pair(sExpr, def)
+                }
+            }
+            return null
+        }
+
         fun getElementAtCursor(file: PsiFile, editor: Editor): Pair<ArendExpr, TCDefReferable>? {
             return getExpressionAtCaret(file, editor) ?: getDeclarationAtCaret(file, editor)
         }

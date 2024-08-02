@@ -11,10 +11,6 @@ import org.arend.ArendLanguage
 class ArendProofSearchAction : AnAction(ArendIcons.AREND) {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
-    override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible = e.getData(LangDataKeys.LANGUAGE) == ArendLanguage.INSTANCE
-    }
-
     override fun actionPerformed(e: AnActionEvent) {
         e.project?.service<ProofSearchService>()?.show(e)
     }
