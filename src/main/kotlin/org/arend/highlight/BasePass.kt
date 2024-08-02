@@ -22,6 +22,7 @@ import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersFor
 import org.arend.codeInsight.completion.STATEMENT_WT_KWS_TOKENS
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
+import org.arend.core.expr.Expression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.error.ParsingError
 import org.arend.error.ParsingError.Kind.*
@@ -29,7 +30,6 @@ import org.arend.ext.concrete.ConcreteSourceNode
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.ext.error.*
 import org.arend.ext.error.quickFix.ErrorQuickFix
-import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.ext.prettyprinting.doc.DocFactory.vHang
 import org.arend.ext.prettyprinting.doc.DocStringBuilder
 import org.arend.ext.reference.DataContainer
@@ -38,7 +38,6 @@ import org.arend.naming.error.ExistingOpenedNameError
 import org.arend.naming.error.NotInScopeError
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
-import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
@@ -58,14 +57,19 @@ import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.concrete.Concrete
-import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
+import org.arend.injection.InjectedArendEditor
+import org.arend.injection.actions.NormalizationCache
+import org.arend.naming.scope.CachingScope
+import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.quickfix.instance.AddRecursiveInstanceArgumentQuickFix
+import org.arend.resolving.ArendReferableConverter
+import org.arend.toolWindow.errors.PrintOptionKind
 import org.arend.typechecking.error.local.inference.FunctionArgInferenceError
 import org.arend.typechecking.error.local.inference.LambdaInferenceError
 import org.arend.typechecking.error.local.inference.RecursiveInstanceInferenceError
@@ -77,6 +81,9 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
     private val highlights = ArrayList<HighlightInfo>()
     private val errorList = ArrayList<GeneralError>()
+    private val normalizationCache: NormalizationCache = NormalizationCache()
+    private val verboseLevelMap: MutableMap<Expression, Int> = mutableMapOf()
+    private val verboseLevelParameterMap: MutableMap<DependentLink, Int> = mutableMapOf()
 
     fun getHighlights() = highlights
 
@@ -113,8 +120,19 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
     }
 
     private fun createHighlightInfoBuilder(error: GeneralError, range: TextRange, type: HighlightInfoType? = null): HighlightInfo.Builder {
-        val ppConfig = PrettyPrinterConfigWithRenamer(EmptyScope.INSTANCE)
-        ppConfig.expressionFlags = EnumSet.of(PrettyPrinterFlag.SHOW_LOCAL_FIELD_INSTANCE)
+        val (_, scope) = InjectedArendEditor.resolveCauseReference(error)
+        val printOptionKind: PrintOptionKind = when (error.level) {
+            GeneralError.Level.GOAL -> PrintOptionKind.GOAL_PRINT_OPTIONS
+            else -> PrintOptionKind.ERROR_PRINT_OPTIONS
+        }
+
+        val ppConfig = InjectedArendEditor.ProjectPrintConfig(
+            file.project,
+            printOptionKind,
+            scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) },
+            verboseLevelMap,
+            verboseLevelParameterMap
+        )
         return HighlightInfo.newHighlightInfo(type ?: levelToHighlightInfoType(error.level))
             .range(range)
             .severity(levelToSeverity(error.level))
