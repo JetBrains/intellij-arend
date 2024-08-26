@@ -29,4 +29,6 @@ class ArendTypedHandlerTest : ArendTestBase() {
     fun `test closing paren`() = check("""\func f (a : Nat){-caret-} => {?}""", """\func f {a : Nat} => {?}""", '}')
 
     fun `test closing brace`() = check("""\func f {a : Nat}{-caret-} => {?}""", """\func f (a : Nat) => {?}""", ')')
+
+    fun `test parens goal`() = check("""\func f => {-caret-}{?}""", """\func f => ({?})""", '(')
 }

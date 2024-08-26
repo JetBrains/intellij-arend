@@ -63,7 +63,6 @@ import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.injection.InjectedArendEditor
-import org.arend.injection.actions.NormalizationCache
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.ArendExpressionCodeFragment
@@ -81,7 +80,6 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
     private val highlights = ArrayList<HighlightInfo>()
     private val errorList = ArrayList<GeneralError>()
-    private val normalizationCache: NormalizationCache = NormalizationCache()
     private val verboseLevelMap: MutableMap<Expression, Int> = mutableMapOf()
     private val verboseLevelParameterMap: MutableMap<DependentLink, Int> = mutableMapOf()
 
