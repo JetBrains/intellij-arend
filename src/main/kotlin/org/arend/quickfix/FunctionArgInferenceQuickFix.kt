@@ -44,7 +44,7 @@ class FunctionArgInferenceQuickFix(
 
         val rootPsi = cause.element?.ancestor<ArendArgumentAppExpr>() ?: return
         val errorReporter = CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
-        val concreteExpr = appExprToConcrete(rootPsi, false, errorReporter) as? Concrete.AppExpression ?: return
+        val concreteExpr = appExprToConcrete(rootPsi, false, errorReporter) ?: return
         val rangeData = HashMap<Concrete.SourceNode, TextRange>(); getBounds(concreteExpr, rootPsi.node.getChildren(null).toList(), rangeData)
 
         fun findSubExpr(expr: Concrete.Expression): Concrete.Expression? {
@@ -100,7 +100,10 @@ class FunctionArgInferenceQuickFix(
                 replacementText += if (error.index == i+1) if (param.isExplicit) " $TGOAL" else " {$TGOAL}" else  if (param.isExplicit) " _" else " {_}"
                 i++
             }
-            replacementText = "(${replacementText.trim()})"
+            replacementText = replacementText.trim()
+            if (concreteExpr != subExpr) {
+                replacementText = "($replacementText)"
+            }
             textPieceToReplace = rangeData[subExpr]
             caretShift = -1
         }
