@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.elementType
 import com.intellij.refactoring.suggested.endOffset
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.text.CharArrayCharSequence
@@ -62,7 +63,8 @@ class ArendTypedHandler : TypedHandlerDelegate() {
 
     override fun beforeSelectionRemoved(c: Char, project: Project, editor: Editor, file: PsiFile): Result {
         val selectedText = editor.selectionModel.selectedText
-        if (c == '(' && selectedText == "{?}") {
+        val element = file.findElementAt(editor.selectionModel.selectionStart)
+        if (c == '(' && element?.elementType == TGOAL) {
             addParens(project, editor, file)
             return Result.STOP
         } else if (BRACKETS.contains(c.toString())) {

@@ -209,4 +209,6 @@ class ArendPsiFactory(
     fun createUnderlining() = createFromText("\\func foo (_ : Nat)")?.descendantOfType<ArendNameTele>()?.descendantOfType<ArendIdentifierOrUnknown>() ?: error("Failed to create _")
 
     fun createUniverse(universeName: String) = createFromText("\\data D : $universeName")?.descendantOfType<ArendUniverseExpr>() ?: error("Failed to create ArendUniverseExpr")
+
+    fun createElim(params: List<String>) = createFromText("\\func foo (x : Bool) \\elim ${params.joinToString(", ")}")?.descendantOfType<ArendStat>()?.descendantOfType<ArendFunctionBody>()?.descendantOfType<ArendElim>() ?: error("Failed to create ArendElim")
 }
