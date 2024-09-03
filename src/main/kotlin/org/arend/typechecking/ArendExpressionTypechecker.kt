@@ -21,8 +21,8 @@ class ArendExpressionTypechecker(private val checkedExprData: ArendExpr, errorRe
     private var diffDepthTop = -1
     private var diffDepthDown = -1
 
-    override fun checkExpr(expr: Concrete.Expression?, expectedType: Expression?): TypecheckingResult {
-        val result = super.checkExpr(expr, expectedType)
+    override fun checkExpr(expr: Concrete.Expression?, expectedType: Expression?): TypecheckingResult? {
+        val result = super.checkExpr(expr, expectedType) ?: return null
         val data = expr?.data as? PsiElement? ?: return result
         check(data, checkedExprData, result, true)
         check(checkedExprData, data, result, false)
