@@ -9,6 +9,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.elementType
+import com.intellij.refactoring.suggested.endOffset
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.text.CharArrayCharSequence
 import org.arend.psi.ArendElementTypes.*
 import org.arend.settings.ArendSettings
@@ -50,13 +53,23 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         )
     }
 
+    private fun addParens(project: Project, editor: Editor, file: PsiFile) {
+        val element = file.findElementAt(editor.selectionModel.selectionStart) ?: return
+        val document = editor.document
+        PsiDocumentManager.getInstance(project).commitDocument(document)
+        document.insertString(element.startOffset, "(")
+        document.insertString(element.endOffset + 1, ")")
+    }
+
     override fun beforeSelectionRemoved(c: Char, project: Project, editor: Editor, file: PsiFile): Result {
-        if (BRACKETS.contains(c.toString())) {
-            val selectedText = editor.selectionModel.selectedText
+        val selectedText = editor.selectionModel.selectedText
+        val element = file.findElementAt(editor.selectionModel.selectionStart)
+        if (c == '(' && element?.elementType == TGOAL) {
+            addParens(project, editor, file)
+            return Result.STOP
+        } else if (BRACKETS.contains(c.toString())) {
             if (BRACKETS.contains(selectedText)) {
                 changeCorrespondingBracket(c, project, editor, file)
-                return Result.CONTINUE
-            } else if (selectedText == "{?}") {
                 return Result.CONTINUE
             }
         }

@@ -1,0 +1,5 @@
+\import Data.Bool
+
+\func foo (n m : Nat) : Bool <spot>\elim n
+  | 0 => {?}
+  | suc n => {?}</spot>

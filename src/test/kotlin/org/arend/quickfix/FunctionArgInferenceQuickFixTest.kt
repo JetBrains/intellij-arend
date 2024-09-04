@@ -174,6 +174,28 @@ class FunctionArgInferenceQuickFixTest : QuickFixTestBase() {
        \func LOL => D Nat {?}{-caret-}
     """)
 
+    fun testLemmaAndRecord() = typedQuickFixTest("Infer parameter", """
+        \lemma prop-pi {A : \Prop} {a a' : A} : a = a' => {?}
+        
+        \record Record {A : \Type}
+          | sec : A -> A
+        
+        \func test => \new Record {
+          | A => {?}
+          | sec => prop-pi{-caret-}
+        }
+    """, """
+        \lemma prop-pi {A : \Prop} {a a' : A} : a = a' => {?}
+        
+        \record Record {A : \Type}
+          | sec : A -> A
+        
+        \func test => \new Record {
+          | A => {?}
+          | sec => prop-pi {_} {{?}{-caret-}}
+        }
+    """)
+
     /* doesn't work with lambda because error.definition is null
     * \func f => \lam {A B : \Type0} (a : A) {C : \Type1} (b : B) => a
     *

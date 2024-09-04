@@ -1,0 +1,3 @@
+\import Data.Bool
+
+\func foo (n m : Nat) : Bool => <spot>{?}</spot>
