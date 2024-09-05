@@ -8,7 +8,7 @@ import org.arend.psi.ArendElementTypes
 import org.arend.psi.doc.ArendDocComment
 
 class ArendCommenter : CodeDocumentationAwareCommenter {
-    override fun getLineCommentPrefix(): String = "--"
+    override fun getLineCommentPrefix(): String = "-- "
 
     override fun getBlockCommentPrefix(): String = "{-"
 
