@@ -70,7 +70,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                     }
                     expr != null -> {
                         ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
-                        cache.getCached(element)
+                        cache.getCached(element) ?: element.scope.resolveName(element.referenceName, refKind)
                     }
                     else -> element.scope.resolveName(element.referenceName, refKind)
                 }
