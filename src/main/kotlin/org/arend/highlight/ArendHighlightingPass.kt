@@ -79,7 +79,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
             }
         }
 
-        val resolveListener = object : ArendResolverListener(myProject.service()) {
+        val resolveListener = object : ArendResolverListener(myProject.service<ArendResolveCache>()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
                 if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {

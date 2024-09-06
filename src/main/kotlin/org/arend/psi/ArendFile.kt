@@ -7,6 +7,7 @@ import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiReference
 import com.intellij.psi.impl.source.resolve.FileContextUtil
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
@@ -221,4 +222,11 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getParentSourceNode(): ArendSourceNode? = null
 
     override fun getIcon(flags: Int) = ArendIcons.AREND_FILE
+
+    override fun findReferenceAt(offset: Int): PsiReference? {
+        super.findReferenceAt(offset)?.let {
+            return it
+        }
+        return super.findReferenceAt(offset - 1)
+    }
 }
