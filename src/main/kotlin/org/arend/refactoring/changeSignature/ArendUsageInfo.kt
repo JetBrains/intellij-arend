@@ -1,7 +1,7 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.psi.PsiElement
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.startOffset
 import com.intellij.usageView.UsageInfo
 import org.arend.psi.ancestor
 import org.arend.psi.childOfType

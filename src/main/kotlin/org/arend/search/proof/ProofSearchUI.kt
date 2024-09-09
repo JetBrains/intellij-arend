@@ -421,7 +421,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
                     insertDefinition(element, caret)
                 }
             }
-        }.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, this, this)
+        }.registerCustomShortcutSet(CommonShortcuts.getCtrlEnter(), this, this)
     }
 
     private fun registerEscapeAction() {
@@ -619,7 +619,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
     override fun getInitialHints(): Array<String> = arrayOf(
         ArendBundle.message("arend.proof.search.quick.preview.tip"),
         ArendBundle.message("arend.proof.search.go.to.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(IdeActions.ACTION_EDIT_SOURCE)),
-        ArendBundle.message("arend.proof.search.insert.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(CommonShortcuts.CTRL_ENTER)),
+        ArendBundle.message("arend.proof.search.insert.definition.tip", KeymapUtil.getFirstKeyboardShortcutText(CommonShortcuts.getCtrlEnter())),
         ArendBundle.message("arend.proof.search.use.and.tip"),
         ArendBundle.message("arend.proof.search.use.arrow.tip"),
     )

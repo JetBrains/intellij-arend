@@ -6,7 +6,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.startOffset
 import org.arend.core.definition.ClassDefinition
 import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
@@ -631,7 +631,7 @@ class ArendCodeInsightUtils {
 
             if (resultingParamIndex == -1 && !externalParametersOk && parameters.isEmpty()) {
                 val isSomeArgumentSelected = arguments.isNotEmpty() &&
-                        arguments.any{ getExpression(it)?.let{ rangeDataReceiver[it] == argumentTextRange} == true }
+                        arguments.any { arg -> getExpression(arg)?.let{ rangeDataReceiver[it] == argumentTextRange} == true }
                 if (isSomeArgumentSelected) resultingParamIndex = -2
             }
 

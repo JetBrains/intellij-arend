@@ -1,15 +1,13 @@
 package org.arend.refactoring.changeSignature
 
 import com.intellij.lang.Language
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.util.descendantsOfType
 import com.intellij.psi.util.elementType
+import com.intellij.psi.util.endOffset
+import com.intellij.psi.util.startOffset
 import com.intellij.refactoring.changeSignature.ChangeInfo
 import com.intellij.refactoring.changeSignature.ParameterInfo
-import com.intellij.refactoring.suggested.endOffset
-import com.intellij.refactoring.suggested.startOffset
 import org.arend.ArendLanguage
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*

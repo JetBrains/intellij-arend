@@ -1,5 +1,6 @@
 package org.arend.ui.impl.session
 
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindow
@@ -13,6 +14,7 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
+@Service(Service.Level.PROJECT)
 class ArendSessionsService(private val project: Project) {
     private var myToolWindow: ToolWindow? = null
 

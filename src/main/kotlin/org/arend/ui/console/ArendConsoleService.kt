@@ -1,11 +1,13 @@
 package org.arend.ui.console
 
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.naming.scope.Scope
 import java.util.concurrent.ConcurrentLinkedQueue
 
+@Service(Service.Level.PROJECT)
 class ArendConsoleService(private val project: Project) {
     private var myView: ArendConsoleView? = null
     private var queue: ConcurrentLinkedQueue<ArendConsoleView.() -> Unit>? = null // needed only during initialization

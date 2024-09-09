@@ -1,5 +1,6 @@
 package org.arend.resolving
 
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -13,6 +14,7 @@ import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.locks.ReentrantLock
 
+@Service(Service.Level.PROJECT)
 class ArendResolveCache(project: Project) {
     private val typeCheckingService = project.service<TypeCheckingService>()
     private val refMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()

@@ -14,8 +14,8 @@ import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.refactoring.suggested.endOffset
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.endOffset
+import com.intellij.psi.util.startOffset
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.IArendFile
 import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersForReferable
@@ -75,8 +75,8 @@ import org.arend.typechecking.error.local.inference.RecursiveInstanceInferenceEr
 import org.arend.util.ArendBundle
 import java.util.*
 
-abstract class BasePass(protected open val file: IArendFile, editor: Editor, name: String, protected val textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
-    : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, highlightInfoProcessor), ErrorReporter {
+abstract class BasePass(protected open val file: IArendFile, editor: Editor, name: String, protected val textRange: TextRange)
+    : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, null), ErrorReporter {
 
     private val highlights = ArrayList<HighlightInfo>()
     private val errorList = ArrayList<GeneralError>()

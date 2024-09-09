@@ -1,5 +1,6 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.computation.CancellationIndicator
@@ -8,6 +9,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 
+@Service
 class DefinitionBlacklistService {
     private val scheduler = Executors.newSingleThreadScheduledExecutor()
     private val blackList = Collections.newSetFromMap(WeakHashMap<Any, Boolean>())

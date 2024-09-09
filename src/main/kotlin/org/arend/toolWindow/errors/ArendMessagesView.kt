@@ -65,8 +65,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private val goalsPanel = JBUI.Panels.simplePanel(goalEmptyPanel)
     private val defaultGoalsTabTitle = ArendBundle.message("arend.messages.view.latest.goal.title")
     private val goalsTabInfo = TabInfo(goalsPanel).apply {
-        text = defaultGoalsTabTitle
-        tooltipText = ArendBundle.message("arend.messages.view.latest.goal.tooltip")
+        setText(defaultGoalsTabTitle)
+        setTooltipText(ArendBundle.message("arend.messages.view.latest.goal.tooltip"))
     }
 
     private var errorEditor: ArendMessagesViewEditor? = null
@@ -117,8 +117,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             }
             secondComponent = SingleHeightTabs(project, toolWindow.disposable).apply {
                 addTab(TabInfo(errorsPanel).apply {
-                    text = ArendBundle.message("arend.messages.view.error.title")
-                    tooltipText = ArendBundle.message("arend.messages.view.error.tooltip")
+                    setText(ArendBundle.message("arend.messages.view.error.title"))
+                    setTooltipText(ArendBundle.message("arend.messages.view.error.tooltip"))
                 })
             }
             val isShowErrorsPanel = project.service<ArendMessagesService>().isShowErrorsPanel
@@ -303,7 +303,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
 
     private fun updateGoalsView(component: JComponent) {
         updatePanel(goalsPanel, component)
-        runInEdt { goalsTabInfo.text = defaultGoalsTabTitle }
+        runInEdt { goalsTabInfo.setText(defaultGoalsTabTitle) }
     }
 
     fun updateGoalText() {

@@ -1,6 +1,7 @@
 package org.arend.toolWindow.repl
 
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
@@ -9,6 +10,7 @@ import com.intellij.ui.content.ContentFactory
 import org.arend.toolWindow.SimpleToolWindowService
 
 
+@Service(Service.Level.PROJECT)
 class ArendReplService(project: Project) : SimpleToolWindowService(project) {
     companion object Constants {
         const val TITLE = "Arend REPL"

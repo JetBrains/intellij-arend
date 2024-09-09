@@ -4,8 +4,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.endOffset
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.endOffset
+import com.intellij.psi.util.startOffset
 import com.intellij.refactoring.util.MoveRenameUsageInfo
 import com.intellij.util.containers.SortedList
 import org.arend.codeInsight.DefaultParameterDescriptorFactory
@@ -138,7 +138,7 @@ const val FUNCTION_INDEX = -1
 
 fun isIdentifier(text: String) =
     text != "_" && text != "__" &&
-    text.matches(Regex("[~!@#$%\\^&*\\-+=<>?/|\\[\\]:a-zA-Z_\\u2200-\\u22FF\\u2A00-\\u2AFF]([~!@#$%\\^&*\\-+=<>?/|\\[\\]:a-zA-Z_\\u2200-\\u22FF\\u2A00-\\u2AFF0-9'])*"))
+    text.matches(Regex("[~!@#$%^&*\\-+=<>?/|\\[\\]:a-zA-Z_\\u2200-\\u22FF\\u2A00-\\u2AFF]([~!@#$%^&*\\-+=<>?/|\\[\\]:a-zA-Z_\\u2200-\\u22FF\\u2A00-\\u2AFF0-9'])*"))
 
 fun printAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, refactoringContext: ChangeSignatureRefactoringContext): IntermediatePrintResult {
     if (expr is Concrete.AppExpression) {
@@ -213,25 +213,37 @@ fun printAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, re
                         (this.getOldParameters().firstOrNull { it.isExplicit }?.let { listOf(it) } ?: emptyList()) + super.getLambdaParams(parameterMap, includingSuperfluousTrailingParams)
 
                     override fun getArguments(): List<ArgumentPrintResult> =
-                        listOf(ArgumentPrintResult(IntermediatePrintResult("",   null, true, false, null), isExplicit = true, spacingText = null)) + super.getArguments()
+                        listOf(ArgumentPrintResult(IntermediatePrintResult("",   null,
+                            isAtomic = true,
+                            isLambda = false,
+                            referable = null
+                        ), isExplicit = true, spacingText = null)) + super.getArguments()
                 }
                 builder.append(entry.printUsageEntry().text)
-                return IntermediatePrintResult(builder.toString(),  null, false, true, null)
+                return IntermediatePrintResult(builder.toString(),  null,
+                    isAtomic = false,
+                    isLambda = true,
+                    referable = null
+                )
             }
         }
         builder.append(printAppExpr(exprBody, psiElement, refactoringContext).text)
-        return IntermediatePrintResult(builder.toString(),  null,false, true, null)
+        return IntermediatePrintResult(builder.toString(),  null, isAtomic = false, isLambda = true, referable = null)
     } else if (expr is Concrete.ReferenceExpression) {
         val d = refactoringContext.identifyDescriptor(expr.referent)
         if (d != null) {
             return NoArgumentsEntry(expr, refactoringContext, d).printUsageEntry(expr.referent as? GlobalReferable)
         } else if ((expr.referent as? GlobalReferable)?.precedence?.isInfix == true) {
             val text = refactoringContext.textGetter(expr.data as PsiElement)
-            return IntermediatePrintResult("(${text})",  null, true, false, null)
+            return IntermediatePrintResult("(${text})",  null, isAtomic = true, isLambda = false, referable = null)
         } else if (expr.data is ArendLongName) {
             val target = expr.underlyingReferable
             val contextName = if (target is PsiLocatedReferable) UsageEntry.getContextName(target, psiElement, refactoringContext) else target.refName
-            return IntermediatePrintResult(contextName, contextName, true, false, null)
+            return IntermediatePrintResult(contextName, contextName,
+                isAtomic = true,
+                isLambda = false,
+                referable = null
+            )
         }
     }
 
@@ -253,7 +265,11 @@ fun printPattern(pattern: Concrete.Pattern, psiElement: ArendPattern, refactorin
         return if (descriptor != null) {
             val processResult = patternEntry.printUsageEntry(constructor as? GlobalReferable)
             val baseText = processResult.text + asTextWithWhitespace
-            IntermediatePrintResult(baseText, processResult.parenthesizedPrefixText,false, false, constructor as? GlobalReferable)
+            IntermediatePrintResult(baseText, processResult.parenthesizedPrefixText,
+                isAtomic = false,
+                isLambda = false,
+                referable = constructor as? GlobalReferable
+            )
         } else {
             val builder = StringBuilder()
             var explicitArgCount = 0

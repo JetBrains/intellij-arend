@@ -30,12 +30,10 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             else -> AllIcons.RunConfigurations.TestState.Red2
         }
 
-        return Info(
-                icon,
-                { runReadAction {
-                    if (parent.isValid) "Typecheck ${parent.fullName}" else "Typecheck definition"
-                } },
-                *ExecutorAction.getActions(1)
-        )
+        return Info(icon, ExecutorAction.getActions(1)) {
+            runReadAction {
+                if (parent.isValid) "Typecheck ${parent.fullName}" else "Typecheck definition"
+            }
+        }
     }
 }

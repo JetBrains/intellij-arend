@@ -21,7 +21,7 @@ import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.psi.ArendFile
 import org.arend.settings.ArendProjectSettings
-import org.arend.typechecking.ArendExtensionChangeListener
+import org.arend.typechecking.ArendExtensionChangeService
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.jetbrains.yaml.psi.YAMLFile
@@ -70,7 +70,7 @@ fun Module.register() {
     runReadAction {
         service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
     }
-    ApplicationManager.getApplication().getService(ArendExtensionChangeListener::class.java).initializeModule(config)
+    ApplicationManager.getApplication().getService(ArendExtensionChangeService::class.java).initializeModule(config)
     config.isInitialized = true
     DaemonCodeAnalyzer.getInstance(project).restart()
 }

@@ -1,7 +1,6 @@
 package org.arend.yaml
 
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.module.Module
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -14,6 +13,7 @@ import org.arend.actions.mark.removeMarkedDirectory
 import org.arend.module.config.ArendModuleConfigService
 import org.jetbrains.yaml.psi.YAMLFile
 
+@Service(Service.Level.PROJECT)
 class YamlFileService(private val project: Project) {
 
     private val changedFiles = ContainerUtil.newConcurrentSet<VirtualFile>()

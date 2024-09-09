@@ -1,6 +1,7 @@
 package org.arend.typechecking.error
 
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.Service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
@@ -16,6 +17,7 @@ import org.arend.typechecking.computation.ComputationRunner
 import java.util.*
 
 
+@Service(Service.Level.PROJECT)
 class ErrorService : ErrorReporter {
     private val nameResolverErrors = Collections.synchronizedMap(WeakHashMap<ArendFile, MutableList<ArendError>>())
     private val typecheckingErrors = Collections.synchronizedMap(WeakHashMap<ArendFile, MutableList<ArendError>>())

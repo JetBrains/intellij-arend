@@ -1,7 +1,6 @@
 package org.arend.documentation
 
 import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator
-import com.intellij.codeInsight.daemon.impl.DefaultHighlightInfoProcessor
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
@@ -165,7 +164,7 @@ private fun generateHtmlForArend(
     val descriptor = OpenFileDescriptor(project, arendFile.virtualFile)
     val editor = fileEditorManager.openTextEditor(descriptor, false) ?: return maxId
 
-    val highlightingPass = ArendHighlightingPass(arendFile, editor, TextRange(0, editor.document.textLength), DefaultHighlightInfoProcessor())
+    val highlightingPass = ArendHighlightingPass(arendFile, editor, TextRange(0, editor.document.textLength))
 
     val daemonIndicator = DaemonProgressIndicator()
     highlightingPass.collectInformationWithProgress(daemonIndicator)

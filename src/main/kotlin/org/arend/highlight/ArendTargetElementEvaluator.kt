@@ -3,7 +3,7 @@ package org.arend.highlight
 import com.intellij.codeInsight.TargetElementEvaluatorEx2
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parents
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.startOffset
 import org.arend.psi.ext.ArendDefIdentifier
 import org.arend.psi.ext.ArendRefIdentifier
 import org.arend.psi.ext.PsiReferable

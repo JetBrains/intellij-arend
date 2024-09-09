@@ -9,7 +9,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
-import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.SmartPointerManager
@@ -58,7 +57,7 @@ class TypeCheckProcessHandler(
         super.startNotify()
 
         val eventsProcessor = eventsProcessor ?: return
-        ApplicationManager.getApplication().saveAll()
+        SaveAndSyncHandler.getInstance().scheduleSave(SaveAndSyncHandler.SaveTask(typeCheckerService.project))
 
         val typecheckingErrorReporter = TypecheckingErrorReporter(typeCheckerService.project.service(), PrettyPrinterConfig.DEFAULT, eventsProcessor)
         val modulePath = if (command.modulePath == "") null else ModulePath(command.modulePath.split('.'))
