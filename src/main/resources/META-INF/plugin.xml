@@ -359,49 +359,15 @@
 
         <projectService serviceImplementation="org.arend.typechecking.TypeCheckingService"/>
 
-        <projectService serviceImplementation="org.arend.typechecking.BinaryFileSaver"/>
-
-        <projectService serviceImplementation="org.arend.search.ClassDescendantsSearch"/>
-
-        <projectService serviceImplementation="org.arend.resolving.ArendResolveCache"/>
-
-        <projectService serviceImplementation="org.arend.toolWindow.errors.ArendMessagesService"/>
-
-        <projectService serviceImplementation="org.arend.typechecking.error.ErrorService"/>
-
-        <applicationService serviceImplementation="org.arend.psi.listener.ArendPsiChangeService"/>
-
-        <applicationService serviceImplementation="org.arend.typechecking.DefinitionBlacklistService"/>
-
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
 
         <moduleService serviceImplementation="org.arend.module.editor.ArendModuleConfigurationView"/>
 
         <applicationService serviceImplementation="org.arend.settings.ArendSettings"/>
 
-        <projectService serviceImplementation="org.arend.settings.ArendProjectSettings"/>
-
-        <projectService serviceImplementation="org.arend.highlight.ArendPassFactoryService"/>
-
-        <projectService serviceImplementation="org.arend.toolWindow.repl.ArendReplService"/>
-
-        <projectService serviceImplementation="org.arend.ui.impl.session.ArendSessionsService"/>
-
-        <projectService serviceImplementation="org.arend.ui.console.ArendConsoleService"/>
-
-        <projectService serviceImplementation="org.arend.yaml.YamlFileService"/>
-
-        <projectService serviceImplementation="org.arend.toolWindow.errors.tree.ArendErrorTreeCellRendererService"/>
-
-        <projectService serviceImplementation="org.arend.graph.GraphSimulator"/>
-
-        <applicationService serviceImplementation="org.arend.typechecking.TypecheckingTaskQueue"/>
-
         <!-- Task Execution Listener -->
 
         <externalSystemTaskNotificationListener implementation="org.arend.typechecking.ArendExtensionChangeListener"/>
-
-        <applicationService serviceImplementation="org.arend.typechecking.ArendExtensionChangeListener"/>
 
         <!-- Editor Notification -->
 

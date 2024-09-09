@@ -1,6 +1,7 @@
 package org.arend.toolWindow.errors
 
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.properties.MutableBooleanProperty
@@ -11,6 +12,7 @@ import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.error.ErrorService
 
 
+@Service(Service.Level.PROJECT)
 class ArendMessagesService(private val project: Project) {
     var view: ArendMessagesView? = null
         private set

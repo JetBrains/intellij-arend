@@ -1,6 +1,5 @@
 package org.arend.highlight
 
-import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -12,8 +11,8 @@ import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.GoalError
 
-class TypecheckerPass(override val file: ArendFile, editor: Editor, highlightInfoProcessor: HighlightInfoProcessor)
-    : BasePass(file, editor, "Arend typechecker annotator", TextRange(0, editor.document.textLength), highlightInfoProcessor) {
+class TypecheckerPass(override val file: ArendFile, editor: Editor)
+    : BasePass(file, editor, "Arend typechecker annotator", TextRange(0, editor.document.textLength)) {
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         val errors = myProject.service<ErrorService>().getTypecheckingErrors(file)

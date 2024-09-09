@@ -420,7 +420,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         if (extensionDefinitions.containsKey(ref)) {
             runReadAction {
-                service<ArendExtensionChangeListener>().notifyIfNeeded(project)
+                service<ArendExtensionChangeService>().notifyIfNeeded(project)
             }
         }
 

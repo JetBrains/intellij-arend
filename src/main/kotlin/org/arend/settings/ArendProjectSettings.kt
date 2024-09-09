@@ -1,6 +1,7 @@
 package org.arend.settings
 
 import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
@@ -9,6 +10,7 @@ import org.arend.ext.prettyprinting.PrettyPrinterFlag
 import org.arend.toolWindow.errors.MessageType
 import java.util.*
 
+@Service(Service.Level.PROJECT)
 @State(name = "ArendSettings")
 class ArendProjectSettings : PersistentStateComponent<ArendProjectSettingsState> {
     val data = ArendProjectSettingsState()

@@ -2,25 +2,30 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.grammarkit.tasks.GenerateLexerTask
 import org.jetbrains.grammarkit.tasks.GenerateParserTask
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jetbrains.intellij.tasks.PatchPluginXmlTask
-import org.jetbrains.intellij.tasks.RunIdeBase
+import org.jetbrains.intellij.platform.gradle.tasks.PatchPluginXmlTask
+import org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.10.0"
+version = "1.10.0.1"
 
 plugins {
     idea
     kotlin("jvm") version "2.0.0"
-    id("org.jetbrains.intellij") version "1.17.4"
+    id("org.jetbrains.intellij.platform") version "2.0.1"
     id("org.jetbrains.grammarkit") version "2022.3.2.2"
 }
 
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 dependencies {
@@ -29,6 +34,17 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("org.scilab.forge:jlatexmath:1.0.7")
     implementation("guru.nidi:graphviz-java:0.18.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.6.1")
+    testCompileOnly("junit:junit:4.13.1")
+
+    intellijPlatform {
+        create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.2.1")
+        instrumentationTools()
+        bundledPlugins("org.jetbrains.plugins.yaml", "com.intellij.java")
+        plugins("IdeaVIM:2.16.0")
+        testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.Plugin.Java)
+    }
 }
 
 java {
@@ -67,12 +83,11 @@ tasks {
     }
 }
 
-intellij {
-    version.set("2024.1")
-    pluginName.set("Arend")
-    updateSinceUntilBuild.set(true)
-    instrumentCode.set(true)
-    plugins.set(listOf("org.jetbrains.plugins.yaml", "com.intellij.java", "IdeaVIM:2.12.0"))
+intellijPlatform {
+    pluginConfiguration {
+        name = "Arend"
+    }
+    instrumentCode = true
 }
 
 tasks.named<JavaExec>("runIde") {
@@ -80,7 +95,7 @@ tasks.named<JavaExec>("runIde") {
 }
 
 tasks.withType<PatchPluginXmlTask>().configureEach {
-    version.set(project.version.toString())
+    version = project.version.toString()
     pluginId.set(project.group.toString())
     changeNotes.set(file("src/main/html/change-notes.html").readText())
     pluginDescription.set(file("src/main/html/description.html").readText())
@@ -143,7 +158,7 @@ tasks.withType<Wrapper> {
     gradleVersion = "8.5"
 }
 
-tasks.register<RunIdeBase>("generateArendLibHTML") {
+tasks.register<RunIdeTask>("generateArendLibHTML") {
     systemProperty("java.awt.headless", true)
     args = listOf("generateArendLibHtml") +
             (project.findProperty("pathToArendLib") as String? ?: "") +

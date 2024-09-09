@@ -1,7 +1,6 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
-import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.Editor
@@ -15,8 +14,8 @@ import org.arend.psi.ext.*
 import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
 
-class PartiallyInfixOperatorPrefixFormPass(file: ArendFile, editor: Editor, highlightInfoProcessor: HighlightInfoProcessor):
-    BasePass(file, editor, "Partially applied infix operators in prefix form annotator", TextRange(0, editor.document.textLength), highlightInfoProcessor) {
+class PartiallyInfixOperatorPrefixFormPass(file: ArendFile, editor: Editor):
+    BasePass(file, editor, "Partially applied infix operators in prefix form annotator", TextRange(0, editor.document.textLength)) {
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         val infixArendRefIdentifiers = file.descendantsOfType<ArendRefIdentifier>().filter {

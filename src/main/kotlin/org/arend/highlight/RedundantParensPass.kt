@@ -1,7 +1,6 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
-import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInspection.HintAction
 import com.intellij.lang.annotation.HighlightSeverity
@@ -24,8 +23,8 @@ import org.arend.term.concrete.Concrete
 import org.arend.util.ArendBundle
 import org.arend.util.appExprToConcrete
 
-class RedundantParensPass(file: ArendFile, editor: Editor, highlightInfoProcessor: HighlightInfoProcessor):
-    BasePass(file, editor, "Arend redundant parens annotator", TextRange(0, editor.document.textLength), highlightInfoProcessor){
+class RedundantParensPass(file: ArendFile, editor: Editor):
+    BasePass(file, editor, "Arend redundant parens annotator", TextRange(0, editor.document.textLength)){
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         super.applyInformationWithProgress()
         val tuples = file.descendantsOfType<ArendTuple>().toList()

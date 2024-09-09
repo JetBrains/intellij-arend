@@ -10,7 +10,7 @@ import com.intellij.patterns.StandardPatterns.*
 import com.intellij.psi.*
 import com.intellij.psi.TokenType.BAD_CHARACTER
 import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.startOffset
 import com.intellij.util.ProcessingContext
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
@@ -769,7 +769,7 @@ class ArendCompletionContributor : CompletionContributor() {
         }
     }
 
-    private open class ConditionalProvider(val keywords: Collection<String>, val condition: (CompletionParameters) -> Boolean,
+    private open class ConditionalProvider(keywords: Collection<String>, val condition: (CompletionParameters) -> Boolean,
                                            completionBehavior: KeywordCompletionBehavior = KeywordCompletionBehavior.ADD_WHITESPACE,
                                            disableAfter2Crlfs: Boolean = true) :
             KeywordCompletionProvider(keywords, completionBehavior, disableAfter2Crlfs) {

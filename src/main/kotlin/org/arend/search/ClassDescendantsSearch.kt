@@ -2,6 +2,7 @@ package org.arend.search
 
 import com.intellij.find.findUsages.DefaultFindUsagesHandlerFactory
 import com.intellij.find.findUsages.FindUsagesOptions
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.usageView.UsageInfo
@@ -13,6 +14,7 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.parentOfType
 import java.util.concurrent.ConcurrentHashMap
 
+@Service(Service.Level.PROJECT)
 class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListener {
     private val cache = ConcurrentHashMap<ArendDefinition<*>, List<ArendDefinition<*>>>()
 

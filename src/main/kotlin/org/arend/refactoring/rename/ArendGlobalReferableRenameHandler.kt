@@ -14,13 +14,13 @@ import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
+import com.intellij.psi.util.startOffset
 import com.intellij.refactoring.RefactoringActionHandler
 import com.intellij.refactoring.rename.*
 import com.intellij.refactoring.rename.inplace.InplaceRefactoring
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenamer
 import com.intellij.refactoring.rename.inplace.VariableInplaceRenamer
-import com.intellij.refactoring.suggested.startOffset
 import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
 import org.arend.naming.reference.GlobalReferable
@@ -157,11 +157,6 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             return null
         }
     }
-
-    companion object {
-
-    }
-
 }
 
 enum class ArendNameKind{ NORMAL_NAME, ALIAS_NAME, NSID_NAME }

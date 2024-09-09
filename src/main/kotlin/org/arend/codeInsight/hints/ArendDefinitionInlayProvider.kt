@@ -9,7 +9,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.startOffset
 import org.arend.ArendLanguage
 import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCDefReferable

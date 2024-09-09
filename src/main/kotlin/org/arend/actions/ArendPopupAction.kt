@@ -32,8 +32,8 @@ abstract class ArendPopupAction : BaseCodeInsightAction() {
         isEnabledInModalContext = true
     }
 
-    override fun beforeActionPerformedUpdate(e: AnActionEvent) {
-        super.beforeActionPerformedUpdate(e)
+    override fun actionPerformed(e: AnActionEvent) {
+        super.actionPerformed(e)
         // The tooltip gets the focus if using a screen reader and invocation through a keyboard shortcut.
         requestFocus = ScreenReader.isActive() && e.inputEvent is KeyEvent
     }

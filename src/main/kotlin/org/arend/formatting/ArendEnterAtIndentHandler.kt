@@ -11,7 +11,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiFile
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.endOffset
+import com.intellij.psi.util.endOffset
 import org.arend.documentation.AREND_DOC_COMMENT_TABS_SIZE
 import org.arend.documentation.CONTEXT_ELEMENTS
 import org.arend.parser.ParserMixin.*

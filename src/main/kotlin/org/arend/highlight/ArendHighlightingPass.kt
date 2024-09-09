@@ -1,6 +1,5 @@
 package org.arend.highlight
 
-import com.intellij.codeInsight.daemon.impl.HighlightInfoProcessor
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -31,8 +30,8 @@ import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.CollectingOrderingListener
 import org.arend.util.ComputationInterruptedException
 
-class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRange, highlightInfoProcessor: HighlightInfoProcessor)
-    : BasePass(file, editor, "Arend resolver annotator", textRange, highlightInfoProcessor) {
+class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRange)
+    : BasePass(file, editor, "Arend resolver annotator", textRange) {
 
     private val psiListenerService = service<ArendPsiChangeService>()
     private val concreteProvider = PsiConcreteProvider(myProject, this, null, false)

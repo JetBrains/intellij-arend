@@ -49,7 +49,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
     override fun isApplicableElement(element: PsiElement) = element is ArendDefClass
 
     override fun getComparator(): Comparator<NodeDescriptor<*>>? =
-        if (HierarchyBrowserManager.getInstance(myProject).state!!.SORT_ALPHABETICALLY) AlphaComparator.INSTANCE else SourceComparator.INSTANCE
+        if (HierarchyBrowserManager.getInstance(myProject).state!!.SORT_ALPHABETICALLY) AlphaComparator.getInstance() else SourceComparator.INSTANCE
 
     override fun getElementFromDescriptor(descriptor: HierarchyNodeDescriptor) = (descriptor as? ArendHierarchyNodeDescriptor)?.psiElement
 

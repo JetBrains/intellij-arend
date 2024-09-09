@@ -3,8 +3,8 @@ package org.arend.refactoring.changeSignature
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.endOffset
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.endOffset
+import com.intellij.psi.util.startOffset
 import org.arend.codeInsight.*
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
@@ -121,8 +121,8 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
             val currentlyEliminatedParameters: List<ParameterDescriptor?> =
                 if (elim == null || elim.withKw != null) {
                     oldParametersFiltered
-                } else elim.refIdentifierList.map {
-                    val defIdentiier = it.reference.resolve() as? ArendDefIdentifier
+                } else elim.refIdentifierList.map { refId ->
+                    val defIdentiier = refId.reference.resolve() as? ArendDefIdentifier
                     val pd = oldParametersFiltered.firstOrNull { it.getReferable() == defIdentiier }
                     pd
                 }.toList()
@@ -287,41 +287,54 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
             newParameters: List<ParameterDescriptor>
         ): List<ChangeSignatureRefactoringDescriptor> {
             val refactoringDescriptors = ArrayList<ChangeSignatureRefactoringDescriptor>()
-            when (val changedDefinition = locatedReferable) {
+            when (locatedReferable) {
                 is ArendClassField -> {
-                    val thisParameter = ArendCodeInsightUtils.getThisParameter(changedDefinition) ?: throw IllegalStateException()
+                    val thisParameter = ArendCodeInsightUtils.getThisParameter(locatedReferable) ?: throw IllegalStateException()
                     refactoringDescriptors.add(
                         ChangeSignatureRefactoringDescriptor(
-                            changedDefinition,
+                            locatedReferable,
                             Collections.singletonList(thisParameter) + oldParameters,
-                            Collections.singletonList(DefaultParameterDescriptorFactory.createThisParameter(thisParameter)) + newParameters,
-                            newName = if (changedDefinition.name != newName) newName else null
+                            Collections.singletonList(
+                                DefaultParameterDescriptorFactory.createThisParameter(
+                                    thisParameter
+                                )
+                            ) + newParameters,
+                            newName = if (locatedReferable.name != newName) newName else null
                         )
                     )
                 }
 
                 is ArendConstructor -> {
-                    val thisParameter = ArendCodeInsightUtils.getThisParameterAsList(changedDefinition)
+                    val thisParameter = ArendCodeInsightUtils.getThisParameterAsList(locatedReferable)
                     val thisNewParameter = thisParameter.firstOrNull()?.let {
                         Collections.singletonList(DefaultParameterDescriptorFactory.createThisParameter(it))
                     } ?: emptyList()
-                    val data = changedDefinition.ancestor<ArendDefData>() ?: throw java.lang.IllegalStateException()
+                    val data = locatedReferable.ancestor<ArendDefData>() ?: throw java.lang.IllegalStateException()
                     val dataParameters = (ArendCodeInsightUtils.getExternalParameters(data)
                         ?: emptyList()) + DefaultParameterDescriptorFactory.createFromTeles(data.parameters)
-                    val calculatedSignature = ArendCodeInsightUtils.getPartialExpectedConstructorSignature(changedDefinition, dataParameters, DefaultParameterDescriptorFactory.identityTransform(dataParameters))
+                    val calculatedSignature = ArendCodeInsightUtils.getPartialExpectedConstructorSignature(
+                        locatedReferable,
+                        dataParameters,
+                        DefaultParameterDescriptorFactory.identityTransform(dataParameters)
+                    )
 
                     refactoringDescriptors.add(
-                        ChangeSignatureRefactoringDescriptor(changedDefinition,
+                        ChangeSignatureRefactoringDescriptor(
+                            locatedReferable,
                             thisParameter + calculatedSignature.first + oldParameters,
                             thisNewParameter + calculatedSignature.second!! + newParameters,
-                            newName = if (changedDefinition.name != newName) newName else null
+                            newName = if (locatedReferable.name != newName) newName else null
                         )
                     )
                 }
 
                 is ArendDefClass -> {
-                    val classDescendants = ClassDescendantsSearch(changedDefinition.project).getAllDescendants(changedDefinition)
-                    for (classDescendant in classDescendants.filterIsInstance<ArendDefClass>().union(Collections.singletonList(changedDefinition))) {
+                    val classDescendants = ClassDescendantsSearch(locatedReferable.project).getAllDescendants(
+                        locatedReferable
+                    )
+                    for (classDescendant in classDescendants.filterIsInstance<ArendDefClass>().union(Collections.singletonList(
+                        locatedReferable
+                    ))) {
                         var modifiedArgumentStart = -1
                         var modifiedArgumentEnd = -1
                         val typecheckedNotImplementedFields = (classDescendant.tcReferable?.typechecked as? org.arend.core.definition.ClassDefinition)?.notImplementedFields
@@ -355,7 +368,7 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                                     )
                             }
                             for ((index, field) in typecheckedNotImplementedFields.withIndex())
-                                if ((field.parentClass.referable as? DataLocatedReferable)?.data?.element == changedDefinition && (field.referable !is FieldDataLocatedReferable || field.referable.isParameterField)) {
+                                if ((field.parentClass.referable as? DataLocatedReferable)?.data?.element == locatedReferable && (field.referable !is FieldDataLocatedReferable || field.referable.isParameterField)) {
                                     notImplementedFields[field.name] = descendantOldParameters[index]
                                     if (modifiedArgumentStart == -1) modifiedArgumentStart = index
                                     modifiedArgumentEnd = index
@@ -364,7 +377,7 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                             descendantOldParameters = ClassReferable.Helper.getNotImplementedFields(classDescendant).filterIsInstance<PsiElement>().withIndex().map { (index, field) ->
                                 val classParent = field.ancestor<ArendDefClass>()!!
                                 val descriptor = DefaultParameterDescriptorFactory.createFromReferable(field as FieldReferable)
-                                if (classParent == changedDefinition) {
+                                if (classParent == locatedReferable) {
                                     notImplementedFields[field.refName] = descriptor
                                     if (modifiedArgumentStart == -1) modifiedArgumentStart = index
                                     modifiedArgumentEnd = index
@@ -383,7 +396,8 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                                     descendantOldParameters.mapNotNull { it.getReferable() }.toSet().contains( parameterDescriptor.oldParameter.getReferable() )
                         }.map {
                             val oldDescriptor: ParameterDescriptor? = it.oldParameter?.let { descriptor -> notImplementedFields[descriptor.name] }
-                            val parameterKind = if (classDescendant == changedDefinition) ClassParameterKind.OWN_PARAMETER else ClassParameterKind.INHERITED_PARAMETER
+                            val parameterKind =
+                                if (classDescendant == locatedReferable) ClassParameterKind.OWN_PARAMETER else ClassParameterKind.INHERITED_PARAMETER
                             DefaultParameterDescriptorFactory.createNewParameter(it.isExplicit, oldDescriptor, oldDescriptor?.getExternalScope(), it.name, it.typeGetter, parameterKind)
                         }
 
@@ -391,25 +405,25 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                             DefaultParameterDescriptorFactory.createNewParameter(it.isExplicit, it, it.getExternalScope(), it.getNameOrUnderscore(), it.typeGetter, it.classParameterKind)
                         } + centerPiece + suffix.map { DefaultParameterDescriptorFactory.createNewParameter(it.isExplicit, it, it.getExternalScope(), it.getNameOrUnderscore(), it.typeGetter, classParameterKind = it.classParameterKind) }
                         refactoringDescriptors.add(
-                            ChangeSignatureRefactoringDescriptor(classDescendant, descendantOldParameters, clazzNewParameters, newName = if (changedDefinition == classDescendant) newName else null)
+                            ChangeSignatureRefactoringDescriptor(classDescendant, descendantOldParameters, clazzNewParameters, newName = if (locatedReferable == classDescendant) newName else null)
                         )
                     }
                 }
 
                 is ArendDefData, is ArendFunctionDefinition<*> -> {
-                    val thisParameter = ArendCodeInsightUtils.getThisParameterAsList(changedDefinition)
+                    val thisParameter = ArendCodeInsightUtils.getThisParameterAsList(locatedReferable)
                     val thisNewParameter =
                         thisParameter.firstOrNull()?.let { Collections.singletonList(DefaultParameterDescriptorFactory.createThisParameter(it)) }
                             ?: emptyList()
                     val mainRefactoringDescriptor = ChangeSignatureRefactoringDescriptor(
-                        changedDefinition,
+                        locatedReferable,
                         thisParameter + oldParameters,
                         thisNewParameter + newParameters,
-                        newName = if (changedDefinition.name != newName) newName else null
+                        newName = if (locatedReferable.name != newName) newName else null
                     )
 
                     refactoringDescriptors.add(mainRefactoringDescriptor)
-                    val childDefinitions = getDefinitionsWithExternalParameters(changedDefinition as ParametersHolder)
+                    val childDefinitions = getDefinitionsWithExternalParameters(locatedReferable as ParametersHolder)
                     for (childDef in childDefinitions) {
                         val childDefOldParameters =
                             ArendCodeInsightUtils.getParameterList(childDef as ParametersHolder).first!!
@@ -418,9 +432,13 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                         }
                     }
 
-                    if (changedDefinition is ArendDefData && !mainRefactoringDescriptor.isSetOrOrderPreserved()) for (cons in changedDefinition.constructors) {
+                    if (locatedReferable is ArendDefData && !mainRefactoringDescriptor.isSetOrOrderPreserved()) for (cons in locatedReferable.constructors) {
                         val constructorDataParameters =
-                            ArendCodeInsightUtils.getPartialExpectedConstructorSignature(cons, oldParameters, newParameters)
+                            ArendCodeInsightUtils.getPartialExpectedConstructorSignature(
+                                cons,
+                                oldParameters,
+                                newParameters
+                            )
                         val ownParameters = DefaultParameterDescriptorFactory.createFromTeles(cons.parameters)
                         val newOwnParameters = DefaultParameterDescriptorFactory.identityTransform(ownParameters)
                         refactoringDescriptors.add(

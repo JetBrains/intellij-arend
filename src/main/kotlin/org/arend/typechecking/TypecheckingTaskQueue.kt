@@ -1,8 +1,8 @@
 package org.arend.typechecking
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.project.Project
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.psi.listener.ArendDefinitionChangeListener
@@ -11,6 +11,7 @@ import java.util.concurrent.LinkedBlockingQueue
 
 private class TypecheckingTask(val modificationCount: Long, val action: () -> Unit)
 
+@Service
 class TypecheckingTaskQueue : ArendDefinitionChangeListener {
     private val queue = LinkedBlockingQueue<TypecheckingTask>()
     private val tracker = service<ArendPsiChangeService>().definitionModificationTracker

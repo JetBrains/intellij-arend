@@ -2,7 +2,6 @@ package org.arend.highlight
 
 import com.intellij.codeHighlighting.TextEditorHighlightingPassFactoryRegistrar
 import com.intellij.codeHighlighting.TextEditorHighlightingPassRegistrar
-import com.intellij.codeInsight.daemon.impl.DefaultHighlightInfoProcessor
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -10,8 +9,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import org.arend.IArendFile
 import com.intellij.psi.util.PsiModificationTracker
-import org.arend.module.config.ArendModuleConfigService
-import org.arend.psi.module
 import org.arend.typechecking.TypeCheckingService
 
 class ArendHighlightingPassFactory : BasePassFactory<IArendFile>(IArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
@@ -23,7 +20,7 @@ class ArendHighlightingPassFactory : BasePassFactory<IArendFile>(IArendFile::cla
     }
 
     override fun createPass(file: IArendFile, editor: Editor, textRange: TextRange) =
-        ArendHighlightingPass(file, editor, textRange, DefaultHighlightInfoProcessor())
+        ArendHighlightingPass(file, editor, textRange)
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor) =
         if (file is IArendFile) {

@@ -3,17 +3,18 @@ package org.arend.graph
 import com.intellij.ide.BrowserUtil
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.Notifications
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.notificationGroup
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBPanel
 import guru.nidi.graphviz.engine.Format
 import guru.nidi.graphviz.engine.Graphviz
 import guru.nidi.graphviz.model.Factory.graph
 import guru.nidi.graphviz.model.Factory.node
-import java.awt.Color
 import java.awt.Image
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
@@ -30,6 +31,7 @@ data class GraphNode(val id: String)
 
 data class GraphEdge(val from: String, val to: String)
 
+@Service(Service.Level.PROJECT)
 class GraphSimulator(val project: Project) {
     private val fileChooser = JFileChooser()
 
@@ -103,7 +105,7 @@ class GraphSimulator(val project: Project) {
                 override fun createCenterPanel(): JComponent {
                     val panel = JBPanel<JBPanel<*>>()
                     panel.add(imageLabel)
-                    panel.background = Color.WHITE
+                    panel.background = JBColor.WHITE
                     panel.addComponentListener(object : ComponentAdapter() {
                         override fun componentResized(e: ComponentEvent) {
                             val component = panel.components.getOrNull(0) ?: return
