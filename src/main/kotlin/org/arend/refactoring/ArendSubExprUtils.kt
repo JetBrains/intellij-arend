@@ -205,6 +205,7 @@ fun rangeOfConcrete(subConcrete: Concrete.Expression): TextRange {
     val exprs = everyExprOf(subConcrete)
             .filterIsInstance<PsiElement>()
             .toList()
+    if (exprs.isEmpty()) return TextRange(0, 0)
     if (exprs.size == 1) return exprs.first().textRange
     // exprs is guaranteed to be empty
     val leftMost = exprs.minByOrNull { it.textRange.startOffset }!!
