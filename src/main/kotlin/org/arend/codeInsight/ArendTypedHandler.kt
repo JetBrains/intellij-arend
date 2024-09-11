@@ -63,8 +63,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
 
     override fun beforeSelectionRemoved(c: Char, project: Project, editor: Editor, file: PsiFile): Result {
         val selectedText = editor.selectionModel.selectedText
-        val element = file.findElementAt(editor.selectionModel.selectionStart)
-        if (c == '(' && element?.elementType == TGOAL) {
+        if (c == '(' && selectedText == "{?}") {
             addParens(project, editor, file)
             return Result.STOP
         } else if (BRACKETS.contains(c.toString())) {
