@@ -39,7 +39,9 @@ class RedundantParensInspection : ArendInspectionBase() {
                     return
                 }
                 if (element is ArendTypeTele && !(element.isExplicit && element.referableList == listOf(null))) return
-                if (element is ArendTuple && element.tupleExprList.size > 1 && withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendImplicitArgument::class.java).accepts(element)) {
+                if (element is ArendTuple && element.tupleExprList.size > 1 &&
+                        withAncestors(ArendAtom::class.java, ArendAtomFieldsAcc::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java, ArendTupleExpr::class.java, ArendImplicitArgument::class.java).accepts(element) &&
+                        element.parentOfType<ArendArgumentAppExpr>()?.children?.size == 1) {
                     registerFix(element)
                     return
                 }
