@@ -309,6 +309,25 @@ class RedundantParensInspectionTest : QuickFixTestBase() {
        \func foo => \lam e => (\case e)
     """)
 
+    fun `test a tuple with other arguments`() = doWeakWarningsCheck(myFixture,"""
+        \data Bool | false | true
+        
+        \data List (A : \Type)
+          | nil
+          | \infixr 5 :: A (List A)
+          
+        \func \infixr 5 ++ {A : \Type} (xs ys : List A) : List A \elim xs
+          | nil => ys
+          | :: a xs => a :: xs ++ ys
+        
+        \func ::-++ {X : \Type} {x : X} {xs y : List X} : (x :: xs) ++ y = x :: (xs ++ y) \elim xs
+          | nil => idp
+          | a :: y => idp
+        
+        \func foo (x : Nat) (p : Bool) (a : \Sigma Nat Bool) (u1 u2 : List (\Sigma Nat Bool)) =>
+          ::-++ {_} {a} {u1} {(x, p) :: u2}
+    """)
+
     private fun doTypedQuickFixTest(before: String, after: String) =
             typedQuickFixTest(ArendBundle.message("arend.unwrap.parentheses.fix"), before, after)
 

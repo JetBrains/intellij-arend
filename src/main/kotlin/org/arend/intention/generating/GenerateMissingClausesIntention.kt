@@ -9,7 +9,7 @@ import org.arend.util.ArendBundle
 
 class GenerateMissingClausesIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, ArendBundle.message("arend.generatePatternMatchingClauses")) {
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
-        return checkMissingClauses(element, editor)
+        return checkMissingClauses(element)
     }
 
     override fun applyTo(element: PsiElement, project: Project, editor: Editor) {

@@ -9,7 +9,7 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.refactoring.suggested.endOffset
+import com.intellij.psi.util.endOffset
 import org.arend.intention.SelfTargetingIntention
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
@@ -17,7 +17,7 @@ import org.arend.util.ArendBundle
 
 class GenerateElimMissingClausesIntention : SelfTargetingIntention<PsiElement>(PsiElement::class.java, ArendBundle.message("arend.generateElimPatternMatchingClauses")) {
     override fun isApplicableTo(element: PsiElement, caretOffset: Int, editor: Editor): Boolean {
-        return checkMissingClauses(element, editor)
+        return checkMissingClauses(element)
     }
 
     override fun applyTo(element: PsiElement, project: Project, editor: Editor) {
