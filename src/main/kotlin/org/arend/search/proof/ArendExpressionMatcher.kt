@@ -36,10 +36,16 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
             return codomainResult.takeIf { query.parameters.isEmpty() }?.let { ProofSearchMatchingResult(emptyList(), it) }
         }
         val parameterResults = mutableListOf<Pair<Concrete.Expression, List<Concrete.Expression>>>()
+        val usedParameters = mutableSetOf<Concrete.Expression>()
+
         loop@ for (patternParameter in query.parameters) {
             for (matchParameter in parameters) {
+                if (usedParameters.contains(matchParameter)) {
+                    continue
+                }
                 val match = matchDisjunct(patternParameter, matchParameter, cachingScope, qualifiedReferables, def)
                 if (match != null) {
+                    usedParameters.add(matchParameter)
                     parameterResults.add(matchParameter to match)
                     continue@loop
                 }
@@ -167,7 +173,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
                 if (referable != null) {
                     val refExpr = Concrete.FixityReferenceExpression.make(null, referable, Fixity.UNKNOWN, null, null)
                     refExpr ?: Concrete.HoleExpression(tree.referenceName)
-                } else if (tree.referenceName[0].toIntOrNull() != null) {
+                } else if (tree.referenceName.getOrNull(0)?.toIntOrNull() != null) {
                     val number = tree.referenceName[0].toInt()
                     findNumericalArgument(def, number)
                 } else {

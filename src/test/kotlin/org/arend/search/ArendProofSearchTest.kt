@@ -146,6 +146,13 @@ class ArendProofSearchTest : ArendTestBase() {
          
         \func f : D => {?}
     """, "A.C.D")
+
+    fun testPiExprClassField() = assertHasMatch("""
+        \class Bar {
+          | \infix 4 <= : Nat -> Nat -> \Prop
+          | <=-antisymmetric {x y : Nat} : x <= y -> y <= x -> x = y
+        }
+    """, "_ <= _ -> _ <= _ -> _ = _")
 }
 
 

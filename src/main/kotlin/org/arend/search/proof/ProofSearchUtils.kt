@@ -139,12 +139,14 @@ private fun getSignature(
             ?.find { it is Concrete.ClassField && (it.data as? DataLocatedReferable)?.underlyingReferable == referable }
             as? Concrete.ClassField
             ?: return null
-        val parameters = concrete.parameters.mapNotNull { it.type }
+        val parameters = concrete.parameters.mapNotNull { it.type }.toMutableList()
+        val (extraParams, codomain) = deconstructPi(concrete.resultType)
+        parameters.addAll(extraParams)
         return SignatureWithHighlighting(
-            concrete.parameters.mapNotNull { it.type },
-            concrete.resultType,
+            parameters,
+            codomain,
             lazy(LazyThreadSafetyMode.NONE) {
-                RenderingInfo(parameters.map(::gatherHighlightingData), gatherHighlightingData(concrete.resultType))
+                RenderingInfo(parameters.map(::gatherHighlightingData), gatherHighlightingData(codomain))
             })
     }
     if (referable is ArendConstructor) {
