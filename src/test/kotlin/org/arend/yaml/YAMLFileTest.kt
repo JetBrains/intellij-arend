@@ -10,9 +10,9 @@ class YAMLFileTest : ArendTestBase() {
 
     fun testDir() {
         File("$testDataPath/arend.yaml").writeText("""
-            langVersion: 1.9
+            langVersion: 1.10
             sourcesDir: src
-            dependencies: [arend-lib]
+            dependencies: []
             binariesDir: bin<caret>
         """.trimIndent())
 
@@ -31,7 +31,7 @@ class YAMLFileTest : ArendTestBase() {
 
     fun testList() {
         File("$testDataPath/arend.yaml").writeText("""
-            langVersion: 1.9
+            langVersion: 1.10
             sourcesDir: src
             dependencies: []
             binariesDir: bin

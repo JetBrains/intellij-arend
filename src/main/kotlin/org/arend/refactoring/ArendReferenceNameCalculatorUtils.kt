@@ -48,7 +48,6 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
     }
     val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
     val protectedAccessModifier = defaultLocation.target.accessModifier == AccessModifier.PROTECTED
-    val minimalImportMode = protectedAccessModifier || targetFile.statements.any { stat -> stat.group?.let { importedScope.resolveName(it.referable.textRepresentation()) } != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
     var targetFileAlreadyImported = false
     var preludeImportedManually = false
     val fileResolveActions = HashMap<LocationData, NsCmdRefactoringAction?>()
@@ -65,6 +64,8 @@ fun doCalculateReferenceName(defaultLocation: LocationData,
             }
         }
     }
+
+    val minimalImportMode = protectedAccessModifier || targetFile.fullName != Prelude.MODULE_PATH.toString() && targetFile.statements.any { stat -> stat.group?.let { importedScope.resolveName(it.referable.textRepresentation()) } != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 
     if (deferredImports != null) for (deferredImport in deferredImports) if (deferredImport.currentFile == currentFile) {
         if (deferredImport is ImportFileAction) preludeImportedManually = preludeImportedManually || deferredImport.getLongName().toString() == Prelude.MODULE_PATH.toString()

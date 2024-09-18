@@ -857,6 +857,22 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
          | a :: {suc n} l => {?} 
     """)
 
+    fun test555() = typedQuickFixTest(fixName, """
+       -- ! A.ard
+       \func nil => 101
+       
+       -- ! Main.ard
+       \import A
+       
+       \func f{-caret-}oo (a : Nat) : Nat
+    """, """
+       \import A
+       
+       \func foo (a : Nat) : Nat
+         | 0 => {?}
+         | suc a => {?}
+    """)
+
 
     val dataLeq = """
        \data \infix 4 < (n m : Nat) \with
