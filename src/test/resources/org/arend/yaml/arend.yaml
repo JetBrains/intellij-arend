@@ -1,4 +1,4 @@
-langVersion: 1.9
+langVersion: 1.10
 sourcesDir: src
 dependencies: []
 binariesDir: bin
