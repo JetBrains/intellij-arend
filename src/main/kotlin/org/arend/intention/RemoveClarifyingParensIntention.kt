@@ -38,8 +38,7 @@ class RemoveClarifyingParensIntention : BaseArendIntention(ArendBundle.message("
 }
 
 private fun getParentBinOpSkippingParens(binOp: Concrete.AppExpression): Concrete.AppExpression? {
-    val binOpPsi = binOp.data as? ArendArgumentAppExpr ?: throw IllegalArgumentException("Unexpected PSI for bin op")
-    val tuple = parentParensExpression(binOpPsi) ?: return null
+    val tuple =  (binOp.data as? ArendArgumentAppExpr)?.let{ parentParensExpression(it) } ?: return null
     val parentAppExprPsi = parentArgumentAppExpr(tuple) ?: return null
     if (parentAppExprPsi.argumentList.isEmpty()) {
         return null
