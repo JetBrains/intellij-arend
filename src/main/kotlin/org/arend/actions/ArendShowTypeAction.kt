@@ -31,6 +31,8 @@ import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.visitor.DefinitionTypechecker
+import org.arend.typechecking.visitor.DesugarVisitor
+import org.arend.typechecking.visitor.WhereVarsFixVisitor
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
@@ -79,6 +81,8 @@ class ArendShowTypeAction : ArendPopupAction() {
             val extension = LibraryArendExtensionProvider(project.service<TypeCheckingService>().libraryManager)
                 .getArendExtension(it.data)
             val errorReporter = ErrorReporter {  }
+            DesugarVisitor.desugar(it, errorReporter)
+            WhereVarsFixVisitor.fixDefinition(listOf(it), errorReporter)
             val typechecker = ArendExpressionTypechecker(expr, errorReporter, extension).apply {
                 instancePool = GlobalInstancePool(PsiInstanceProviderSet()[it.data], this)
             }
