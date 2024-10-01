@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 val projectArend = gradle.includedBuild("Arend")
 group = "org.arend.lang"
-version = "1.10.0.1"
+version = "1.10.0.2"
 
 plugins {
     idea
@@ -38,7 +38,7 @@ dependencies {
     testCompileOnly("junit:junit:4.13.1")
 
     intellijPlatform {
-        create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.2.1")
+        create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.2.3")
         instrumentationTools()
         bundledPlugins("org.jetbrains.plugins.yaml", "com.intellij.java")
         plugins("IdeaVIM:2.16.0")
