@@ -3,6 +3,7 @@ package org.arend.psi.arc
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorNotificationPanel
@@ -14,7 +15,11 @@ import javax.swing.JComponent
 
 class ArcNotificationProvider : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, virtualFile: VirtualFile): Function<in FileEditor, out JComponent?>? {
+        val textEditor = FileEditorManager.getInstance(project).getSelectedEditor(virtualFile) as TextEditor?
+        val editor = textEditor?.editor
         if (virtualFile.fileType !is ArcFileType) {
+            return null
+        } else if (editor?.document?.text?.isNotEmpty() == true) {
             return null
         }
         return Function<FileEditor, EditorNotificationPanel?> {
@@ -26,14 +31,10 @@ class ArcNotificationProvider : EditorNotificationProvider {
         val panel = EditorNotificationPanel(editor, EditorNotificationPanel.Status.Info)
         panel.text = ArendBundle.message("arend.arc.update")
         panel.createActionLabel(ArendBundle.message("arend.updateYamlConfiguration")) {
-            val editorManager = FileEditorManager.getInstance(project)
-            editorManager.closeFile(virtualFile)
-
             FileBasedIndex.getInstance().invalidateCaches()
-            FileDocumentManager.getInstance()
-                .reloadFromDisk(FileDocumentManager.getInstance().getCachedDocument(virtualFile)!!)
-
-            editorManager.openFile(virtualFile, true)
+            FileDocumentManager.getInstance().getCachedDocument(virtualFile)?.let {
+                FileDocumentManager.getInstance().reloadFromDisk(it)
+            }
         }
         return panel
     }
