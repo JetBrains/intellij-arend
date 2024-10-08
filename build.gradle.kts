@@ -129,7 +129,7 @@ val generateArendDocLexer = tasks.register<GenerateLexerTask>("genArendDocLexer"
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_21)
         languageVersion.set(KotlinVersion.KOTLIN_2_0)
         apiVersion.set(KotlinVersion.KOTLIN_1_9)
         freeCompilerArgs.set(listOf("-Xjvm-default=all"))
