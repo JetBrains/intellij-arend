@@ -13,6 +13,7 @@ import com.intellij.ui.EditorNotificationProvider
 import org.arend.psi.ArendFile
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.ArendBundle
+import org.arend.util.FileUtils.SERIALIZED_EXTENSION
 import java.util.function.Function
 import javax.swing.JComponent
 
@@ -20,7 +21,8 @@ class FileOutsideSourcesProvider : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, virtualFile: VirtualFile): Function<in FileEditor, out JComponent?>? {
         val file = PsiManager.getInstance(project).findFile(virtualFile)
         if (file !is ArendFile || ProjectFileIndex.getInstance(project).isInSource(virtualFile) ||
-                project.service<TypeCheckingService>().prelude == file || virtualFile is LightVirtualFile) {
+                project.service<TypeCheckingService>().prelude == file || virtualFile is LightVirtualFile ||
+                file.name.endsWith(SERIALIZED_EXTENSION)) {
             return null
         }
 
