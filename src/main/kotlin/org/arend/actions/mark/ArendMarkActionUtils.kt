@@ -5,6 +5,7 @@ import com.intellij.ide.projectView.actions.MarkRootActionBase
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.LangDataKeys
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.module.Module
@@ -91,8 +92,11 @@ internal fun addMarkedDirectory(dir: String?, arendModuleConfigService: ArendMod
         if (!dirFile.exists()) {
             dirFile.mkdirs()
         }
-        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(dirFile)?.let {
-            addNewFolder(arendModuleConfigService?.module, it, directoryType)
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            LocalFileSystem.getInstance().refreshAndFindFileByIoFile(dirFile)?.let {
+                addNewFolder(arendModuleConfigService?.module, it, directoryType)
+            }
         }
     }
 }
@@ -117,13 +121,27 @@ internal fun isNotOtherDirectionType(e: AnActionEvent): Boolean {
     val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
 
     val localFileSystem = LocalFileSystem.getInstance()
-    val sourceDir = localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.sourcesDir))
-    val testDir = localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.testsDir))
-    val binariesDirectory = localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.binariesDirectory))
-    return when (dir) {
-        sourceDir, testDir, binariesDirectory -> false
-        else -> true
-    }
+    return ApplicationManager.getApplication().executeOnPooledThread<Boolean> {
+        val (sourceDir, testDir, binariesDirectory) = triple(localFileSystem, arendModuleConfigService)
+
+        when (dir) {
+            sourceDir, testDir, binariesDirectory -> false
+            else -> true
+        }
+    }.get()
+}
+
+private fun triple(
+    localFileSystem: LocalFileSystem,
+    arendModuleConfigService: ArendModuleConfigService?
+): Triple<VirtualFile?, VirtualFile?, VirtualFile?> {
+    val sourceDir =
+        localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.sourcesDir))
+    val testDir =
+        localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.testsDir))
+    val binariesDirectory =
+        localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.binariesDirectory))
+    return Triple(sourceDir, testDir, binariesDirectory)
 }
 
 internal fun hasSpecialDirectories(e: AnActionEvent): Boolean {
@@ -132,16 +150,18 @@ internal fun hasSpecialDirectories(e: AnActionEvent): Boolean {
     val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
 
     val localFileSystem = LocalFileSystem.getInstance()
-    val sourceDir = localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.sourcesDir))
-    val testDir = localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.testsDir))
-    val binariesDirectory = localFileSystem.refreshAndFindFileByIoFile(File(arendModuleConfigService?.root?.path + File.separator + arendModuleConfigService?.binariesDirectory))
-    for (file in files) {
-        when (file) {
-            sourceDir, testDir, binariesDirectory -> return true
-            else -> continue
+    return ApplicationManager.getApplication().executeOnPooledThread<Boolean> {
+        val (sourceDir, testDir, binariesDirectory) = triple(localFileSystem, arendModuleConfigService)
+
+        var result = false
+        for (file in files) {
+            when (file) {
+                sourceDir, testDir, binariesDirectory -> result = true
+                else -> continue
+            }
         }
-    }
-    return false
+        result
+    }.get()
 }
 
 internal fun unmarkOldDirectory(e: AnActionEvent, directoryType: DirectoryType) {
