@@ -88,18 +88,18 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
     override fun applyInformationWithProgress() {
         val errorService = myProject.service<ErrorService>()
 
-        for (error in errorList) {
-            val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return
-            for (cause in list) {
-                val psi = getCauseElement(cause)
-                if (psi != null && psi.isValid) {
-                    reportToEditor(error, psi)
-                    errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))
+        ApplicationManager.getApplication().invokeLater({
+            for (error in errorList) {
+                val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return@invokeLater
+                for (cause in list) {
+                    val psi = getCauseElement(cause)
+                    if (psi != null && psi.isValid) {
+                        reportToEditor(error, psi)
+                        errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))
+                    }
                 }
             }
-        }
 
-        ApplicationManager.getApplication().invokeLater({
             if (isValid) {
                 UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
             }
