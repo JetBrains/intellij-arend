@@ -33,4 +33,6 @@ class ArendTypedHandlerTest : ArendTestBase() {
     fun `test parens goal`() = check("""\func f => {-caret-}{?}""", """\func f => ({?})""", '(')
 
     fun `test parens goal 2`() = check("""\func f => {-caret-}{?}""", """\func f => ({?}""", '(', false)
+
+    fun `test braces 2`() = check("""\class Foo {\n  | foo : {-caret-}Nat\n}""", """\class Foo {\n  | foo : {Nat}\n}""", '{')
 }
