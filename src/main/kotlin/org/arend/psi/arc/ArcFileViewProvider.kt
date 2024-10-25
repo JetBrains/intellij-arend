@@ -3,6 +3,7 @@ package org.arend.psi.arc
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.findDocument
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.SingleRootFileViewProvider
@@ -14,8 +15,20 @@ class ArcFileViewProvider(manager: PsiManager, virtualFile: VirtualFile, eventSy
 
     override fun createFile(project: Project, file: VirtualFile, fileType: FileType): PsiFile? {
         if (fileType is ArcFileType) {
-            return ArendFile(this)
+            return object: ArendFile(this) {
+                override fun getText(): String? {
+                    return virtualFile.findDocument()?.text ?: ""
+                }
+
+                override fun getTextLength(): Int {
+                    return virtualFile.findDocument()?.text?.length ?: 0
+                }
+            }
         }
         return super.createFile(project, file, fileType)
+    }
+
+    override fun getContents(): CharSequence {
+        return virtualFile.findDocument()?.text ?: ""
     }
 }
