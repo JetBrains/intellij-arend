@@ -287,4 +287,48 @@ class ImplementFieldsQuickFixTest : QuickFixTestBase() {
                \record R (x : Nat) \record S (r : Nat -> R) \func foo : S \cowith | r n : R \cowith
                  | x => {?}{-caret-}
             """)
+
+    fun `test default fields instance`() = simpleQuickFixTest(implement,
+        """
+               \class C {
+                  | field : Nat -> Nat
+                  | defaultField : Nat -> Nat
+                  
+                  \default defaultField => field
+               }
+               
+               \instance I{-caret-} : C
+            """, """
+               \class C {
+                  | field : Nat -> Nat
+                  | defaultField : Nat -> Nat
+                  
+                  \default defaultField => field
+               }
+               
+               \instance I : C
+                 | field => {?}
+            """)
+
+    fun `test default fields func`() = simpleQuickFixTest(implement,
+        """
+               \class C {
+                  | field : Nat -> Nat
+                  | defaultField : Nat -> Nat
+                  
+                  \default defaultField => field
+               }
+               
+               \func {-caret-}F : C \cowith
+            """, """
+               \class C {
+                  | field : Nat -> Nat
+                  | defaultField : Nat -> Nat
+                  
+                  \default defaultField => field
+               }
+               
+               \func F : C \cowith
+                 | field => {?}
+            """)
 }

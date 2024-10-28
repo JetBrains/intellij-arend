@@ -44,7 +44,7 @@ class CoClauseInserter(private val coClause: CoClauseBase) : AbstractCoClauseIns
         anchor.parent.addAfter(sampleCoClause, anchor)
         moveCaretToEndOffset(editor, anchor.nextSibling)
 
-        anchor.parent.addAfter(factory.createWhitespace("\n"), anchor)
+        anchor.parent.addAfter(factory.createWhitespace("\n "), anchor)
     }
 }
 
@@ -58,7 +58,7 @@ open class ArendFunctionalInserter(private val definition: ArendFunctionDefiniti
             val samplePipe = sampleCoClause.findPrevSibling()!!
             val anchor = body.coClauseList.lastOrNull() ?: body.lbrace ?: body.cowithKw
             val insertedClause = if (anchor != null) body.addAfter(sampleCoClause, anchor) else body.add(sampleCoClause)
-            body.addBefore(factory.createWhitespace("\n"), insertedClause)
+            body.addBefore(factory.createWhitespace("\n "), insertedClause)
             body.addBefore(samplePipe, insertedClause)
 
             if (insertedClause != null) moveCaretToEndOffset(editor, insertedClause)
@@ -72,7 +72,7 @@ class FunctionDefinitionInserter(private val functionDefinition: ArendDefFunctio
         if (functionBody == null) {
             val functionBodySample = factory.createCoClauseInFunction(name).parent as ArendFunctionBody
             functionBody = functionDefinition.addAfter(functionBodySample, functionDefinition.children.last()) as ArendFunctionBody
-            functionDefinition.addBefore(factory.createWhitespace("\n"), functionBody)
+            functionDefinition.addBefore(factory.createWhitespace("\n "), functionBody)
             moveCaretToEndOffset(editor, functionBody.lastChild)
         } else super.insertFirstCoClause(name, factory, editor)
     }
@@ -85,7 +85,7 @@ class ArendInstanceInserter(private val instance: ArendDefInstance) : ArendFunct
             val instanceBodySample = factory.createCoClause(name).parent as ArendFunctionBody
             val anchor = instance.returnExpr ?: instance.defIdentifier
             instanceBody = instance.addAfter(instanceBodySample, anchor) as ArendFunctionBody
-            instance.addBefore(factory.createWhitespace("\n"), instanceBody)
+            instance.addBefore(factory.createWhitespace("\n  "), instanceBody)
             moveCaretToEndOffset(editor, instanceBody.lastChild)
         } else super.insertFirstCoClause(name, factory, editor)
     }
