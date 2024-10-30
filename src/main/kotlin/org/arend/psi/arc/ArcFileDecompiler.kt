@@ -10,8 +10,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.compiled.ClassFileDecompilers
 import com.intellij.psi.impl.compiled.ClsFileImpl
+import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Definition
-import org.arend.core.expr.DefCallExpression
+import org.arend.core.expr.*
 import org.arend.core.expr.visitor.VoidExpressionVisitor
 import org.arend.ext.module.ModulePath
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
@@ -74,9 +75,17 @@ class ArcFileDecompiler : BinaryFileDecompiler {
                 val referables = mutableSetOf<PsiLocatedReferable>()
 
                 override fun visitDefCall(expr: DefCallExpression?, params: Void?): Void? {
-                    val referable = expr?.definition?.referable?.underlyingReferable as? PsiLocatedReferable? ?: return null
+                    val referable = expr?.definition?.referable?.underlyingReferable as? PsiLocatedReferable? ?: return super.visitDefCall(expr, params)
                     referables.add(referable)
-                    return null
+                    return super.visitDefCall(expr, params)
+                }
+
+                override fun visitClass(def: ClassDefinition?, params: Void?): Void? {
+                    for (superClass in def?.superClasses ?: emptyList()) {
+                        val referable = superClass.referable?.underlyingReferable as? PsiLocatedReferable? ?: continue
+                        referables.add(referable)
+                    }
+                    return super.visitClass(def, params)
                 }
             }
             definitions.forEach { it.accept(statementVisitor, null) }
