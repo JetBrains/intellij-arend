@@ -74,6 +74,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         return null
     }
 
+    override fun getUseParent() = parentGroup?.referable
+
+    override fun withUse() = parent?.hasChildOfType(USE_KW) == true
+
     protected open val parametersExt: List<Abstract.Parameter>
         get() = emptyList()
 
@@ -106,10 +110,10 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable =
         DataLocatedReferable(data, accessModifier, this, parent)
 
-    override fun getPLevelParameters(): Abstract.LevelParameters? =
+    override fun getPLevelParameters(): ArendLevelParamsSeq? =
         getChild { it.elementType == P_LEVEL_PARAMS_SEQ }
 
-    override fun getHLevelParameters(): Abstract.LevelParameters? =
+    override fun getHLevelParameters(): ArendLevelParamsSeq? =
         getChild { it.elementType == H_LEVEL_PARAMS_SEQ }
 
     override val where: ArendWhere?

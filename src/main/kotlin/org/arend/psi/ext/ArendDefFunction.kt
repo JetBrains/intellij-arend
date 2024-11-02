@@ -31,21 +31,16 @@ class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract
 
     override fun getStatements() = (body?.coClauseList ?: emptyList()) + super.getStatements()
 
-    override fun getFunctionKind(): FunctionKind {
-        val child = functionKw.firstRelevantChild
-        return when (child.elementType) {
+    override fun getFunctionKind() =
+        when (functionKw.firstRelevantChild.elementType) {
             LEMMA_KW -> FunctionKind.LEMMA
             SFUNC_KW -> FunctionKind.SFUNC
             TYPE_KW -> FunctionKind.TYPE
             AXIOM_KW -> FunctionKind.AXIOM
-            USE_KW -> when (child?.findNextSibling().elementType) {
-                LEVEL_KW -> FunctionKind.LEVEL
-                COERCE_KW -> FunctionKind.COERCE
-                else -> FunctionKind.FUNC
-            }
+            LEVEL_KW -> FunctionKind.LEVEL
+            COERCE_KW -> FunctionKind.COERCE
             else -> FunctionKind.FUNC
         }
-    }
 
     override fun getIcon(flags: Int): Icon = ArendIcons.FUNCTION_DEFINITION
 

@@ -119,13 +119,13 @@ private topStatement_recovery ::= topStatement_recover {
     recoverWhile = topStatement_recover
 }
 
-private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | META_KW | USE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | PLEVELS_KW | HLEVELS_KW | PRIVATE_KW | PROTECTED_KW | <<eof>>)
+private topStatement_recover ::= !(OPEN_KW | IMPORT_KW | MODULE_KW | FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | META_KW | USE_KW | LEVEL_KW | COERCE_KW | FIELD_KW | OVERRIDE_KW | DEFAULT_KW | PROPERTY_KW | TRUNCATED_KW | DATA_KW | CONS_KW | RECORD_KW | CLASS_KW | INSTANCE_KW | PLEVELS_KW | HLEVELS_KW | PRIVATE_KW | PROTECTED_KW | <<eof>>)
 
 private statement_recover ::= !(WHERE_KW | RBRACE) & topStatement_recover
 
 accessMod ::= PRIVATE_KW | PROTECTED_KW
 
-stat ::= statCmd | accessMod? definition | defModule | statAccessMod | pLevelParams | hLevelParams | stat_recovery
+stat ::= statCmd | accessMod? USE_KW? definition | defModule | statAccessMod | pLevelParams | hLevelParams | stat_recovery
 
 statAccessMod ::= accessMod statAccessModInternal { pin = 1 }
 
@@ -262,7 +262,7 @@ pLevelParamsSeq ::= [pLevelIdentifier (levelCmp pLevelIdentifier)*]
 
 hLevelParamsSeq ::= [hLevelIdentifier (levelCmp hLevelIdentifier)*]
 
-functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | useMod
+functionKw ::= FUNC_KW | SFUNC_KW | LEMMA_KW | TYPE_KW | AXIOM_KW | COERCE_KW | LEVEL_KW
 
 levelCmp ::= LESS_OR_EQUALS | GREATER_OR_EQUALS
 
@@ -274,8 +274,6 @@ returnExprWOB ::= exprWOB [LEVEL_KW exprWOB] | LEVEL_KW atomFieldsAcc atomFields
 }
 
 returnExpr ::= expr [LEVEL_KW expr] | LEVEL_KW atomFieldsAcc atomFieldsAcc { pin(".*") = 1 }
-
-private useMod ::= USE_KW (COERCE_KW | LEVEL_KW) { pin = 1 }
 
 private defIdentifier_func ::= defIdentifier {
     recoverWhile = defIdentifier_func_recover
