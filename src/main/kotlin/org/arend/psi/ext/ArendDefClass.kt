@@ -95,9 +95,6 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefi
 
     override fun getClassReferenceData(onlyClassRef: Boolean) = ClassReferenceData(this, emptyList(), emptySet(), false)
 
-    override fun getUsedDefinitions(): List<LocatedReferable> =
-        (dynamicSubgroups + statements.mapNotNull { it.group }).mapNotNull { if ((it as? ArendDefFunction)?.functionKind?.isUse == true) it else null }
-
     override val typeOf: Abstract.Expression
         get() = Universe
 

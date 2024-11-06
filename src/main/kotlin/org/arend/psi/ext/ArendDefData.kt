@@ -51,11 +51,6 @@ class ArendDefData : ArendDefinition<ArendDefDataStub>, TCDefinition, Abstract.D
         return body.constructorClauseList + body.constructorList
     }
 
-    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statList?.mapNotNull {
-        val def = it.firstRelevantChild
-        if ((def as? ArendDefFunction)?.functionKind?.isUse == true) def else null
-    } ?: emptyList()
-
     internal val allParameters
         get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
 

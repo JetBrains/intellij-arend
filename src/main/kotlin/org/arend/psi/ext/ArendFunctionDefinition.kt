@@ -54,11 +54,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getClauses(): List<ArendClause> = body?.clauseList ?: emptyList()
 
-    override fun getUsedDefinitions(): List<LocatedReferable> = where?.statList?.mapNotNull {
-        val def = it.group
-        if ((def as? ArendDefFunction)?.functionKind?.isUse == true) def else null
-    } ?: emptyList()
-
     override fun getImplementedField(): Abstract.Reference? = null
 
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitFunction(this)

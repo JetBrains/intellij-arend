@@ -78,6 +78,11 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun withUse() = parent?.hasChildOfType(USE_KW) == true
 
+    override fun getUsedDefinitions(): List<LocatedReferable> = statements.mapNotNull {
+        val group = it.group
+        if (group is ArendDefinition<*> && group.withUse()) group.referable else null
+    }
+
     protected open val parametersExt: List<Abstract.Parameter>
         get() = emptyList()
 

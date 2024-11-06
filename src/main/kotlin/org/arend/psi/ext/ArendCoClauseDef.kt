@@ -64,8 +64,6 @@ class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract
 
     override fun getClassReference(): ClassReferable? = resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
-    override fun getUsedDefinitions(): List<LocatedReferable> = emptyList()
-
     override fun getFunctionKind() = if (isDefault) FunctionKind.CLASS_COCLAUSE else FunctionKind.FUNC_COCLAUSE
 
     override fun getImplementedField(): Abstract.Reference? = parentCoClause?.longName?.refIdentifierList?.lastOrNull()
