@@ -14,7 +14,6 @@ import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.EditorNotifications
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.util.FileUtils
-import org.arend.util.VersionRange
 
 class YAMLFileListener(private val project: Project) : BulkFileListener, DocumentListener {
     private val yamlFileService = project.service<YamlFileService>()
@@ -29,24 +28,9 @@ class YAMLFileListener(private val project: Project) : BulkFileListener, Documen
         val file = FileDocumentManager.getInstance().getFile(document) ?: return
         if (file.name == FileUtils.LIBRARY_CONFIG_FILE && file !is LightVirtualFile) {
             val text = document.text
-            val newYamlFile = createFromText(text, project)
-
-            val arendModuleConfigService = ArendModuleConfigService.getInstance(ModuleUtil.findModuleForFile(file, project))
-            val updateFlag = arendModuleConfigService?.sourcesDir != newYamlFile?.sourcesDir.orEmpty().trim('/') ||
-                    arendModuleConfigService.binariesDirectory != newYamlFile?.binariesDir.orEmpty().trim('/') ||
-                    arendModuleConfigService.testsDir != newYamlFile?.testsDir.orEmpty().trim('/') ||
-                    arendModuleConfigService.extensionsDirectory != newYamlFile?.extensionsDir.orEmpty().trim('/') ||
-                    arendModuleConfigService.extensionMainClassData != newYamlFile?.extensionMainClass.orEmpty() ||
-                    arendModuleConfigService.modules.orEmpty().sorted() != newYamlFile?.modules.orEmpty().sorted() ||
-                    arendModuleConfigService.dependencies.sorted() != newYamlFile?.dependencies.orEmpty().sorted() ||
-                    VersionRange.parseVersionRange(arendModuleConfigService.versionString) != VersionRange.parseVersionRange(newYamlFile?.version.orEmpty()) ||
-                    VersionRange.parseVersionRange(arendModuleConfigService.langVersionString) != VersionRange.parseVersionRange(newYamlFile?.langVersion.orEmpty())
-
-            if (updateFlag) {
-                yamlFileService.addChangedFile(file)
-            } else {
-                yamlFileService.removeChangedFile(file)
-            }
+            yamlFileService.checkSameFields(file, text)
+            yamlFileService.compareSettings(file, text)
+            FileDocumentManager.getInstance().saveDocument(document)
             EditorNotifications.getInstance(project).updateNotifications(file)
         }
         super.documentChanged(event)
@@ -84,7 +68,8 @@ class YAMLFileListener(private val project: Project) : BulkFileListener, Documen
             val service = ArendModuleConfigService.getInstance(module) ?: return
             val root = service.root ?: return
             if (root == oldParent || root == newParent) {
-                yamlFileService.updateIdea(file)
+                yamlFileService.updateIdea(file, service)
+                service.copyFromYAML(true)
             }
         }
     }

@@ -11,7 +11,7 @@ class ArendMarkBinRootAction : MarkExcludeRootAction() {
     }
 
     override fun update(e: AnActionEvent) {
-        if (isNotOtherDirectionType(e)) {
+        if (isNotOtherDirectoryType(e)) {
             e.presentation.isEnabledAndVisible = true
             super.update(e)
         } else {
@@ -20,7 +20,7 @@ class ArendMarkBinRootAction : MarkExcludeRootAction() {
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        unmarkOldDirectory(e, DirectoryType.BIN)
+        unmarkDirectory(e, DirectoryType.BIN)
         super.actionPerformed(e)
     }
 }

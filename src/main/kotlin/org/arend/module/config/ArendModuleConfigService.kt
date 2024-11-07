@@ -1,7 +1,6 @@
 package org.arend.module.config
 
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.*
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
@@ -155,10 +154,39 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         sourcesDir = yaml.sourcesDir ?: ""
         versionString = yaml.version
         langVersionString = yaml.langVersion
+
+        if (sourcesDir == binariesDirectory) {
+            binariesDirectory = ""
+            invokeLater {
+                runUndoTransparentWriteAction {
+                    yaml.binariesDir = ""
+                }
+            }
+        }
+        if (sourcesDir == testsDir) {
+            testsDir = ""
+            invokeLater {
+                runUndoTransparentWriteAction {
+                    yaml.testsDir = ""
+                }
+            }
+        }
+        if (binariesDirectory == testsDir) {
+            testsDir = ""
+            invokeLater {
+                runUndoTransparentWriteAction {
+                    yaml.testsDir = ""
+                }
+            }
+        }
     }
 
     fun copyFromYAML(update: Boolean) {
         copyFromYAML(yamlFile ?: return, update)
+    }
+
+    fun saveSettings() {
+        project.service<YamlFileService>().updateIdea(runReadAction { yamlFile?.virtualFile } ?: return, this)
     }
 
     fun updateFromIDEA(config: ArendModuleConfiguration) {

@@ -2,6 +2,7 @@ package org.arend
 
 import com.intellij.codeInsight.editorActions.SelectionQuotingTypedHandler
 import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
+import com.intellij.ide.AppLifecycleListener
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
@@ -10,10 +11,7 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.project.DumbModeTask
-import com.intellij.openapi.project.DumbService
-import com.intellij.openapi.project.ModuleListener
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.*
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.ui.JBColor
 import org.arend.module.ArendModuleType
@@ -70,6 +68,16 @@ class ArendStartupActivity : ProjectActivity {
                 }
             }
         })
+
+        ApplicationManager.getApplication().messageBus.connect(service)
+            .subscribe<AppLifecycleListener>(AppLifecycleListener.TOPIC, object : AppLifecycleListener {
+                override fun appWillBeClosed(isRestart: Boolean) {
+                    for (module in project.arendModules) {
+                        ArendModuleConfigService.getInstance(module)?.saveSettings()
+                    }
+                }
+            })
+
         disableActions()
         changeColors()
     }

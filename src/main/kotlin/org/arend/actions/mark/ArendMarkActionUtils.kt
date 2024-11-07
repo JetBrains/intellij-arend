@@ -6,10 +6,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.application.runUndoTransparentWriteAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.*
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.actions.mark.DirectoryType.*
@@ -45,18 +45,14 @@ private fun getDirByType(directoryType: DirectoryType, arendModuleConfigService:
     }
 }
 
-private fun commitModel(module: Module?, model: ModifiableRootModel?) {
-    invokeLater {
-        runWriteAction {
-            model?.commit()
-        }
+fun commitModel(module: Module?, model: ModifiableRootModel?) {
+    runUndoTransparentWriteAction {
+        model?.commit()
         module?.project?.let { SaveAndSyncHandler.getInstance().scheduleProjectSave(it) }
     }
 }
 
-internal fun removeOldFolder(virtualFile: VirtualFile?, arendModuleConfigService: ArendModuleConfigService?, directoryType: DirectoryType) {
-    val module = arendModuleConfigService?.module
-    val model = module?.let { ModuleRootManager.getInstance(it).modifiableModel }
+internal fun removeOldFolder(virtualFile: VirtualFile?, model: ModifiableRootModel?, arendModuleConfigService: ArendModuleConfigService?, directoryType: DirectoryType) {
     val entry = model?.let { rootModel -> virtualFile?.let { file -> MarkRootActionBase.findContentEntry(rootModel, file) } }
     val oldDir = getDirByType(directoryType, arendModuleConfigService)
     getContentFolder(directoryType, oldDir, entry, arendModuleConfigService)?.let {
@@ -65,57 +61,42 @@ internal fun removeOldFolder(virtualFile: VirtualFile?, arendModuleConfigService
             BIN -> entry?.removeExcludeFolder(it as ExcludeFolder)
         }
     }
-    commitModel(module, model)
 }
 
-internal fun addNewFolder(module: Module?, virtualFile: VirtualFile, directoryType: DirectoryType) {
-    val model = module?.let { ModuleRootManager.getInstance(it).modifiableModel }
+internal fun addNewFolder(virtualFile: VirtualFile, model: ModifiableRootModel?, directoryType: DirectoryType) {
     val entry = model?.let { MarkRootActionBase.findContentEntry(it, virtualFile) }
     when (directoryType) {
         SRC -> entry?.addSourceFolder(virtualFile, JavaSourceRootType.SOURCE)
         TEST_SRC -> entry?.addSourceFolder(virtualFile, JavaSourceRootType.TEST_SOURCE)
         BIN -> entry?.addExcludeFolder(virtualFile)
     }
-    commitModel(module, model)
 }
 
-internal fun removeMarkedDirectory(file: VirtualFile?, arendModuleConfigService: ArendModuleConfigService?, directoryType: DirectoryType) {
+internal fun removeMarkedDirectory(file: VirtualFile?, model: ModifiableRootModel?, arendModuleConfigService: ArendModuleConfigService?, directoryType: DirectoryType) {
     val dir = getDirByType(directoryType, arendModuleConfigService)
     if (!dir.isNullOrEmpty()) {
-        removeOldFolder(file, arendModuleConfigService, directoryType)
+        removeOldFolder(file, model, arendModuleConfigService, directoryType)
     }
 }
 
-internal fun addMarkedDirectory(dir: String?, arendModuleConfigService: ArendModuleConfigService?, directoryType: DirectoryType) {
+internal fun addMarkedDirectory(dir: String?, model: ModifiableRootModel?, arendModuleConfigService: ArendModuleConfigService?, directoryType: DirectoryType) {
     if (!dir.isNullOrEmpty()) {
         val dirFile = File(arendModuleConfigService?.root?.path + File.separator + dir)
         if (!dirFile.exists()) {
             dirFile.mkdirs()
         }
 
-        ApplicationManager.getApplication().executeOnPooledThread {
-            LocalFileSystem.getInstance().refreshAndFindFileByIoFile(dirFile)?.let {
-                addNewFolder(arendModuleConfigService?.module, it, directoryType)
-            }
+        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(dirFile)?.let {
+            addNewFolder(it, model, directoryType)
         }
     }
 }
 
-private fun hasOnlyOneFile(e: AnActionEvent): Boolean {
+internal fun isNotOtherDirectoryType(e: AnActionEvent): Boolean {
     val files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY) ?: emptyArray()
     if (files.size != 1) {
-        e.presentation.isEnabledAndVisible = false
         return false
     }
-    e.presentation.isEnabledAndVisible = true
-    return true
-}
-
-internal fun isNotOtherDirectionType(e: AnActionEvent): Boolean {
-    if (!hasOnlyOneFile(e)) {
-        return false
-    }
-    val files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY) ?: emptyArray()
     val dir = files[0]
     val module = e.getData(LangDataKeys.MODULE)
     val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
@@ -164,16 +145,13 @@ internal fun hasSpecialDirectories(e: AnActionEvent): Boolean {
     }.get()
 }
 
-internal fun unmarkOldDirectory(e: AnActionEvent, directoryType: DirectoryType) {
+internal fun unmarkOldDirectory(e: AnActionEvent, model: ModifiableRootModel?, arendModuleConfigService: ArendModuleConfigService?, directoryType: DirectoryType) {
     val files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY) ?: return
-
-    val module = e.getData(LangDataKeys.MODULE)
-    val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
     val virtualFile = files[0]
 
     val relativePath = getRelativePath(arendModuleConfigService, virtualFile)
 
-    removeOldFolder(virtualFile, arendModuleConfigService, directoryType)
+    removeOldFolder(virtualFile, model, arendModuleConfigService, directoryType)
     if (relativePath != null) {
         when (directoryType) {
             SRC -> arendModuleConfigService?.updateSourceDirFromIDEA(relativePath)
@@ -181,4 +159,16 @@ internal fun unmarkOldDirectory(e: AnActionEvent, directoryType: DirectoryType) 
             BIN -> arendModuleConfigService?.updateBinDirFromIDEA(relativePath)
         }
     }
+    commitModel(arendModuleConfigService?.module, model)
+}
+
+fun unmarkDirectory(e: AnActionEvent, directoryType: DirectoryType) {
+    val module = e.getData(LangDataKeys.MODULE)
+    val arendModuleConfigService = ArendModuleConfigService.getInstance(module)
+    unmarkOldDirectory(
+        e,
+        arendModuleConfigService?.module?.let { ModuleRootManager.getInstance(it).modifiableModel },
+        arendModuleConfigService,
+        directoryType
+    )
 }
