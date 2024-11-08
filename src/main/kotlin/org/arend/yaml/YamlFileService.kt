@@ -84,11 +84,11 @@ class YamlFileService(private val project: Project) {
     fun compareSettings(file: VirtualFile, text: String = file.readText()): Boolean {
         val newYamlFile = createFromText(text, project)
         val arendModuleConfigService = ArendModuleConfigService.getInstance(ModuleUtil.findModuleForFile(file, project))
-        val updateFlag = arendModuleConfigService?.sourcesDir != newYamlFile?.sourcesDir.orEmpty().trim('/') ||
-                arendModuleConfigService.testsDir != newYamlFile?.testsDir.orEmpty().trim('/') ||
-                arendModuleConfigService.binariesDirectory != newYamlFile?.binariesDir.orEmpty().trim('/') ||
-                arendModuleConfigService.extensionsDirectory != newYamlFile?.extensionsDir.orEmpty().trim('/') ||
-                arendModuleConfigService.extensionMainClassData != newYamlFile?.extensionMainClass.orEmpty() ||
+        val updateFlag = arendModuleConfigService?.sourcesDir != newYamlFile?.sourcesDir.orEmpty().trim('/').replace("\r", "") ||
+                arendModuleConfigService.testsDir != newYamlFile?.testsDir.orEmpty().trim('/').replace("\r", "") ||
+                arendModuleConfigService.binariesDirectory != newYamlFile?.binariesDir.orEmpty().trim('/').replace("\r", "") ||
+                arendModuleConfigService.extensionsDirectory != newYamlFile?.extensionsDir.orEmpty().trim('/').replace("\r", "") ||
+                arendModuleConfigService.extensionMainClassData != newYamlFile?.extensionMainClass.orEmpty().replace("\r", "") ||
                 arendModuleConfigService.modules.orEmpty().sorted() != newYamlFile?.modules.orEmpty().sorted() ||
                 arendModuleConfigService.dependencies.sorted() != newYamlFile?.dependencies.orEmpty().sorted() ||
                 VersionRange.parseVersionRange(arendModuleConfigService.versionString) != VersionRange.parseVersionRange(newYamlFile?.version.orEmpty()) ||
