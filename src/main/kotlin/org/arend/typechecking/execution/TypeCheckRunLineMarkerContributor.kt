@@ -9,11 +9,11 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.core.definition.Definition.TypeCheckingStatus.*
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.*
-import org.arend.util.FileUtils.SERIALIZED_EXTENSION
+import org.arend.util.checkArcFile
 
 class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
     override fun getInfo(element: PsiElement): Info? {
-        if (element.containingFile.name.endsWith(SERIALIZED_EXTENSION)) {
+        if (checkArcFile(element.containingFile.virtualFile)) {
             return null
         }
 

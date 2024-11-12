@@ -8,11 +8,15 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import org.arend.psi.ArendFile
+import org.arend.util.checkArcFile
 
 class NameShadowingHighlighterPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
     private var myPassId = -1
 
-    override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange): TextEditorHighlightingPass {
+    override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange): TextEditorHighlightingPass? {
+        if (checkArcFile(file.virtualFile)) {
+            return null
+        }
         return NameShadowingHighlighterPass(file, editor)
     }
 

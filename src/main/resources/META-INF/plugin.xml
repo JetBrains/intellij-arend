@@ -47,6 +47,7 @@
         <!-- File Type -->
 
         <fileType language="Arend" implementationClass="org.arend.ArendFileType" name="Arend" extensions="ard" />
+        <fileType fieldName="INSTANCE" implementationClass="org.arend.psi.arc.ArcFileType" name="Arc" extensions="arc" />
 
         <!-- Parser -->
 
@@ -67,6 +68,9 @@
 
         <lang.syntaxHighlighterFactory language="Arend"
                                        implementationClass="org.arend.highlight.ArendSyntaxHighlighterFactory"/>
+
+        <syntaxHighlighter id="arend.arc" key="Arc"
+                           factoryClass="org.arend.highlight.ArendSyntaxHighlighterFactory"/>
 
         <highlightVisitor implementation="org.arend.highlight.ArendRainbowVisitor"/>
 
@@ -394,6 +398,8 @@
 
         <editorNotificationProvider implementation="org.arend.notification.FileOutsideSourcesProvider"/>
 
+        <editorNotificationProvider implementation="org.arend.psi.arc.ArcFileNotificationProvider"/>
+
         <!-- Configuration Options -->
 
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
@@ -430,6 +436,13 @@
 
         <!-- Starters -->
         <appStarter id="generateArendLibHtml" implementation="org.arend.documentation.GenerateArendLibHtmlStarter"/>
+
+        <!--  Decompiler tools  -->
+
+        <filetype.stubBuilder filetype="Arc" implementationClass="org.arend.psi.arc.ArcFileStubBuilder"/>
+        <filetype.decompiler filetype="Arc" implementationClass="org.arend.psi.arc.ArcFileDecompiler"/>
+        <fileType.fileViewProviderFactory filetype="Arc" implementationClass="org.arend.psi.arc.ArcFileViewProviderFactory"/>
+        <psi.classFileDecompiler implementation="org.arend.psi.arc.ArcDecompiler" order="first"/>
 
     </extensions>
 

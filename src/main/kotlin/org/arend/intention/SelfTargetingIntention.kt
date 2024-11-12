@@ -11,6 +11,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import org.arend.psi.ancestors
+import org.arend.util.checkArcFile
 
 // code borrowed from kotlin plugin
 
@@ -35,6 +36,9 @@ abstract class SelfTargetingIntention<T : PsiElement>(
     abstract fun applyTo(element: T, project: Project, editor: Editor)
 
     private fun getTarget(editor: Editor, file: PsiFile): T? {
+        if (checkArcFile(file.virtualFile)) {
+            return null
+        }
         if (editor.isViewer || !BaseArendIntention.canModify(file)) {
             return null
         }

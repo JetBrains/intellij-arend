@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiModificationTracker
 import org.arend.psi.ArendFile
+import org.arend.util.checkArcFile
 
 class ArendUnusedImportHighlightingPassFactory : TextEditorHighlightingPassFactory, TextEditorHighlightingPassFactoryRegistrar {
     override fun registerHighlightingPassFactory(registrar: TextEditorHighlightingPassRegistrar, project: Project) {
@@ -15,6 +16,9 @@ class ArendUnusedImportHighlightingPassFactory : TextEditorHighlightingPassFacto
     }
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor): TextEditorHighlightingPass? {
+        if (checkArcFile(file.virtualFile)) {
+            return null
+        }
         if (file !is ArendFile) return null
         val modCount = PsiModificationTracker.getInstance(file.project).modificationCount
         if (file.lastModificationImportOptimizer.get() >= modCount) return null

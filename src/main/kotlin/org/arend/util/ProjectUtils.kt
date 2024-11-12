@@ -16,6 +16,7 @@ import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import org.arend.injection.InjectedArendEditor
 import org.arend.module.ArendModuleType
@@ -26,6 +27,7 @@ import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.ArendExtensionChangeService
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
+import org.arend.util.FileUtils.SERIALIZED_EXTENSION
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Path
 
@@ -91,4 +93,8 @@ fun Project.afterTypechecking(files: Collection<ArendFile>) {
             DaemonCodeAnalyzer.getInstance(this).restart(file)
         }
     }
+}
+
+fun checkArcFile(file: VirtualFile): Boolean {
+    return file.name.endsWith(SERIALIZED_EXTENSION)
 }

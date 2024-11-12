@@ -1,11 +1,14 @@
 package org.arend.typechecking
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import com.intellij.ui.EditorNotifications
 import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.listener.ArendPsiChangeService
@@ -17,8 +20,10 @@ import org.arend.typechecking.order.listener.CollectingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.visitor.DesugarVisitor
 import org.arend.typechecking.visitor.DumbTypechecker
+import org.arend.util.FileUtils.SERIALIZED_EXTENSION
 import org.arend.util.FullName
 import org.arend.util.afterTypechecking
+import org.arend.util.checkArcFile
 
 class BackgroundTypechecker(private val project: Project, private val instanceProviderSet: PsiInstanceProviderSet, private val concreteProvider: ConcreteProvider, private val modificationCount: Long) {
     private val definitionBlackListService = service<DefinitionBlacklistService>()
@@ -26,6 +31,9 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
     private val errorService: ErrorService = project.service()
 
     fun runTypechecker(file: ArendFile, lastModified: TCDefReferable?, collector1: CollectingOrderingListener, collector2: CollectingOrderingListener, runAnalyzer: Boolean) {
+        if (checkArcFile(file.virtualFile)) {
+            return
+        }
         if (collector1.isEmpty && collector2.isEmpty) {
             return
         }
@@ -81,6 +89,9 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
 
                 modificationTracker.incModificationCount()
                 file.lastDefinitionModification.updateAndGet { maxOf(it, modificationTracker.modificationCount) }
+                invokeLater {
+                    FileDocumentManager.getInstance().reloadBinaryFiles()
+                }
                 return
             }
         }.queue()

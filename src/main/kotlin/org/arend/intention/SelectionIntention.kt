@@ -9,6 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestors
+import org.arend.util.checkArcFile
 
 abstract class SelectionIntention<T : PsiElement>(private val elementType: Class<T>, text: String) : BaseIntentionAction() {
     init {
@@ -17,7 +18,9 @@ abstract class SelectionIntention<T : PsiElement>(private val elementType: Class
 
     open fun allowEmptySelection() = false
 
-    open fun isAvailable(project: Project, editor: Editor, file: ArendFile, element: T) = true
+    open fun isAvailable(project: Project, editor: Editor, file: ArendFile, element: T): Boolean {
+        return !checkArcFile(file.virtualFile)
+    }
 
     abstract fun invoke(project: Project, editor: Editor, file: ArendFile, element: T, selected: TextRange)
 

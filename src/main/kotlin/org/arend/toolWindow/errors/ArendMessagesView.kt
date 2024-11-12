@@ -37,6 +37,7 @@ import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.util.ArendBundle
+import org.arend.util.checkArcFile
 import java.util.*
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -362,7 +363,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
                     tree.update(root) { node ->
                         if (node == root) {
-                            arendFilesWithErrors
+                            arendFilesWithErrors.toSet()
                         }
                         else when (val obj = node.userObject) {
                             is ArendFile -> {
