@@ -3,6 +3,7 @@
 package org.arend.intention.generating
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.executeCommand
@@ -66,6 +67,8 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         val (_, subConcrete, subPsi) = tryCorrespondedSubExpr(selection, file, project, editor, false) ?: return false
         return collectWrappableOptions(subPsi, rangeOfConcrete(subConcrete)).isNotEmpty()
     }
+
+    override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
 
     override fun getText(): String = ArendBundle.message("arend.create.let.binding")
 

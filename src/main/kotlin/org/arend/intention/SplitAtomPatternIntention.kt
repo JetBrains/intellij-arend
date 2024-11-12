@@ -1,8 +1,10 @@
 package org.arend.intention
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.util.startOffset
 import com.intellij.util.containers.tail
 import org.arend.ext.variable.Variable
@@ -83,6 +85,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
         return this.splitPatternEntries != null
     }
+
+    override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
 
     override fun applyTo(element: PsiElement, project: Project, editor: Editor) {
         splitPatternEntries?.let { doSplitPattern(element, project, it) }

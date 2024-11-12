@@ -1,5 +1,6 @@
 package org.arend.intention
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -44,12 +45,14 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
         return file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) != null
     }
 
+    override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
+
     override fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult? {
         val goal = file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) ?: return null
         val errorService = project.service<ErrorService>()
         val arendError = errorService.errors[goal.containingFile]?.firstOrNull { it.cause == goal }?.error as? GoalError
                 ?: return null
-        val goalType = (arendError as? GoalError)?.expectedType
+        val goalType = arendError.expectedType
         val (modifiedType, customArguments) = getCustomArguments(goal, goalType) { tryCorrespondedSubExpr(it, file, project, editor)?.subCore }
         val goalExpr = goal.expr?.let {
             tryCorrespondedSubExpr(it.textRange, file, project, editor)
