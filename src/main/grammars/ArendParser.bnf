@@ -178,7 +178,7 @@ private classStats ::= LBRACE classStatRecovery classStat* RBRACE | classFieldOr
     recoverWhile = statement_recover
 }
 
-classStat ::= classFieldOrImplement | accessMod? definition | classFieldStat | overriddenField | defaultField | defModule { recoverWhile = classStat_recover }
+classStat ::= classFieldOrImplement | accessMod? USE_KW? definition | classFieldStat | overriddenField | defaultField | defModule { recoverWhile = classStat_recover }
 
 private classStatRecovery ::= {
   recoverWhile = classStat_recover

@@ -430,7 +430,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
     }
 
-    private fun doUpdateDefinition(referable: LocatedReferable, file: ArendFile) {
+    private fun doUpdateDefinition(referable: LocatedReferable) {
         val tcReferable = removeDefinition(referable) ?: return
         val dependencies = synchronized(project) {
             dependencyListener.update(tcReferable)
@@ -439,8 +439,15 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             removeDefinition(ref)
         }
 
-        if ((referable as? ArendDefFunction)?.functionKind?.isUse == true) {
-            (referable.parentGroup as? TCDefinition)?.let { doUpdateDefinition(it, file) }
+        if (referable is ArendDefinition<*>) {
+            for (ref in referable.usedDefinitions) {
+                doUpdateDefinition(ref)
+            }
+        }
+        if (referable is ArendDefClass) {
+            for (ref in referable.dynamicSubgroups) {
+                doUpdateDefinition(ref)
+            }
         }
     }
 
@@ -458,7 +465,12 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
 
     override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        doUpdateDefinition(def, file)
+        var ref: LocatedReferable = def
+        while ((ref as? ArendDefinition<*>)?.withUse() == true) {
+            ref = ref.useParent as? ArendDefinition<*> ?: break
+        }
+
+        doUpdateDefinition(ref)
     }
 
     class LibraryManagerTestingOptions {

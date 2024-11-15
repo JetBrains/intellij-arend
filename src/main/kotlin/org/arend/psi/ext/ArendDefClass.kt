@@ -56,6 +56,10 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefi
 
     override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.group ?: it.coClause?.functionReference }
 
+    override fun getUsedDefinitions(): List<LocatedReferable> = dynamicSubgroups.mapNotNull {
+        if (it is ArendDefinition<*> && it.withUse()) it.referable else null
+    } + super.getUsedDefinitions()
+
     private inline val parameterFields: List<ArendFieldDefIdentifier>
         get() = fieldTeleList.flatMap { it.referableList }
 
@@ -74,7 +78,7 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefi
     override fun getImplementedFields(): List<LocatedReferable> =
         coClauseElements.mapNotNull { it.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable }
 
-    override fun getDynamicReferables() = classStatList.mapNotNull { it.firstRelevantChild as? GlobalReferable }
+    override fun getDynamicReferables() = classStatList.mapNotNull { it.group }
 
     override fun getParameters(): List<Abstract.FieldParameter> = fieldTeleList
 
