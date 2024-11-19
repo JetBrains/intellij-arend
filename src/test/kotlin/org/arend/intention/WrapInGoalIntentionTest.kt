@@ -37,4 +37,17 @@ class WrapInGoalIntentionTest: QuickFixTestBase() {
           | suc a => a
         })}
     """)
+
+    fun `test with end marker`() {
+        configure("""
+            \data List
+                | nil
+                | cons Nat List
+            
+            \func plus (a b : Prelude.Nat) => a Nat.+ b
+            
+            \func lol => {-selection-}cons (plus 2 3) (cons (plus 2 3) nil){-caret-}{-end_selection-}
+        """)
+        assertNotNull(myFixture.findSingleIntention(fixName))
+    }
 }
