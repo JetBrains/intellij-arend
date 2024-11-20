@@ -418,7 +418,7 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
                 val element = model.getElementAt(indices[0])
                 if (element is DefElement) {
                     close()
-                    insertDefinition(element, caret)
+                    insertDefinition(project, element.entry.def, caret)
                 }
             }
         }.registerCustomShortcutSet(CommonShortcuts.getCtrlEnter(), this, this)
@@ -453,41 +453,6 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
                 onEntrySelected(model.getElementAt(i))
             }
         }
-    }
-
-    private fun insertDefinition(element: DefElement, caret: Caret) {
-        val definition = element.entry.def
-        val mainEditor = caret.editor
-        val mainDocument = caret.editor.document
-        if (!mainDocument.isWritable || mainEditor.isDetailedViewEditor()) {
-            HintManager.getInstance().showErrorHint(mainEditor, "File is read-only")
-            return
-        }
-        val file = PsiDocumentManager.getInstance(definition.project).getPsiFile(mainDocument) as? ArendFile ?: return
-        val elementUnderCaret = file.findElementAt(caret.offset)?.parentOfType<ArendCompositeElement>() ?: return
-        val (action, representation) = runReadAction {
-            val locationData = LocationData.createLocationData(definition)
-            val (importAction, resultName) = locationData?.let{ calculateReferenceName(it, file, elementUnderCaret) } ?: return@runReadAction null
-            val representation = getInsertableRepresentation(definition, resultName)
-            val resolveReferenceAction = ResolveReferenceAction(definition, locationData.getLongName(), importAction, null)
-            representation?.run(resolveReferenceAction::to)
-        } ?: return
-        WriteCommandAction.runWriteCommandAction(project, "Inserting Selected Definition...", "__Arend__Proof_search_insert_selected_definition", {
-            mainDocument.insertString(caret.offset, representation.text)
-            PsiDocumentManager.getInstance(definition.project).commitDocument(mainDocument)
-            action.execute(mainEditor)
-            service<ArendPsiChangeService>().incModificationCount()
-        })
-    }
-
-    @RequiresReadLock
-    private fun getInsertableRepresentation(definition: ReferableBase<*>, resultName: List<String>) : PsiElement? {
-        val factory = ArendPsiFactory(definition.project)
-        val explicitArguments = when(definition) {
-            is Abstract.ParametersHolder -> definition.parameters.count { it.isExplicit }
-            else -> return null
-        }
-        return factory.createExpression("(${resultName.joinToString(".")}${" {?}".repeat(explicitArguments)})")
     }
 
     private fun onEntrySelected(element: ProofSearchUIEntry) = when (element) {
@@ -639,6 +604,45 @@ class ProofSearchUI(private val project: Project, private val caret: Caret?) : B
 
     fun moveListUp() {
         ScrollingUtil.moveUp(myResultsList, 0)
+    }
+
+    companion object {
+        fun insertDefinition(project: Project, definition: ReferableBase<*>, caret: Caret) {
+            val mainEditor = caret.editor
+            val mainDocument = caret.editor.document
+            if (!mainDocument.isWritable || mainEditor.isDetailedViewEditor()) {
+                HintManager.getInstance().showErrorHint(mainEditor, "File is read-only")
+                return
+            }
+            val file = PsiDocumentManager.getInstance(definition.project).getPsiFile(mainDocument) as? ArendFile ?: return
+            val offset = caret.offset
+            val elementUnderCaret = file.findElementAt(offset)?.parentOfType<ArendCompositeElement>()
+                ?: file.findElementAt(offset - 1)?.parentOfType<ArendCompositeElement>()
+                ?: return
+            val (action, representation) = runReadAction {
+                val locationData = LocationData.createLocationData(definition)
+                val (importAction, resultName) = locationData?.let{ calculateReferenceName(it, file, elementUnderCaret) } ?: return@runReadAction null
+                val representation = getInsertableRepresentation(definition, resultName)
+                val resolveReferenceAction = ResolveReferenceAction(definition, locationData.getLongName(), importAction, null)
+                representation?.run(resolveReferenceAction::to)
+            } ?: return
+            WriteCommandAction.runWriteCommandAction(project, "Inserting Selected Definition...", "__Arend__Proof_search_insert_selected_definition", {
+                mainDocument.insertString(offset, representation.text)
+                PsiDocumentManager.getInstance(definition.project).commitDocument(mainDocument)
+                action.execute(mainEditor)
+                service<ArendPsiChangeService>().incModificationCount()
+            })
+        }
+
+        @RequiresReadLock
+        private fun getInsertableRepresentation(definition: ReferableBase<*>, resultName: List<String>) : PsiElement? {
+            val factory = ArendPsiFactory(definition.project)
+            val explicitArguments = when(definition) {
+                is Abstract.ParametersHolder -> definition.parameters.count { it.isExplicit }
+                else -> return null
+            }
+            return factory.createExpression("(${resultName.joinToString(".")}${" {?}".repeat(explicitArguments)})")
+        }
     }
 }
 

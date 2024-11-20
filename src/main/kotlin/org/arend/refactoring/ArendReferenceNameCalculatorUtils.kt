@@ -20,10 +20,12 @@ import org.arend.toolWindow.repl.ArendReplService
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
 
-fun doCalculateReferenceName(defaultLocation: LocationData,
-                             currentFile: ArendFile,
-                             anchor: ArendCompositeElement,
-                             deferredImports: List<NsCmdRefactoringAction>? = null): Pair<NsCmdRefactoringAction?, List<String>> {
+fun doCalculateReferenceName(
+    defaultLocation: LocationData,
+    currentFile: ArendFile,
+    anchor: ArendCompositeElement,
+    deferredImports: List<NsCmdRefactoringAction>? = null
+): Pair<NsCmdRefactoringAction?, List<String>> {
     val targetFile = defaultLocation.myContainingFile
     val targetModulePath = defaultLocation.myContainingFile.moduleLocation!! //safe to write
 
