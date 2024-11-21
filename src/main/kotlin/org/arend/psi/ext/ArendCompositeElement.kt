@@ -73,7 +73,7 @@ fun getArendScope(element: ArendCompositeElement): Scope {
                 val ref = scope.resolveName(name, kind)
                 return if (Prelude.DEP_ARRAY != null && (ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref)) null else ref
             }
-            override fun resolveNamespace(name: String, onlyInternal: Boolean) = scope.resolveNamespace(name, onlyInternal)
+            override fun resolveNamespace(name: String) = scope.resolveNamespace(name)
             override fun getGlobalSubscope() = scope.globalSubscope
             override fun getGlobalSubscopeWithoutOpens(withImports: Boolean) = scope.getGlobalSubscopeWithoutOpens(withImports)
             override fun getImportedSubscope() = scope.importedSubscope

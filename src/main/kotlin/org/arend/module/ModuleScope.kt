@@ -74,7 +74,7 @@ class ModuleScope private constructor(
 
     override fun getElements(kind: RefKind?): Collection<Referable> = if (kind == null || kind == RefKind.EXPR) elements else emptyList()
 
-    override fun resolveNamespace(name: String, onlyInternal: Boolean): Scope {
+    override fun resolveNamespace(name: String): Scope {
         val newRootDirs = if (libraryConfig == null) emptyList() else (calculateRootDirs()).mapNotNull { root ->
             for (file in root.children) {
                 if (file.name == name) {

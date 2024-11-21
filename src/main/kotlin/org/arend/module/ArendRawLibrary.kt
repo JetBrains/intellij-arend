@@ -142,7 +142,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
                 }
 
                 val name = element.refName
-                val subscope = scope.resolveNamespace(name, false)
+                val subscope = scope.resolveNamespace(name)
                 if (subscope == null && element is EmptyLocatedReferable) {
                     continue
                 }
@@ -220,7 +220,7 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
                         meta.underlyingReferable = Supplier { module }
                     }
                 }
-                scope.resolveNamespace(name, false)?.let {
+                scope.resolveNamespace(name)?.let {
                     fillGroup(subgroup, it)
                 }
             }

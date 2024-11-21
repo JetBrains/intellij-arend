@@ -291,8 +291,8 @@ class ArendMoveMembersDialog(project: Project,
                 return scope.getElements(kind).filter { predicate.invoke(it) }.toMutableList()
             }
 
-            override fun resolveNamespace(name: String, onlyInternal: Boolean): Scope? {
-                return scope.resolveNamespace(name, onlyInternal)?.let { FilteringScope(it, predicate) }
+            override fun resolveNamespace(name: String): Scope? {
+                return scope.resolveNamespace(name)?.let { FilteringScope(it, predicate) }
             }
         }
 

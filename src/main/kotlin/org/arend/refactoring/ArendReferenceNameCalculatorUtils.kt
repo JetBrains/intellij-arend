@@ -216,7 +216,7 @@ class LocationData private constructor (
     fun getComplementScope(): Scope {
         val targetContainers = myLongNameWithRefs.reversed().map { it.second }
         return object : ListScope(targetContainers + targetContainers.mapNotNull { if (it is GlobalReferable) AliasReferable(it) else null }) {
-            override fun resolveNamespace(name: String, onlyInternal: Boolean): Scope? = targetContainers
+            override fun resolveNamespace(name: String): Scope? = targetContainers
                     .filterIsInstance<ArendGroup>()
                     .firstOrNull { name == it.textRepresentation() || name == it.aliasName }
                     ?.let { LexicalScope.opened(it) }
