@@ -80,7 +80,7 @@ class ArendMoveMembersDialog(project: Project,
         targetFileField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.modulePath?.toString() ?: "", null, customScopeGetter = { globalScope })), project, ArendFileTypeInstance)
         targetModuleField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.longName?.toString() ?: "", null, customScopeGetter = {
             val group = simpleLocate(targetFileField.text, "", enclosingModule).first
-            group?.let { FilteringScope(LexicalScope.insideOf(it, EmptyScope.INSTANCE)) { referable ->
+            group?.let { FilteringScope(LexicalScope.insideOf(it, EmptyScope.INSTANCE, true)) { referable ->
                 referable !is ArendClassField && referable !is ArendConstructor && referable !is ArendFieldDefIdentifier
             } } ?: EmptyScope.INSTANCE })), project, ArendFileTypeInstance)
 

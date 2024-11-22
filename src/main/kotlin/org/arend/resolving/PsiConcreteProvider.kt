@@ -68,7 +68,7 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
                 if (scope == null) {
                     scope = CachingScope.make(psiReferable.scope)
                 }
-                DefinitionResolveNameVisitor(this, referableConverter, errorReporter, resolverListener).resolveDefinition(result.relatedDefinition, scope, psiReferable.parent.ancestor<ArendGroup>())
+                DefinitionResolveNameVisitor(this, referableConverter, errorReporter, resolverListener).resolveDefinition(result.relatedDefinition, scope, psiReferable.ancestor<ArendGroup>())
             }
         }
 

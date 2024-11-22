@@ -12,16 +12,12 @@ import org.arend.IArendFile
 import org.arend.ext.error.SourceInfo
 import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
-import org.arend.module.scopeprovider.EmptyModuleScopeProvider
-import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
-import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocReference
 import org.arend.resolving.ArendReference
 import org.arend.resolving.util.ModifiedClassFieldImplScope
 import org.arend.term.abs.Abstract
-import java.util.function.Predicate
 
 interface ArendCompositeElement : PsiElement, SourceInfo {
     val scope: Scope
@@ -50,36 +46,12 @@ fun getArendScope(element: ArendCompositeElement): Scope {
     val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
     ((sourceNode as? ArendLongName)?.parent as? ArendDocReference)?.let { return it.scope }
 
-    var isExtends = false
-    val parentScope = sourceNode.parentSourceNode?.let {
-        val classDef = if (sourceNode is ArendLongName) (it as? ArendSuperClass)?.parent as? ArendDefClass else null
-        if (classDef != null) {
-            isExtends = true
-            // The last parameters is set to ONLY_EXTERNAL to prevent infinite recursion during resolving of references in \\extends
-            LexicalScope.insideOf(classDef, classDef.parentGroup?.getGroupScope(LexicalScope.Extent.ONLY_EXTERNAL) ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
-        } else it.scope
-    } ?: (sourceNode.containingFile as? IArendFile)?.scope ?: EmptyScope.INSTANCE
-
+    val parentScope = sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? IArendFile)?.scope ?: EmptyScope.INSTANCE
     val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope {
         val containingFile = sourceNode.containingFile?.originalFile as? ArendFile
         containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == ModuleLocation.LocationKind.TEST) } ?: EmptyScope.INSTANCE
     }) { classRef -> if (classRef is ArendDefClass) ModifiedClassFieldImplScope(classRef, sourceNode.parentSourceNode?.parentSourceNode as? ClassReferenceHolder) else null }
-    return when {
-        element is ArendDefIdentifier && sourceNode is Abstract.Pattern -> ConstructorFilteredScope(scope.globalSubscope)
-        isExtends -> object : Scope { // exclude Array
-            override fun find(pred: Predicate<Referable?>): Referable? =
-                scope.find { ref -> !(Prelude.DEP_ARRAY != null && (ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref)) && pred.test(ref) }
-            override fun resolveName(name: String, kind: Referable.RefKind?): Referable? {
-                val ref = scope.resolveName(name, kind)
-                return if (Prelude.DEP_ARRAY != null && (ref == Prelude.DEP_ARRAY.ref || ref is ArendDefClass && ref.tcReferable == Prelude.DEP_ARRAY.ref)) null else ref
-            }
-            override fun resolveNamespace(name: String) = scope.resolveNamespace(name)
-            override fun getGlobalSubscope() = scope.globalSubscope
-            override fun getGlobalSubscopeWithoutOpens(withImports: Boolean) = scope.getGlobalSubscopeWithoutOpens(withImports)
-            override fun getImportedSubscope() = scope.importedSubscope
-        }
-        else -> scope
-    }
+    return if (element is ArendDefIdentifier && sourceNode is Abstract.Pattern) ConstructorFilteredScope(scope.globalSubscope) else scope
 }
 
 fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode {

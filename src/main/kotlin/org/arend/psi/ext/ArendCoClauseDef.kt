@@ -33,7 +33,7 @@ class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract
                 getArendScope(this)
             } else {
                 val parentParent = parentClass.parent.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: parentClass.containingFile as? ArendFile
-                LexicalScope.insideOf(parentClass, parentParent?.scope ?: EmptyScope.INSTANCE)
+                LexicalScope.insideOf(parentClass, parentParent?.scope ?: EmptyScope.INSTANCE, true)
             }
         } else {
             val parentFunction = parent?.ancestor<ArendFunctionDefinition<*>>()

@@ -36,6 +36,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getStatements(): List<ArendStatement> = ArendStat.flatStatements(where?.statList)
 
+    override fun isDynamicContext() = parent is ArendClassStat
+
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition {
         val def = ConcreteBuilder.convert(referableConverter, this, errorReporter)
         if (def.status == Concrete.Status.HAS_ERRORS) {

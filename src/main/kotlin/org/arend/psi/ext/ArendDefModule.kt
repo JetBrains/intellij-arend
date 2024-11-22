@@ -30,6 +30,8 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
 
     override fun getReferable() = this
 
+    override fun isDynamicContext() = parent is ArendClassStat
+
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()

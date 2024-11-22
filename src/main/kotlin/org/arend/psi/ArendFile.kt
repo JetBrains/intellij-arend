@@ -188,7 +188,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getLocatedReferableParent(): LocatedReferable? = null
 
-    override fun getGroupScope(extent: LexicalScope.Extent) = scope
+    override fun getGroupScope() = scope
 
     override fun getNameIdentifier(): PsiElement? = null
 
@@ -203,6 +203,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getParentGroup(): ArendGroup? = null
 
     override fun getReferable(): PsiLocatedReferable = this
+
+    override fun isDynamicContext() = false
 
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
