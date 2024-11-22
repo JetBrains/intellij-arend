@@ -94,6 +94,8 @@
         <lang.psiStructureViewFactory language="Arend"
                                       implementationClass="org.arend.structure.ArendPsiStructureViewFactory"/>
 
+        <structureViewBuilder factoryClass="org.arend.structure.ArendStructureViewBuilderProvider"/>
+
         <!-- Hierarchy -->
 
         <callHierarchyProvider language="Arend" implementationClass="org.arend.hierarchy.call.ArendCallHierarchyProvider"/>
@@ -131,6 +133,7 @@
         <gotoClassContributor implementation="org.arend.navigation.ArendClassNavigationContributor"/>
         <gotoSymbolContributor implementation="org.arend.navigation.ArendSymbolNavigationContributor"/>
         <gotoFileContributor implementation="org.arend.navigation.ArendFileNavigationContributor"/>
+        <navbar id="arendNavbar" implementation="org.arend.navigation.ArendNavBarExtension" order="first"/>
 
         <!-- Hints -->
 
