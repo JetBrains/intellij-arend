@@ -37,7 +37,7 @@ class ArendProjectOpenProcessor : ProjectOpenProcessor() {
     override fun importProjectAfterwards(project: Project, file: VirtualFile) {
         val builder = builder
         try {
-            builder.isUpdate = false
+            builder.setUpdate(false)
             builder.fileToImport = (if (file.isDirectory) file else file.parent).toNioPath().toString()
             if (builder.validate(null, project)) {
                 builder.commit(project, null, ModulesProvider.EMPTY_MODULES_PROVIDER)
