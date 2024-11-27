@@ -51,9 +51,9 @@ class ArendDocumentationCommentTest : ArendTestBase() {
 
     fun testCommentWithLatex() {
         val code = "{- |\n" +
-                " - 1. a \$\\sqrt{9}\$\n" +
-                " - 2. b\n" +
-                " -   * bb\n" +
+                " -   1. a \$\\sqrt{9}\$\n" +
+                " -   2. b\n" +
+                " -              * bb\n" +
                 " -}" +
                 "\\data Empty"
 
@@ -62,8 +62,7 @@ class ArendDocumentationCommentTest : ArendTestBase() {
 
         val rows = document.getElementsByClass("row")
         assertEquals(4, rows.size)
-
-        assertTrue(rows.map { it.text() }.contains("1. a 2. b • bb"))
+        assertTrue(document.getElementsByTag("ol").text().contains("1. a 2. b • bb"))
         assertEquals(2, rows.flatMap { it.select("img") }.size)
     }
 }
