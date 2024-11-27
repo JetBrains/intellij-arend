@@ -1,6 +1,5 @@
 package org.arend.intention
 
-import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
@@ -51,6 +50,4 @@ open class ExtractExpressionToFunctionIntention : AbstractGenerateFunctionIntent
     }
 
     override fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult? = doExtractSelectionData(file, editor, project)
-
-    override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
 }

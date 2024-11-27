@@ -32,6 +32,4 @@ class ReplaceWithNormalFormIntention : SelectionIntention<ArendExpr>(ArendExpr::
             }
         }
     }
-
-    override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
 }

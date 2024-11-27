@@ -3,7 +3,7 @@
 package org.arend.intention.generating
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.executeCommand
@@ -24,6 +24,7 @@ import org.arend.core.context.binding.Binding
 import org.arend.intention.AbstractGenerateFunctionIntention
 import org.arend.intention.BaseArendIntention
 import org.arend.intention.ExtractExpressionToFunctionIntention
+import org.arend.intention.checkNotGeneratePreview
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.addNewClause
@@ -68,8 +69,6 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
         return collectWrappableOptions(subPsi, rangeOfConcrete(subConcrete)).isNotEmpty()
     }
 
-    override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
-
     override fun getText(): String = ArendBundle.message("arend.create.let.binding")
 
     private data class WrappableOption(
@@ -101,7 +100,11 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
             Disposer.register(popup, optionRenderer)
             popup.showInBestPositionFor(editor)
         } else {
-            runDocumentChanges(wrappableOptions.single(), editor, selection, freeVariables)
+            if (checkNotGeneratePreview()) {
+                invokeLater {
+                    runDocumentChanges(wrappableOptions.single(), editor, selection, freeVariables)
+                }
+            }
         }
     }
 

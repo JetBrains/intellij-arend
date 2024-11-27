@@ -47,6 +47,4 @@ class ReplaceMetaWithResultIntention : BaseArendIntention(ArendBundle.message("a
             replaceExprSmart(editor.document, expr, subConcrete, rangeOfConcrete(subConcrete), null, cExpr, text)
         }
     }
-
-    override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
 }

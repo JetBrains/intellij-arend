@@ -23,6 +23,7 @@ import com.intellij.refactoring.rename.inplace.MemberInplaceRenamer
 import com.intellij.refactoring.rename.inplace.VariableInplaceRenamer
 import com.intellij.refactoring.util.TextOccurrencesUtil
 import com.intellij.usageView.UsageInfo
+import org.arend.intention.checkNotGeneratePreview
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.RedirectingReferable
 import org.arend.naming.reference.RedirectingReferableImpl
@@ -31,6 +32,7 @@ import org.arend.psi.ext.*
 import org.arend.psi.getArendNameText
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Util.isMoreSpecific
 import org.arend.resolving.ArendResolveCache
+import java.awt.EventQueue.invokeLater
 
 class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
     override fun createMemberRenamer(element: PsiElement, elementToRename: PsiNameIdentifierOwner, editor: Editor): MemberInplaceRenamer {
@@ -70,8 +72,13 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
             ))) {
             val renamer = createMemberRenamer(elementToRename, elementToRename, editor)
             val startedRename = renamer.performInplaceRename()
-            if (!startedRename)
-                Util.customPerformDialogRename(elementToRename, editor)
+            if (!startedRename) {
+                if (checkNotGeneratePreview()) {
+                    invokeLater {
+                        Util.customPerformDialogRename(elementToRename, editor)
+                    }
+                }
+            }
             return null
         }
         return super.doRename(elementToRename, editor, dataContext)
@@ -115,13 +122,15 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
                         ArendNameKind.NSID_NAME -> elementAtCaret?.text
                     } ?: "???"
 
-                    val dialog = object: RenameDialog(project, elementToRename, elementToRename, editor) {
-                        override fun getSuggestedNames(): Array<String> = arrayOf(nameInDialog)
+                    invokeLater {
+                        val dialog = object: RenameDialog(project, elementToRename, elementToRename, editor) {
+                            override fun getSuggestedNames(): Array<String> = arrayOf(nameInDialog)
 
-                        override fun createRenameProcessor(newName: String): RenameProcessor =
+                            override fun createRenameProcessor(newName: String): RenameProcessor =
                                 ArendRenameProcessor(project, elementToRename, newName, context, null)
+                        }
+                        dialog.show()
                     }
-                    dialog.show()
                 }
             }
         }

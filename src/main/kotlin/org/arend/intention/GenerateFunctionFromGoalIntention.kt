@@ -45,8 +45,6 @@ class GenerateFunctionFromGoalIntention : AbstractGenerateFunctionIntention() {
         return file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) != null
     }
 
-    override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
-
     override fun extractSelectionData(file: PsiFile, editor: Editor, project: Project): SelectionResult? {
         val goal = file.findElementAt(editor.caretModel.offset)?.parentOfType<ArendGoal>(false) ?: return null
         val errorService = project.service<ErrorService>()
