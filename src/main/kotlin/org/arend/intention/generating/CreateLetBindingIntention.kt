@@ -3,6 +3,7 @@
 package org.arend.intention.generating
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.CommandProcessor
@@ -107,6 +108,12 @@ class CreateLetBindingIntention : AbstractGenerateFunctionIntention() {
             }
         }
     }
+
+    override fun generatePreview(
+        project: Project,
+        editor: Editor,
+        file: PsiFile
+    ): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
 
     private fun createPopup(
             options: List<WrappableOption>,
