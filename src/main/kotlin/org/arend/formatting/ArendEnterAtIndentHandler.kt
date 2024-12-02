@@ -133,8 +133,11 @@ class ArendEnterAtIndentHandler : EnterHandlerDelegateAdapter() {
             if (element.elementType == DOC_PARAGRAPH_SEP) {
                 return
             }
-            while (element != null && element.elementType != DOC_TABS && element.elementType != DOC_NEWLINE && element.elementType != DOC_LINEBREAK) {
+            while (element != null && element.elementType != DOC_NEWLINE && element.elementType != DOC_LINEBREAK) {
                 element = element.prevElement
+            }
+            if (element?.nextElement?.elementType == DOC_TABS) {
+                element = element?.nextElement
             }
 
             val nextElement = element?.nextElement ?: return

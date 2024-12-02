@@ -171,6 +171,13 @@ val CONTEXT_ELEMENTS = LIST_ELEMENT_TYPES + DOC_BLOCKQUOTES
 val LIST_UNORDERED_ITEM_SYMBOLS = listOf("* ", "- ", "+ ")
 val LIST_ORDERED_REGEX = "[0-9]+.".toRegex()
 
+private fun getNumberOfTabs(docElements: List<PsiElement>, index: Int): Int {
+    return if (docElements.getOrNull(index - 1).elementType == DOC_TABS) {
+        (docElements[index - 1].text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
+    } else {
+        0
+    }
+}
 
 private fun StringBuilder.appendListItems(
     index: Int,
@@ -182,11 +189,7 @@ private fun StringBuilder.appendListItems(
 ): Int {
     val element = docElements[index]
     val elementType = element.elementType!!
-    val numberOfTabs = if (docElements.getOrNull(index - 1).elementType == DOC_TABS) {
-        (docElements[index - 1].text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
-    } else {
-        0
-    }
+    val numberOfTabs = getNumberOfTabs(docElements, index)
     if (elementType == DOC_UNORDERED_LIST) {
         context.add(Triple(elementType, null, numberOfTabs))
         append("<ul>")
@@ -195,13 +198,6 @@ private fun StringBuilder.appendListItems(
         append("<ol>")
     }
     append("<li class=\"row\">")
-    if (docCommentInfo.hasLatexCode) {
-        if (elementType == DOC_ORDERED_LIST) {
-            append("1. ")
-        } else {
-            append("• ")
-        }
-    }
     docCommentInfo.itemContextLastIndex = context.lastIndex
 
     val closingTagHtml = "</li>"
@@ -230,11 +226,7 @@ private fun StringBuilder.appendBlockQuotes(
     docCommentInfo: ArendDocCommentInfo
 ): Int {
     val element = docElements[index]
-    val numberOfTabs = if (docElements.getOrNull(index - 1).elementType == DOC_TABS) {
-        (docElements[index - 1].text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
-    } else {
-        0
-    }
+    val numberOfTabs = getNumberOfTabs(docElements, index)
     context.add(Triple(element.elementType!!, null, numberOfTabs))
     append("<blockquote><p class=\"row\">")
 
@@ -277,7 +269,6 @@ private fun StringBuilder.processBlock(
                 if (docCommentInfo.hasLatexCode && docElements.getOrNull(curIndex).elementType == DOC_ORDERED_LIST) {
                     context.last().let { (_, oldIndex, tabs) ->
                         if (oldIndex != null) {
-                            append("${oldIndex + 1}. ")
                             context.removeLast()
                             context.add(Triple(DOC_ORDERED_LIST, oldIndex + 1, tabs))
                         }
@@ -315,11 +306,11 @@ private fun checkContext(elementIndex: Int, docElements: List<PsiElement>, conte
     val element = docElements.getOrNull(elementIndex + 1)
     val elementType = element?.elementType
     val numberTabs = if (elementType == DOC_TABS) {
-         (element!!.text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE - (context.getOrNull(0)?.third ?: 0) + 1
+         (element!!.text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
     } else {
         0
     }
-    return numberTabs == (context.lastOrNull()?.third ?: 0) && docElements.getOrNull(elementIndex + 2).elementType == context.lastOrNull()?.first
+    return numberTabs == (context.lastOrNull()?.third ?: 0) && docElements.getOrNull(elementIndex + 1 + if (numberTabs != 0) 1 else 0).elementType == context.lastOrNull()?.first
 }
 
 private fun isNestedList(elementIndex: Int, docElements: List<PsiElement>, context: List<Triple<IElementType, Int?, Int>>): Boolean {
@@ -327,6 +318,6 @@ private fun isNestedList(elementIndex: Int, docElements: List<PsiElement>, conte
     if (whiteSpaceItem.elementType != DOC_TABS) {
         return false
     }
-    val numberTabs = (whiteSpaceItem!!.text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE - (context.getOrNull(0)?.third ?: 0) + 1
-    return numberTabs >= (context.lastOrNull()?.third ?: 0) + 1 && LIST_ELEMENT_TYPES.contains(docElements.getOrNull(elementIndex + 2).elementType)
+    val numberTabs = (whiteSpaceItem!!.text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
+    return numberTabs > (context.lastOrNull()?.third ?: 0) && LIST_ELEMENT_TYPES.contains(docElements.getOrNull(elementIndex + 2).elementType)
 }

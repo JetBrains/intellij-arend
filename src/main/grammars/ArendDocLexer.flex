@@ -64,7 +64,7 @@ LINEBREAK           = "  " {NEW_LINE}
 UNORDERED_LIST      = ("* " | "+ " | "- ")
 ORDERED_LIST        = [0-9]+ ". "
 BLOCKQUOTES         = "> "
-TABS                = "  " "  "* " "?
+TABS                = "  "* " "?
 HEADER_1            = {NEW_LINE} "=" "="+ " "*
 HEADER_2            = {NEW_LINE} "-" "-"+ " "*
 
