@@ -155,8 +155,7 @@ class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
                     val nameUnderCaret = when {
                         redirectingReferable is RedirectingReferableImpl -> ArendNameKind.NSID_NAME // e.g. name coming from a NsId operator in a namespace command
                         caretElementText == elementToRename.aliasName -> ArendNameKind.ALIAS_NAME
-                        caretElementText == elementToRename.refName -> ArendNameKind.NORMAL_NAME
-                        else -> throw IllegalStateException()
+                        else /* caretElementText == elementToRename.refName */ -> ArendNameKind.NORMAL_NAME
                     }
                     return ArendRenameRefactoringContext(caretElementText ?: return null, nameUnderCaret, editor.caretModel.offset, psiFile)
                 }

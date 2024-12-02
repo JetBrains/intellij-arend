@@ -352,7 +352,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         ApplicationManager.getApplication().run {
             executeOnPooledThread {
                 val arendFilesWithErrors = getArendFilesWithErrors(filterSet, errorsMap).onEach {
-                    it.arendLibrary
+                    runReadAction { it.arendLibrary }
                     it.moduleLocation
                 }
                 runInEdt {
