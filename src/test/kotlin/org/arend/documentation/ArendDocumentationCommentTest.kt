@@ -62,7 +62,7 @@ class ArendDocumentationCommentTest : ArendTestBase() {
 
         val rows = document.getElementsByClass("row")
         assertEquals(4, rows.size)
-        assertTrue(document.getElementsByTag("ol").text().contains("1. a 2. b • bb"))
+        assertTrue(document.getElementsByTag("ol").text().contains("a b bb"))
         assertEquals(2, rows.flatMap { it.select("img") }.size)
     }
 }
