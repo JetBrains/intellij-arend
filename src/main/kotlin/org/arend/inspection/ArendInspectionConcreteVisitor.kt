@@ -61,6 +61,13 @@ open class ArendInspectionConcreteVisitor : VoidConcreteVisitor<Void>() {
         return null
     }
 
+    override fun visitFieldCall(expr: Concrete.FieldCallExpression?, params: Void?): Void? {
+        parents.push(expr)
+        super.visitFieldCall(expr, params)
+        parents.pop()
+        return null
+    }
+
     override fun visitReference(expr: Concrete.ReferenceExpression?, params: Void?): Void? {
         parents.push(expr)
         super.visitReference(expr, params)

@@ -9,6 +9,7 @@ import com.intellij.psi.search.SearchScope
 import com.intellij.psi.util.childrenOfType
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
+import org.arend.naming.scope.Scope.ScopeContext
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
 import org.arend.resolving.*
@@ -224,7 +225,7 @@ class ArendRefIdentifier(node: ASTNode) : ArendIdentifierBase(node), ArendSource
         val parentLongName = parent as? ArendLongName
         val isImport = (parentLongName?.parent as? ArendStatCmd)?.kind == NamespaceCommand.Kind.IMPORT
         val last = if (isImport) parentLongName?.refIdentifierList?.lastOrNull() else null
-        return ArendReferenceImpl(this, last != null && last != this, if (parent is ArendAtomLevelExpr) (if (ancestors.filterIsInstance<ArendTopLevelLevelExpr>().firstOrNull()?.isPLevels() != false) Referable.RefKind.PLEVEL else Referable.RefKind.HLEVEL) else Referable.RefKind.EXPR)
+        return ArendReferenceImpl(this, last != null && last != this, if (parent is ArendAtomLevelExpr) (if (ancestors.filterIsInstance<ArendTopLevelLevelExpr>().firstOrNull()?.isPLevels() != false) ScopeContext.PLEVEL else ScopeContext.HLEVEL) else ScopeContext.STATIC)
     }
 
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)

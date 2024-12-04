@@ -37,34 +37,33 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
         val resolveCache = data.project.service<ArendResolveCache>()
         val refExpr = Concrete.FixityReferenceExpression.make(data, referent, fixity, null, null)
 
-        var arg: Concrete.Expression? = null
+        var resolved: Concrete.Expression? = null
         var isCachedValue = true
         val referentComputer = {
             isCachedValue = false
-            arg = ExpressionResolveNameVisitor.resolve(refExpr, scope1, false, null)
+            resolved = ExpressionResolveNameVisitor.resolve(refExpr, scope1, false, null)
             refExpr.referent
         }
 
         var referable = if (anchor != null) resolveCache.resolveCached(referentComputer, anchor) else referentComputer.invoke()
 
         if (fixity == Fixity.POSTFIX)
-            arg = null
+            resolved = null
         else {
             val isDynamicClassMember = (referable as? PsiElement)?.ancestor<ArendDefClass>()?.dynamicReferables?.contains(referable) == true
             if (isDynamicClassMember && isCachedValue) referentComputer.invoke()
         }
 
-        if (arg == null && referent is LongUnresolvedReference && data is ArendLongName) {
+        if (resolved == null && referent is LongUnresolvedReference && data is ArendLongName) {
             val referable1 = RedirectingReferable.getOriginalReferable(refExpr.referent)
             val resolvedRefs = data.refIdentifierList.map { it.resolve as? Referable }.toMutableList()
             if (referable1 is UnresolvedReference) {
-                arg = referable1.resolveArgument(scope1, resolvedRefs)
+                resolved = referable1.resolveExpression(scope1, resolvedRefs)
                 referable = referable1.resolve(scope1, null)
             }
         }
         if (referable != null) refExpr.referent = referable
-
-        if (arg == null) refExpr else Concrete.AppExpression.make(data, refExpr, arg, false)
+        if (resolved == null) refExpr else resolved
     } else {
         null
     }

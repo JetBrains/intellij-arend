@@ -68,7 +68,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         resolverCache.replaceCache(ref, ref)
     }
 
-    override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
+    override fun referenceResolved(expr: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
         resolveReference(refExpr.data, refExpr.referent, resolvedRefs)
     }
 

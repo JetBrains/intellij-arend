@@ -11,7 +11,6 @@ import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.*
-import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -37,7 +36,7 @@ interface ArendReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: TextRange, private val beforeImportDot: Boolean = false, protected val refKind: RefKind = RefKind.EXPR) : PsiReferenceBase<T>(element, range), ArendReference {
+abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: TextRange, private val beforeImportDot: Boolean = false, protected val scopeContext: Scope.ScopeContext = Scope.ScopeContext.STATIC) : PsiReferenceBase<T>(element, range), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -49,7 +48,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
             if (beforeImportDot) {
                 val refName = element.referenceName
                 var result: Referable? = null
-                for (ref in element.scope.getElements(refKind)) {
+                for (ref in element.scope.getElements(scopeContext)) {
                     val name = if (ref is ModuleReferable) ref.path.lastName else ref.refName
                     if (name == refName) {
                         result = ref
@@ -70,9 +69,9 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                     }
                     expr != null -> {
                         ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
-                        cache.getCached(element) ?: element.scope.resolveName(element.referenceName, refKind)
+                        cache.getCached(element) ?: element.scope.resolveName(element.referenceName, scopeContext)
                     }
-                    else -> element.scope.resolveName(element.referenceName, refKind)
+                    else -> element.scope.resolveName(element.referenceName, scopeContext)
                 }
             }
         }
@@ -181,7 +180,7 @@ object ArendIdReferableConverter : ReferableConverter {
     override fun convert(referable: Referable?) = (referable as? ArendDefMeta)?.metaRef ?: referable
 }
 
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImportDot: Boolean = false, refKind: RefKind = RefKind.EXPR) : ArendReferenceBase<T>(element, element.rangeInElement, beforeImportDot, refKind), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImportDot: Boolean = false, scopeContext: Scope.ScopeContext = Scope.ScopeContext.STATIC) : ArendReferenceBase<T>(element, element.rangeInElement, beforeImportDot, scopeContext), ArendReference {
     override fun bindToElement(element: PsiElement) = element
 
     override fun getVariants(): Array<Any> {
@@ -214,11 +213,11 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImpor
             element.ancestor<ArendExpr>()
         } else null
         val def = expr?.ancestor<PsiConcreteReferable>()
-        var elements = if (expr == null) PrivateFilteredScope(element.scope, true).getElements(refKind) else emptyList()
+        var elements = if (expr == null) PrivateFilteredScope(element.scope, true).getElements(scopeContext) else emptyList()
         val resolverListener = if (expr == null) null else object : ResolverListener {
-            override fun referenceResolved(argument: Concrete.Expression?, originalRef: Referable?, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
+            override fun referenceResolved(expr: Concrete.Expression?, originalRef: Referable?, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
                 if (refExpr.data == parent || refExpr.data == element) {
-                    elements = scope.getElements(refKind)
+                    elements = scope.getElements(scopeContext)
                 }
             }
 
