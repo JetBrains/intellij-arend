@@ -85,7 +85,7 @@ abstract class ArendStarterModuleBuilder : ModuleBuilder() {
         return true
     }
 
-    override fun isSuitableSdkType(sdkType: SdkTypeId?): Boolean {
+    override fun isSuitableSdkType(sdkType: SdkTypeId): Boolean {
         return sdkType is JavaSdkType && !sdkType.isDependent
     }
 
@@ -94,7 +94,7 @@ abstract class ArendStarterModuleBuilder : ModuleBuilder() {
         return null
     }
 
-    override fun createProject(name: String?, path: String?): Project? {
+    override fun createProject(name: String, path: String): Project? {
         val project = super.createProject(name, path)
         project?.let { setupProject(it) }
         return project

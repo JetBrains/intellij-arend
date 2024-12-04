@@ -179,7 +179,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     private inner class NextEntryActionHandler : XDebuggerSuspendedActionHandler() {
-        override fun perform(session: XDebugSession, dataContext: DataContext?) {
+        override fun perform(session: XDebugSession, dataContext: DataContext) {
             session.sessionResumed()
             val entry = trace.entries.getOrNull(++traceEntryIndex)
             if (entry == null) {
@@ -191,7 +191,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     private inner class PrevEntryActionHandler : XDebuggerSuspendedActionHandler() {
-        override fun perform(session: XDebugSession, dataContext: DataContext?) {
+        override fun perform(session: XDebugSession, dataContext: DataContext) {
             session.sessionResumed()
             val entry = trace.entries.getOrNull(--traceEntryIndex)
             if (entry == null) {
@@ -201,7 +201,7 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
             session.positionReached(ArendSuspendContext(entry, contextView))
         }
 
-        override fun isEnabled(project: Project, event: AnActionEvent?): Boolean =
+        override fun isEnabled(project: Project, event: AnActionEvent): Boolean =
             super.isEnabled(project, event) && traceEntryIndex > 0
     }
 

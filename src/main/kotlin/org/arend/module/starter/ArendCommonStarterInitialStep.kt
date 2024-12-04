@@ -186,7 +186,7 @@ abstract class ArendCommonStarterInitialStep(
             .withTextToPathConvertor(::getCanonicalPath)
         val title = IdeBundle.message("title.select.project.file.directory", wizardContext.presentationName)
         val property = locationProperty.transform(::getPresentablePath, ::getCanonicalPath)
-        return textFieldWithBrowseButton(title, wizardContext.project, fileChooserDescriptor)
+        return textFieldWithBrowseButton(fileChooserDescriptor.withTitle(title), wizardContext.project)
             .bindText(property)
     }
 }
