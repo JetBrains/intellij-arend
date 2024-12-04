@@ -22,7 +22,9 @@ abstract class SelectionIntention<T : PsiElement>(private val elementType: Class
     abstract fun invoke(project: Project, editor: Editor, file: ArendFile, element: T, selected: TextRange)
 
     private fun selectedExpr(editor: Editor, file: ArendFile, selected: TextRange): T? {
-        val element = file.findElementAt(editor.caretModel.offset)
+        val offset = editor.caretModel.offset
+        val element = file.findElementAt(offset)
+            ?: file.findElementAt(offset - 1)
             ?: return null
         return element.ancestors.filterIsInstance(elementType)
             .firstOrNull { selected in it.textRange }

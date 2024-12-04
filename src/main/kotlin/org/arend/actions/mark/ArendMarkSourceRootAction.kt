@@ -6,7 +6,7 @@ import org.jetbrains.jps.model.java.JavaSourceRootType
 
 class ArendMarkSourceRootAction : MarkSourceRootAction(JavaSourceRootType.SOURCE) {
     override fun update(e: AnActionEvent) {
-        if (isNotOtherDirectionType(e)) {
+        if (isNotOtherDirectoryType(e)) {
             e.presentation.isEnabledAndVisible = true
             super.update(e)
         } else {
@@ -15,7 +15,7 @@ class ArendMarkSourceRootAction : MarkSourceRootAction(JavaSourceRootType.SOURCE
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        unmarkOldDirectory(e, DirectoryType.SRC)
+        unmarkDirectory(e, DirectoryType.SRC)
         super.actionPerformed(e)
     }
 }

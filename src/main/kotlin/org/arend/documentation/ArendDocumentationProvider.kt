@@ -17,7 +17,6 @@ import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
-import org.arend.codeInsight.ArendCodeInsightUtils
 import org.arend.documentation.ArendKeyword.Companion.isArendKeyword
 import org.arend.ext.module.LongName
 import org.arend.naming.reference.FieldReferable
@@ -55,7 +54,8 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         if (link.startsWith(ACTION_PREFIX)) {
             val elementText = link.removePrefix(ACTION_PREFIX)
             invokeLater {
-                showInCefBrowser(elementText)
+                val color = getHtmlRgbFormat(UIManager.getColor("PopupMenu.foreground").rgb)
+                showInCefBrowser(elementText, color)
             }
             return null
         }
@@ -168,7 +168,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
         browser.loadHTML(popupCefBrowserHtml)
     }
 
-    private fun showInCefBrowser(title: String) {
+    private fun showInCefBrowser(title: String, linkColor: String) {
         val browser = JBCefBrowser()
         browser.component.preferredSize = Dimension(1, 1)
 
@@ -203,8 +203,20 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                     var height = document.documentElement.scrollHeight;
                     ${queryHeight.inject("height")}
                 """
+                val jsColorLink = """
+                    (function() {
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            a, a:visited, a:hover, a:active {
+                                color: $linkColor !important;
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    })();
+                """
                 browser?.executeJavaScript(jsWidth, browser.url, 0)
                 browser?.executeJavaScript(jsHeight, browser.url, 0)
+                browser?.executeJavaScript(jsColorLink, browser.url, 0);
             }
         }
 

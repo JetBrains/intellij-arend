@@ -20,7 +20,7 @@ internal fun hasLatexCode(doc: PsiElement) = doc.childrenWithLeaves.any { it.ele
 internal fun StringBuilder.generateDocComments(ref: PsiReferable, doc: PsiElement, full: Boolean, docCommentInfo: ArendDocCommentInfo) {
     var curIndex = 0
     val docElements = doc.childrenWithLeaves.toList()
-    val context = mutableListOf<Pair<IElementType, Int?>>()
+    val context = mutableListOf<Triple<IElementType, Int?, Int>>()
 
     while (curIndex <= docElements.lastIndex) {
         curIndex = processDocCommentElement(curIndex, docElements, ref, full, context, docCommentInfo)
@@ -32,7 +32,7 @@ private fun StringBuilder.processDocCommentElement(
     docElements: List<PsiElement>,
     ref: PsiReferable,
     full: Boolean,
-    context: MutableList<Pair<IElementType, Int?>>,
+    context: MutableList<Triple<IElementType, Int?, Int>>,
     docCommentInfo: ArendDocCommentInfo
 ): Int {
     val docElement = docElements[index]
@@ -171,32 +171,33 @@ val CONTEXT_ELEMENTS = LIST_ELEMENT_TYPES + DOC_BLOCKQUOTES
 val LIST_UNORDERED_ITEM_SYMBOLS = listOf("* ", "- ", "+ ")
 val LIST_ORDERED_REGEX = "[0-9]+.".toRegex()
 
+private fun getNumberOfTabs(docElements: List<PsiElement>, index: Int): Int {
+    return if (docElements.getOrNull(index - 1).elementType == DOC_TABS) {
+        (docElements[index - 1].text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
+    } else {
+        0
+    }
+}
 
 private fun StringBuilder.appendListItems(
     index: Int,
     docElements: List<PsiElement>,
     ref: PsiReferable,
     full: Boolean,
-    context: MutableList<Pair<IElementType, Int?>>,
+    context: MutableList<Triple<IElementType, Int?, Int>>,
     docCommentInfo: ArendDocCommentInfo
 ): Int {
     val element = docElements[index]
     val elementType = element.elementType!!
+    val numberOfTabs = getNumberOfTabs(docElements, index)
     if (elementType == DOC_UNORDERED_LIST) {
-        context.add(Pair(elementType, null))
+        context.add(Triple(elementType, null, numberOfTabs))
         append("<ul>")
     } else {
-        context.add(Pair(elementType, 1))
+        context.add(Triple(elementType, 1, numberOfTabs))
         append("<ol>")
     }
     append("<li class=\"row\">")
-    if (docCommentInfo.hasLatexCode) {
-        if (elementType == DOC_ORDERED_LIST) {
-            append("1. ")
-        } else {
-            append("• ")
-        }
-    }
     docCommentInfo.itemContextLastIndex = context.lastIndex
 
     val closingTagHtml = "</li>"
@@ -221,11 +222,12 @@ private fun StringBuilder.appendBlockQuotes(
     docElements: List<PsiElement>,
     ref: PsiReferable,
     full: Boolean,
-    context: MutableList<Pair<IElementType, Int?>>,
+    context: MutableList<Triple<IElementType, Int?, Int>>,
     docCommentInfo: ArendDocCommentInfo
 ): Int {
     val element = docElements[index]
-    context.add(Pair(element.elementType!!, null))
+    val numberOfTabs = getNumberOfTabs(docElements, index)
+    context.add(Triple(element.elementType!!, null, numberOfTabs))
     append("<blockquote><p class=\"row\">")
 
     val newIndex = processBlock(index + 1, docElements, ref, full, context, docCommentInfo, " ", "")
@@ -239,7 +241,7 @@ private fun StringBuilder.processBlock(
     docElements: List<PsiElement>,
     ref: PsiReferable,
     full: Boolean,
-    context: MutableList<Pair<IElementType, Int?>>,
+    context: MutableList<Triple<IElementType, Int?, Int>>,
     docCommentInfo: ArendDocCommentInfo,
     openingTagHtml: String,
     closingTagHtml: String
@@ -253,19 +255,23 @@ private fun StringBuilder.processBlock(
             if (curElementType == DOC_LINEBREAK) {
                 append("<br>")
             }
-            val resultContext = checkContext(curIndex, docElements, context)
-            if (resultContext.first) {
-                curIndex += resultContext.second
+            val result = checkContext(curIndex, docElements, context)
+            if (result) {
+                curIndex++
+                if (docElements.getOrNull(curIndex).elementType == DOC_TABS) {
+                    curIndex++
+                }
                 if (docCommentInfo.itemContextLastIndex == context.lastIndex) {
                     append(closingTagHtml)
                 }
                 append(openingTagHtml)
 
                 if (docCommentInfo.hasLatexCode && docElements.getOrNull(curIndex).elementType == DOC_ORDERED_LIST) {
-                    context.last().second?.let {
-                        append("${it + 1}. ")
-                        context.removeLast()
-                        context.add(Pair(DOC_ORDERED_LIST, it + 1))
+                    context.last().let { (_, oldIndex, tabs) ->
+                        if (oldIndex != null) {
+                            context.removeLast()
+                            context.add(Triple(DOC_ORDERED_LIST, oldIndex + 1, tabs))
+                        }
                     }
                 }
                 docCommentInfo.itemContextLastIndex = context.lastIndex
@@ -296,61 +302,22 @@ private fun StringBuilder.processBlock(
     return curIndex
 }
 
-private fun checkContext(elementIndex: Int, docElements: List<PsiElement>, context: List<Pair<IElementType, Int?>>): Pair<Boolean, Int> {
-    var contextIndex = 0
-    var shiftDocElements = 1
-    while (contextIndex <= context.lastIndex) {
-        val contextElement = context[contextIndex]
-        val element = docElements.getOrNull(elementIndex + shiftDocElements)
-        val elementType = element?.elementType
-
-        if (elementType == DOC_TABS) {
-            var numberTabs = (element!!.text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
-            while (numberTabs > 0 && contextIndex < context.lastIndex) {
-                if (!LIST_ELEMENT_TYPES.contains(context[contextIndex].first)) {
-                    return Pair(false, -1)
-                }
-                contextIndex++
-                numberTabs--
-            }
-            shiftDocElements++
-            if (numberTabs == 0) {
-                continue
-            }
-        }
-        if (elementType != contextElement.first) {
-            return Pair(false, -1)
-        }
-        contextIndex++
-        shiftDocElements++
+private fun checkContext(elementIndex: Int, docElements: List<PsiElement>, context: List<Triple<IElementType, Int?, Int>>): Boolean {
+    val element = docElements.getOrNull(elementIndex + 1)
+    val elementType = element?.elementType
+    val numberTabs = if (elementType == DOC_TABS) {
+         (element!!.text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
+    } else {
+        0
     }
-    return Pair(true, shiftDocElements - 1)
+    return numberTabs == (context.lastOrNull()?.third ?: 0) && docElements.getOrNull(elementIndex + 1 + if (numberTabs != 0) 1 else 0).elementType == context.lastOrNull()?.first
 }
 
-private fun isNestedList(elementIndex: Int, docElements: List<PsiElement>, context: List<Pair<IElementType, Int?>>): Boolean {
-    var firstNotEqualContextIndex = -1
-    for (contextElement in context.withIndex()) {
-        val elementType = docElements.getOrNull(elementIndex + contextElement.index + 1)?.elementType
-        if (elementType != contextElement.value) {
-            firstNotEqualContextIndex = contextElement.index
-            break
-        }
-    }
-
+private fun isNestedList(elementIndex: Int, docElements: List<PsiElement>, context: List<Triple<IElementType, Int?, Int>>): Boolean {
     val whiteSpaceItem = docElements.getOrNull(elementIndex + 1)
     if (whiteSpaceItem.elementType != DOC_TABS) {
         return false
     }
     val numberTabs = (whiteSpaceItem!!.text.length + AREND_DOC_COMMENT_TABS_SIZE - 1) / AREND_DOC_COMMENT_TABS_SIZE
-    if (numberTabs != context.lastIndex - firstNotEqualContextIndex + 1) {
-        return false
-    }
-    for (index in firstNotEqualContextIndex..context.lastIndex) {
-        if (!LIST_ELEMENT_TYPES.contains(context[index].first)) {
-            return false
-        }
-    }
-
-    val listItemType = docElements.getOrNull(elementIndex + 2).elementType
-    return LIST_ELEMENT_TYPES.contains(listItemType)
+    return numberTabs > (context.lastOrNull()?.third ?: 0) && LIST_ELEMENT_TYPES.contains(docElements.getOrNull(elementIndex + 2).elementType)
 }

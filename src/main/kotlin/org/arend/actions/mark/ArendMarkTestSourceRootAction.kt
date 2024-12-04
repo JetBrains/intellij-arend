@@ -6,7 +6,7 @@ import org.jetbrains.jps.model.java.JavaSourceRootType
 
 class ArendMarkTestSourceRootAction : MarkSourceRootAction(JavaSourceRootType.TEST_SOURCE) {
     override fun update(e: AnActionEvent) {
-        if (isNotOtherDirectionType(e)) {
+        if (isNotOtherDirectoryType(e)) {
             e.presentation.isEnabledAndVisible = true
             super.update(e)
         } else {
@@ -15,7 +15,7 @@ class ArendMarkTestSourceRootAction : MarkSourceRootAction(JavaSourceRootType.TE
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        unmarkOldDirectory(e, DirectoryType.TEST_SRC)
+        unmarkDirectory(e, DirectoryType.TEST_SRC)
         super.actionPerformed(e)
     }
 }

@@ -22,7 +22,8 @@ class ArendProjectImportBuilder : ProjectImportBuilder<String>() {
 
     override fun getName(): String = "Arend project"
 
-    override fun isOpenProjectSettingsAfter() = parameters.openProjectSettingsAfter
+    override val isOpenProjectSettingsAfter
+        get() = parameters.openProjectSettingsAfter
 
     override fun setOpenProjectSettingsAfter(on: Boolean) {
         parameters.openProjectSettingsAfter = on

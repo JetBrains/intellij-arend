@@ -53,19 +53,9 @@ open class ArendUnmarkRootAction : UnmarkRootAction() {
                 super.actionPerformed(e)
                 return
             }
-            if (!findContentEntry(model, file)?.sourceFolders.isNullOrEmpty()) {
-                setEmptySourceDirectories(model, arendModuleConfigService, files)
-            }
-        }
-
-        super.actionPerformed(e)
-    }
-
-    private fun setEmptySourceDirectories(model: ModifiableRootModel, arendModuleConfigService: ArendModuleConfigService?, files: Array<VirtualFile>) {
-        model.project.projectFile?.let { projectFile ->
-            val sourceFolders = findContentEntry(model, projectFile)?.sourceFolders
-            for (file in files) {
-                sourceFolders?.find { it.file == file }?.let {
+            val sourceFolders = findContentEntry(model, file)?.sourceFolders
+            if (!sourceFolders.isNullOrEmpty()) {
+                sourceFolders.find { it.file == file }?.let {
                     if (it.isTestSource) {
                         arendModuleConfigService?.updateTestDirFromIDEA("")
                     } else {
@@ -74,5 +64,6 @@ open class ArendUnmarkRootAction : UnmarkRootAction() {
                 }
             }
         }
+        super.actionPerformed(e)
     }
 }

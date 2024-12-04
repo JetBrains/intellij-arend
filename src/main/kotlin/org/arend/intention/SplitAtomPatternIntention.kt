@@ -1,8 +1,10 @@
 package org.arend.intention
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.util.startOffset
 import com.intellij.util.containers.tail
 import org.arend.ext.variable.Variable

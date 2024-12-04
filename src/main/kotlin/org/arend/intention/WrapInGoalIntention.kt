@@ -1,8 +1,10 @@
 package org.arend.intention
 
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiFile
 import org.arend.psi.ext.ArendExpr
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendLiteral

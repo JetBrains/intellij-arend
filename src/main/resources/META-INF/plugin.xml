@@ -47,7 +47,6 @@
         <!-- File Type -->
 
         <fileType language="Arend" implementationClass="org.arend.ArendFileType" name="Arend" extensions="ard" />
-        <fileType fieldName="INSTANCE" implementationClass="org.arend.psi.arc.ArcFileType" name="Arc" extensions="arc" />
 
         <!-- Parser -->
 
@@ -66,8 +65,6 @@
 
         <!-- Syntax Highlighter -->
 
-        <syntaxHighlighter id="arend.arc" key="Arc"
-                                       factoryClass="org.arend.highlight.ArendSyntaxHighlighterFactory"/>
         <lang.syntaxHighlighterFactory language="Arend"
                                        implementationClass="org.arend.highlight.ArendSyntaxHighlighterFactory"/>
 
@@ -96,6 +93,8 @@
 
         <lang.psiStructureViewFactory language="Arend"
                                       implementationClass="org.arend.structure.ArendPsiStructureViewFactory"/>
+
+        <structureViewBuilder factoryClass="org.arend.structure.ArendStructureViewBuilderProvider"/>
 
         <!-- Hierarchy -->
 
@@ -134,6 +133,7 @@
         <gotoClassContributor implementation="org.arend.navigation.ArendClassNavigationContributor"/>
         <gotoSymbolContributor implementation="org.arend.navigation.ArendSymbolNavigationContributor"/>
         <gotoFileContributor implementation="org.arend.navigation.ArendFileNavigationContributor"/>
+        <navbar id="arendNavbar" implementation="org.arend.navigation.ArendNavBarExtension" order="first"/>
 
         <!-- Hints -->
 
@@ -397,8 +397,6 @@
 
         <editorNotificationProvider implementation="org.arend.notification.FileOutsideSourcesProvider"/>
 
-        <editorNotificationProvider implementation="org.arend.psi.arc.ArcNotificationProvider"/>
-
         <!-- Configuration Options -->
 
         <editorSmartKeysConfigurable instance="org.arend.editor.ArendSmartKeysConfigurable"/>
@@ -434,15 +432,7 @@
         <liveTemplateContext contextId="AREND_EXPRESSION" baseContextId="AREND" implementation="org.arend.liveTemplates.ArendTemplateContextType$Expression"/>
 
         <!-- Starters -->
-
         <appStarter id="generateArendLibHtml" implementation="org.arend.documentation.GenerateArendLibHtmlStarter"/>
-
-        <!--  Decompiler tools  -->
-
-        <filetype.stubBuilder filetype="Arc" implementationClass="org.arend.psi.arc.ArcFileStubBuilder"/>
-        <filetype.decompiler filetype="Arc" implementationClass="org.arend.psi.arc.ArcFileDecompiler"/>
-        <fileType.fileViewProviderFactory filetype="Arc" implementationClass="org.arend.psi.arc.ArcFileViewProviderFactory"/>
-        <psi.classFileDecompiler implementation="org.arend.psi.arc.ArcDecompiler" order="first"/>
 
     </extensions>
 

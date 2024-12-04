@@ -15,6 +15,7 @@ import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
+import org.arend.core.definition.Definition.TypeCheckingStatus.NO_ERRORS
 import org.arend.core.expr.FunCallExpression
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.ext.module.ModulePath
@@ -420,7 +421,7 @@ private class ImportStructureCollector(
 
     private fun addCoreGlobalInstances(element: ArendDefinition<*>) {
         val tcReferable = (element.tcReferable as? TCDefReferable)?.typechecked
-        allDefinitionsTypechecked = allDefinitionsTypechecked && (tcReferable != null)
+        allDefinitionsTypechecked = allDefinitionsTypechecked && (tcReferable != null && tcReferable.status() == NO_ERRORS)
         if (!allDefinitionsTypechecked) return
         tcReferable!!.accept(object : SearchVisitor<Unit>() { // not-null assertion implied by '&&' above
             override fun visitFunCall(expr: FunCallExpression?, params: Unit?): Boolean {

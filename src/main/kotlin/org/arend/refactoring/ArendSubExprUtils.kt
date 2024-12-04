@@ -24,6 +24,7 @@ import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.prettyprinting.DefinitionRenamer
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
+import org.arend.intention.checkNotGeneratePreview
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -183,8 +184,10 @@ fun tryCorrespondedSubExpr(range: TextRange, file: PsiFile, project: Project, ed
     try {
         correspondedSubExpr(range, file, project)
     } catch (e: SubExprException) {
-        if (showError) ApplicationManager.getApplication().invokeLater {
-            HintManager.getInstance().showErrorHint(editor, "Failed because ${e.message}")
+        if (checkNotGeneratePreview() && showError) {
+            ApplicationManager.getApplication().invokeLater {
+                HintManager.getInstance().showErrorHint(editor, "Failed because ${e.message}")
+            }
         }
         null
     }
@@ -308,17 +311,19 @@ inline fun normalizeExpr(
         renamer: DefinitionRenamer? = null,
         crossinline after: (Concrete.Expression) -> Unit
 ) {
-    val title = "Running normalization"
-    var result: Concrete.Expression? = null
-    ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
-        override fun run(indicator: ProgressIndicator) {
-            result = ComputationRunner<Concrete.Expression>().run(ProgressCancellationIndicator(indicator)) {
-                runReadAction {
-                    exprToConcrete(project, subCore, mode, renamer)
+    if (checkNotGeneratePreview()) {
+        val title = "Running normalization"
+        var result: Concrete.Expression? = null
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, title, true) {
+            override fun run(indicator: ProgressIndicator) {
+                result = ComputationRunner<Concrete.Expression>().run(ProgressCancellationIndicator(indicator)) {
+                    runReadAction {
+                        exprToConcrete(project, subCore, mode, renamer)
+                    }
                 }
             }
-        }
 
-        override fun onFinished() = result?.let(after) ?: Unit
-    })
+            override fun onFinished() = result?.let(after) ?: Unit
+        })
+    }
 }

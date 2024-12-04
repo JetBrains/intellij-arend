@@ -2,6 +2,8 @@ package org.arend.search
 
 import junit.framework.TestCase
 import org.arend.ArendTestBase
+import org.arend.fileTreeFromText
+import org.arend.search.proof.ProofSearchUI.Companion.insertDefinition
 import org.arend.search.proof.generateProofSearchResults
 import org.intellij.lang.annotations.Language
 

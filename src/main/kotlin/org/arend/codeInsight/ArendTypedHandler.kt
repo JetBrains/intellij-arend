@@ -9,9 +9,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.endOffset
-import com.intellij.refactoring.suggested.startOffset
+import com.intellij.psi.util.endOffset
+import com.intellij.psi.util.startOffset
 import com.intellij.util.text.CharArrayCharSequence
 import org.arend.psi.ArendElementTypes.*
 import org.arend.settings.ArendSettings
@@ -53,7 +52,7 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         )
     }
 
-    private fun addParens(project: Project, editor: Editor, file: PsiFile) {
+    private fun addParensToGoal(project: Project, editor: Editor, file: PsiFile) {
         val element = file.findElementAt(editor.selectionModel.selectionStart) ?: return
         val document = editor.document
         PsiDocumentManager.getInstance(project).commitDocument(document)
@@ -61,16 +60,24 @@ class ArendTypedHandler : TypedHandlerDelegate() {
         document.insertString(element.endOffset + 1, ")")
     }
 
+    private fun addBrackets(project: Project, editor: Editor) {
+        val document = editor.document
+        PsiDocumentManager.getInstance(project).commitDocument(document)
+        document.insertString(editor.selectionModel.selectionStart, "{")
+        document.insertString(editor.selectionModel.selectionEnd, "}")
+    }
+
     override fun beforeSelectionRemoved(c: Char, project: Project, editor: Editor, file: PsiFile): Result {
         val selectedText = editor.selectionModel.selectedText
         if (c == '(' && selectedText == "{?}") {
-            addParens(project, editor, file)
+            addParensToGoal(project, editor, file)
             return Result.STOP
-        } else if (BRACKETS.contains(c.toString())) {
-            if (BRACKETS.contains(selectedText)) {
-                changeCorrespondingBracket(c, project, editor, file)
-                return Result.CONTINUE
-            }
+        } else if (BRACKETS.contains(c.toString()) && BRACKETS.contains(selectedText)) {
+            changeCorrespondingBracket(c, project, editor, file)
+            return Result.CONTINUE
+        } else if (c == '{' && selectedText?.isNotEmpty() == true) {
+            addBrackets(project, editor)
+            return Result.STOP
         }
         return SelectionQuotingTypedHandler().beforeSelectionRemoved(c, project, editor, file)
     }
