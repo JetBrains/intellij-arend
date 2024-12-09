@@ -22,7 +22,7 @@ class ArendPsiFactory(
         createFunction(name).defIdentifier ?: error("Failed to create def identifier: `$name`")
 
     fun createRefIdentifier(name: String): ArendRefIdentifier =
-        createStatCmd(name).refIdentifierList.getOrNull(0)
+        createStatCmd(name).hiddenReferences.getOrNull(0)?.refIdentifier
             ?: error("Failed to create identifier: $name")
 
     fun createAliasIdentifier(name: String): ArendAliasIdentifier =

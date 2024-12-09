@@ -48,7 +48,7 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
     override fun getBodyReference(visitor: TypeClassReferenceExtractVisitor): Referable? =
         ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr)
 
-    override fun getKind() = GlobalReferable.Kind.META
+    override fun getKind() = GlobalReferable.Kind.OTHER
 
     override fun getIcon(flags: Int) = ArendIcons.META_DEFINITION
 

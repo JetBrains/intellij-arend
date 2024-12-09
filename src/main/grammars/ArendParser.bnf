@@ -91,6 +91,8 @@
         SUC_KW              = '\suc'
         LEVEL_KW            = '\level'
         LEVELS_KW           = '\levels'
+        PLEVEL_KW           = '\plevel'
+        HLEVEL_KW           = '\hlevel'
         PLEVELS_KW          = '\plevels'
         HLEVELS_KW          = '\hlevels'
         LESS_OR_EQUALS      = '<='
@@ -137,7 +139,7 @@ private stat_recovery ::= statement_recover {
     recoverWhile = statement_recover
 }
 
-statCmd ::= (OPEN_KW | IMPORT_KW) ns_longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence refIdentifier>> RPAREN] {
+statCmd ::= (OPEN_KW | IMPORT_KW) ns_longName nsUsing? [HIDING_KW LPAREN <<comma_separated_sequence scId>> RPAREN] {
     pin = 1
 }
 
@@ -165,9 +167,13 @@ nsId ::= ns_refIdentifier [AS_KW prec? defIdentifier] {
     recoverWhile = nsId_recover
 }
 
+scId ::= scopeContext? refIdentifier
+
+private scopeContext ::= DOT | PLEVEL_KW | HLEVEL_KW
+
 private nsId_recover ::= !(COMMA | RPAREN) & nsUsing_recover
 
-private ns_refIdentifier ::= refIdentifier {
+private ns_refIdentifier ::= scopeContext? refIdentifier {
     recoverWhile = ns_refIdentifier_recover
 }
 

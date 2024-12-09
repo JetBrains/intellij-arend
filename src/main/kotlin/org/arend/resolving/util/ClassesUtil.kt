@@ -6,6 +6,7 @@ import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.ClassFieldImplScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.ext.ArendLongName
 import org.arend.psi.ClassReferenceHolder
 import org.arend.term.abs.Abstract
@@ -31,8 +32,8 @@ private fun getNotImplementedFields(classDef: ClassReferable, classRefHolder: Cl
 }
 
 class ModifiedClassFieldImplScope(referable: ClassReferable, private val classRefHolder: ClassReferenceHolder?) : ClassFieldImplScope(referable, true) {
-    override fun getElements(kind: Referable.RefKind?): List<Referable> {
-        if (kind != null && kind != Referable.RefKind.EXPR) return emptyList()
+    override fun getElements(context: Scope.ScopeContext?): List<Referable> {
+        if (context != null && context != Scope.ScopeContext.STATIC) return emptyList()
         val superClassesFields = HashMap<ClassReferable, MutableSet<FieldReferable>>()
         val fields = getNotImplementedFields(classReference, classRefHolder, superClassesFields)
         return fields.toList() + superClassesFields.mapNotNull { entry -> if (entry.value.isEmpty()) null else entry.key }

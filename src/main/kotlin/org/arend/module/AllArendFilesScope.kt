@@ -76,7 +76,7 @@ class AllArendFilesScope(
         }
     }
 
-    override fun getElements(kind: Referable.RefKind?): Collection<Referable> = if (kind == null || kind == Referable.RefKind.EXPR) elements else emptyList()
+    override fun getElements(context: Scope.ScopeContext?): Collection<Referable> = if (context == null || context == Scope.ScopeContext.STATIC) elements else emptyList()
 
     override fun resolveNamespace(name: String) = AllArendFilesScope(libraryConfig, ModulePath(extraPath.toList() + name), isTest, false)
 }

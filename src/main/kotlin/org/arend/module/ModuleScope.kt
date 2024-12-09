@@ -7,7 +7,6 @@ import org.arend.ext.module.ModulePath
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.ModuleReferable
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
@@ -72,7 +71,7 @@ class ModuleScope private constructor(
         return result
     }
 
-    override fun getElements(kind: RefKind?): Collection<Referable> = if (kind == null || kind == RefKind.EXPR) elements else emptyList()
+    override fun getElements(context: Scope.ScopeContext?): Collection<Referable> = if (context == null || context == Scope.ScopeContext.STATIC) elements else emptyList()
 
     override fun resolveNamespace(name: String): Scope {
         val newRootDirs = if (libraryConfig == null) emptyList() else (calculateRootDirs()).mapNotNull { root ->

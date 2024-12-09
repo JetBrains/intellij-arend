@@ -16,6 +16,7 @@ import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.local.TelescopeScope
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ReferableExtractVisitor
+import org.arend.term.group.AccessModifier
 import javax.swing.Icon
 
 class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract.FunctionDefinition, TCDefinition, StubBasedPsiElement<ArendCoClauseDefStub> {
@@ -47,6 +48,8 @@ class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract
 
     private val isDefault: Boolean
         get() = parentCoClause?.parent is ArendClassStat
+
+    override fun getAccessModifier() = if (isDefault) AccessModifier.PROTECTED else AccessModifier.PUBLIC
 
     override val prec: ArendPrec?
         get() {

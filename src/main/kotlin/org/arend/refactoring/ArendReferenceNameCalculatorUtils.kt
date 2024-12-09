@@ -368,8 +368,7 @@ class AddIdToUsingAction(currentFile: ArendFile,
 
         if (statCmd == null) return
         /* if statCmd was found -- execute refactoring action */
-        val hiddenList = statCmd.refIdentifierList
-        val hiddenRef: ArendRefIdentifier? = hiddenList.lastOrNull { it.referenceName == myId }
+        val hiddenRef: ArendRefIdentifier? = statCmd.hiddenReferences.lastOrNull { it.refIdentifier.referenceName == myId }?.refIdentifier
         if (hiddenRef == null) doAddIdToUsing(statCmd, singletonList(Pair(myId, null)), locationData.target.accessModifier == AccessModifier.PROTECTED) else doRemoveRefFromStatCmd(hiddenRef)
     }
 

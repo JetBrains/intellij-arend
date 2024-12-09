@@ -115,7 +115,7 @@ private fun addIdToHiding(refs: List<ArendRefIdentifier>, startAnchor: PsiElemen
         if (ref.referenceName == name) return ref
     }
     val statCmd = factory.createFromText("\\import Foo \\hiding (bar, $name)")?.descendantOfType<ArendStatCmd>()
-    val ref = statCmd!!.refIdentifierList[1]
+    val ref = statCmd!!.hiddenReferences[1].refIdentifier
     val comma = ref.findPrevSibling()!!
     if (needsComma) anchor = anchor.parent.addAfter(comma, anchor)
     val insertedRef = anchor.parent.addAfter(ref, anchor) as ArendRefIdentifier
@@ -134,7 +134,7 @@ fun doAddIdToHiding(statCmd: ArendStatCmd, idList: List<String>) : List<ArendRef
     }
     val lparen = statCmd.lparen
     val result = ArrayList<ArendRefIdentifier>()
-    if (lparen != null) for (id in idList) result.add(addIdToHiding(statCmd.refIdentifierList, lparen, id, factory))
+    if (lparen != null) for (id in idList) result.add(addIdToHiding(statCmd.hiddenReferences.map { it.refIdentifier }, lparen, id, factory))
     return result
 }
 
@@ -155,7 +155,7 @@ fun doRemoveRefFromStatCmd(id: ArendRefIdentifier, deleteEmptyCommands: Boolean 
         }
     }
 
-    if (parent is ArendStatCmd && parent.refIdentifierList.isEmpty()) { // This means that we are removing something from "hiding" list
+    if (parent is ArendStatCmd && parent.hiddenReferences.isEmpty()) { // This means that we are removing something from "hiding" list
         parent.lparen?.delete()
         parent.rparen?.delete()
         parent.hidingKw?.delete()
@@ -365,7 +365,7 @@ fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<P
     if (shortName == null) return emptyList()
 
     val nsUsing = namespaceCommand.nsUsing
-    val isHidden = namespaceCommand.refIdentifierList.any { it.referenceName == shortName }
+    val isHidden = namespaceCommand.hiddenReferences.any { it.refIdentifier.referenceName == shortName }
 
     if (nsUsing != null) {
         val resultList = ArrayList<Pair<String, ArendNsId?>>()

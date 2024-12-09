@@ -697,7 +697,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
             "\\import Prelude \\hiding (Nat {- 1 -} , {- 2 -} Int {- 3 -} , {- 4 -} Path){-caret-}",
             "\\import Prelude \\hiding (Nat {- 1 -}  {- 2 -}  {- 3 -} , {- 4 -} Path)") {file ->
         val cmd = file.statements.first().statCmd!!
-        val ref = cmd.refIdentifierList[1]
+        val ref = cmd.hiddenReferences[1].refIdentifier
         WriteCommandAction.runWriteCommandAction(project, "", null, {
             doRemoveRefFromStatCmd(ref)
         }, file)

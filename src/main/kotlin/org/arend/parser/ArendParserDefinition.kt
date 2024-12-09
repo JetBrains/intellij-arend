@@ -113,6 +113,7 @@ class ArendParserDefinition : ParserDefinition {
         NAME_TELE_UNTYPED -> ArendNameTeleUntyped(node)
         NEW_ARG, NEW_EXPR -> ArendNewExpr(node)
         NS_ID -> ArendNsId(node)
+        SC_ID -> ArendScId(node)
         NS_USING -> ArendNsUsing(node)
         ONLY_LEVEL_EXPR -> ArendOnlyLevelExpr(node)
         OVERRIDDEN_FIELD -> ArendOverriddenField(node)

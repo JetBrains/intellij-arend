@@ -3,7 +3,7 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
-import org.arend.naming.reference.NamedUnresolvedReference
+import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.term.ChildNamespaceCommand
@@ -22,9 +22,6 @@ class ArendStatCmd(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Namespac
 
     val nsUsing: ArendNsUsing?
         get() = childOfType()
-
-    val refIdentifierList: List<ArendRefIdentifier>
-        get() = getChildrenOfType()
 
     val lparen: PsiElement?
         get() = findChildByType(LPAREN)
@@ -50,9 +47,19 @@ class ArendStatCmd(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Namespac
 
     override fun getOpenedReferences(): List<ArendNsId> = nsUsing?.nsIdList ?: emptyList()
 
-    override fun getHiddenReferences() = refIdentifierList.map { NamedUnresolvedReference(it, it.referenceName) }
+    override fun getHiddenReferences(): List<ArendScId> = getChildrenOfType()
 
     override fun getParentGroup() = parent.ancestor<ArendGroup>()
 
     override fun getOpenedReference() = longName
+
+    companion object {
+        fun getScopeContext(element: PsiElement?): Scope.ScopeContext = when (element?.elementType) {
+            DOT -> Scope.ScopeContext.DYNAMIC
+            PLEVEL_KW -> Scope.ScopeContext.PLEVEL
+            HLEVEL_KW -> Scope.ScopeContext.HLEVEL
+            else -> Scope.ScopeContext.STATIC
+        }
+
+    }
 }

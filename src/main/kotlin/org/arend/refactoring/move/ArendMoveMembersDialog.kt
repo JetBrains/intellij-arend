@@ -287,8 +287,8 @@ class ArendMoveMembersDialog(project: Project,
                 return if (result != null && predicate.invoke(result)) result else null
             }
 
-            override fun getElements(kind: Referable.RefKind?): MutableCollection<out Referable> {
-                return scope.getElements(kind).filter { predicate.invoke(it) }.toMutableList()
+            override fun getElements(context: Scope.ScopeContext?): MutableCollection<out Referable> {
+                return scope.getElements(context).filter { predicate.invoke(it) }.toMutableList()
             }
 
             override fun resolveNamespace(name: String): Scope? {

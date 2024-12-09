@@ -21,5 +21,5 @@ class AllModulesScope(private val project: Project) : Scope {
         return result
     }
 
-    override fun getElements(kind: Referable.RefKind?): Collection<Referable> = if (kind == null || kind == Referable.RefKind.EXPR) elements else emptyList()
+    override fun getElements(context: Scope.ScopeContext?): Collection<Referable> = if (context == null || context == Scope.ScopeContext.STATIC) elements else emptyList()
 }
