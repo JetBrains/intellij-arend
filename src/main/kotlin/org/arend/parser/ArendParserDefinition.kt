@@ -58,6 +58,7 @@ class ArendParserDefinition : ParserDefinition {
         ATOM -> ArendAtom(node)
         ATOM_ARGUMENT -> ArendAtomArgument(node)
         ATOM_FIELDS_ACC -> ArendAtomFieldsAcc(node)
+        FIELD_ACC -> ArendFieldAcc(node)
         ATOM_LEVEL_EXPR -> ArendAtomLevelExpr(node)
         ATOM_ONLY_LEVEL_EXPR -> ArendAtomOnlyLevelExpr(node)
         CASE_ARG -> ArendCaseArg(node)

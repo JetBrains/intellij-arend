@@ -93,7 +93,7 @@ fun hasNoLevelArguments(argumentAppExpr: ArendArgumentAppExpr): Boolean {
 }
 
 private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
-    if (atomFieldsAcc.numberList.isNotEmpty()) {
+    if (atomFieldsAcc.fieldAccList.isNotEmpty()) {
         return false
     }
     val literal = atomFieldsAcc.atom.literal ?: return false
@@ -117,7 +117,7 @@ fun getParentAtomFieldsAcc(tuple: ArendTuple) =
     ((tuple.parent as? ArendAtom)
         ?.parent as? ArendAtomFieldsAcc)
         // Excludes cases like `(f a).1`
-        ?.takeIf { it.numberList.isEmpty() }
+        ?.takeIf { it.fieldAccList.isEmpty() }
 
 private fun isRedundantParensForAnyChild(element: PsiElement?, tuple: ArendTuple): Boolean {
     val checkElement = element is ArendReturnExpr ||

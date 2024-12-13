@@ -66,7 +66,7 @@ fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode
             parent is ArendAtom -> parent
             parent is ArendTuple && parent.tupleExprList.let { it.size == 1 && it[0].type == null } -> parent
             parent is ArendNewExpr && parent.appPrefix == null && parent.lbrace == null && parent.argumentList.isEmpty() -> parent
-            parent is ArendAtomFieldsAcc && parent.numberList.isEmpty() -> parent
+            parent is ArendAtomFieldsAcc && parent.fieldAccList.isEmpty() -> parent
             parent is ArendArgumentAppExpr && parent.argumentList.isEmpty() -> parent
             parent is ArendLongName && parent.refIdentifierList.size == 1 -> parent
             parent is ArendAtomLevelExpr && parent.lparen != null -> parent

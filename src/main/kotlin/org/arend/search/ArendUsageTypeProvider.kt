@@ -39,7 +39,7 @@ class ArendUsageTypeProvider: UsageTypeProviderEx {
 
         while (true) {
             val atomFieldsAcc = (expr.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
-            if (atomFieldsAcc?.numberList?.isNotEmpty() == true) {
+            if (atomFieldsAcc?.fieldAccList?.isNotEmpty() == true) {
                 return leftUsage
             }
 

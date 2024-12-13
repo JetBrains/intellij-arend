@@ -18,7 +18,7 @@ class ArendUsageInfo(val psi: PsiElement, val task: ChangeSignatureRefactoringDe
                     e is ArendArgumentAppExpr && !(isParenthesizedLongName(e)) ||
                     e is CoClauseBase ||
                     e is ArendTypeTele ||
-                    e is ArendAtomFieldsAcc && e.numberList.isNotEmpty())) {
+                    e is ArendAtomFieldsAcc && e.fieldAccList.isNotEmpty())) {
             e = e.parent
         }
 

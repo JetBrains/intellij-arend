@@ -68,7 +68,7 @@ class ArendAtomArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgumen
 
     override fun isVariable(): Boolean {
         val atomFieldsAcc = atomFieldsAcc
-        if (atomFieldsAcc.numberList.isNotEmpty()) {
+        if (atomFieldsAcc.fieldAccList.isNotEmpty()) {
             return false
         }
 

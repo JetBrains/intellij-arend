@@ -36,9 +36,19 @@ fun appExprToConcrete(appExpr: ArendExpr, setData: Boolean, errorReporter: Error
         override fun visitReference(data: Any?, referent: Referable, fixity: Fixity?, pLevels: Collection<Abstract.LevelExpression>?, hLevels: Collection<Abstract.LevelExpression>?, params: Void?) =
                 resolveReference(data, referent, fixity)
 
-        override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableCollection<Int>, params: Void?): Concrete.Expression {
+        override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableList<Abstract.FieldAcc>, params: Void?): Concrete.Expression {
             var result = expression.accept<Void, Concrete.Expression>(this, null)
-            for (fieldAcc in fieldAccs) result = Concrete.ProjExpression(data, result, fieldAcc - 1)
+            for (fieldAcc in fieldAccs) {
+                val number = fieldAcc.number
+                if (number != null) {
+                    result = Concrete.ProjExpression(data, result, number - 1)
+                } else {
+                    val fieldName = fieldAcc.fieldName
+                    if (fieldName != null) {
+                        result = Concrete.FieldCallExpression(data, fieldName, Fixity.UNKNOWN, result)
+                    }
+                }
+            }
             return result!!
         }
 

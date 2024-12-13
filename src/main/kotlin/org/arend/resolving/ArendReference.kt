@@ -195,7 +195,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImpor
             val atomFieldsAcc = ((pParent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
             val argParent = when {
                 atomFieldsAcc == null -> (pParent as? ArendLongNameExpr)?.parent
-                atomFieldsAcc.numberList.isNotEmpty() -> null
+                atomFieldsAcc.fieldAccList.isNotEmpty() -> null
                 else -> atomFieldsAcc.parent
             }
             val newExprParent = ((argParent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr)?.parent

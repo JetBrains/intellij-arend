@@ -1,10 +1,8 @@
 package org.arend.intention
 
-import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.util.startOffset
 import com.intellij.util.containers.tail
 import org.arend.ext.variable.Variable
@@ -602,7 +600,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                     val substitutedAtom = if (needParentheses(element, element.textRange, substitutedExpression, null))
                         factory.createExpression("($expressionToInsert)").descendantOfType() else substitutedExpression.descendantOfType<ArendAtom>()
 
-                    if (arendNewExpr != null && atomFieldsAcc.numberList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
+                    if (arendNewExpr != null && atomFieldsAcc.fieldAccList.isEmpty() && argumentAppExpr.argumentList.isEmpty() &&
                             arendNewExpr.let { it.lbrace == null && it.rbrace == null }) {
                         arendNewExpr.replace(substitutedExpression)
                     } else if (substitutedAtom is PsiElement) {

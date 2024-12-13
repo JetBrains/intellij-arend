@@ -720,7 +720,9 @@ longNameExpr ::= longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) {
     pin = 2
 }
 
-private fieldAcc ::= DOT NUMBER { pin = 1 }
+fieldAcc ::= NUMBER | refIdentifier
+
+private fieldAccDot ::= DOT fieldAcc { pin = 1 }
 
 atom ::= literal
     | tuple
@@ -737,7 +739,7 @@ tupleExpr ::= expr [COLON expr] {
 
 private tupleExpr_recover ::= !(RPAREN | RBRACE | COMMA) & statement_recover
 
-atomFieldsAcc ::= atom fieldAcc* {
+atomFieldsAcc ::= atom fieldAccDot* [DOT IPName] {
     pin = 1
     recoverWhile = argument_recover
 }
@@ -778,7 +780,7 @@ IPName ::= INFIX | POSTFIX
 
 private longNameIP ::= longName [DOT IPName] { pin = 1 }
 
-literal ::= longNameIP
+literal ::= refIdentifier
     | PROP_KW
     | APPLY_HOLE
     | UNDERSCORE
@@ -838,10 +840,10 @@ private fieldTeleRecovery ::= fieldTele_recover {
 
 private fieldTele_recover ::= !(EXTENDS_KW | FAT_ARROW | LBRACE | LPAREN | PIPE) & statement_recover
 
-typeTele ::= literal
-    | universeAtom
-    | typedTeleExplicit
-    | typedTeleImplicit {
+typeTele ::= typedTeleExplicit
+    | typedTeleImplicit
+    | atomFieldsAcc
+    | universeAtom {
         name = "parameters"
         recoverWhile = typeTele_recover
     }

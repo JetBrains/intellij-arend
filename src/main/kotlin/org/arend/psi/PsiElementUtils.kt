@@ -399,7 +399,7 @@ fun getStrippedPsi(expression: PsiElement): Pair<PsiElement, Boolean> {
             is ArendAtomArgument -> {
                 expr = exprData1.atomFieldsAcc; continue
             }
-            is ArendAtomFieldsAcc -> if (exprData1.numberList.isEmpty()) {
+            is ArendAtomFieldsAcc -> if (exprData1.fieldAccList.isEmpty()) {
                 expr = exprData1.atom; continue
             }
             is ArendTuple -> if (exprData1.tupleExprList.size == 1) {
