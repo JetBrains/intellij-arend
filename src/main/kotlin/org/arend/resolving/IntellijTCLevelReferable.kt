@@ -21,5 +21,5 @@ class IntellijTCLevelReferable(data: SmartPsiElementPointer<PsiLocatedReferable>
             return underlyingRef != null && isEquivalent(underlyingRef)
         }
 
-    override var displayName: String? = refLongName.toString()
+    override val displayName: String? = refLongName.toString()
 }

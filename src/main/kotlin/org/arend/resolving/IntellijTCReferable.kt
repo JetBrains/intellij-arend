@@ -6,5 +6,5 @@ import org.arend.naming.reference.TCReferable
 interface IntellijTCReferable : TCReferable {
     fun isEquivalent(ref: LocatedReferable): Boolean
     val isConsistent: Boolean
-    var displayName: String?
+    val displayName: String?
 }

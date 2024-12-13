@@ -83,6 +83,10 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     val library = ArendRawLibrary(this)
 
+    init {
+        copyFromYAML(false)
+    }
+
     private fun updateDependencies(newDependencies: List<LibraryDependency>, reload: Boolean, callback: () -> Unit) {
         val oldDependencies = dependencies
         dependencies = ArrayList(newDependencies)

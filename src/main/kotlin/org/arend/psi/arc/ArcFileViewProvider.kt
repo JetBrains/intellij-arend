@@ -8,19 +8,23 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.SingleRootFileViewProvider
 import org.arend.ArendLanguage
-import org.arend.psi.ArendFile
+import java.util.concurrent.atomic.AtomicLong
 
 class ArcFileViewProvider(manager: PsiManager, virtualFile: VirtualFile, eventSystemEnabled: Boolean = true) :
     SingleRootFileViewProvider(manager, virtualFile, eventSystemEnabled, ArendLanguage.INSTANCE) {
 
     override fun createFile(project: Project, file: VirtualFile, fileType: FileType): PsiFile? {
         if (fileType is ArcFileType) {
-            return ArendFile(this)
+            return ArcFile(this, ARC_COUNTER.getAndIncrement())
         }
         return super.createFile(project, file, fileType)
     }
 
     override fun getContents(): CharSequence {
         return virtualFile.findDocument()?.text ?: ""
+    }
+
+    companion object {
+        private val ARC_COUNTER = AtomicLong(0)
     }
 }

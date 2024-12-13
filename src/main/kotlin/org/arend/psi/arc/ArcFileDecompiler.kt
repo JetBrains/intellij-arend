@@ -1,5 +1,6 @@
 package org.arend.psi.arc
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileTypes.BinaryFileDecompiler
@@ -8,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectLocator
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.compiled.ClassFileDecompilers
 import com.intellij.psi.impl.compiled.ClsFileImpl
@@ -25,12 +27,12 @@ import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.LexicalScope
 import org.arend.psi.ArendFile
-import org.arend.psi.arc.ArcErrorService.Companion.DEFINITION_IS_NOT_LOADED
-import org.arend.psi.ext.ArendFieldDefIdentifier
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.fullName
+import org.arend.psi.arc.ArcUnloadedModuleService.Companion.DEFINITION_IS_NOT_LOADED
+import org.arend.psi.arc.ArcUnloadedModuleService.Companion.NOT_FOUND_MODULE
+import org.arend.psi.ext.*
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.StreamBinarySource
+import org.arend.term.group.ChildGroup
 import org.arend.term.group.Group
 import org.arend.term.group.StaticGroup
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
@@ -80,7 +82,7 @@ class ArcFileDecompiler : BinaryFileDecompiler {
 
             val builder = StringBuilder()
 
-            val (group, arendFile) = getGroup(virtualFile, project) ?: return builder.toString()
+            val (group, arendFile, modules) = getGroup(virtualFile, project) ?: return builder.toString()
 
             val config = PrettyPrinterConfigWithRenamer(
                 CachingScope.make(ConvertingScope(
@@ -97,6 +99,14 @@ class ArcFileDecompiler : BinaryFileDecompiler {
                     val referable = expr?.definition?.referable?.underlyingReferable as? PsiLocatedReferable? ?: return super.visitDefCall(expr, params)
                     if (referable !is ArendFieldDefIdentifier) {
                         referables.add(referable)
+                    } else {
+                        ((referable.resultType as? ArendNewExpr?)
+                            ?.appExpr as? ArendArgumentAppExpr?)
+                            ?.atomFieldsAcc?.atom?.literal?.longName?.resolve?.let {
+                                resultReferable -> (resultReferable as? PsiLocatedReferable?)?.let {
+                                    referables.add(it)
+                                }
+                            }
                     }
                     return super.visitDefCall(expr, params)
                 }
@@ -112,6 +122,10 @@ class ArcFileDecompiler : BinaryFileDecompiler {
             definitions.forEach { it.accept(statementVisitor, null) }
 
             val filesToDefinitions = mutableMapOf<ArendFile, MutableList<String>>()
+            for (module in modules) {
+                (module as? ArendFile?)?.let { filesToDefinitions.put(it, mutableListOf()) }
+            }
+
             val definitionsToFiles = mutableSetOf<String>()
             for (referable in statementVisitor.referables) {
                 val file = referable.containingFile as ArendFile
@@ -123,10 +137,10 @@ class ArcFileDecompiler : BinaryFileDecompiler {
             }
 
             val fullFiles = mutableMapOf<ArendFile, Boolean>()
-            filesLoop@ for ((file, definitions) in filesToDefinitions) {
+            filesLoop@ for ((file, fileDefinitions) in filesToDefinitions) {
                 for (element in LexicalScope.opened(file).elements) {
                     val fullName = (element as? PsiLocatedReferable?)?.fullName ?: continue
-                    if (!definitions.contains(fullName) && definitionsToFiles.contains(fullName)) {
+                    if (!fileDefinitions.contains(fullName) && definitionsToFiles.contains(fullName)) {
                         fullFiles[file] = false
                         continue@filesLoop
                     }
@@ -134,23 +148,11 @@ class ArcFileDecompiler : BinaryFileDecompiler {
                 }
             }
 
-            val allElements = mutableSetOf<String>()
-            for ((file, full) in fullFiles) {
-                if (full) {
-                    for (element in LexicalScope.opened(file).elements) {
-                        val fullName = (element as? PsiLocatedReferable?)?.fullName ?: continue
-                        if (allElements.contains(fullName)) {
-                            fullFiles[file] = false
-                        }
-                    }
-                }
-            }
-
-            for ((file, definitions) in filesToDefinitions) {
+            for ((file, importedDefinitions) in filesToDefinitions) {
                 if (fullFiles[file] == true) {
                     builder.append("\\import ${file.fullName}\n")
                 } else {
-                    builder.append("\\import ${file.fullName}(${definitions.joinToString(",")})\n")
+                    builder.append("\\import ${file.fullName}(${importedDefinitions.joinToString(",")})\n")
                 }
             }
             if (filesToDefinitions.isNotEmpty()) {
@@ -167,34 +169,44 @@ class ArcFileDecompiler : BinaryFileDecompiler {
             return builder.toString()
         }
 
-        private fun getGroup(virtualFile: VirtualFile, project: Project): Pair<Group, ArendFile?>? {
+        private fun getGroup(virtualFile: VirtualFile, project: Project): Triple<ChildGroup, ArendFile?, List<PsiFile?>>? {
             val psiManager = PsiManager.getInstance(project)
             psiManager.findFile(virtualFile) ?: return null
 
             val libraryManager = project.service<TypeCheckingService>().libraryManager
             val config = project.arendModules.map { ArendModuleConfigService.getInstance(it) }.find {
-                it?.root?.let { root -> VfsUtilCore.isAncestor(root, virtualFile, true) } ?: false
-            } ?: ArendModuleConfigService.getInstance(project.arendModules.getOrNull(0))
+                it?.binariesDirFile?.let { binFile -> VfsUtilCore.isAncestor(binFile, virtualFile, true) } ?: false
+            } ?: if (ApplicationManager.getApplication().isUnitTestMode) {
+                ArendModuleConfigService.getInstance(project.arendModules.getOrNull(0))
+            } else {
+                null
+            }
             val library = config?.library ?: return null
 
             try {
                 virtualFile.inputStream.use { inputStream ->
-                    val group = StreamBinarySource.getGroup(GZIPInputStream(inputStream), libraryManager, library)
+                    val result = StreamBinarySource.getGroup(GZIPInputStream(inputStream), libraryManager, library)
+
+                    val group = result.proj1
+                    val modules = result.proj2
                     val relativePath = config.binariesDirFile?.getRelativePath(virtualFile) ?: mutableListOf(virtualFile.name)
                     relativePath[relativePath.lastIndex] = relativePath[relativePath.lastIndex].removeSuffix(SERIALIZED_EXTENSION)
                     val arendFile = config.sourcesDirFile?.getRelativeFile(relativePath, EXTENSION)
                         ?.let { psiManager.findFile(it) } as? ArendFile?
 
-                    project.service<ArcErrorService>().errors.remove(virtualFile)
+                    project.service<ArcUnloadedModuleService>().removeLoadedModule(virtualFile)
                     EditorNotifications.getInstance(project).updateNotifications(virtualFile)
-                    return Pair(group, arendFile)
+                    return Triple(group, arendFile, modules.map { config.sourcesDirFile?.getRelativeFile(it, EXTENSION)
+                        ?.let { virtualFile -> psiManager.findFile(virtualFile) } })
                 }
             } catch (e : DeserializationException) {
-                if (e.message?.let { DEFINITION_IS_NOT_LOADED.matches(it) } == true) {
-                    project.service<ArcErrorService>().errors[virtualFile] = e.message!!
+                val message = e.message ?: return null
+                if (DEFINITION_IS_NOT_LOADED.matches(message) || NOT_FOUND_MODULE.matches(message)) {
+                    project.service<ArcUnloadedModuleService>().addUnloadedModule(virtualFile)
                     EditorNotifications.getInstance(project).updateNotifications(virtualFile)
+                } else {
+                    LOG.error(message)
                 }
-                LOG.error(e)
             }
             return null
         }

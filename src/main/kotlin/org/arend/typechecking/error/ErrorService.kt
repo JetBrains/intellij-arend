@@ -160,10 +160,6 @@ class ErrorService : ErrorReporter {
         updateTypecheckingErrors(definition.containingFile as? ArendFile ?: return, definition)
     }
 
-    fun clearTypecheckingErrors(file: ArendFile) {
-        typecheckingErrors.remove(file)
-    }
-
     fun clearAllErrors() {
         nameResolverErrors.clear()
         typecheckingErrors.clear()

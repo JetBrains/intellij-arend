@@ -29,6 +29,7 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.error.MissingClausesError
 import org.arend.injection.InjectedArendEditor
 import org.arend.psi.ArendFile
+import org.arend.psi.arc.ArcFile
 import org.arend.psi.ext.ArendGoal
 import org.arend.psi.ext.PsiConcreteReferable
 import org.arend.settings.ArendProjectSettings
@@ -37,7 +38,6 @@ import org.arend.toolWindow.errors.tree.*
 import org.arend.typechecking.error.ArendError
 import org.arend.typechecking.error.ErrorService
 import org.arend.util.ArendBundle
-import org.arend.util.checkArcFile
 import java.util.*
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -45,9 +45,6 @@ import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
-import kotlin.collections.HashMap
-import kotlin.collections.LinkedHashMap
-import kotlin.collections.LinkedHashSet
 
 class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : ArendErrorTreeListener,
     TreeSelectionListener, ProjectManagerListener {
@@ -356,6 +353,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     it.arendLibrary
                     it.moduleLocation
                 }
+                val arcFiles = arendFilesWithErrors.filterIsInstance<ArcFile>()
+                    .groupBy { it.fullName }.values.map { it.maxBy { file -> file.arcTimestamp } }
                 runInEdt {
                     val expandedPaths = TreeUtil.collectExpandedPaths(tree)
                     val selectedPath = tree.selectionPath
@@ -363,7 +362,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                     val map = HashMap<PsiConcreteReferable, HashMap<PsiElement?, ArendErrorTreeElement>>()
                     tree.update(root) { node ->
                         if (node == root) {
-                            arendFilesWithErrors.toSet()
+                            arendFilesWithErrors.filter { it !is ArcFile } + arcFiles
                         }
                         else when (val obj = node.userObject) {
                             is ArendFile -> {

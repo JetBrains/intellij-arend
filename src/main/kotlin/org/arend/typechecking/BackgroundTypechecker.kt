@@ -89,9 +89,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
 
                 modificationTracker.incModificationCount()
                 file.lastDefinitionModification.updateAndGet { maxOf(it, modificationTracker.modificationCount) }
-                invokeLater {
-                    FileDocumentManager.getInstance().reloadBinaryFiles()
-                }
+                project.service<BinaryFileSaver>().saveAll()
                 return
             }
         }.queue()

@@ -197,14 +197,19 @@ abstract class LibraryConfig(val project: Project) {
         }
 
         val vFile = file.originalFile.viewProvider.virtualFile
-        val sourcesPath = sourcesDirFile?.getRelativePath(vFile, FileUtils.EXTENSION)
+        val sourcesPath = sourcesDirFile?.getRelativePath(vFile, EXTENSION)
+        val testPath = testsDirFile?.getRelativePath(vFile, EXTENSION)
         val path: List<String>
         val locationKind = if (sourcesPath != null) {
             path = sourcesPath
             ModuleLocation.LocationKind.SOURCE
-        } else {
-            path = testsDirFile?.getRelativePath(vFile, FileUtils.EXTENSION) ?: return null
+        } else if (testPath != null) {
+            path = testPath
             ModuleLocation.LocationKind.TEST
+        } else {
+            // TODO FileUtils.SERIALIZED_EXTENSION after creating the icon for the arc files
+            path = binariesDirFile?.getRelativePath(vFile) ?: return null
+            ModuleLocation.LocationKind.GENERATED
         }
         return ModuleLocation(name, isExternal, locationKind, ModulePath(path))
     }
