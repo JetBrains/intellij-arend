@@ -93,7 +93,7 @@ class ArendChangeSignatureDialog(project: Project,
         val refs = codeFragment.descendantsOfType<ArendReferenceElement>().toList()
 
         for (ref in refs) {
-            val target = resolveCache.getCached(ref)
+            val target = resolveCache.getCached(ref).first
             val item = referableToItem[target]
             if (item != null) {
                 newDependencies.add(item)

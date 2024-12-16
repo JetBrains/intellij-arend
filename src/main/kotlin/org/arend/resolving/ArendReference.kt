@@ -66,11 +66,11 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                     def != null -> {
                         val project = def.project
                         PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, ArendResolverListener(cache)).getConcrete(def)
-                        cache.getCached(element)
+                        cache.getCached(element).first
                     }
                     expr != null -> {
                         ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
-                        cache.getCached(element) ?: element.scope.resolveName(element.referenceName, refKind)
+                        cache.getCached(element).first ?: element.scope.resolveName(element.referenceName, refKind)
                     }
                     else -> element.scope.resolveName(element.referenceName, refKind)
                 }
