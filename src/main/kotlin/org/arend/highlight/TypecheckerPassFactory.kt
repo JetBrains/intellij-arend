@@ -23,7 +23,7 @@ class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java)
     override fun allowWhiteSpaces() = true
 
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange): TextEditorHighlightingPass? {
-        return if (checkArcFile(file.virtualFile)) {
+        return if (checkArcFile(file)) {
             return null
         } else if (file.isBackgroundTypecheckingFinished || ApplicationManager.getApplication().isUnitTestMode) {
             TypecheckerPass(file, editor)

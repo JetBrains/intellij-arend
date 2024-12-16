@@ -19,7 +19,7 @@ abstract class SelectionIntention<T : PsiElement>(private val elementType: Class
     open fun allowEmptySelection() = false
 
     open fun isAvailable(project: Project, editor: Editor, file: ArendFile, element: T): Boolean {
-        return !checkArcFile(file.virtualFile)
+        return !checkArcFile(file)
     }
 
     abstract fun invoke(project: Project, editor: Editor, file: ArendFile, element: T, selected: TextRange)

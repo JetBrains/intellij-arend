@@ -31,7 +31,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
     private val errorService: ErrorService = project.service()
 
     fun runTypechecker(file: ArendFile, lastModified: TCDefReferable?, collector1: CollectingOrderingListener, collector2: CollectingOrderingListener, runAnalyzer: Boolean) {
-        if (checkArcFile(file.virtualFile)) {
+        if (checkArcFile(file)) {
             return
         }
         if (collector1.isEmpty && collector2.isEmpty) {

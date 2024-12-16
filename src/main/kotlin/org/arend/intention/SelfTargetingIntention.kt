@@ -36,7 +36,7 @@ abstract class SelfTargetingIntention<T : PsiElement>(
     abstract fun applyTo(element: T, project: Project, editor: Editor)
 
     private fun getTarget(editor: Editor, file: PsiFile): T? {
-        if (checkArcFile(file.virtualFile)) {
+        if (checkArcFile(file)) {
             return null
         }
         if (editor.isViewer || !BaseArendIntention.canModify(file)) {

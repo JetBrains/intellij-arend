@@ -13,7 +13,7 @@ import org.arend.util.checkArcFile
 
 class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
     override fun getInfo(element: PsiElement): Info? {
-        if (checkArcFile(element.containingFile.virtualFile)) {
+        if (checkArcFile(element.containingFile)) {
             return null
         }
 

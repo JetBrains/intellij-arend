@@ -22,7 +22,7 @@ class FileOutsideSourcesProvider : EditorNotificationProvider {
         val file = PsiManager.getInstance(project).findFile(virtualFile)
         if (file !is ArendFile || ProjectFileIndex.getInstance(project).isInSource(virtualFile) ||
                 project.service<TypeCheckingService>().prelude == file || virtualFile is LightVirtualFile ||
-                checkArcFile(file.virtualFile)) {
+                checkArcFile(file)) {
             return null
         }
         return Function<FileEditor, EditorNotificationPanel?> { fileEditor: FileEditor? ->

@@ -8,7 +8,7 @@ import org.arend.util.checkArcFile
 
 abstract class ArendInspectionBase : LocalInspectionTool() {
     final override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
-        return if (checkArcFile(holder.file.virtualFile) || (holder.file as? ArendFile)?.isInjected == true) {
+        return if (checkArcFile(holder.file) || (holder.file as? ArendFile)?.isInjected == true) {
             PsiElementVisitor.EMPTY_VISITOR
         } else {
             buildArendVisitor(holder, isOnTheFly)

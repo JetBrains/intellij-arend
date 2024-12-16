@@ -23,11 +23,11 @@ import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.psi.ArendFile
+import org.arend.psi.arc.ArcFile
 import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.ArendExtensionChangeService
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
-import org.arend.util.FileUtils.SERIALIZED_EXTENSION
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Path
 
@@ -95,6 +95,6 @@ fun Project.afterTypechecking(files: Collection<ArendFile>) {
     }
 }
 
-fun checkArcFile(file: VirtualFile): Boolean {
-    return file.name.endsWith(SERIALIZED_EXTENSION)
+fun checkArcFile(file: PsiFile): Boolean {
+    return file is ArcFile
 }

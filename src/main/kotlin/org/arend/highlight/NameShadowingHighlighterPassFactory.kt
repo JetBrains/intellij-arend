@@ -14,7 +14,7 @@ class NameShadowingHighlighterPassFactory : BasePassFactory<ArendFile>(ArendFile
     private var myPassId = -1
 
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange): TextEditorHighlightingPass? {
-        if (checkArcFile(file.virtualFile)) {
+        if (checkArcFile(file)) {
             return null
         }
         return NameShadowingHighlighterPass(file, editor)

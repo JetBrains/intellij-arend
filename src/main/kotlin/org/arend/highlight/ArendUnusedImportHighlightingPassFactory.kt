@@ -16,7 +16,7 @@ class ArendUnusedImportHighlightingPassFactory : TextEditorHighlightingPassFacto
     }
 
     override fun createHighlightingPass(file: PsiFile, editor: Editor): TextEditorHighlightingPass? {
-        if (checkArcFile(file.virtualFile)) {
+        if (checkArcFile(file)) {
             return null
         }
         if (file !is ArendFile) return null

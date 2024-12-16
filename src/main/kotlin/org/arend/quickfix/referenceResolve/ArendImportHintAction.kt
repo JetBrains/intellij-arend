@@ -31,6 +31,7 @@ import org.arend.settings.ArendSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.ArendBundle
 import org.arend.util.FileUtils
+import org.arend.util.checkArcFile
 
 enum class Result { POPUP_SHOWN, CLASS_AUTO_IMPORTED, POPUP_NOT_SHOWN }
 
@@ -42,8 +43,14 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         val initializer = {
             val psiFile = referenceElement.containingFile
             val project = referenceElement.project
-            availability = doComputeAvailability(project, referenceElement)
-            itemsToImport = if (importQuickFixAllowed(referenceElement))
+            availability = if (checkArcFile(psiFile)) {
+                doComputeAvailability(project, referenceElement)
+            } else {
+                ImportHintActionAvailability.UNAVAILABLE
+            }
+            itemsToImport = if (checkArcFile(psiFile)) {
+                emptySequence()
+            } else if (importQuickFixAllowed(referenceElement))
                 getStubElementSet(project, referenceElement, psiFile).asSequence().mapNotNull {
                     ResolveReferenceAction.getProposedFix(it, referenceElement)
                 }

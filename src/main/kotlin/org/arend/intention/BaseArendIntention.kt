@@ -16,6 +16,6 @@ abstract class BaseArendIntention(text: String) : PsiElementBaseIntentionAction(
     override fun checkFile(file: PsiFile?) = canModify(file)
 
     companion object {
-        fun canModify(file: PsiFile?) = file is ArendFile && !checkArcFile(file.virtualFile) && BaseIntentionAction.canModify(file) && !file.isInjected
+        fun canModify(file: PsiFile?) = file is ArendFile && !checkArcFile(file) && BaseIntentionAction.canModify(file) && !file.isInjected
     }
 }
