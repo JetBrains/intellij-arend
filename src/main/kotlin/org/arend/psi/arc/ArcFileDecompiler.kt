@@ -196,7 +196,7 @@ class ArcFileDecompiler : BinaryFileDecompiler {
 
                     project.service<ArcUnloadedModuleService>().removeLoadedModule(virtualFile)
                     EditorNotifications.getInstance(project).updateNotifications(virtualFile)
-                    return Triple(group, arendFile, modules.map { config.sourcesDirFile?.getRelativeFile(it, EXTENSION)
+                    return Triple(group, arendFile, modules.map { config.sourcesDirFile?.getRelativeFile(it.toList(), EXTENSION)
                         ?.let { virtualFile -> psiManager.findFile(virtualFile) } })
                 }
             } catch (e : DeserializationException) {
