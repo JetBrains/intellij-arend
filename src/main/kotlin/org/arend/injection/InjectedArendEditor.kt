@@ -386,7 +386,8 @@ abstract class InjectedArendEditor(
             var scope: Scope? = null
             var ref: Referable? = null
             if (unresolvedRef != null || error.hasExpressions()) {
-                scope = (data as? PsiElement)?.ancestor<ArendCompositeElement>()?.scope?.let { CachingScope.make(it) }
+                val compositeElement = (data as? PsiElement)?.ancestor<ArendCompositeElement>()
+                if (compositeElement?.isValid == true) scope = compositeElement.scope.let { CachingScope.make(it) }
             }
             if (unresolvedRef != null && scope != null) {
                 ref = ExpressionResolveNameVisitor.resolve(unresolvedRef, scope)

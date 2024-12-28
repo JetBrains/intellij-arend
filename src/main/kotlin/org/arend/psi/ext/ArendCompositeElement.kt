@@ -43,6 +43,8 @@ interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
 }
 
 fun getArendScope(element: ArendCompositeElement): Scope {
+    if (!element.isValid)
+        return EmptyScope.INSTANCE
     val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
     ((sourceNode as? ArendLongName)?.parent as? ArendDocReference)?.let { return it.scope }
 

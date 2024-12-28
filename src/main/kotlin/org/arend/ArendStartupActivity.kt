@@ -7,13 +7,10 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.editor.colors.EditorColorsManager
-import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.*
 import com.intellij.openapi.startup.ProjectActivity
-import com.intellij.ui.JBColor
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.typechecking.TypeCheckingService
@@ -79,7 +76,6 @@ class ArendStartupActivity : ProjectActivity {
             })
 
         disableActions()
-        changeColors()
     }
 
     private fun disableActions() {
@@ -95,14 +91,5 @@ class ArendStartupActivity : ProjectActivity {
             }
         }
         TypedHandlerDelegate.EP_NAME.point.unregisterExtension(SelectionQuotingTypedHandler::class.java)
-    }
-
-    private fun changeColors() {
-        val colorManager = EditorColorsManager.getInstance()
-        val highContrastColorScheme = colorManager.getScheme("_@user_High contrast") ?: return
-        val inlayDefaultTextColor = TextAttributesKey.createTextAttributesKey("INLAY_DEFAULT")
-        val attributes = highContrastColorScheme.getAttributes(inlayDefaultTextColor)
-        attributes.foregroundColor = JBColor.YELLOW
-        highContrastColorScheme.setAttributes(inlayDefaultTextColor, attributes)
     }
 }
