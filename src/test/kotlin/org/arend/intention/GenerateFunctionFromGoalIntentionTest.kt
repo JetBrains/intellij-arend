@@ -215,4 +215,21 @@ class GenerateFunctionFromGoalIntentionTest : QuickFixTestBase() {
         \func Bar-lemma : Nat => {?}
       }
     """)
+
+    fun `test in class 2`() = doTest("""
+       \class BaseSet (E : \Set)
+
+       \class Descendant \extends BaseSet {
+         \func lol {e : E} : E => {?{-caret-}}
+       }
+    """, """
+       \class BaseSet (E : \Set)
+
+       \class Descendant \extends BaseSet {
+         \func lol {e : E} : E => lol-lemma
+           \where {
+             \func lol-lemma : E => {?}
+           }
+       }
+    """)
 }

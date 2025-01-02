@@ -171,7 +171,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val definitionRenamer = getDefinitionRenamer(selection)
         val referableRenamer = getReferableRenamer(allParameters.mapToSet(Pair<Binding, ParameterExplicitnessState>::first))
 
-        val config = object : PrettyPrinterConfig {
+        /*val config = object : PrettyPrinterConfig {
             override fun getExpressionFlags(): EnumSet<PrettyPrinterFlag> =
                 EnumSet.of(PrettyPrinterFlag.SHOW_PROOFS, PrettyPrinterFlag.SHOW_BIN_OP_IMPLICIT_ARGS, *super.getExpressionFlags().toTypedArray())
 
@@ -179,16 +179,10 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
 
             override fun getDefinitionRenamer() = definitionRenamer
         }
+        concrete = ToAbstractVisitor.convert(expr, config)*/
 
         return { expr ->
-            val concrete = try {
-                MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, definitionRenamer, referableRenamer)
-            } catch (e: Exception) {
-                if (ApplicationManager.getApplication().isInternal) {
-                    log.error(e)
-                }
-                ToAbstractVisitor.convert(expr, config)
-            }
+            val concrete = MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, definitionRenamer, referableRenamer)
             contractFields(concrete)
         }
     }
