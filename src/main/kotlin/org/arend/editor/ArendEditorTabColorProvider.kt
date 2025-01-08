@@ -7,7 +7,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.scope.NonProjectFilesScope
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.FileColorManager
-import org.arend.typechecking.TypeCheckingService
+import org.arend.server.ArendServerService
 import org.jetbrains.annotations.Nullable
 import java.awt.Color
 
@@ -26,7 +26,7 @@ class ArendEditorTabColorProvider : EditorTabColorProvider {
         if (file !is LightVirtualFile) {
             return null
         }
-        val preludeFile = project.service<TypeCheckingService>().prelude?.virtualFile
+        val preludeFile = project.service<ArendServerService>().prelude?.virtualFile
         return if (preludeFile == file) getNonProjectFileColor(colorManager) else null
     }
 

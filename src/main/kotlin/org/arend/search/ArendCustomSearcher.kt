@@ -20,7 +20,7 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ArendFileScope
 import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Util.isDefIdentifierFromNsId
-import org.arend.typechecking.TypeCheckingService
+import org.arend.server.ArendServerService
 
 class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>() {
     override fun processQuery(parameters: ReferencesSearch.SearchParameters, consumer: Processor<in PsiReference>) {
@@ -100,7 +100,7 @@ fun collectSearchScopes(namesToSearch: List<String>, isSearchInLibraries: Boolea
             ArendFileScope(project)
         )
         if (isSearchInLibraries) {
-            project.service<TypeCheckingService>().prelude?.let {
+            project.service<ArendServerService>().prelude?.let {
                 fileSet.add(it.virtualFile)
             }
         }

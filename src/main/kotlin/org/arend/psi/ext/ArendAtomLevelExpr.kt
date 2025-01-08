@@ -31,7 +31,7 @@ class ArendAtomLevelExpr(node: ASTNode) : ArendLevelExpr(node), Abstract.LevelEx
             OO_KW -> visitor.visitInf(this, params)
             NUMBER -> visitor.visitNumber(this, child!!.text.toInt(), params)
             NEGATIVE_NUMBER -> visitor.visitNumber(this, child!!.text.toInt(), params)
-            REF_IDENTIFIER -> visitor.visitId(this, NamedUnresolvedReference(this, child!!.text), params)
+            REF_IDENTIFIER -> visitor.visitId(this, NamedUnresolvedReference(refIdentifier, child!!.text), params)
             else -> {
                 levelExpr?.let { return it.accept(visitor, params) }
                 visitor.visitError(this, params)

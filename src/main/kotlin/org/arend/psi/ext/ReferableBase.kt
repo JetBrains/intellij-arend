@@ -3,19 +3,26 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.psi.PsiManager
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.elementType
+import org.arend.core.definition.Definition
 import org.arend.ext.module.LongName
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
+import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.IntellijTCReferable
 import org.arend.term.group.AccessModifier
+import org.arend.term.group.GroupPath
 import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentHashMap
 
@@ -51,6 +58,14 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val defIdentifier: ArendDefIdentifier?
         get() = childOfType()
 
+    override val tcReferable: TCReferable?
+        get() = CachedValuesManager.getCachedValue(this) {
+            CachedValueProvider.Result((this as? ArendGroup)?.concreteGroup?.referable as? TCReferable, this)
+        }
+
+    val tcDefinition: Definition?
+        get() = (tcReferable as? TCDefReferable)?.typechecked
+
     protected var tcReferableCache: TCReferable? = null
     private var tcRefMapCache: ConcurrentHashMap<LongName, IntellijTCReferable>? = null
 
@@ -69,28 +84,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         get() = tcReferableCache
 
     protected abstract fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable
-
-    override val tcReferable: TCReferable?
-        get() = tcReferableCache ?: runReadAction {
-            synchronized(this) {
-                tcReferableCache ?: run {
-                    val file = (if (isValid) containingFile as? ArendFile else null) ?: return@run null
-                    val longName = refLongName
-                    val tcRefMap = tcRefMap ?: return@run null
-                    tcRefMap[longName]?.let {
-                        tcReferableCache = it
-                        return@run it
-                    }
-                    val locatedParent = locatedReferableParent
-                    val parent = if (locatedParent is ArendFile) locatedParent.moduleLocation?.let { FullModuleReferable(it) } else locatedParent?.tcReferable
-                    val pointer = SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer<PsiLocatedReferable>(this, file)
-                    val ref = makeTCReferable(pointer, parent)
-                    tcReferableCache = ref
-                    tcRefMap[longName] = ref
-                    ref
-                }
-            }
-        }
 
     override fun dropTypechecked() {
         val service = project.service<TypeCheckingService>()

@@ -19,13 +19,14 @@ import org.arend.injection.InjectedArendEditor
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
+import org.arend.module.config.LibraryConfig
 import org.arend.psi.ArendFile
+import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.ArendExtensionChangeService
-import org.arend.typechecking.ArendTypechecking
-import org.arend.typechecking.TypeCheckingService
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Path
+import java.nio.file.Paths
 
 val Project.arendModules: List<Module>
     get() = runReadAction { ModuleManager.getInstance(this).modules.filter { ArendModuleType.has(it) } }
@@ -36,6 +37,19 @@ val Project.allModules: List<Module>
             ?.modulesConfig?.context?.modulesConfigurator?.moduleModel?.modules
             ?.filter { ArendModuleType.has(it) } ?: arendModules
     }
+
+fun Project.findInternalLibrary(name: String): ArendModuleConfigService? =
+    ModuleManager.getInstance(this).modules.firstOrNull { ArendModuleType.has(it) && it.name == name }?.service<ArendModuleConfigService>()
+
+fun Project.findLibrary(name: String): LibraryConfig? {
+    val config = findInternalLibrary(name)
+    return if (config != null) {
+        config
+    } else {
+        val libRoot = service<ArendProjectSettings>().librariesRoot
+        if (libRoot.isEmpty()) null else findExternalLibrary(Paths.get(libRoot), name)
+    }
+}
 
 private fun Project.findConfigInZip(zipFile: VirtualFile): YAMLFile? {
     val zipRoot = JarFileSystem.getInstance().getJarRootForLocalFile(zipFile) ?: return null
@@ -59,17 +73,14 @@ fun Project.findExternalLibrary(root: Path, libName: String): ExternalLibraryCon
 }
 
 fun Module.register() {
-    val service = project.service<TypeCheckingService>()
     val config = runReadAction {
-        service.initialize()
         val config = ArendModuleConfigService.getInstance(this) ?: return@runReadAction null
         config.copyFromYAML(false)
         config
     } ?: return
     refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
-    runReadAction {
-        service.libraryManager.loadLibrary(config.library, ArendTypechecking.create(project))
-    }
+    // TODO[server2]: We probably need to invoke some sort of library initialization routine from ArendServer to load ArendExtension.
+    project.service<ArendServerService>().server.updateLibrary(-1, name, config.dependencies.map { it.name })
     ApplicationManager.getApplication().getService(ArendExtensionChangeService::class.java).initializeModule(config)
     config.isInitialized = true
     DaemonCodeAnalyzer.getInstance(project).restart()

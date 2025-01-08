@@ -32,7 +32,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.*
-import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -343,9 +342,9 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (localClause !is ArendClause) return
 
             val topLevelPatterns = localClause.patterns.mapTo(mutableListOf()) {
-                ConcreteBuilder.convertPattern(it, ArendReferableConverter, DummyErrorReporter.INSTANCE, null)
+                ConcreteBuilder.convertPattern(it, DummyErrorReporter.INSTANCE, null)
             }
-            ExpressionResolveNameVisitor(ArendReferableConverter, localClause.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(topLevelPatterns, mutableMapOf())
+            ExpressionResolveNameVisitor(localClause.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(topLevelPatterns, mutableMapOf())
 
             val localNames = HashSet<Variable>()
             localNames.addAll(findAllVariablePatterns(topLevelPatterns, element).map(::VariableImpl))
@@ -545,8 +544,8 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (!mayRequireParentheses) return false
             if (enclosingPattern.isTuplePattern) return false
             if (patternLine.startsWith("(") && patternLine.endsWith(")")) return false
-            val patternList = mutableListOf(ConcreteBuilder.convertPattern(enclosingPattern, ArendReferableConverter, DummyErrorReporter.INSTANCE, null))
-            ExpressionResolveNameVisitor(ArendReferableConverter, enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf())
+            val patternList = mutableListOf(ConcreteBuilder.convertPattern(enclosingPattern, DummyErrorReporter.INSTANCE, null))
+            ExpressionResolveNameVisitor(enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf())
             val parsedConcretePattern = patternList[0]
             val correspondingConcrete = findParentConcrete(parsedConcretePattern, elementToReplace)
             if (correspondingConcrete !is Concrete.ConstructorPattern) {

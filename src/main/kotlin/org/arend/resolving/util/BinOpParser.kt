@@ -45,7 +45,7 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
             refExpr.referent
         }
 
-        var referable = if (anchor != null) resolveCache.resolveCached(referentComputer, anchor) else referentComputer.invoke()
+        var referable = if (anchor != null) resolveCache.getCached(anchor) else referentComputer.invoke()
 
         if (fixity == Fixity.POSTFIX)
             resolved = null

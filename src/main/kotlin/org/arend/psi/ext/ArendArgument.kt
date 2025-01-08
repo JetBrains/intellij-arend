@@ -73,7 +73,7 @@ class ArendAtomArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgumen
         }
 
         val literal = atomFieldsAcc.atom.literal ?: return false
-        return literal.longName != null || literal.ipName != null
+        return literal.refIdentifier != null || literal.ipName != null
     }
 
     override fun getExpression() = atomFieldsAcc

@@ -19,7 +19,7 @@
         <projectImportProvider implementation="org.arend.project.ArendProjectImportProvider"/>
         <projectOpenProcessor implementation="org.arend.project.ArendProjectOpenProcessor"/>
         <projectImportBuilder implementation="org.arend.project.ArendProjectImportBuilder"/>
-        <additionalLibraryRootsProvider implementation="org.arend.project.ArendPreludeLibraryRootProvider"/>
+        <!-- TODO[server2]: <additionalLibraryRootsProvider implementation="org.arend.project.ArendPreludeLibraryRootProvider"/> -->
         <treeStructureProvider implementation="org.arend.projectView.ArendProjectViewStructureProvider"/>
 
         <!-- Module -->
@@ -148,7 +148,7 @@
 
         <!-- Formatter -->
 
-        <lang.formatter language="Arend" implementationClass="org.arend.formatting.ArendFormattingModelBuilder"/>
+        <!-- TODO[server2]: <lang.formatter language="Arend" implementationClass="org.arend.formatting.ArendFormattingModelBuilder"/> -->
         <langCodeStyleSettingsProvider implementation="org.arend.formatting.ArendCodeStyleSettingsProvider"/>
         <editor.backspaceModeOverride language="Arend" implementationClass="org.arend.formatting.ArendBackspaceDisabler"/>
         <enterHandlerDelegate implementation="org.arend.formatting.ArendEnterAtIndentHandler" order="first"/>
@@ -158,12 +158,16 @@
 
         <codeInsight.parameterInfo language="Arend" implementationClass="org.arend.codeInsight.ArendParameterInfoHandler"/>
 
+        <!-- TODO[server2]
         <codeInsight.inlayProvider language="Arend" implementationClass="org.arend.codeInsight.hints.ArendParametersInlayProvider"/>
         <codeInsight.inlayProvider language="Arend" implementationClass="org.arend.codeInsight.hints.ArendAxiomsInlayProvider"/>
         <codeInsight.inlayProvider language="Arend" implementationClass="org.arend.codeInsight.hints.ArendGoalsInlayProvider"/>
+        -->
 
         <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionContributor"/>
+        <!-- TODO[server2]
         <completion.contributor language="Arend" implementationClass="org.arend.codeInsight.completion.ArendNoVariantsDelegator"/>
+        -->
 
         <completion.confidence language="Arend" implementationClass="org.arend.codeInsight.completion.ArendCompletionConfidence" id="arendCompletion" />
 
@@ -181,11 +185,13 @@
 
         <!-- Inspections -->
         <lang.inspectionSuppressor language="Arend" implementationClass="org.arend.inspection.ArendInspectionSuppressor"/>
+        <!-- TODO[server2]
         <localInspection language="Arend" groupPath="Arend"
                          bundle="messages.ArendBundle" key="arend.inspection.redundant.parentheses.name"
                          groupBundle="messages.InspectionsBundle" groupKey="group.names.declaration.redundancy"
                          enabledByDefault="true" level="WEAK WARNING"
                          implementationClass="org.arend.inspection.RedundantParensInspection"/>
+        -->
 
         <localInspection language="Arend" groupPath="Arend" key="arend.inspection.unused.import"
                          groupBundle="messages.InspectionsBundle"
@@ -200,11 +206,13 @@
                          enabledByDefault="true" level="WARNING"
                          implementationClass="org.arend.inspection.RedundantParameterInspection"/>
 
+        <!-- TODO[server2]
         <localInspection language="Arend" groupPath="Arend"
                          bundle="messages.ArendBundle" key="arend.inspection.unresolved.pattern.name"
                          groupBundle="messages.InspectionsBundle" groupKey="group.names.probable.bugs"
                          enabledByDefault="true" level="WARNING"
                          implementationClass="org.arend.inspection.UnresolvedArendPatternInspection"/>
+        -->
 
         <!-- Intention Actions -->
         <intentionAction>
@@ -261,11 +269,13 @@
             <category>Arend</category>
         </intentionAction>
 
+        <!-- TODO[server2]
         <intentionAction>
             <language>Arend</language>
             <className>org.arend.intention.SwapInfixOperatorArgumentsIntention</className>
             <category>Arend</category>
         </intentionAction>
+        -->
 
         <intentionAction>
             <language>Arend</language>
@@ -273,6 +283,7 @@
             <category>Arend</category>
         </intentionAction>
 
+        <!-- TODO[server2]
         <intentionAction>
             <language>Arend</language>
             <className>org.arend.intention.AddClarifyingParensIntention</className>
@@ -284,6 +295,7 @@
             <className>org.arend.intention.RemoveClarifyingParensIntention</className>
             <category>Arend</category>
         </intentionAction>
+        -->
 
         <intentionAction>
             <language>Arend</language>
@@ -309,10 +321,12 @@
 
         <!-- Line Marker Providers -->
 
+        <!-- TODO[server2]
         <runLineMarkerContributor language="Arend"
                                   implementationClass="org.arend.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
 
         <codeInsight.lineMarkerProvider language="Arend" implementationClass="org.arend.codeInsight.ArendLineMarkerProvider"/>
+        -->
 
         <!-- Color Settings -->
 
@@ -379,7 +393,7 @@
 
         <!-- Services -->
 
-        <projectService serviceImplementation="org.arend.typechecking.TypeCheckingService"/>
+        <!-- TODO[server2]: <projectService serviceImplementation="org.arend.typechecking.TypeCheckingService"/> -->
 
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
 
@@ -408,12 +422,14 @@
         <!-- Highlighting Pass Factories -->
 
         <highlightingPassFactory implementation="org.arend.highlight.ArendHighlightingPassFactory"/>
+        <!-- TODO[server2]
         <highlightingPassFactory implementation="org.arend.highlight.TypecheckerPassFactory"/>
         <highlightingPassFactory implementation="org.arend.injection.InjectionHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.ArendUnusedImportHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.RedundantParensPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.NameShadowingHighlighterPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.PartiallyInfixOperatorPrefixFormPassFactory"/>
+        -->
 
         <!-- Tool Windows -->
 

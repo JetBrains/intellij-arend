@@ -9,6 +9,7 @@ import org.arend.resolving.util.parseBinOp
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractExpressionVisitor
+import org.arend.term.abs.AbstractReference
 import org.arend.term.concrete.Concrete
 import org.arend.util.forEachRange
 import java.math.BigInteger
@@ -73,7 +74,7 @@ class ShrinkAbstractVisitor(val textRange: TextRange) : AbstractExpressionVisito
         return """\case ${arguments.joinToString(", ") { DOTS }} \with { $DOTS }"""
     }
 
-    override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableList<Abstract.FieldAcc>, params: Unit?): String {
+    override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableList<Abstract.FieldAcc>, infixReference: AbstractReference?, infixName: String?, isInfix: Boolean, params: Unit?): String {
         return "${expression.accept(this, Unit)}.${fieldAccs.joinToString(".") { it.number?.toString() ?: it.fieldName ?: "_" }}"
     }
 

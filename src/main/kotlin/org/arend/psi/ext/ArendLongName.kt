@@ -25,7 +25,7 @@ class ArendLongName(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.LongRef
 
     override fun getReferent(): UnresolvedReference {
         val refList = refIdentifierList
-        return if (refList.size == 1) NamedUnresolvedReference(refList[0], refList[0].referenceName) else LongUnresolvedReference.make(this, refList.map { it.referenceName })
+        return if (refList.size == 1) NamedUnresolvedReference(refList[0], refList[0].referenceName) else LongUnresolvedReference.make(this, refList, refList.map { it.referenceName })
     }
 
     override fun getHeadReference(): Abstract.Reference = refIdentifierList[0]

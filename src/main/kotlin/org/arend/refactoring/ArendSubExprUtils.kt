@@ -31,7 +31,6 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
@@ -146,7 +145,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(resolver?.result ?: subExpr)
             errors = subExprVisitor.errors
-            SyntacticDesugarVisitor.desugar(cExpr.accept(ExpressionResolveNameVisitor(ArendReferableConverter, scope, null, DummyErrorReporter.INSTANCE, null), null), DummyErrorReporter.INSTANCE).accept(subExprVisitor, injectedExpr)
+            SyntacticDesugarVisitor.desugar(cExpr.accept(ExpressionResolveNameVisitor(scope, null, DummyErrorReporter.INSTANCE, null), null), DummyErrorReporter.INSTANCE).accept(subExprVisitor, injectedExpr)
         } else {
             errors = emptyList()
             null

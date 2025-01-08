@@ -17,10 +17,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
     private fun replaceCache(reference: ArendReferenceElement, resolvedRef: Referable?) {
         val newRef = if (resolvedRef is ErrorReference) null else resolvedRef?.underlyingReferable
         if (newRef is LocalReferable) return
-        val oldRef = resolverCache.replaceCache(newRef, reference)
-        if (oldRef != null && toDataRef(oldRef) != toDataRef(newRef) && !(newRef == null && oldRef == TCDefReferable.NULL_REFERABLE)) {
-            resetDefinition = true
-        }
+        resolverCache.replaceCache(newRef, reference)
     }
 
     private fun toDataRef(ref: Referable?): Referable? =
@@ -38,10 +35,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
     private fun resolveReference(data: Any?, referent: Referable, resolvedRefs: List<Referable?>) {
         val list = when (data) {
             is ArendLongName -> data.refIdentifierList
-            is ArendIPName -> {
-                val last: List<ArendReferenceElement> = listOf(data)
-                data.parentLongName?.let { it.refIdentifierList + last } ?: last
-            }
+            is ArendAtomFieldsAcc -> listOfNotNull(data.atom.literal?.refIdentifier) + data.fieldAccList.mapNotNull { it.refIdentifier } + listOfNotNull(data.ipName)
             is ArendReferenceElement -> listOf(data)
             is ArendPattern -> {
                 val defId = data.singleReferable
@@ -59,8 +53,9 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
             else -> return
         }
 
-        resolveReference(data, referent, list, resolvedRefs)
-        replaceCache(list, resolvedRefs)
+        val resolved = if (list.size < resolvedRefs.size) resolvedRefs.subList(0, list.size) else resolvedRefs
+        resolveReference(data, referent, list, resolved)
+        replaceCache(list, resolved)
     }
 
     override fun bindingResolved(binding: Referable) {
@@ -103,12 +98,6 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         (renaming as? ArendNsId)?.refIdentifier?.let {
             replaceCache(it, resolvedRef)
         }
-    }
-
-    protected var resetDefinition = false
-
-    override fun beforeDefinitionResolved(definition: Concrete.ResolvableDefinition?) {
-        resetDefinition = false
     }
 
     private fun levelParametersResolved(params: Concrete.LevelParameters?) {

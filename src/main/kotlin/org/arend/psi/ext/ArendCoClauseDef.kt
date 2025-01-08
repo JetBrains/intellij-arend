@@ -51,6 +51,7 @@ class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract
 
     override fun getAccessModifier() = if (isDefault) AccessModifier.PROTECTED else AccessModifier.PUBLIC
 
+    /* TODO[server2]
     override val prec: ArendPrec?
         get() {
             val coClause = parentCoClause ?: return null
@@ -58,6 +59,7 @@ class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract
             val classRef = (coClause.parent?.parent as? ClassReferenceHolder)?.classReference ?: return null
             return (Scope.resolveName(ClassFieldImplScope(classRef, false), coClause.longName.refIdentifierList.map { it.refName }) as? ReferableBase<*>)?.prec
         }
+    */
 
     override val defIdentifier: ArendDefIdentifier?
         get() = parentCoClause?.defIdentifier

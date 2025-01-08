@@ -206,7 +206,7 @@ abstract class LibraryConfig(val project: Project) {
             path = testsDirFile?.getRelativePath(vFile, FileUtils.EXTENSION) ?: return null
             ModuleLocation.LocationKind.TEST
         }
-        return ModuleLocation(name, isExternal, locationKind, ModulePath(path))
+        return ModuleLocation(name, locationKind, ModulePath(path))
     }
 
     fun getFileLocationKind(file: ArendFile): ModuleLocation.LocationKind? = getFileModulePath(file)?.locationKind

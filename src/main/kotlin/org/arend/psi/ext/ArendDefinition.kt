@@ -11,7 +11,6 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.ParameterReferable
-import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
@@ -19,7 +18,6 @@ import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.IntellijTCReferable
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.abs.IncompleteExpressionError
@@ -39,7 +37,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun isDynamicContext() = parent is ArendClassStat
 
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition {
-        val def = ConcreteBuilder.convert(referableConverter, this, errorReporter)
+        val def = ConcreteBuilder.convert(this, errorReporter)
         if (def.status == Concrete.Status.HAS_ERRORS) {
             accept(object : PsiRecursiveElementVisitor() {
                 override fun visitErrorElement(element: PsiErrorElement) {
@@ -58,25 +56,29 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
-    override fun getEnclosingClass(): ClassReferable? {
-        var prev: ArendGroup = this
-        var parent = parentGroup
-        while (parent != null && parent !is ArendFile) {
-            val ref = parent.referable
-            if (ref is ClassReferable) {
-                for (subgroup in parent.dynamicSubgroups) {
-                    if (subgroup.referable == prev) {
-                        return ref
+    // TODO[server2]: Should be removed
+    val enclosingClass: ClassReferable?
+        get () {
+            var prev: ArendGroup = this
+            var parent = parentGroup
+            while (parent != null && parent !is ArendFile) {
+                val ref = parent.referable
+                if (ref is ClassReferable) {
+                    for (subgroup in parent.dynamicSubgroups) {
+                        if (subgroup.referable == prev) {
+                            return ref
+                        }
                     }
                 }
+                prev = parent
+                parent = parent.parentGroup
             }
-            prev = parent
-            parent = parent.parentGroup
+            return null
         }
-        return null
-    }
 
-    override fun getUseParent() = parentGroup?.referable
+    // TODO[server2]: Should be removed
+    val useParent: LocatedReferable?
+        get() = parentGroup?.referable
 
     override fun withUse() = parent?.hasChildOfType(USE_KW) == true
 
@@ -89,6 +91,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         get() = emptyList()
 
     override fun getExternalParameters(): List<ParameterReferable> {
+        // TODO[server2]
+        return emptyList()
+        /*
         val parent = locatedReferableParent as? ArendDefinition<*> ?: return emptyList()
         val tcRef = parent.tcReferable as? TCDefReferable ?: return emptyList()
         val params = parent.parametersExt
@@ -112,6 +117,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
             }
         }
         return result
+        */
     }
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable =
@@ -122,6 +128,8 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getHLevelParameters(): ArendLevelParamsSeq? =
         getChild { it.elementType == H_LEVEL_PARAMS_SEQ }
+
+    override fun getGroupDefinition() = this
 
     override val where: ArendWhere?
         get() = childOfType()

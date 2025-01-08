@@ -38,6 +38,8 @@ class ArendStatCmd(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Namespac
     val openKw: PsiElement?
         get() = findChildByType(OPEN_KW)
 
+    override fun getReferenceList() = longName?.refIdentifierList ?: emptyList()
+
     override fun getPath() = longName?.refIdentifierList?.map { it.referenceName } ?: emptyList()
 
     override fun isUsing(): Boolean {

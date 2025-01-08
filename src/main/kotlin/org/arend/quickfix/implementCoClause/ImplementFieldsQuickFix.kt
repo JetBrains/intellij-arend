@@ -90,7 +90,7 @@ open class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPoint
                 ?.mapNotNull { (it as? ArendAtomArgument?)?.atomFieldsAcc }?.toMutableList() ?: mutableListOf()
             (defaultStatement.coClause?.expr as? ArendNewExpr?)?.argumentAppExpr?.atomFieldsAcc?.let { arguments.add(it) }
             for (argument in arguments) {
-                val defaultArgument = argument.atom.literal?.longName?.resolve ?: continue
+                val defaultArgument = argument.atom.literal?.refIdentifier?.resolve ?: continue
                 if (!defaultFields.contains(defaultArgument)) {
                     continue
                 }

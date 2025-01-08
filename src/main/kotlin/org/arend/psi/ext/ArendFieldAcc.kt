@@ -17,5 +17,7 @@ class ArendFieldAcc(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.FieldAc
 
     override fun getNumber() = number?.text?.toInt()
 
+    override fun getFieldReference() = refIdentifier
+
     override fun getFieldName() = refIdentifier?.referenceName
 }

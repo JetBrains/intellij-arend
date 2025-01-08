@@ -13,7 +13,7 @@ class ArendLiteral(node: ASTNode) : ArendExpr(node) {
     val goal: ArendGoal?
         get() = childOfType()
 
-    val longName: ArendLongName?
+    val refIdentifier: ArendRefIdentifier?
         get() = childOfType()
 
     val ipName: ArendIPName?
@@ -27,7 +27,7 @@ class ArendLiteral(node: ASTNode) : ArendExpr(node) {
             return visitor.visitReference(it, it.referent, it.fixity, null, null, params)
         }
         return when (val child = firstRelevantChild) {
-            is ArendLongName -> visitor.visitReference(child, child.referent, null, null, null, params)
+            is ArendRefIdentifier -> visitor.visitReference(child, child.referent, null, null, null, params)
             is ArendGoal -> visitor.visitGoal(child, child.defIdentifier?.textRepresentation(), child.expr, params)
             else -> when (child.elementType) {
                 PROP_KW -> visitor.visitUniverse(this, 0, -1, null, null, params)

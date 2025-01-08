@@ -136,11 +136,7 @@ class ArendCodeInsightUtils {
                 val dataBody = constructorClause?.parent as? ArendDataBody
                 val elim = dataBody?.elim ?: throw IllegalStateException()
 
-                val concreteData: Concrete.GeneralDefinition = ConcreteBuilder.convert(
-                    ArendReferableConverter,
-                    data,
-                    CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
-                )
+                val concreteData: Concrete.GeneralDefinition = ConcreteBuilder.convert(data, CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE))
                 if (concreteData !is Concrete.DataDefinition) throw IllegalStateException()
 
                 val clause = concreteData.constructorClauses.firstOrNull { clause ->
@@ -151,7 +147,6 @@ class ArendCodeInsightUtils {
                 val clausePatterns = clause?.patterns?.run {
                     val newList = ArrayList(this)
                     ExpressionResolveNameVisitor(
-                        ArendReferableConverter,
                         data.scope,
                         mutableListOf(),
                         DummyErrorReporter.INSTANCE,
@@ -289,7 +284,7 @@ class ArendCodeInsightUtils {
             val tcDef = (def.tcReferable as? TCDefReferable)?.typechecked
             if (tcDef == null)
                 for (p in def.ancestors)
-                    if (p is ArendDefinition<*> && p.getExternalParameters().isNotEmpty())
+                    if (p is ArendDefinition<*> && p.externalParameters.isNotEmpty())
                         return null
 
             if (tcDef != null) {

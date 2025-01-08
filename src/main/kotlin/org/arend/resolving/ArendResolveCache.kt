@@ -14,9 +14,9 @@ import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.locks.ReentrantLock
 
+// TODO[server2]: Delete this class
 @Service(Service.Level.PROJECT)
-class ArendResolveCache(project: Project) {
-    private val typeCheckingService = project.service<TypeCheckingService>()
+class ArendResolveCache {
     private val refMap: ConcurrentMap<ArendReferenceElement, Referable> = ContainerUtil.createConcurrentWeakKeySoftValueMap()
     private val refMapPsi: ConcurrentMap<ArendReferenceElement, Pair<Int, SmartPsiElementPointer<PsiElement>>> = ContainerUtil.createConcurrentWeakMap()
 
@@ -44,27 +44,7 @@ class ArendResolveCache(project: Project) {
         }
     }
 
-    fun resolveCached(resolver: () -> Referable?, reference: ArendReferenceElement): Referable? {
-        val ref = getCached(reference)
-        if (ref != null) return ref
-
-        val result = resolver()
-        if (result == null && !typeCheckingService.isInitialized) {
-            return null
-        }
-
-        doReplaceCache(result, reference)
-
-        return result
-    }
-
-    fun replaceCache(newRef: Referable?, reference: ArendReferenceElement): Referable? {
-        val oldValue = getCached(reference)
-        doReplaceCache(newRef, reference)
-        return oldValue
-    }
-
-    private fun doReplaceCache(newRef: Referable?, reference: ArendReferenceElement) {
+    fun replaceCache(newRef: Referable?, reference: ArendReferenceElement) {
         if (newRef is PsiElement && newRef.isValid) {
             lock.withLock {
                 refMapPsi[reference] = Pair(reference.text.hashCode(), SmartPointerManager.createPointer(newRef))

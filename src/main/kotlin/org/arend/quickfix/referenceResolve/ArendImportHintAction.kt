@@ -28,7 +28,6 @@ import org.arend.psi.libraryConfig
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendFileIndex
 import org.arend.settings.ArendSettings
-import org.arend.typechecking.TypeCheckingService
 import org.arend.util.ArendBundle
 import org.arend.util.FileUtils
 
@@ -158,7 +157,6 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
 
         private fun getStubElementSet(project: Project, refElement: ArendReferenceElement, file: PsiFile?): List<PsiLocatedReferable> {
             val name = refElement.referenceName
-            val service = project.service<TypeCheckingService>()
             val config = (file as? ArendFile)?.libraryConfig
             val libRefs = if (config == null) emptyList() else {
                 val result = ArrayList<PsiLocatedReferable>()
@@ -170,7 +168,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             }
             return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
                     StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ArendFileScope(project), ArendFile::class.java) +
-                    libRefs + service.getAdditionalReferables(name)
+                    libRefs // TODO[server2]: + project.service<TypeCheckingService>().getAdditionalReferables(name)
         }
 
         fun importQuickFixAllowed(referenceElement: ArendReferenceElement) = when (referenceElement) {

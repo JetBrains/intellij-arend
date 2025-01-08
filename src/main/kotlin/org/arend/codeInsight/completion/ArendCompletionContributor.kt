@@ -343,7 +343,7 @@ class ArendCompletionContributor : CompletionContributor() {
 
         val isLiteralApp = { argumentAppExpr: ArendArgumentAppExpr ->
             argumentAppExpr.longNameExpr != null ||
-                    ((argumentAppExpr.children[0] as? ArendAtomFieldsAcc)?.atom?.literal?.longName != null)
+                    ((argumentAppExpr.children[0] as? ArendAtomFieldsAcc)?.atom?.literal?.refIdentifier != null)
         }
 
         val unifiedLevelCondition = { atomIndex: Int?, forbidLevelExprs: Boolean, threshold: Int ->
@@ -471,7 +471,7 @@ class ArendCompletionContributor : CompletionContributor() {
                 and(withAncestors(PsiErrorElement::class.java, ArendArgumentAppExpr::class.java, ArendNewExpr::class.java), after(withParent(ArendAtomLevelExpr::class.java))),
                 after(and(ofType(RBRACE), withParent(ArendNewExpr::class.java)))),
                 elementPattern { o -> o.parentOfType<ArendNewExpr>().let {
-                    it != null && it.withBody == null && (it.argumentAppExpr?.atomFieldsAcc?.atom?.literal?.longName != null || it.argumentAppExpr?.longNameExpr != null)
+                    it != null && it.withBody == null && (it.argumentAppExpr?.atomFieldsAcc?.atom?.literal?.refIdentifier != null || it.argumentAppExpr?.longNameExpr != null)
                 }}), WITH_KW_LIST, KeywordCompletionBehavior.ADD_BRACES)
 
         basic(after(elementPattern { it.parentOfType<ArendPattern>() != null }), AS_KW_LIST)

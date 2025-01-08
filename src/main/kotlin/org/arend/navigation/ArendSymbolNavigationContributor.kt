@@ -14,6 +14,8 @@ class ArendSymbolNavigationContributor : ArendNavigationContributorBase<PsiRefer
     PsiReferable::class.java
 ) {
     override fun getGeneratedItems(project: Project?): Map<String, List<PsiLocatedReferable>> {
+        return emptyMap()
+        /* TODO[server2]
         val service = project?.service<TypeCheckingService>()
         service ?: return emptyMap()
         val result = hashMapOf<String, List<PsiLocatedReferable>>()
@@ -24,5 +26,6 @@ class ArendSymbolNavigationContributor : ArendNavigationContributorBase<PsiRefer
             (lib as? ArendRawLibrary)?.let { result.putAll(it.config.additionalNames) }
         }
         return result
+        */
     }
 }

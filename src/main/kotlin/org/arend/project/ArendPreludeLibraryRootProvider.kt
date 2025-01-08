@@ -7,12 +7,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.AdditionalLibraryRootsProvider
 import com.intellij.openapi.roots.SyntheticLibrary
 import com.intellij.openapi.vfs.VirtualFile
-import org.arend.typechecking.TypeCheckingService
+import org.arend.server.ArendServerService
 import javax.swing.Icon
 
 class ArendPreludeLibraryRootProvider: AdditionalLibraryRootsProvider() {
     override fun getAdditionalProjectLibraries(project: Project): MutableCollection<SyntheticLibrary> {
-        return project.service<TypeCheckingService>().prelude?.virtualFile
+        return project.service<ArendServerService>().prelude?.virtualFile
             ?.let { PreludeLibrary(it) }
             ?.let { mutableListOf(it) }
             ?: mutableListOf()

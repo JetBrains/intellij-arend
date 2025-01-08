@@ -722,7 +722,7 @@ longNameExpr ::= longName (levelsExpr | atomOnlyLevelExpr atomOnlyLevelExpr?) {
 
 fieldAcc ::= NUMBER | refIdentifier
 
-private fieldAccDot ::= DOT fieldAcc { pin = 1 }
+private fieldAccDot ::= DOT fieldAcc
 
 atom ::= literal
     | tuple

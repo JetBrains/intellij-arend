@@ -79,7 +79,7 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
         if (scope != null) throw IllegalStateException()
         val preludeFile = prelude ?: return
         scope = CachingScope.make(LexicalScope.opened(preludeFile))
-        runReadAction { DefinitionResolveNameVisitor(concreteProvider, null, errorReporter).resolveGroup(preludeFile, scope) }
+        runReadAction { DefinitionResolveNameVisitor(concreteProvider, errorReporter).resolveGroup(preludeFile, scope) }
     }
 
     companion object {

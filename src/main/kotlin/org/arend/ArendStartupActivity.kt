@@ -5,7 +5,6 @@ import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
 import com.intellij.ide.AppLifecycleListener
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
@@ -13,7 +12,7 @@ import com.intellij.openapi.project.*
 import com.intellij.openapi.startup.ProjectActivity
 import org.arend.module.ArendModuleType
 import org.arend.module.config.ArendModuleConfigService
-import org.arend.typechecking.TypeCheckingService
+import org.arend.server.ArendServerService
 import org.arend.util.ArendBundle
 import org.arend.util.arendModules
 import org.arend.util.register
@@ -21,8 +20,7 @@ import org.arend.util.register
 
 class ArendStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
-        val service = project.service<TypeCheckingService>()
-        val libraryManager = service.libraryManager
+        val service = project.service<ArendServerService>()
 
         project.messageBus.connect(service).subscribe(ModuleListener.TOPIC, object : ModuleListener {
             override fun modulesAdded(project: Project, modules: List<Module>) {
@@ -36,9 +34,7 @@ class ArendStartupActivity : ProjectActivity {
             override fun beforeModuleRemoved(project: Project, module: Module) {
                 val config = ArendModuleConfigService.getInstance(module) ?: return
                 config.isInitialized = ApplicationManager.getApplication().isUnitTestMode
-                runReadAction {
-                    libraryManager.unloadLibrary(config.library)
-                }
+                // TODO[server2]: invoke ArendServer.removeLibrary
             }
         })
 
@@ -75,7 +71,7 @@ class ArendStartupActivity : ProjectActivity {
                 }
             })
 
-        disableActions()
+        // TODO[server2]: disableActions()
     }
 
     private fun disableActions() {

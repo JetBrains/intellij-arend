@@ -457,7 +457,8 @@ class ArendMoveRefactoringProcessor(project: Project,
             //TODO: What about IPName?
             is ArendFieldDefIdentifier -> memberData[element] = LocationDescriptor(groupNumber, prefix)
             is ArendLongName -> {
-                val unresolvedReference = LongUnresolvedReference.make(element, element.refIdentifierList.map { it.text })
+                val refList = element.refIdentifierList
+                val unresolvedReference = LongUnresolvedReference.make(element, refList, refList.map { it.referenceName })
                 var concreteExpr = resolveReference(element, unresolvedReference, null)
                 while (concreteExpr is Concrete.AppExpression) concreteExpr = concreteExpr.arguments.first().expression
                 if (concreteExpr is Concrete.ReferenceExpression) {

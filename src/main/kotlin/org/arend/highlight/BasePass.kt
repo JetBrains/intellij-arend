@@ -14,7 +14,6 @@ import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.IArendFile
@@ -161,7 +160,6 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
         if (error is NotInScopeError) {
             val ref: ArendReferenceElement? = when (cause) {
-                is ArendIPName -> cause.parentLongName?.refIdentifierList?.getOrNull(error.index) ?: cause
                 is ArendLongName -> cause.refIdentifierList.getOrNull(error.index)
                 is ArendReferenceElement -> cause
                 is ArendStatCmd -> cause.longName?.refIdentifierList?.getOrNull(error.index)

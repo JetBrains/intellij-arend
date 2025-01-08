@@ -1,6 +1,5 @@
 package org.arend.intention
 
-import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
@@ -8,7 +7,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import org.arend.core.expr.ErrorWithConcreteExpression
 import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.psi.ArendFile
@@ -22,7 +20,7 @@ import org.arend.util.ArendBundle
 class ReplaceMetaWithResultIntention : BaseArendIntention(ArendBundle.message("arend.expression.replaceMetaWithResult")) {
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         val expr = element.ancestor<ArendExpr>()
-        val refElement = (expr as? ArendLiteral)?.ipName ?: ((expr as? ArendLiteral)?.longName ?: (expr as? ArendLongNameExpr)?.longName)?.refIdentifierList?.lastOrNull() ?: return false
+        val refElement = (expr as? ArendLiteral)?.ipName ?: (expr as? ArendLiteral)?.refIdentifier ?: (expr as? ArendLongNameExpr)?.longName?.refIdentifierList?.lastOrNull() ?: return false
         return (refElement.resolve as? ArendDefMeta)?.metaRef.let { it?.definition != null || it?.resolver != null }
     }
 

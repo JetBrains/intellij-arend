@@ -12,7 +12,7 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiModuleReferable
-import org.arend.typechecking.TypeCheckingService
+import org.arend.server.ArendServerService
 import org.arend.util.FileUtils
 
 
@@ -63,8 +63,7 @@ class ModuleScope private constructor(
             result.add(ModuleReferable(ModulePath(path[0])))
         }
         if (rootDirs == null) {
-            val psiManager = libraryConfig?.project?.let { PsiManager.getInstance(it) }
-            libraryConfig?.project?.service<TypeCheckingService>()?.prelude?.let { psiManager?.findFile(it.virtualFile) }?.let {
+            libraryConfig?.project?.service<ArendServerService>()?.prelude?.let {
                 result.add(PsiModuleReferable(listOf(it), Prelude.MODULE_PATH))
             }
         }

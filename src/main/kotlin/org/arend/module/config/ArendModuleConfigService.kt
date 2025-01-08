@@ -32,8 +32,6 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
         result
     }
 
-    private val libraryManager = project.service<TypeCheckingService>().libraryManager
-
     override var librariesRoot = project.service<ArendProjectSettings>().librariesRoot
         set(value) {
             field = value
@@ -73,7 +71,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override val name
         get() = module.name
 
-    private val yamlFile
+    val yamlFile
         get() = root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let { PsiManager.getInstance(project).findFile(it) as? YAMLFile }
 
     val librariesRootDef: String?
@@ -83,6 +81,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     val library = ArendRawLibrary(this)
 
+    /* TODO[server2]
     private fun updateDependencies(newDependencies: List<LibraryDependency>, reload: Boolean, callback: () -> Unit) {
         val oldDependencies = dependencies
         dependencies = ArrayList(newDependencies)
@@ -125,6 +124,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
             }
         })
     }
+    */
 
     fun synchronizeDependencies(reload: Boolean) {
         synchronized = false
@@ -132,12 +132,13 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     }
 
     fun copyFromYAML(yaml: YAMLFile, update: Boolean) {
+        /* TODO[server2]
         val newDependencies = yaml.dependencies
         if (dependencies != newDependencies) {
             updateDependencies(newDependencies, update) {
                 ModuleSynchronizer.synchronizeModule(this, false)
             }
-        }
+        } */
 
         modules = yaml.modules
         flaggedBinariesDir = yaml.binariesDir
@@ -196,7 +197,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
         val newDependencies = config.dependencies
         if (dependencies != newDependencies) {
-            updateDependencies(newDependencies, !reload) {}
+            // TODO[server2]: updateDependencies(newDependencies, !reload) {}
             updateYAML = true
         }
 

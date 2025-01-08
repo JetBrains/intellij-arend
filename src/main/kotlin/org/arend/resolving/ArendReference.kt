@@ -10,6 +10,7 @@ import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
+import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.*
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
@@ -23,6 +24,7 @@ import org.arend.psi.ext.*
 import org.arend.psi.ext.ArendDefMeta
 import org.arend.psi.ext.ReferableBase
 import org.arend.refactoring.ArendNamesValidator
+import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -42,53 +44,27 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
         return element
     }
 
-    override fun resolve(): PsiElement? {
-        val cache = element.project.service<ArendResolveCache>()
-        val resolver = {
-            if (beforeImportDot) {
-                val refName = element.referenceName
-                var result: Referable? = null
-                for (ref in element.scope.getElements(scopeContext)) {
-                    val name = if (ref is ModuleReferable) ref.path.lastName else ref.refName
-                    if (name == refName) {
-                        result = ref
-                        if (ref !is PsiModuleReferable || ref.modules.firstOrNull() is PsiDirectory) {
-                            break
-                        }
-                    }
-                }
-                result
-            } else {
-                val expr = element.ancestor<ArendExpr>()
-                val def = expr?.ancestor<PsiConcreteReferable>()
-                when {
-                    def != null -> {
-                        val project = def.project
-                        PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, ArendResolverListener(cache)).getConcrete(def)
-                        cache.getCached(element)
-                    }
-                    expr != null -> {
-                        ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, ArendResolverListener(cache)), null)
-                        cache.getCached(element) ?: element.scope.resolveName(element.referenceName, scopeContext)
-                    }
-                    else -> element.scope.resolveName(element.referenceName, scopeContext)
-                }
-            }
+    private fun getPsi(referable: Referable?): Any? {
+        if (referable is DataContainer) {
+            val data = referable.data
+            if (data is PsiReferable) return data
         }
+        return referable
+    }
 
-        return when (val ref = cache.resolveCached(resolver, element)?.underlyingReferable) {
+    override fun resolve(): PsiElement? =
+        when (val ref = element.project.service<ArendServerService>().server.resolveReference(element)) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
             is ModuleReferable -> {
                 if (ref.path == Prelude.MODULE_PATH) {
-                    element.project.service<TypeCheckingService>().prelude
+                    element.project.service<ArendServerService>().prelude
                 } else {
                     (element.containingFile as? ArendFile)?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                 }
             }
             else -> null
         }
-    }
 
     companion object {
         fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, fullName: Boolean, clazz: Class<*>?, notARecord: Boolean, lookup: String? = null): LookupElementBuilder? {
@@ -184,6 +160,9 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImpor
     override fun bindToElement(element: PsiElement) = element
 
     override fun getVariants(): Array<Any> {
+        // TODO[server2]
+        return emptyArray()
+        /*
         var notARecord = false
         var clazz: Class<*>? = null
         val element = element
@@ -237,6 +216,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImpor
         return elements.mapNotNull { origElement ->
             createArendLookUpElement(origElement, file, false, clazz, notARecord)
         }.toTypedArray()
+        */
     }
 }
 

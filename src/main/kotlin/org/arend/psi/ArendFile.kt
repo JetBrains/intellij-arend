@@ -28,6 +28,7 @@ import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
+import org.arend.naming.reference.ParameterReferable
 import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.*
@@ -37,6 +38,7 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.resolving.IntellijTCReferable
+import org.arend.server.ArendServerService
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
@@ -151,14 +153,14 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = CachedValuesManager.getCachedValue(this) {
             val arendFile = originalFile as? ArendFile ?: this
             val config = arendFile.arendLibrary?.config
-            val typecheckingService = arendFile.project.service<TypeCheckingService>()
+            val project = arendFile.project
             val inTests = config?.getFileLocationKind(arendFile) == ModuleLocation.LocationKind.TEST
             cachedValue(ModuleScopeProvider { modulePath ->
                 val file = if (modulePath == Prelude.MODULE_PATH) {
-                    typecheckingService.prelude
+                    project.service<ArendServerService>().prelude
                 } else {
                     if (config == null) {
-                        return@ModuleScopeProvider typecheckingService.libraryManager.registeredLibraries.mapFirstNotNull {
+                        return@ModuleScopeProvider project.service<TypeCheckingService>().libraryManager.registeredLibraries.mapFirstNotNull {
                             it.moduleScopeProvider.forModule(modulePath)
                         }
                     } else {
@@ -176,6 +178,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         get() = null
 
     override fun dropTypechecked() {}
+
     override fun moduleInitialized(): Boolean {
         return ArendModuleConfigService.getInstance(module)?.isInitialized != false
     }
@@ -210,6 +213,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
 
+    override fun getExternalParameters(): List<ParameterReferable> = emptyList()
+
     override fun getStatements() = ArendStat.flatStatements(children.filterIsInstance<ArendStat>())
 
     override val where: ArendWhere?
@@ -222,6 +227,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getTopmostEquivalentSourceNode() = this
 
     override fun getParentSourceNode(): ArendSourceNode? = null
+
+    override fun getGroupDefinition() = null
 
     override fun getIcon(flags: Int) = ArendIcons.AREND_FILE
 

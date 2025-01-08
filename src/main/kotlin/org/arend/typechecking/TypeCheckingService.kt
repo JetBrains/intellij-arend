@@ -64,8 +64,8 @@ import org.arend.yaml.YAMLFileListener
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
 
+// TODO[server2]: Delete this service completely
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener, Disposable {
-    val dependencyListener = DependencyCollector()
     private val libraryErrorReporter = NotificationErrorReporter(project)
     val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this) {
         override fun showLibraryNotFoundError(libraryName: String) {
@@ -107,6 +107,8 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             }
         }
     }
+
+    val dependencyListener = DependencyCollector(libraryManager)
 
     private val extensionDefinitions = HashMap<TCDefReferable, Library>()
 
@@ -191,6 +193,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             // Set the listener that updates typechecked definitions
             service<ArendPsiChangeService>().addListener(this)
 
+            // TODO[server2]: Move these listeners somewhere else
             // Listen for YAML files changes
             val yamlFileListener = YAMLFileListener(project)
             yamlFileListener.register()

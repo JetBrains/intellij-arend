@@ -97,7 +97,7 @@ private fun isBinOp(atomFieldsAcc: ArendAtomFieldsAcc): Boolean {
         return false
     }
     val literal = atomFieldsAcc.atom.literal ?: return false
-    return isBinOp(literal.longName) || isBinOp(literal.ipName)
+    return isBinOp(literal.refIdentifier) || isBinOp(literal.ipName)
 }
 
 private fun isCommonRedundantParensPattern(tuple: ArendTuple, expression: ArendExpr): Boolean {

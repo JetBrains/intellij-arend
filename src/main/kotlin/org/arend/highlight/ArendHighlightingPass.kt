@@ -1,5 +1,7 @@
 package org.arend.highlight
 
+// TODO[server2]: Remove obsolete stuff
+
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -16,14 +18,12 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.resolving.*
+import org.arend.server.ArendServerService
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteCompareVisitor
 import org.arend.term.group.Group
-import org.arend.typechecking.BackgroundTypechecker
-import org.arend.typechecking.PsiInstanceProviderSet
-import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.TypecheckingTaskQueue
+import org.arend.typechecking.*
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.Ordering
@@ -33,18 +33,11 @@ import org.arend.util.ComputationInterruptedException
 class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRange)
     : BasePass(file, editor, "Arend resolver annotator", textRange) {
 
-    private val psiListenerService = service<ArendPsiChangeService>()
-    private val concreteProvider = PsiConcreteProvider(myProject, this, null, false)
-    private val instanceProviderSet = PsiInstanceProviderSet()
-    private val collector1 = CollectingOrderingListener()
-    private val collector2 = CollectingOrderingListener()
-    private var lastModifiedDefinition: TCDefReferable? = null
-    private val lastDefinitionModification = psiListenerService.definitionModificationTracker.modificationCount
-    var lastModification: Long = 0
-
+    /*
     init {
         myProject.service<TypeCheckingService>().initialize()
     }
+    */
 
     public override fun collectInformationWithProgress(progress: ProgressIndicator) {
         setProgressLimit(numberOfDefinitions(file as? Group).toLong())
@@ -66,18 +59,6 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
     }
 
     private fun collectInfo(progress: ProgressIndicator) {
-        val service = myProject.service<TypeCheckingService>()
-        (file as? ArendFile)?.moduleLocation?.let {
-            service.cleanupTCRefMaps(it)
-        }
-        (file as? ArendFile)?.traverseGroup { group ->
-            val ref = group.referable as? PsiLocatedReferable
-            val tcRef = ref?.tcReferableCached
-            if (tcRef is IntellijTCReferable && !tcRef.isEquivalent(ref)) {
-                ref.dropTCReferable()
-            }
-        }
-
         val resolveListener = object : ArendResolverListener(myProject.service<ArendResolveCache>()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
@@ -98,17 +79,21 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
                 if (index > 0) {
                     val last = list[index]
                     val textRange = if (last is ArendIPName) {
-                        last.parentLiteral?.let { literal ->
-                            literal.longName?.let { longName ->
-                                TextRange(longName.textRange.startOffset, (literal.dot ?: longName).textRange.endOffset)
+                        val lastParent = last.parent
+                        val nextToLast = last.extendLeft.prevSibling
+                        if (lastParent is ArendAtomFieldsAcc && nextToLast != null) {
+                            TextRange(lastParent.textRange.startOffset, nextToLast.textRange.endOffset)
+                        } else null
+                    } else when (val lastParent = last.parent) {
+                        is ArendFieldAcc -> (lastParent.parent as? ArendAtomFieldsAcc)?.let { fieldsAcc ->
+                            lastParent.extendLeft.prevSibling?.let { nextToLast ->
+                                TextRange(fieldsAcc.textRange.startOffset, nextToLast.textRange.endOffset)
                             }
                         }
-                    } else {
-                        (last.parent as? ArendLongName)?.let { longName ->
-                            last.extendLeft.prevSibling?.let { nextToLast ->
-                                TextRange(longName.textRange.startOffset, nextToLast.textRange.endOffset)
-                            }
+                        is ArendLongName -> last.extendLeft.prevSibling?.let { nextToLast ->
+                            TextRange(lastParent.textRange.startOffset, nextToLast.textRange.endOffset)
                         }
+                        else -> null
                     }
 
                     if (textRange != null) {
@@ -148,20 +133,12 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
                 if (file !is ArendFile) return
                 progress.checkCanceled()
 
-                if (resetDefinition) {
-                    (definition.data.underlyingReferable as? TCDefinition)?.let {
-                        psiListenerService.updateDefinition(it, file, true)
+                (definition.data.data as? PsiLocatedReferable)?.let { ref ->
+                    ref.nameIdentifier?.let {
+                        addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
                     }
-                }
-
-                (definition.data.underlyingReferable as? PsiLocatedReferable)?.let { ref ->
-                    if (ref.containingFile == myFile) {
-                        ref.nameIdentifier?.let {
-                            addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
-                        }
-                        (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.let {
-                            addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
-                        }
+                    (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.let {
+                        addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
                     }
                 }
 
@@ -179,71 +156,18 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
                 advanceProgress(1)
             }
         }
-        when (file) {
-            is ArendFile -> DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, this, resolveListener).resolveGroup(file, file.scope)
-            is ArendExpressionCodeFragment -> {
-                file.getExpr()?.let{ expr ->
-                    val concrete = ConcreteBuilder.convertExpression(expr)
-                    ExpressionResolveNameVisitor(ArendReferableConverter, file.scope, ArrayList(), this, resolveListener).resolve(concrete)
-                    file.fragmentResolved()
-                }
+
+        if (file is ArendFile) {
+            val module = file.moduleLocation
+            if (module != null) {
+                myProject.service<ArendServerService>().server.resolveModules(listOf(module), this, ProgressCancellationIndicator(progress), resolveListener)
             }
         }
-
-        concreteProvider.resolve = true
-
-        (file as? ArendFile)?.concreteDefinitions?.values?.removeIf {
-            val ref = it.data.underlyingReferable
-            val remove = ref !is PsiLocatedReferable || ref.tcReferable != it.data
-            if (remove) {
-                service.updateDefinition(it.data)
-            }
-            remove
-        }
-
-        val definitions = ArrayList<Concrete.Definition>()
-        (file as? ArendFile)?.traverseGroup { group ->
-            val ref = group.referable
-            val def = concreteProvider.getConcrete(ref)
-            if (def is Concrete.Definition) {
-                var check = false
-                if (def.data.typechecked == null) {
-                    check = true
-                } else {
-                    val prev = file.concreteDefinitions.putIfAbsent(ref.refLongName, def)
-                    if (prev != null && !prev.accept(ConcreteCompareVisitor(), def)) {
-                        check = true
-                    }
-                }
-                if (check) {
-                    definitions.add(def)
-                    file.concreteDefinitions[def.data.refLongName] = def
-                    if (ref is PsiConcreteReferable) {
-                        psiListenerService.updateDefinition(ref, file, false)
-                    }
-                }
-            }
-        }
-
-        try {
-            val dependencyListener = service.dependencyListener
-            val ordering = Ordering(instanceProviderSet, concreteProvider, collector1, dependencyListener, ArendReferableConverter, PsiElementComparator)
-            val lastModified = if (definitions.size == 1) definitions[0] else null
-            if (lastModified != null) {
-                lastModifiedDefinition = lastModified.data
-                ordering.order(lastModified)
-            }
-            ordering.listener = collector2
-            for (definition in definitions) {
-                if (definition.data != lastModified?.data) {
-                    ordering.order(definition)
-                }
-            }
-        } catch (_: ComputationInterruptedException) {}
     }
 
+    /*
     override fun applyInformationWithProgress() {
-        file.lastModification.updateAndGet { maxOf(it, lastModification) }
+        println("applyInformationWithProgress: ${Thread.currentThread()}")
         if (file is ArendFile) myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
         if (file !is ArendFile) return
@@ -263,4 +187,5 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
             }
         }
     }
+    */
 }

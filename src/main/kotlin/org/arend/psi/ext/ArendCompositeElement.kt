@@ -20,7 +20,7 @@ import org.arend.resolving.util.ModifiedClassFieldImplScope
 import org.arend.term.abs.Abstract
 
 interface ArendCompositeElement : PsiElement, SourceInfo {
-    val scope: Scope
+    val scope: Scope // TODO[server2]: Remove this
     override fun getReference(): ArendReference?
 }
 

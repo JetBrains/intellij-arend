@@ -38,7 +38,7 @@ class UnresolvedArendPatternInspection : ArendInspectionBase() {
 
                 if (constructors.isNotEmpty() && (!constructors.contains(resolve) &&
                     (resolve.containingFile as? ArendFile?)?.let { isPrelude(it) } == false)) {
-                    val group = (getTypeOfPattern(element) as? ArendLiteral?)?.longName?.resolve as? Group?
+                    val group = (getTypeOfPattern(element) as? ArendLiteral?)?.refIdentifier?.resolve as? Group?
                     val groupConstructors = group?.constructors ?: emptyList()
                     if (groupConstructors.any { constructors.contains(it) }) {
                         registerProblem(element)
@@ -59,7 +59,7 @@ class UnresolvedArendPatternInspection : ArendInspectionBase() {
                     parentGroup?.parameters?.get(index)?.type as? PsiElement?
                 } else if (pattern.ancestor<ArendCaseExpr>() != null) {
                     val caseArg = pattern.ancestor<ArendCaseExpr>()?.caseArguments?.get(index)
-                    val resolve = (caseArg?.expression as? ArendNewExpr?)?.argumentAppExpr?.atomFieldsAcc?.atom?.literal?.longName?.resolve
+                    val resolve = (caseArg?.expression as? ArendNewExpr?)?.argumentAppExpr?.atomFieldsAcc?.atom?.literal?.refIdentifier?.resolve
                         ?: caseArg?.eliminatedReference?.resolve
                     (resolve?.ancestor<ArendNameTele>()?.type as? ArendNewExpr?)?.argumentAppExpr?.atomFieldsAcc?.atom?.literal
                 } else {

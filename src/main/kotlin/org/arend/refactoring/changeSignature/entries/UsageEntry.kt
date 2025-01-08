@@ -284,9 +284,7 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
             val referenceList: List<ArendReference> = when (referenceExpression) {
                 is ArendLongName -> referenceExpression.refIdentifierList.map { it.reference }
                 is ArendPattern -> referenceExpression.childOfType<ArendLongName>()?.refIdentifierList?.map { it.reference } ?:
-                (referenceExpression.singleReferable?.reference?.let { singletonList(it) }) ?: emptyList()
-                is ArendIPName -> (referenceExpression.parentLongName?.refIdentifierList?.map { it.reference } ?: emptyList()) +
-                         singletonList(referenceExpression.reference)
+                    (referenceExpression.singleReferable?.reference?.let { singletonList(it) }) ?: emptyList()
                 else -> emptyList()
             }
 

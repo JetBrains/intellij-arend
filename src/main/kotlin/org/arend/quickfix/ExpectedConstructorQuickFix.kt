@@ -44,7 +44,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.PsiLocatedRenamer
-import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.abs.Abstract
@@ -195,9 +194,9 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     run {
                         val cer = CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
                         val psiConcreteProvider = PsiConcreteProvider(project, cer, null)
-                        val resolveNameVisitor = DefinitionResolveNameVisitor(psiConcreteProvider, ArendReferableConverter, cer)
+                        val resolveNameVisitor = DefinitionResolveNameVisitor(psiConcreteProvider, cer)
                         val errorReporter = ListErrorReporter()
-                        var concreteDefinition : Concrete.GeneralDefinition = convert(ArendReferableConverter, definitionPsi as Abstract.Definition, cer)
+                        var concreteDefinition : Concrete.GeneralDefinition = convert(definitionPsi as Abstract.Definition, cer)
 
                         when (concreteDefinition) {
                             is Concrete.BaseFunctionDefinition -> resolveNameVisitor.visitFunction(concreteDefinition, definitionPsi.scope)
@@ -267,11 +266,11 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         // STEP 6: Unify matched patterns with existing patterns and calculate elementary substitutions (of the form "variable" -> "expression")
                         for (cS in ecEntry.correctedSubsts) {
                             val patternPrimer = ecEntry.patternPrimers[cS.key] ?: continue
-                            var concretePrimer = convertPattern(patternPrimer, ArendReferableConverter, null, null)
+                            var concretePrimer = convertPattern(patternPrimer, null, null)
                             val primerOk: Boolean
                             run {
                                 val cer = CountingErrorReporter(DummyErrorReporter.INSTANCE)
-                                val resolver = ExpressionResolveNameVisitor(ArendReferableConverter, patternPrimer.scope, ArrayList<Referable>(), cer, null)
+                                val resolver = ExpressionResolveNameVisitor(patternPrimer.scope, ArrayList<Referable>(), cer, null)
                                 val primerList = ArrayList<Concrete.Pattern>()
                                 primerList.add(concretePrimer)
                                 resolver.visitPatterns(primerList, null)

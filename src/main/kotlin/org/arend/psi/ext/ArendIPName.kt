@@ -4,14 +4,10 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
-import org.arend.naming.reference.LongUnresolvedReference
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.UnresolvedReference
-import org.arend.naming.scope.EmptyScope
-import org.arend.naming.scope.Scope
 import org.arend.psi.ArendElementTypes.INFIX
 import org.arend.psi.ArendElementTypes.POSTFIX
-import org.arend.psi.ArendFile
 import org.arend.psi.firstRelevantChild
 import org.arend.resolving.ArendReference
 import org.arend.resolving.ArendReferenceImpl
@@ -29,18 +25,11 @@ class ArendIPName(node: ASTNode) : ArendCompositeElementImpl(node), ArendReferen
 
     override fun getReference(): ArendReference = ArendReferenceImpl(this)
 
-    override val unresolvedReference: UnresolvedReference?
+    override val unresolvedReference: UnresolvedReference
         get() = referent
 
     override val resolve
         get() = referenceNameElement.reference.resolve()
-
-    override val scope: Scope
-        get() {
-            val literal = parentLiteral ?: return (containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
-            val longName = literal.longName ?: return literal.scope
-            return LongUnresolvedReference(this, longName.refIdentifierList.map { it.referenceName }).resolveNamespaceWithArgument(literal.scope)
-        }
 
     override val referenceName: String
         get() {
@@ -53,7 +42,7 @@ class ArendIPName(node: ASTNode) : ArendCompositeElementImpl(node), ArendReferen
         }
 
     override val longName: List<String>
-        get() = parentLongName?.let { it.refIdentifierList.map { ref -> ref.referenceName } + listOf(referenceName) } ?: listOf(referenceName)
+        get() = listOf(referenceName)
 
     override val rangeInElement: TextRange
         get() {
@@ -74,14 +63,7 @@ class ArendIPName(node: ASTNode) : ArendCompositeElementImpl(node), ArendReferen
         }
 
     val referent: UnresolvedReference
-        get() {
-            val longName = parentLongName
-            return if (longName == null) {
-                NamedUnresolvedReference(this, referenceName)
-            } else {
-                LongUnresolvedReference.make(this, longName.refIdentifierList.map { it.referenceName } + listOf(referenceName))
-            }
-        }
+        get() = NamedUnresolvedReference(this, referenceName)
 
     val fixity: Fixity
         get() = when (firstRelevantChild.elementType) {
@@ -92,7 +74,4 @@ class ArendIPName(node: ASTNode) : ArendCompositeElementImpl(node), ArendReferen
 
     val parentLiteral: ArendLiteral?
         get() = parent as? ArendLiteral
-
-    val parentLongName: ArendLongName?
-        get() = (parent as? ArendLiteral)?.longName
 }

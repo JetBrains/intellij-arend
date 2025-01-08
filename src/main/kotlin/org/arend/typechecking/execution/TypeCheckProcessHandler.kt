@@ -132,7 +132,7 @@ class TypeCheckProcessHandler(
                                             ?: testsModuleScopeProvider.forModule(modulePath)
                                     }
                                 } else sourcesModuleScopeProvider
-                                DefinitionResolveNameVisitor(concreteProvider, ArendReferableConverter, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))
+                                DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))
                             }
                             module
                         }
