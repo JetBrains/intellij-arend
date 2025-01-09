@@ -8,6 +8,7 @@ import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.psi.ArendElementTypes.INFIX
 import org.arend.psi.ArendElementTypes.POSTFIX
+import org.arend.psi.ArendFile
 import org.arend.psi.firstRelevantChild
 import org.arend.resolving.ArendReference
 import org.arend.resolving.ArendReferenceImpl
@@ -24,6 +25,8 @@ class ArendIPName(node: ASTNode) : ArendCompositeElementImpl(node), ArendReferen
         get() = this
 
     override fun getReference(): ArendReference = ArendReferenceImpl(this)
+
+    override fun getReferenceModule() = (containingFile as? ArendFile)?.moduleLocation
 
     override val unresolvedReference: UnresolvedReference
         get() = referent

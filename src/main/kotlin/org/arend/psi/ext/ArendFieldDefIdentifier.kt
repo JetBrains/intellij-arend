@@ -79,6 +79,8 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
 
     override fun getUseScope() = GlobalSearchScope.projectScope(project)
 
+    override fun getReferenceModule() = (containingFile as? ArendFile)?.moduleLocation
+
     override val psiElementType: PsiElement?
         get() = resultType
 

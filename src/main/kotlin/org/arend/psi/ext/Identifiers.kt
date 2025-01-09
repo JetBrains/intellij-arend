@@ -30,6 +30,8 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
     override val rangeInElement: TextRange
         get() = TextRange(0, text.length)
 
+    override fun getReferenceModule() = (containingFile as? ArendFile)?.moduleLocation
+
     private fun getTopmostExpression(element: PsiElement): ArendCompositeElement? {
         var expr: ArendExpr? = null
         var cur = element
@@ -134,7 +136,7 @@ class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable
     }
 }
 
-class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable, LevelReferable, ArendReferenceElement {
+class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable, LevelReferable {
     val id: PsiElement
         get() = childOfTypeStrict(ArendElementTypes.ID)
 
