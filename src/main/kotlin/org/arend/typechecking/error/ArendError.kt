@@ -10,6 +10,7 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.PsiConcreteReferable
 
 
+// TODO[server2]: Delete this
 class ArendError(val error: GeneralError, private val pointer: SmartPsiElementPointer<*>) : Comparable<ArendError> {
     private val definitionPointer = runReadAction {
         cause?.ancestor<PsiConcreteReferable>()?.let { SmartPointerManager.createPointer(it) }

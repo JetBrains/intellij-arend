@@ -23,6 +23,7 @@ import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteCompareVisitor
 import org.arend.term.group.Group
+import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.*
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
@@ -165,27 +166,32 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         }
     }
 
-    /*
     override fun applyInformationWithProgress() {
-        println("applyInformationWithProgress: ${Thread.currentThread()}")
-        if (file is ArendFile) myProject.service<ErrorService>().clearNameResolverErrors(file)
         super.applyInformationWithProgress()
-        if (file !is ArendFile) return
+        file.project.service<ArendMessagesService>().update((file as? ArendFile)?.moduleLocation)
+    }
 
-        if (collector1.isEmpty && collector2.isEmpty) {
-            return
-        }
+    /*
+        override fun applyInformationWithProgress() {
+            println("applyInformationWithProgress: ${Thread.currentThread()}")
+            if (file is ArendFile) myProject.service<ErrorService>().clearNameResolverErrors(file)
+            super.applyInformationWithProgress()
+            if (file !is ArendFile) return
 
-        val typeChecker = BackgroundTypechecker(myProject, instanceProviderSet, concreteProvider,
-            maxOf(lastDefinitionModification, psiListenerService.definitionModificationTracker.modificationCount))
-        if (ApplicationManager.getApplication().isUnitTestMode) {
-            // DaemonCodeAnalyzer.restart does not work in tests
-            typeChecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, false)
-        } else {
-            service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
-                typeChecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, true)
+            if (collector1.isEmpty && collector2.isEmpty) {
+                return
+            }
+
+            val typeChecker = BackgroundTypechecker(myProject, instanceProviderSet, concreteProvider,
+                maxOf(lastDefinitionModification, psiListenerService.definitionModificationTracker.modificationCount))
+            if (ApplicationManager.getApplication().isUnitTestMode) {
+                // DaemonCodeAnalyzer.restart does not work in tests
+                typeChecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, false)
+            } else {
+                service<TypecheckingTaskQueue>().addTask(lastDefinitionModification) {
+                    typeChecker.runTypechecker(file, lastModifiedDefinition, collector1, collector2, true)
+                }
             }
         }
-    }
-    */
+        */
 }

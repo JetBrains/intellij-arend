@@ -8,8 +8,9 @@ import com.intellij.openapi.observable.properties.MutableBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
+import org.arend.module.ModuleLocation
+import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
-import org.arend.typechecking.error.ErrorService
 
 
 @Service(Service.Level.PROJECT)
@@ -53,14 +54,14 @@ class ArendMessagesService(private val project: Project) {
         view = ArendMessagesView(project, toolWindow)
     }
 
-    fun update() {
+    fun update(module: ModuleLocation? = null) {
         val view = view
         if (view == null) {
-            if (project.service<ErrorService>().hasErrors) {
+            if (project.service<ArendServerService>().server.modulesWithErrors.isNotEmpty()) {
                 activate(project, true)
             }
         } else {
-            view.update()
+            view.update(module)
         }
     }
 

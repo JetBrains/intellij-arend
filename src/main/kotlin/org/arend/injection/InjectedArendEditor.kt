@@ -137,7 +137,7 @@ abstract class InjectedArendEditor(
 
         invokeLater {
             val builder = StringBuilder()
-            val visitor = CollectingDocStringBuilder(builder, treeElement.sampleError.error)
+            val visitor = CollectingDocStringBuilder(builder, treeElement.sampleError)
             var fileScope: Scope = EmptyScope.INSTANCE
             val newErrorRanges = ArrayList<TextRange>()
             val diffInfos = mutableListOf<DiffInfo>()
@@ -145,14 +145,13 @@ abstract class InjectedArendEditor(
             ApplicationManager.getApplication().executeOnPooledThread {
                 runReadAction {
                     var first = true
-                    for (arendError in treeElement.errors) {
+                    for (error in treeElement.errors) {
                         if (first) {
                             first = false
                         } else {
                             builder.append("\n\n")
                         }
 
-                        val error = arendError.error
                         val (resolve, scope) = resolveCauseReference(error)
                         if (scope != null) {
                             fileScope = scope
@@ -266,7 +265,7 @@ abstract class InjectedArendEditor(
         if (editor == null) return
 
         val builder = StringBuilder()
-        val visitor = CollectingDocStringBuilder(builder, treeElement?.sampleError?.error)
+        val visitor = CollectingDocStringBuilder(builder, treeElement?.sampleError)
         doc.accept(visitor, false)
         builder.append('\n')
         val text = builder.toString()

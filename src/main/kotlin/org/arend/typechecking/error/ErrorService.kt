@@ -17,6 +17,7 @@ import org.arend.typechecking.computation.ComputationRunner
 import java.util.*
 
 
+// TODO[service2]: Move this to ArendServer
 @Service(Service.Level.PROJECT)
 class ErrorService : ErrorReporter {
     private val nameResolverErrors = Collections.synchronizedMap(WeakHashMap<ArendFile, MutableList<ArendError>>())

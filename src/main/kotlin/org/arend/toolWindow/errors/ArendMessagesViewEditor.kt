@@ -11,7 +11,7 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
     : InjectedArendEditor(project, "Arend Messages", treeElement) {
 
     override val printOptionKind: PrintOptionKind
-        get() = when (treeElement?.highestError?.error?.level) {
+        get() = when (treeElement?.highestError?.level) {
             GeneralError.Level.GOAL -> PrintOptionKind.GOAL_PRINT_OPTIONS
             else -> PrintOptionKind.ERROR_PRINT_OPTIONS
         }
@@ -56,7 +56,7 @@ class ArendMessagesViewEditor(project: Project, treeElement: ArendErrorTreeEleme
     }
 
     private fun createPrintOptionsActionGroup(): ArendPrintOptionsActionGroup {
-        val enablePrintOptions = treeElement?.errors?.any { it.error.hasExpressions() } ?: false
+        val enablePrintOptions = treeElement?.errors?.any { it.hasExpressions() } ?: false
         return ArendPrintOptionsActionGroup(project, printOptionKind, {
             when (printOptionKind) {
                 PrintOptionKind.GOAL_PRINT_OPTIONS -> project.service<ArendMessagesService>().updateGoalText()

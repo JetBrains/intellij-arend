@@ -6,6 +6,8 @@ import com.intellij.util.IconUtil
 import org.arend.core.definition.*
 import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.error.GeneralError
+import org.arend.naming.reference.ClassReferable
+import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.ext.ArendGoal
 import javax.swing.Icon
 
@@ -78,6 +80,16 @@ object ArendIcons {
     val SHOW = AllIcons.Actions.Show
     val NOT_SHOW = getIcon("/icons/not_show.svg")
     val PIN = AllIcons.General.Pin_tab
+
+    fun referableToIcon(ref: GlobalReferable): Icon? = when (ref.kind) {
+        GlobalReferable.Kind.DATA -> DATA_DEFINITION
+        GlobalReferable.Kind.CLASS -> if (ref is ClassReferable && ref.isRecord) RECORD_DEFINITION else CLASS_DEFINITION
+        GlobalReferable.Kind.FUNCTION, GlobalReferable.Kind.COCLAUSE_FUNCTION, GlobalReferable.Kind.DEFINED_CONSTRUCTOR -> FUNCTION_DEFINITION
+        GlobalReferable.Kind.INSTANCE -> CLASS_INSTANCE
+        GlobalReferable.Kind.CONSTRUCTOR -> CONSTRUCTOR
+        GlobalReferable.Kind.FIELD -> CLASS_FIELD
+        GlobalReferable.Kind.LEVEL, GlobalReferable.Kind.OTHER -> null
+    }
 
     fun definitionToIcon(definition: Definition): Icon? = when (definition) {
         is DataDefinition -> DATA_DEFINITION

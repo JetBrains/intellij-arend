@@ -31,7 +31,7 @@ enum class Choice {
 fun InjectedArendEditor.performPrettyPrinterManipulation(editor: Editor, choice: Choice) {
     ApplicationManager.getApplication().executeOnPooledThread {
         runReadAction {
-            val error = treeElement?.sampleError?.error
+            val error = treeElement?.sampleError
             val (resolve, scope) = error?.let(InjectedArendEditor.Companion::resolveCauseReference) ?: return@runReadAction
 
             val ppConfig = getCurrentConfig(scope)
@@ -39,7 +39,7 @@ fun InjectedArendEditor.performPrettyPrinterManipulation(editor: Editor, choice:
             val doc = treeElement?.let { getDoc(it, error, resolve, scope) } ?: return@runReadAction
             currentDoc = doc
 
-            val revealableFragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError?.error, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return@runReadAction
+            val revealableFragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return@runReadAction
             val id = "Arend Verbose level increase " + Random.nextInt()
             val revealingAction = getModificationAction(revealableFragment, editor, id, false, choice)
             val hidingAction = getModificationAction(revealableFragment, editor, id, true, choice)

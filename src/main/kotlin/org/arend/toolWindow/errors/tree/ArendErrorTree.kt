@@ -10,7 +10,10 @@ import com.intellij.util.ui.tree.TreeUtil
 import org.arend.ext.error.GeneralError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.DocStringBuilder
+import org.arend.ext.reference.ArendRef
 import org.arend.highlight.BasePass
+import org.arend.module.ModuleLocation
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiConcreteReferable
@@ -25,7 +28,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 
-class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErrorTreeListener? = null) : Tree(treeModel) {
+class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
     init {
         isRootVisible = false
         emptyText.text = ArendBundle.message("arend.messages.view.no.messages")
@@ -45,7 +48,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
     }
 
     fun navigate(focus: Boolean) =
-        ((selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement)?.let { BasePass.getImprovedCause(it.sampleError.error) }?.navigate(focus)
+        ((selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement)?.let { BasePass.getImprovedCause(it.sampleError) }?.navigate(focus)
 
     fun select(error: GeneralError) = selectNode(error)
 
@@ -55,7 +58,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         val root = model.root as? DefaultMutableTreeNode ?: return false
         var node: DefaultMutableTreeNode? = null
         for (any in root.depthFirstEnumeration()) {
-            if (any is DefaultMutableTreeNode && (error != null && (any.userObject as? ArendErrorTreeElement)?.errors?.any { it.error == error } == true || error == null && any.userObject is ArendErrorTreeElement)) {
+            if (any is DefaultMutableTreeNode && (error != null && (any.userObject as? ArendErrorTreeElement)?.errors?.any { it == error } == true || error == null && any.userObject is ArendErrorTreeElement)) {
                 node = any
                 break
             }
@@ -67,7 +70,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         return true
     }
 
-    fun scrollPathToVisibleVertical(path: TreePath) {
+    private fun scrollPathToVisibleVertical(path: TreePath) {
         makeVisible(path)
         val bounds = getPathBounds(path) ?: return
         val parent = parent
@@ -98,11 +101,11 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         ApplicationManager.getApplication().executeOnPooledThread {
             result = runReadAction {
                 when (val obj = ((value as? DefaultMutableTreeNode)?.userObject)) {
-                    is ArendFile -> obj.fullName
+                    is ModuleLocation -> obj.toString()
                     is ArendErrorTreeElement -> {
                         val messages = LinkedHashSet<String>()
-                        for (arendError in obj.errors) {
-                            messages.add(DocStringBuilder.build(arendError.error.getShortHeaderDoc(PrettyPrinterConfig.DEFAULT)))
+                        for (error in obj.errors) {
+                            messages.add(DocStringBuilder.build(error.getShortHeaderDoc(PrettyPrinterConfig.DEFAULT)))
                         }
                         messages.joinToString("; ")
                     }
@@ -130,59 +133,26 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
         return false
     }
 
-    private fun <T : MutableTreeNode> insertNode(child: T, parent: T, comparator: Comparator<T>): T {
-        val treeElement = (child as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
+    private fun insertNode(child: DefaultMutableTreeNode, parent: DefaultMutableTreeNode): DefaultMutableTreeNode {
+        val treeElement = child.userObject as? ArendErrorTreeElement
         return if (treeElement != null) {
             var i = parent.childCount - 1
             while (i >= 0) {
                 val anotherError = (parent.getChildAt(i) as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement
-                if (anotherError == null || treeElement.highestError.error.level <= anotherError.highestError.error.level) {
+                if (anotherError == null || treeElement.highestError.level <= anotherError.highestError.level) {
                     break
                 }
                 i--
             }
             (treeModel as DefaultTreeModel).insertNodeInto(child, parent, i + 1)
-            listener?.let {
-                for (error in treeElement.errors) {
-                    it.errorAdded(error)
-                }
-            }
             child
         } else {
-            var index: Int? = null
-            ApplicationManager.getApplication().run {
-                executeOnPooledThread {
-                    runReadAction {
-                        index = TreeUtil.indexedBinarySearch(parent, child, comparator)
-                    }
-                }.get()
-            }
-
-            if (index == null) {
-                return child
-            }
-
-            if (index!! < 0) {
-                (treeModel as DefaultTreeModel).insertNodeInto(child, parent, -(index!! + 1))
+            val index = TreeUtil.indexedBinarySearch(parent, child, TreeNodeComparator)
+            if (index < 0) {
+                (treeModel as DefaultTreeModel).insertNodeInto(child, parent, -(index + 1))
                 child
             } else {
-                @Suppress("UNCHECKED_CAST")
-                parent.getChildAt(index!!) as T
-            }
-        }
-    }
-
-    private fun notifyRemoval(node: TreeNode) {
-        ((node as? DefaultMutableTreeNode)?.userObject as? ArendErrorTreeElement)?.let { treeElement ->
-            listener?.let {
-                for (error in treeElement.errors) {
-                    it.errorRemoved(error)
-                }
-            }
-        }
-        for (child in node.children()) {
-            if (child is TreeNode) {
-                notifyRemoval(child)
+                parent.getChildAt(index) as DefaultMutableTreeNode
             }
         }
     }
@@ -197,13 +167,12 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
                 update(child, childrenFunc)
             } else {
                 node.remove(i)
-                notifyRemoval(child)
             }
             i--
         }
 
         for (child in children) {
-            update(insertNode(DefaultMutableTreeNode(child), node, TreeNodeComparator), childrenFunc)
+            update(insertNode(DefaultMutableTreeNode(child), node), childrenFunc)
         }
     }
 
@@ -213,13 +182,16 @@ class ArendErrorTree(treeModel: DefaultTreeModel, private val listener: ArendErr
             val obj2 = d2.userObject
             return when {
                 obj1 == obj2 -> 0
-                obj1 is ArendFile && obj2 is ArendFile -> fix((obj1.moduleLocation?.toString() ?: obj1.name).compareTo(obj2.moduleLocation?.toString() ?: obj2.name))
-                obj1 is PsiConcreteReferable && obj2 is PsiConcreteReferable -> fix(obj1.textOffset.compareTo(obj2.textOffset))
-                obj1 is ArendErrorTreeElement && obj2 is ArendErrorTreeElement -> fix(obj1.highestError.error.level.compareTo(obj2.highestError.error.level) * -1)
+                obj1 is ModuleLocation && obj2 is ModuleLocation -> fix(obj1.toString().compareTo(obj2.toString()))
+                obj1 is ArendErrorTreeElement && obj2 is ArendErrorTreeElement -> fix(obj1.highestError.level.compareTo(obj2.highestError.level) * -1)
                 obj1 is ArendErrorTreeElement -> 1
                 obj2 is ArendErrorTreeElement -> -1
-                obj1 is ArendFile -> 1
-                obj2 is ArendFile -> -1
+                obj1 is ModuleLocation -> -1
+                obj2 is ModuleLocation -> 1
+                obj1 is LocatedReferable && obj2 is LocatedReferable -> fix(obj1.refLongName.toString().compareTo(obj2.refLongName.toString()))
+                obj1 is LocatedReferable -> -1
+                obj2 is LocatedReferable -> 1
+                obj1 is ArendRef && obj2 is ArendRef -> fix(obj1.refName.compareTo(obj2.refName))
                 else -> -1
             }
         }
