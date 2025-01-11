@@ -41,6 +41,9 @@ val Project.allModules: List<Module>
 fun Project.findInternalLibrary(name: String): ArendModuleConfigService? =
     ModuleManager.getInstance(this).modules.firstOrNull { ArendModuleType.has(it) && it.name == name }?.service<ArendModuleConfigService>()
 
+val Project.moduleConfigs: List<ArendModuleConfigService>
+    get() = allModules.map { it.service<ArendModuleConfigService>() }
+
 fun Project.findLibrary(name: String): LibraryConfig? {
     val config = findInternalLibrary(name)
     return if (config != null) {

@@ -45,6 +45,7 @@ import org.jetbrains.ide.PooledThreadExecutor
 import java.io.OutputStream
 
 
+// TODO[server2]: Do we still need this?
 class TypeCheckProcessHandler(
     private val typeCheckerService: TypeCheckingService,
     private val command: TypeCheckCommand
