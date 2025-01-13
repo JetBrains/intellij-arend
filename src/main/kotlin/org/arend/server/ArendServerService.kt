@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets
 @Service(Service.Level.PROJECT)
 class ArendServerService(val project: Project) : Disposable {
     val prelude: ArendFile?
-    val server: ArendServer = ArendServerImpl(ArendServerRequesterImpl(project), true, null)
+    val server: ArendServer = ArendServerImpl(ArendServerRequesterImpl(project), true, true, null)
 
     init {
         // TODO[server2]: Maybe try updating modules immediately after PSI changes for some additional speed-up.

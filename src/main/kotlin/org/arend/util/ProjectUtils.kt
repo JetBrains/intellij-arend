@@ -24,6 +24,7 @@ import org.arend.psi.ArendFile
 import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.typechecking.ArendExtensionChangeService
+import org.arend.typechecking.error.NotificationErrorReporter
 import org.jetbrains.yaml.psi.YAMLFile
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -82,8 +83,11 @@ fun Module.register() {
         config
     } ?: return
     refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
-    // TODO[server2]: We probably need to invoke some sort of library initialization routine from ArendServer to load ArendExtension.
-    project.service<ArendServerService>().server.updateLibrary(-1, name, config.dependencies.map { it.name })
+
+    val server = project.service<ArendServerService>().server
+    server.updateLibrary(config, NotificationErrorReporter(project))
+    // TODO[server2]: invoke ArendRawLibrary.addGeneratedModule
+
     ApplicationManager.getApplication().getService(ArendExtensionChangeService::class.java).initializeModule(config)
     config.isInitialized = true
     DaemonCodeAnalyzer.getInstance(project).restart()

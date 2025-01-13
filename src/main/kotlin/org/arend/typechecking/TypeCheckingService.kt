@@ -186,9 +186,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
             preludeLibrary.resolveNames(concreteProvider, libraryManager.libraryErrorReporter)
             Prelude.PreludeTypechecking(InstanceProviderSet(), concreteProvider, ArendReferableConverter, PsiElementComparator).typecheckLibrary(preludeLibrary)
-            preludeLibrary.prelude?.let {
-                fillAdditionalNames(it, additionalNames)
-            }
 
             // Set the listener that updates typechecked definitions
             service<ArendPsiChangeService>().addListener(this)

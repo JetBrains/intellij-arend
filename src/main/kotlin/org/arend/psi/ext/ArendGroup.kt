@@ -38,20 +38,3 @@ val ArendGroup.concreteGroup: ConcreteGroup? get() {
     val path = groupPath ?: return null
     return project.service<ArendServerService>().server.getGroup(path.module)?.getSubgroup(path)
 }
-
-fun fillAdditionalNames(group: ArendGroup, names: HashMap<String, ArrayList<PsiLocatedReferable>>) {
-    for (statement in group.statements) {
-        val subgroup = statement.group ?: continue
-        names.computeIfAbsent(subgroup.refName) { ArrayList() }.add(subgroup)
-        subgroup.aliasName?.let {
-            names.computeIfAbsent(it) { ArrayList() }.add(subgroup)
-        }
-        fillAdditionalNames(subgroup, names)
-    }
-    for (referable in group.internalReferables) {
-        names.computeIfAbsent(referable.refName) { ArrayList() }.add(referable)
-        referable.aliasName?.let {
-            names.computeIfAbsent(it) { ArrayList() }.add(referable)
-        }
-    }
-}

@@ -4,19 +4,13 @@ import com.intellij.openapi.application.*
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleServiceManager
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.*
 import org.arend.settings.ArendProjectSettings
-import org.arend.typechecking.ArendTypechecking
-import org.arend.typechecking.TypeCheckingService
 import org.arend.util.*
 import org.arend.yaml.*
 import org.jetbrains.yaml.psi.YAMLFile
@@ -56,8 +50,7 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
     override val extensionsDir: String?
         get() = flaggedExtensionsDir
 
-    override val extensionMainClass: String?
-        get() = flaggedExtensionMainClass
+    override fun getExtensionMainClass() = flaggedExtensionMainClass
 
     override val version: Version?
         get() = Version.fromString(versionString)
@@ -70,9 +63,6 @@ class ArendModuleConfigService(val module: Module) : LibraryConfig(module.projec
 
     override val name
         get() = module.name
-
-    val yamlFile
-        get() = root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)?.let { PsiManager.getInstance(project).findFile(it) as? YAMLFile }
 
     val librariesRootDef: String?
         get() = librariesRoot.ifEmpty {

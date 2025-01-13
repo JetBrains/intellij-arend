@@ -158,14 +158,14 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         private fun getStubElementSet(project: Project, refElement: ArendReferenceElement, file: PsiFile?): List<PsiLocatedReferable> {
             val name = refElement.referenceName
             val config = (file as? ArendFile)?.libraryConfig
-            val libRefs = if (config == null) emptyList() else {
+            val libRefs = emptyList<PsiLocatedReferable>() /* TODO[server2]: if (config == null) emptyList() else {
                 val result = ArrayList<PsiLocatedReferable>()
                 config.forAvailableConfigs { conf ->
                     conf.additionalNames[name]?.let { result.addAll(it) }
                     null
                 }
                 result
-            }
+            } */
             return StubIndex.getElements(ArendDefinitionIndex.KEY, name, project, ArendFileScope(project), PsiReferable::class.java).filterIsInstance<PsiLocatedReferable>() +
                     StubIndex.getElements(ArendFileIndex.KEY, name + FileUtils.EXTENSION, project, ArendFileScope(project), ArendFile::class.java) +
                     libRefs // TODO[server2]: + project.service<TypeCheckingService>().getAdditionalReferables(name)

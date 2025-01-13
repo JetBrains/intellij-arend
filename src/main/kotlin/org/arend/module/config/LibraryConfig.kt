@@ -9,25 +9,25 @@ import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
 import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
-import org.arend.library.classLoader.ClassLoaderDelegate
 import org.arend.module.ArendRawLibrary
 import org.arend.module.IntellijClassLoaderDelegate
 import org.arend.module.ModuleLocation
 import org.arend.naming.reference.Referable
-import org.arend.prelude.Prelude.MODULE_PATH
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.PsiLocatedReferable
+import org.arend.server.ArendLibrary
 import org.arend.util.getRelativeFile
 import org.arend.util.getRelativePath
 import org.arend.typechecking.TypeCheckingService
+import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.FileUtils
 import org.arend.util.FileUtils.EXTENSION
 import org.arend.util.Range
 import org.arend.util.Version
 import org.arend.util.mapFirstNotNull
+import org.jetbrains.yaml.psi.YAMLFile
 
 
-abstract class LibraryConfig(val project: Project) {
+abstract class LibraryConfig(val project: Project) : ArendLibrary {
     open val sourcesDir: String
         get() = ""
     open val binariesDir: String?
@@ -35,8 +35,6 @@ abstract class LibraryConfig(val project: Project) {
     open val testsDir: String
         get() = ""
     open val extensionsDir: String?
-        get() = null
-    open val extensionMainClass: String?
         get() = null
     open val modules: List<ModulePath>?
         get() = null
@@ -51,11 +49,16 @@ abstract class LibraryConfig(val project: Project) {
 
     abstract val root: VirtualFile?
 
+    private val yamlVirtualFile
+        get() = root?.findChild(FileUtils.LIBRARY_CONFIG_FILE)
+
+    val yamlFile
+        get() = yamlVirtualFile?.let { PsiManager.getInstance(project).findFile(it) as? YAMLFile }
+
     open val localFSRoot: VirtualFile?
         get() = root?.let { if (it.isInLocalFileSystem) it else JarFileSystem.getInstance().getVirtualFileForJar(it) }
 
-    private val additionalModules = HashMap<ModulePath, ArendFile>()
-    val additionalNames = HashMap<String, ArrayList<PsiLocatedReferable>>()
+    private val additionalModules = HashMap<ModulePath, ArendFile>() // TODO[server2]: Delete this
 
     private fun findDir(dir: String) = root?.findFileByRelativePath(FileUtil.toSystemIndependentName(dir).removeSuffix("/"))
 
@@ -74,6 +77,20 @@ abstract class LibraryConfig(val project: Project) {
     open val isExternal: Boolean
         get() = false
 
+    override fun getLibraryName() = name
+
+    override fun isExternalLibrary() = false
+
+    override fun getModificationStamp() = yamlVirtualFile?.modificationStamp ?: -1
+
+    override fun getLibraryDependencies() = dependencies.map { it.name }
+
+    override fun getClassLoaderDelegate() = extensionDirFile?.let { IntellijClassLoaderDelegate(it) }
+
+    override fun getExtensionMainClass(): String? = null
+
+    override fun getArendUI() = ArendGeneralUI(project)
+
     // Extensions
 
     val extensionDirFile: VirtualFile?
@@ -84,9 +101,6 @@ abstract class LibraryConfig(val project: Project) {
             val className = extensionMainClass ?: return null
             return extensionDirFile?.getRelativeFile(className.split('.'), ".class")
         }
-
-    val classLoaderDelegate: ClassLoaderDelegate?
-        get() = extensionDirFile?.let { IntellijClassLoaderDelegate(it) }
 
     // Modules
 
@@ -99,8 +113,8 @@ abstract class LibraryConfig(val project: Project) {
         val dir = (if (inTests) testsDirFile else sourcesDirFile) ?: return emptyList()
         val result = ArrayList<ModulePath>()
         VfsUtil.iterateChildrenRecursively(dir, null) { file ->
-            if (file.name.endsWith(FileUtils.EXTENSION)) {
-                dir.getRelativePath(file, FileUtils.EXTENSION)?.let { result.add(ModulePath(it)) }
+            if (file.name.endsWith(EXTENSION)) {
+                dir.getRelativePath(file, EXTENSION)?.let { result.add(ModulePath(it)) }
             }
             return@iterateChildrenRecursively true
         }
@@ -123,7 +137,6 @@ abstract class LibraryConfig(val project: Project) {
             maps.remove(file.moduleLocation)
         }
         additionalModules.clear()
-        additionalNames.clear()
     }
 
     private fun findParentDirectory(modulePath: ModulePath, inTests: Boolean): VirtualFile? {
@@ -197,13 +210,13 @@ abstract class LibraryConfig(val project: Project) {
         }
 
         val vFile = file.originalFile.viewProvider.virtualFile
-        val sourcesPath = sourcesDirFile?.getRelativePath(vFile, FileUtils.EXTENSION)
+        val sourcesPath = sourcesDirFile?.getRelativePath(vFile, EXTENSION)
         val path: List<String>
         val locationKind = if (sourcesPath != null) {
             path = sourcesPath
             ModuleLocation.LocationKind.SOURCE
         } else {
-            path = testsDirFile?.getRelativePath(vFile, FileUtils.EXTENSION) ?: return null
+            path = testsDirFile?.getRelativePath(vFile, EXTENSION) ?: return null
             ModuleLocation.LocationKind.TEST
         }
         return ModuleLocation(name, locationKind, ModulePath(path))

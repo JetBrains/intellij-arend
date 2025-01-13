@@ -18,7 +18,6 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiDefReferable
 import org.arend.psi.ext.ArendGroup
 import org.arend.psi.ext.ArendDefMeta
-import org.arend.psi.ext.fillAdditionalNames
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
@@ -57,7 +56,6 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         file.virtualFile.isWritable = false
         file.generatedModuleLocation = ModuleLocation(this, ModuleLocation.LocationKind.GENERATED, modulePath)
         fillGroup(file, scope)
-        fillAdditionalNames(file, config.additionalNames)
         config.addAdditionalModule(modulePath, file)
     }
 

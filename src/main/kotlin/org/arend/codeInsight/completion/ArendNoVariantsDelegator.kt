@@ -109,12 +109,14 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                 }
             }
 
+            /* TODO[server2]
             (file as? ArendFile)?.libraryConfig?.forAvailableConfigs {
                 for (entry in it.additionalNames.entries) {
                     consumer.invoke(entry.key, entry.value)
                 }
                 null
             }
+            */
 
             if (isInsideValidExpr) for (entry in project.service<TypeCheckingService>().additionalReferables.entries) {
                 consumer.invoke(entry.key, entry.value)

@@ -20,19 +20,22 @@ import com.intellij.util.ThrowableRunnable
 import com.maddyhome.idea.vim.VimPlugin
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.DefinitionContributor
-import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.Precedence
-import org.arend.extImpl.DefinitionContributorImpl
+import org.arend.extImpl.OldDefinitionContributorImpl
 import org.arend.module.AREND_LIB
 import org.arend.module.ArendModuleType
 import org.arend.module.ArendRawLibrary
+import org.arend.module.ModuleLocation
 import org.arend.module.ModuleSynchronizer
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.scopeprovider.SimpleModuleScopeProvider
+import org.arend.naming.reference.FullModuleReferable
+import org.arend.naming.reference.MetaReferable
 import org.arend.psi.parentOfType
 import org.arend.settings.ArendSettings
+import org.arend.term.group.AccessModifier
 import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
@@ -199,7 +202,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
         fun addGeneratedModules(library: ArendRawLibrary, filler: DefinitionContributor.() -> Unit) {
             val moduleScopeProvider = SimpleModuleScopeProvider()
-            filler(DefinitionContributorImpl(library, DummyErrorReporter.INSTANCE, moduleScopeProvider))
+            filler(OldDefinitionContributorImpl(library.name, DummyErrorReporter.INSTANCE, moduleScopeProvider))
             for (entry in moduleScopeProvider.registeredEntries) {
                 library.addGeneratedModule(entry.key, entry.value)
             }
@@ -262,9 +265,9 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     private fun setupLibraryManager(config: ExternalLibraryConfig) {
         val arendLib = ArendRawLibrary(config)
         addGeneratedModules(arendLib) {
-            declare(ModulePath("Meta"), LongName("using"), "", Precedence.DEFAULT, null)
-            declare(ModulePath("Function", "Meta"), LongName("$"), "", Precedence.DEFAULT, null)
-            declare(ModulePath("Paths", "Meta"), LongName("rewrite"), "", Precedence.DEFAULT, null)
+            declare(MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "using", "", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Meta")))), null)
+            declare(MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "$", "", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Function", "Meta")))), null)
+            declare(MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "rewrite", "", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Paths", "Meta")))), null)
         }
         TypeCheckingService.LibraryManagerTestingOptions.setStdLibrary(arendLib, testRootDisposable)
     }
