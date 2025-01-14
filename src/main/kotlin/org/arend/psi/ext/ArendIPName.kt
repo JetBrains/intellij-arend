@@ -26,6 +26,8 @@ class ArendIPName(node: ASTNode) : ArendCompositeElementImpl(node), ArendReferen
 
     override fun getReference(): ArendReference = ArendReferenceImpl(this)
 
+    override fun getReferenceText(): String = referenceName
+
     override fun getReferenceModule() = (containingFile as? ArendFile)?.moduleLocation
 
     override val unresolvedReference: UnresolvedReference

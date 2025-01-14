@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.util.concurrency.ThreadingAssertions
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.core.definition.Definition
@@ -53,6 +54,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
     }
 
     override fun resolve(): PsiElement? {
+        ThreadingAssertions.assertBackgroundThread()
         val service = element.project.service<ArendServerService>()
         return when (val ref = service.server.resolveReference(element)) {
             is PsiElement -> ref

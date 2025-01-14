@@ -165,18 +165,11 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                 is ArendStatCmd -> cause.longName?.refIdentifierList?.getOrNull(error.index)
                 else -> null
             }
-            when (val resolved = ref?.reference?.resolve()) {
-                is PsiDirectory -> addHighlightInfo(HighlightInfo.newHighlightInfo(HighlightInfoType.ERROR).range(ref).descriptionAndTooltip("Unexpected reference to a directory"))
-                is PsiFile -> addHighlightInfo(HighlightInfo.newHighlightInfo(HighlightInfoType.ERROR).range(ref).descriptionAndTooltip("Unexpected reference to a file"))
-                else -> {
-                    val builder = createHighlightInfoBuilder(error, ref?.textRange ?: getImprovedTextRange(error, cause), if (resolved == null) HighlightInfoType.WRONG_REF else null)
-                    if (resolved == null && ref != null && error.index == 0) {
-                        val fix = ArendImportHintAction(ref)
-                        registerFix(builder, fix)
-                    }
-                    addHighlightInfo(builder)
-                }
+            val builder = createHighlightInfoBuilder(error, ref?.textRange ?: getImprovedTextRange(error, cause), HighlightInfoType.WRONG_REF)
+            if (ref != null && error.index == 0) {
+                registerFix(builder, ArendImportHintAction(ref))
             }
+            addHighlightInfo(builder)
             return
         }
         if (error is CannotFindConstructorError && cause is ArendPattern) {

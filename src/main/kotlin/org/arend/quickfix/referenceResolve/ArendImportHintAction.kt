@@ -27,6 +27,7 @@ import org.arend.psi.ext.*
 import org.arend.psi.libraryConfig
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendFileIndex
+import org.arend.server.ArendServerService
 import org.arend.settings.ArendSettings
 import org.arend.util.ArendBundle
 import org.arend.util.FileUtils
@@ -179,10 +180,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
             else -> false
         }
 
-        fun referenceUnresolved(referenceElement: ArendReferenceElement): Boolean {
-            val reference = (if (referenceElement.isValid) referenceElement.reference else null)
-                    ?: return false // reference anchor is invalid
-            return reference.resolve() == null // return false if already imported
-        }
+        fun referenceUnresolved(referenceElement: ArendReferenceElement) =
+            referenceElement.project.service<ArendServerService>().server.isErrorReference(referenceElement)
     }
 }
