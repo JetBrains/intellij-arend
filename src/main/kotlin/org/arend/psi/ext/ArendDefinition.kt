@@ -37,7 +37,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun isDynamicContext() = parent is ArendClassStat
 
     override fun computeConcrete(referableConverter: ReferableConverter, errorReporter: ErrorReporter): Concrete.ResolvableDefinition {
-        val def = ConcreteBuilder.convert(this, errorReporter)
+        val def = ConcreteBuilder.convert(this, null, errorReporter)
         if (def.status == Concrete.Status.HAS_ERRORS) {
             accept(object : PsiRecursiveElementVisitor() {
                 override fun visitErrorElement(element: PsiErrorElement) {

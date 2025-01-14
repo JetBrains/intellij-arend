@@ -14,18 +14,26 @@ import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiManager
+import org.arend.ArendLanguage
 import org.arend.injection.InjectedArendEditor
 import org.arend.module.ArendModuleType
+import org.arend.module.ModuleLocation
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
+import org.arend.naming.reference.DataModuleReferable
+import org.arend.naming.reference.MetaReferable
 import org.arend.psi.ArendFile
 import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
+import org.arend.term.group.ConcreteGroup
+import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.ArendExtensionChangeService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.jetbrains.yaml.psi.YAMLFile
+import java.lang.StringBuilder
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -86,11 +94,30 @@ fun Module.register() {
 
     val server = project.service<ArendServerService>().server
     server.updateLibrary(config, NotificationErrorReporter(project))
-    // TODO[server2]: invoke ArendRawLibrary.addGeneratedModule
+    for (module in server.modules) {
+        if (module.locationKind == ModuleLocation.LocationKind.GENERATED && module.libraryName == name) {
+            project.addGeneratedModule(module, server.getGroup(module) ?: continue)
+        }
+    }
 
     ApplicationManager.getApplication().getService(ArendExtensionChangeService::class.java).initializeModule(config)
     config.isInitialized = true
     DaemonCodeAnalyzer.getInstance(project).restart()
+}
+
+private fun Project.addGeneratedModule(module: ModuleLocation, group: ConcreteGroup) {
+    val builder = StringBuilder()
+    PrettyPrintVisitor(builder, 0).printStatements(group.statements())
+    runReadAction {
+        val file = PsiFileFactory.getInstance(this).createFileFromText(module.modulePath.toString() + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: return@runReadAction
+        file.virtualFile.isWritable = false
+        file.generatedModuleLocation = module
+        (group.referable as? DataModuleReferable)?.data = file
+        group.match(file) { subgroup1, subgroup2 ->
+            (subgroup1.referable as? MetaReferable)?.data = subgroup2.referable
+            true
+        }
+    }
 }
 
 fun Editor.isDetailedViewEditor() : Boolean = getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null

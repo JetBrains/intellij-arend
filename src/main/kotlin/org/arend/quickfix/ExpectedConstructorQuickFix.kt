@@ -196,7 +196,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                         val psiConcreteProvider = PsiConcreteProvider(project, cer, null)
                         val resolveNameVisitor = DefinitionResolveNameVisitor(psiConcreteProvider, cer)
                         val errorReporter = ListErrorReporter()
-                        var concreteDefinition : Concrete.GeneralDefinition = convert(definitionPsi as Abstract.Definition, cer)
+                        var concreteDefinition : Concrete.GeneralDefinition = convert(definitionPsi as Abstract.Definition, null, cer)
 
                         when (concreteDefinition) {
                             is Concrete.BaseFunctionDefinition -> resolveNameVisitor.visitFunction(concreteDefinition, definitionPsi.scope)

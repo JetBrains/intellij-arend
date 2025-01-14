@@ -15,7 +15,6 @@ import org.arend.naming.reference.*
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.term.abs.Abstract
@@ -136,7 +135,7 @@ class ArendCodeInsightUtils {
                 val dataBody = constructorClause?.parent as? ArendDataBody
                 val elim = dataBody?.elim ?: throw IllegalStateException()
 
-                val concreteData: Concrete.GeneralDefinition = ConcreteBuilder.convert(data, CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE))
+                val concreteData: Concrete.GeneralDefinition = ConcreteBuilder.convert(data, null, CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE))
                 if (concreteData !is Concrete.DataDefinition) throw IllegalStateException()
 
                 val clause = concreteData.constructorClauses.firstOrNull { clause ->

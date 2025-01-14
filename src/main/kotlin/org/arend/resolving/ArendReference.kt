@@ -52,19 +52,14 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
         return referable
     }
 
-    override fun resolve(): PsiElement? =
-        when (val ref = element.project.service<ArendServerService>().server.resolveReference(element)) {
+    override fun resolve(): PsiElement? {
+        val service = element.project.service<ArendServerService>()
+        return when (val ref = service.server.resolveReference(element)) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
-            is ModuleReferable -> {
-                if (ref.path == Prelude.MODULE_PATH) {
-                    element.project.service<ArendServerService>().prelude
-                } else {
-                    (element.containingFile as? ArendFile)?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
-                }
-            }
             else -> null
         }
+    }
 
     companion object {
         fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, fullName: Boolean, clazz: Class<*>?, notARecord: Boolean, lookup: String? = null): LookupElementBuilder? {
