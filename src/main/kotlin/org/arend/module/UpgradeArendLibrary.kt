@@ -13,7 +13,6 @@ import org.arend.module.config.ArendModuleConfigService
 import org.arend.prelude.Prelude
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.*
 import java.io.*
@@ -122,7 +121,7 @@ fun showDownloadNotification(project: Project, reason: Reason, version: String? 
                                     for (module in project.arendModules) {
                                         ArendModuleConfigService.getInstance(module)?.synchronizeDependencies(false)
                                     }
-                                    project.service<TypeCheckingService>().reload(onlyInternal = false, refresh = false)
+                                    project.service<ReloadLibrariesService>().reload(onlyInternal = false, refresh = false)
                                 }
                             }
                         }

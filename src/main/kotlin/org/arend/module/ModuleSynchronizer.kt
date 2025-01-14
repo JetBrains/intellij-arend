@@ -16,7 +16,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.orderRoot.ArendConfigOrderRootType
-import org.arend.typechecking.TypeCheckingService
 import org.arend.util.*
 import java.nio.file.Paths
 import kotlin.Pair
@@ -139,7 +138,7 @@ class ModuleSynchronizer(private val project: Project) : ModuleRootListener {
                 }
 
                 if (reload) {
-                    service.project.service<TypeCheckingService>().reload(false)
+                    service.project.service<ReloadLibrariesService>().reload(false)
                 }
             }
         }

@@ -313,55 +313,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         return getFunction(result.function) ?: emptyList()
     }
 
-    fun reload(onlyInternal: Boolean, refresh: Boolean = true) {
-        ComputationRunner.getCancellationIndicator().cancel()
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Reloading Arend libraries", false) {
-            override fun run(indicator: ProgressIndicator) {
-                if (refresh) {
-                    refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
-                }
-
-                runReadAction {
-                    service<ArendPsiChangeService>().definitionModificationTracker.incModificationCount()
-                    isLoaded = false
-                    if (onlyInternal) {
-                        libraryManager.reloadInternalLibraries {
-                            project.service<ArendResolveCache>().clear()
-                            val it = extensionDefinitions.iterator()
-                            while (it.hasNext()) {
-                                if (!it.next().value.isExternal) {
-                                    it.remove()
-                                }
-                            }
-
-                            prepareReload()
-                        }
-                    } else {
-                        libraryManager.reload {
-                            project.service<ArendResolveCache>().clear()
-                            extensionDefinitions.clear()
-                            clearTCRefMaps()
-
-                            prepareReload()
-                        }
-                    }
-
-                    for (library in libraryManager.registeredLibraries) {
-                        if (library.isExternal || library !is ArendRawLibrary) continue
-                        for (module in library.config.findModules(false)) {
-                            library.config.findArendFile(module, false)?.decLastModification()
-                        }
-                        for (module in library.config.findModules(true)) {
-                            library.config.findArendFile(module, true)?.decLastModification()
-                        }
-                    }
-                }
-                isLoaded = true
-                DaemonCodeAnalyzer.getInstance(project).restart()
-            }
-        })
-    }
-
     private fun prepareReload(): ArendTypechecking {
         project.service<ErrorService>().clearAllErrors()
         service<TypecheckingTaskQueue>().clearQueue()

@@ -38,7 +38,7 @@ class TypeCheckRunState(private val environment: ExecutionEnvironment, private v
             }
 
             val library = if (command.library == "") null else {
-                if (server.isLibraryLoaded(command.library)) {
+                if (server.getLibrary(command.library) != null) {
                     command.library
                 } else {
                     NotificationErrorReporter(environment.project).report(LibraryError.notFound(command.library))

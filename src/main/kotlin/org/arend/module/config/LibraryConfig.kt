@@ -81,7 +81,7 @@ abstract class LibraryConfig(val project: Project) : ArendLibrary {
 
     override fun isExternalLibrary() = false
 
-    override fun getModificationStamp() = yamlVirtualFile?.modificationStamp ?: -1
+    override fun getModificationStamp(): Long = -1
 
     override fun getLibraryDependencies() = dependencies.map { it.name }
 
