@@ -1,6 +1,8 @@
 package org.arend.resolving
 
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.openapi.application.Application
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
@@ -54,9 +56,20 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
     }
 
     override fun resolve(): PsiElement? {
-        ThreadingAssertions.assertBackgroundThread()
         val service = element.project.service<ArendServerService>()
-        return when (val ref = service.server.resolveReference(element)) {
+        val ref = if (ApplicationManager.getApplication().isDispatchThread) {
+            // if on dispatch thread and the reference is not resolved already, run resolver in the background thread and return null
+            val ref = service.server.getCachedReferable(element)
+            if (ref != null) ref else {
+                ApplicationManager.getApplication().executeOnPooledThread {
+                    service.server.resolveReference(element)
+                }
+                null
+            }
+        } else {
+            service.server.resolveReference(element)
+        }
+        return when (ref) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
             else -> null

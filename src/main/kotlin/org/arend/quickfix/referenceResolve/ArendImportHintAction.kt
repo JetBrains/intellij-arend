@@ -98,7 +98,7 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         val refElementUnderCaret = referenceElement.textRange.contains(editor.caretModel.offset)
         val project = psiFile.project
 
-        if (!referenceElement.isValid || referenceElement.reference?.resolve() != null) return Result.POPUP_NOT_SHOWN // already imported or invalid
+        if (!referenceElement.isValid || !referenceUnresolved(referenceElement)) return Result.POPUP_NOT_SHOWN // already imported or invalid
         val availability = checkAvailability()
         if (availability !in setOf(ImportHintActionAvailability.AVAILABLE, ImportHintActionAvailability.AVAILABLE_FOR_SILENT_FIX)) return Result.POPUP_NOT_SHOWN // We import fieldDefIdentifier only at the request of the user (through invoke method)
 
@@ -181,6 +181,6 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         }
 
         fun referenceUnresolved(referenceElement: ArendReferenceElement) =
-            referenceElement.project.service<ArendServerService>().server.isErrorReference(referenceElement)
+            referenceElement.project.service<ArendServerService>().server.getCachedReferable(referenceElement)?.isErrorReferable == true
     }
 }
