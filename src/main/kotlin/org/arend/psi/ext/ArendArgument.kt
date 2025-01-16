@@ -68,8 +68,10 @@ class ArendAtomArgument(node: ASTNode) : ArendSourceNodeImpl(node), ArendArgumen
 
     override fun isVariable(): Boolean {
         val atomFieldsAcc = atomFieldsAcc
-        if (atomFieldsAcc.fieldAccList.isNotEmpty()) {
-            return false
+        for (fieldAcc in atomFieldsAcc.fieldAccList) {
+            if (fieldAcc.refIdentifier == null) {
+                return false
+            }
         }
 
         val literal = atomFieldsAcc.atom.literal ?: return false
