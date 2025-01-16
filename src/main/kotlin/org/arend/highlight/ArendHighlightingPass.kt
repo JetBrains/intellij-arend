@@ -41,25 +41,8 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
     */
 
     public override fun collectInformationWithProgress(progress: ProgressIndicator) {
-        setProgressLimit(numberOfDefinitions(file as? Group).toLong())
-        collectInfo(progress)
-    }
+        progress.isIndeterminate = true
 
-    private fun numberOfDefinitions(group: Group?): Int {
-        if (group == null) return 0
-        val def = group.referable
-        var res = if (def is TCDefinition) 1 else 0
-
-        for (statement in group.statements) {
-            res += numberOfDefinitions(statement.group)
-        }
-        for (subgroup in group.dynamicSubgroups) {
-            res += numberOfDefinitions(subgroup)
-        }
-        return res
-    }
-
-    private fun collectInfo(progress: ProgressIndicator) {
         val resolveListener = object : ArendResolverListener(myProject.service<ArendResolveCache>()) {
             override fun resolveReference(data: Any?, referent: Referable?, list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
                 val lastReference = list.lastOrNull() ?: return
@@ -153,14 +136,15 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
                 }
 
                 definition.accept(IntentionBackEndVisitor(), null)
-
-                advanceProgress(1)
             }
         }
 
         if (file is ArendFile) {
             val module = file.moduleLocation
             if (module != null) {
+                // Maybe it's better to use Runner service like this:
+                // myProject.service<RunnerService>().runChecker(module.libraryName, module.locationKind == ModuleLocation.LocationKind.TEST, module, null, resolveListener, ProgressCancellationIndicator(progress))
+                // but it seems coroutines do not work well with ProgressIndicator, which is currently used in highlighting passes.
                 myProject.service<ArendServerService>().server.resolveModules(listOf(module), this, ProgressCancellationIndicator(progress), resolveListener)
             }
         }

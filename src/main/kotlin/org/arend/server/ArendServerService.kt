@@ -21,8 +21,6 @@ class ArendServerService(val project: Project) : Disposable {
     val server: ArendServer = ArendServerImpl(ArendServerRequesterImpl(project), true, true, null)
 
     init {
-        // TODO[server2]: Maybe try updating modules immediately after PSI changes for some additional speed-up.
-        // PsiManager.getInstance(project).addPsiTreeChangeListener(ArendPsiChangeListener(project), this)
         val preludeText = String(ArendPreludeLibrary::class.java.getResourceAsStream("/lib/Prelude" + FileUtils.EXTENSION)!!.readBytes(), StandardCharsets.UTF_8)
         prelude = runReadAction {
             val prelude = PsiFileFactory.getInstance(project).createFileFromText(PRELUDE_FILE_NAME, ArendLanguage.INSTANCE, preludeText) as? ArendFile
