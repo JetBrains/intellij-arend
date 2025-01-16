@@ -5,7 +5,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendCoClauseDefStub
@@ -76,8 +75,6 @@ class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract
     override fun getKind() = GlobalReferable.Kind.COCLAUSE_FUNCTION
 
     override fun getIcon(flags: Int): Icon = ArendIcons.COCLAUSE_DEFINITION
-
-    override fun getExternalParameters(): List<ParameterReferable> = emptyList()
 
     override fun findParametersElement(): PsiElement? = firstChild
 }

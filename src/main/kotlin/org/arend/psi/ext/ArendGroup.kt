@@ -1,7 +1,6 @@
 package org.arend.psi.ext
 
 import com.intellij.openapi.components.service
-import org.arend.naming.reference.ParameterReferable
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
@@ -26,8 +25,6 @@ interface ArendGroup: ChildGroup, PsiDefReferable, ArendSourceNode, Abstract.Gro
     override fun getDynamicSubgroups(): List<ArendGroup>
 
     override fun getInternalReferables(): List<ArendInternalReferable>
-
-    override fun getExternalParameters(): List<ParameterReferable>
 }
 
 interface ArendInternalReferable: Group.InternalReferable, PsiDefReferable {

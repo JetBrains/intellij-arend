@@ -283,7 +283,7 @@ class ArendCodeInsightUtils {
             val tcDef = (def.tcReferable as? TCDefReferable)?.typechecked
             if (tcDef == null)
                 for (p in def.ancestors)
-                    if (p is ArendDefinition<*> && p.externalParameters.isNotEmpty())
+                    if (p is ArendDefinition<*> /* TODO[server2]: && p.externalParameters.isNotEmpty() */)
                         return null
 
             if (tcDef != null) {

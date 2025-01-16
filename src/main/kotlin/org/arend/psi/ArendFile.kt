@@ -28,7 +28,6 @@ import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.ParameterReferable
 import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.*
@@ -212,8 +211,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
-
-    override fun getExternalParameters(): List<ParameterReferable> = emptyList()
 
     override fun getStatements() = ArendStat.flatStatements(children.filterIsInstance<ArendStat>())
 

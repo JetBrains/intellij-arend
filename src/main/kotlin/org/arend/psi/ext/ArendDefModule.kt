@@ -7,7 +7,6 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.ParameterReferable
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefModuleStub
@@ -36,8 +35,6 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
-
-    override fun getExternalParameters(): List<ParameterReferable> = emptyList()
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 
