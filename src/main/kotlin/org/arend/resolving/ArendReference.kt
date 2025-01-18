@@ -6,6 +6,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
+import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.*
@@ -16,6 +17,7 @@ import org.arend.psi.ext.ReferableBase
 import org.arend.refactoring.ArendNamesValidator
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
+import org.arend.term.abs.ConcreteBuilder
 import org.arend.util.FileUtils
 
 interface ArendReference : PsiReference {
@@ -52,8 +54,8 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
             if (origElement is ModuleReferable && containingFile is ArendFile && origElement.path == containingFile.moduleLocation?.modulePath) {
                 return null
             }
-            val ref = origElement.underlyingReferable
-            return if (origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.isRecord == true)) {
+            val ref = origElement.abstractReferable
+            return if (ref == null || origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.isRecord == true)) {
                 null
             } else when (ref) {
                 is PsiNamedElement -> {
@@ -117,63 +119,10 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, scopeContex
     override fun bindToElement(element: PsiElement) = element
 
     override fun getVariants(): Array<Any> {
-        // TODO[server2]
-        return emptyArray()
-        /*
-        var notARecord = false
-        var clazz: Class<*>? = null
-        val element = element
-        val parent = element.parent
-        val pParent = parent?.parent
-        if (pParent is ArendSuperClass) {
-            clazz = ArendDefClass::class.java
-        } else {
-            val atomFieldsAcc = ((pParent as? ArendLiteral)?.parent as? ArendAtom)?.parent as? ArendAtomFieldsAcc
-            val argParent = when {
-                atomFieldsAcc == null -> (pParent as? ArendLongNameExpr)?.parent
-                atomFieldsAcc.fieldAccList.isNotEmpty() -> null
-                else -> atomFieldsAcc.parent
-            }
-            val newExprParent = ((argParent as? ArendArgumentAppExpr)?.parent as? ArendNewExpr)?.parent
-            if (newExprParent is ArendReplLine) {
-                val commandName = newExprParent.replCommand?.text?.drop(1)
-                if (commandName != null) return getReplCompletion(commandName)
-            }
-            if ((newExprParent as? ArendReturnExpr)?.parent is ArendDefInstance) {
-                clazz = ArendDefClass::class.java
-                notARecord = true
-            }
-        }
-
-        val expr = if (element is ArendIPName && element.longName.size > 1 || parent is ArendLongName && pParent !is ArendLocalCoClause && element.findPrevSibling { (it as? LeafPsiElement)?.elementType == ArendElementTypes.DOT } == null || element is ArendRefIdentifier && parent is ArendAtomLevelExpr) {
-            element.ancestor<ArendExpr>()
-        } else null
-        val def = expr?.ancestor<PsiConcreteReferable>()
-        var elements = if (expr == null) PrivateFilteredScope(element.scope, true).getElements(scopeContext) else emptyList()
-        val resolverListener = if (expr == null) null else object : ResolverListener {
-            override fun referenceResolved(expr: Concrete.Expression?, originalRef: Referable?, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
-                if (refExpr.data == parent || refExpr.data == element) {
-                    elements = scope.getElements(scopeContext)
-                }
-            }
-
-            override fun levelResolved(originalRef: Referable?, refExpr: Concrete.VarLevelExpression, resolvedRef: Referable?, availableRefs: Collection<Referable>) {
-                if (refExpr.data == parent || refExpr.data == element) {
-                    elements = ArrayList(availableRefs)
-                }
-            }
-        }
-        when {
-            def != null -> PsiConcreteProvider(def.project, DummyErrorReporter.INSTANCE, null, true, resolverListener, ArendIdReferableConverter).getConcrete(def)
-            expr != null -> ConcreteBuilder.convertExpression(expr).accept(ExpressionResolveNameVisitor(ArendIdReferableConverter, CachingScope.make(element.scope), ArrayList<Referable>(), DummyErrorReporter.INSTANCE, resolverListener), null)
-            else -> {}
-        }
-
-        val file = element.containingFile
-        return elements.mapNotNull { origElement ->
-            createArendLookUpElement(origElement, file, false, clazz, notARecord)
+        val file = element.containingFile as? ArendFile ?: return emptyArray()
+        return file.project.service<ArendServerService>().server.getCompletionVariants(ConcreteBuilder.convertGroup(file, DummyErrorReporter.INSTANCE), element).mapNotNull {
+            origElement -> createArendLookUpElement(origElement, file, false, null, false)
         }.toTypedArray()
-        */
     }
 }
 
