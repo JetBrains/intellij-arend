@@ -2,7 +2,6 @@ package org.arend.editor
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
-import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.JBIntSpinner
@@ -10,11 +9,8 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.layout.and
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.selected
-import com.intellij.ui.layout.selectedValueIs
 import org.arend.settings.ArendSettings
-import org.arend.ui.cellRenderer.ToolTipListCellRenderer
 import org.arend.util.aligned
-import org.arend.util.labeled
 import org.arend.util.checked
 
 
@@ -22,13 +18,7 @@ class ArendSettingsView {
     private val arendSettings = service<ArendSettings>()
 
     // Background typechecking
-    private val typecheckingMode = ComboBox(arrayOf(
-        ArendSettings.TypecheckingMode.SMART,
-        ArendSettings.TypecheckingMode.DUMB,
-        ArendSettings.TypecheckingMode.OFF))
-        .apply {
-            renderer = ToolTipListCellRenderer(listOf("Completely typecheck definitions", "Perform only basic checks", "Do not typecheck anything at all"))
-        }
+    private val typecheckingMode = JBCheckBox("Enable background typechecking", true)
     private val timeLimitSwitch = JBCheckBox("Stop typechecking after ", true)
     private val timeLimit = JBIntSpinner(5, 1, 3600)
     private val typecheckOnlyLastSwitch = JBCheckBox("Stop typechecking if the last modified definition has errors", true)
@@ -46,7 +36,7 @@ class ArendSettingsView {
     val isModified: Boolean
         get() =
             // Background typechecking
-            typecheckingMode.selectedItem != arendSettings.typecheckingMode ||
+            typecheckingMode.isSelected != arendSettings.isBackgroundTypechecking ||
             timeLimitSwitch.isSelected != arendSettings.withTimeLimit ||
             timeLimit.number != arendSettings.typecheckingTimeLimit ||
             typecheckOnlyLastSwitch.isSelected != arendSettings.typecheckOnlyLast ||
@@ -58,9 +48,7 @@ class ArendSettingsView {
 
     fun apply() {
         // Background typechecking
-        (typecheckingMode.selectedItem as? ArendSettings.TypecheckingMode)?.let {
-            arendSettings.typecheckingMode = it
-        }
+        arendSettings.isBackgroundTypechecking = typecheckingMode.isSelected
         arendSettings.withTimeLimit = timeLimitSwitch.isSelected
         arendSettings.typecheckingTimeLimit = timeLimit.number
         arendSettings.typecheckOnlyLast = typecheckOnlyLastSwitch.isSelected
@@ -74,7 +62,7 @@ class ArendSettingsView {
 
     fun reset() {
         // Background typechecking
-        typecheckingMode.selectedItem = arendSettings.typecheckingMode
+        typecheckingMode.isSelected = arendSettings.isBackgroundTypechecking
         timeLimitSwitch.isSelected = arendSettings.withTimeLimit
         timeLimit.value = arendSettings.typecheckingTimeLimit
         typecheckOnlyLastSwitch.isSelected = arendSettings.typecheckOnlyLast
@@ -88,13 +76,13 @@ class ArendSettingsView {
 
     fun createComponent() = panel {
         group("Background Typechecking") {
-            labeled("Typechecking mode: ", typecheckingMode)
+            row { cell(typecheckingMode) }
             row {
-                cell(timeLimitSwitch).enabledIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART))
-                cell(timeLimit).enabledIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART) and timeLimitSwitch.selected)
+                cell(timeLimitSwitch).enabledIf(typecheckingMode.selected)
+                cell(timeLimit).enabledIf(typecheckingMode.selected and timeLimitSwitch.selected)
                 label("second(s)")
             }
-            row { cell(typecheckOnlyLastSwitch).enabledIf(typecheckingMode.selectedValueIs(ArendSettings.TypecheckingMode.SMART)) }
+            row { cell(typecheckOnlyLastSwitch).enabledIf(typecheckingMode.selected) }
         }
 
         group("Other Settings") {

@@ -18,19 +18,12 @@ class ArendSettings : PersistentStateComponent<ArendSettings> {
         REPLACE_BRACE { override fun toString() = "Replace '}' with '-'" }
     }
 
-    // TODO[server2]: Just keep "enable/disable interactive typechecker"
-    enum class TypecheckingMode {
-        SMART { override fun toString() = "Smart" },
-        DUMB { override fun toString() = "Dumb" },
-        OFF { override fun toString() = "Off" }
-    }
-
     var matchingCommentStyle = MatchingCommentStyle.REPLACE_BRACE
     var autoImportOnTheFly = false
     var autoImportWriteOpenCommands = false
 
     // Background typechecking
-    var typecheckingMode = TypecheckingMode.SMART
+    var isBackgroundTypechecking = true
     var withTimeLimit = true
     var typecheckingTimeLimit = 5
     var typecheckOnlyLast = true

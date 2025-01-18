@@ -56,7 +56,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     override fun setUp() {
         super.setUp()
 
-        service<ArendSettings>().typecheckingMode = ArendSettings.TypecheckingMode.SMART
+        service<ArendSettings>().isBackgroundTypechecking = true
         service<ArendSettings>().withTimeLimit = false
 
         val module = module

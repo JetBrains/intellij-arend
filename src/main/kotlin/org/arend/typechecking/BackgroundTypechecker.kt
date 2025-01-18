@@ -31,16 +31,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
         }
 
         val settings = service<ArendSettings>()
-        val mode = settings.typecheckingMode
-        if (mode == ArendSettings.TypecheckingMode.OFF) {
-            return
-        }
-
-        if (mode == ArendSettings.TypecheckingMode.DUMB) {
-            for (def in collector1.allDefinitions + collector2.allDefinitions) {
-                runDumbTypechecker(def)
-            }
-            if (runAnalyzer) runReadAction { DaemonCodeAnalyzer.getInstance(project).restart(file) }
+        if (!settings.isBackgroundTypechecking) {
             return
         }
 
