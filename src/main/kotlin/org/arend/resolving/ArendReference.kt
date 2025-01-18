@@ -7,7 +7,6 @@ import com.intellij.psi.*
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.error.DummyErrorReporter
-import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.*
 import org.arend.naming.scope.Scope
@@ -58,6 +57,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
             return if (ref == null || origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.isRecord == true)) {
                 null
             } else when (ref) {
+                is ArendFile -> LookupElementBuilder.create(ref, (origElement as? ModuleReferable)?.path?.lastName ?: ref.name.removeSuffix(FileUtils.EXTENSION)).withIcon(ArendIcons.AREND_FILE)
                 is PsiNamedElement -> {
                     val alias = (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.id?.text
                     val aliasString = if (alias == null) "" else " $alias"
@@ -78,8 +78,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                         builder = builder.withTailText(it, true)
                     }
                     (ref as? PsiReferable)?.psiElementType?.let { builder = builder.withTypeText(it.oneLineText) } ?:
-                    (if (ref is ArendFile) ref.moduleLocation?.modulePath?.toList()?.dropLast(1)?.let { ModulePath(it).toString() }
-                    else ((ref as? PsiReferable)?.containingFile as? ArendFile)?.fullName)?.let { builder = builder.withTypeText("from $it") }
+                    ((ref as? PsiReferable)?.containingFile as? ArendFile)?.fullName?.let { builder = builder.withTypeText("from $it") }
                     builder
                 }
                 is ModuleReferable -> {

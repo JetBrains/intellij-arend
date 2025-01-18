@@ -3,11 +3,8 @@ package org.arend.resolving
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.ErrorReference
 import org.arend.naming.reference.LocalReferable
-import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.resolving.ResolverListener
-import org.arend.naming.scope.Scope
 import org.arend.psi.ext.*
 import org.arend.term.NameRenaming
 import org.arend.term.NamespaceCommand
@@ -19,9 +16,6 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         if (newRef is LocalReferable) return
         resolverCache.replaceCache(newRef, reference)
     }
-
-    private fun toDataRef(ref: Referable?): Referable? =
-        if (ref is LocatedReferable) ArendReferableConverter.toDataLocatedReferable(ref) ?: ref else ref
 
     private fun replaceCache(list: List<ArendReferenceElement>, resolvedRefs: List<Referable?>) {
         var i = 0
@@ -63,7 +57,7 @@ open class ArendResolverListener(private val resolverCache: ArendResolveCache) :
         resolverCache.replaceCache(ref, ref)
     }
 
-    override fun referenceResolved(expr: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>, scope: Scope) {
+    override fun referenceResolved(expr: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>) {
         resolveReference(refExpr.data, refExpr.referent, resolvedRefs)
     }
 

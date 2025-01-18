@@ -41,7 +41,7 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
         var isCachedValue = true
         val referentComputer = {
             isCachedValue = false
-            resolved = ExpressionResolveNameVisitor.resolve(refExpr, scope1, false, null)
+            resolved = ExpressionResolveNameVisitor.resolve(refExpr, scope1, false, null, null)
             refExpr.referent
         }
 
@@ -58,8 +58,8 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
             val referable1 = RedirectingReferable.getOriginalReferable(refExpr.referent)
             val resolvedRefs = data.refIdentifierList.map { it.resolve as? Referable }.toMutableList()
             if (referable1 is UnresolvedReference) {
-                resolved = referable1.resolveExpression(scope1, resolvedRefs)
-                referable = referable1.resolve(scope1, null)
+                resolved = referable1.resolveExpression(scope1, resolvedRefs, null)
+                referable = referable1.resolve(scope1, null, null)
             }
         }
         if (referable != null) refExpr.referent = referable

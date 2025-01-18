@@ -419,7 +419,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 }
 
                 val subPattern = pattern.sequence[0]
-                val constructor = (subPattern.referenceElement?.unresolvedReference ?: subPattern.singleReferable?.refName?.let { NamedUnresolvedReference(subPattern, it) })?.resolve(pattern.ancestor<ArendDefinition<*>>()?.scope ?: return false, null) as? ArendConstructor
+                val constructor = (subPattern.referenceElement?.unresolvedReference ?: subPattern.singleReferable?.refName?.let { NamedUnresolvedReference(subPattern, it) })?.resolve(pattern.ancestor<ArendDefinition<*>>()?.scope ?: return false, null, null) as? ArendConstructor
                         ?: return false
                 return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT ||
                        constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.FIN
