@@ -34,16 +34,11 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
             tcReferableCache = value
         }
 
-    override fun getDescription() = documentation?.toString() ?: ""
-
     private fun prepareTCRef(data: SmartPsiElementPointer<PsiLocatedReferable>?, parent: LocatedReferable?) =
-        IntellijMetaReferable(data, accessModifier, precedence, refName, aliasPrecedence, aliasName, description, parent)
+        IntellijMetaReferable(data, accessModifier, precedence, refName, aliasPrecedence, aliasName, parent)
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
         prepareTCRef(data, parent).apply { underlyingReferable = Supplier { runReadAction { data.element } } }
-
-    fun makeTCReferable(parent: LocatedReferable?) =
-        prepareTCRef(null, parent).apply { underlyingReferable = Supplier { this } }
 
     override fun getBodyReference(visitor: TypeClassReferenceExtractVisitor): Referable? =
         ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr)

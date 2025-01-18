@@ -1,28 +1,24 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.psi.PsiManager
-import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.elementType
 import org.arend.core.definition.Definition
 import org.arend.ext.module.LongName
+import org.arend.ext.prettyprinting.doc.Doc
+import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
-import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.IntellijTCReferable
 import org.arend.term.group.AccessModifier
-import org.arend.term.group.GroupPath
 import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentHashMap
 
@@ -57,6 +53,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override val defIdentifier: ArendDefIdentifier?
         get() = childOfType()
+
+    fun getDescription(): Doc =
+        documentation?.doc ?: DocFactory.nullDoc()
 
     override val tcReferable: TCReferable?
         get() = CachedValuesManager.getCachedValue(this) {

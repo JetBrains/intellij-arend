@@ -69,7 +69,7 @@ class ArendCustomSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Sea
                 override fun processTextOccurrence(element: PsiElement, offsetInElement: Int, consumer: Processor<in PsiReference>): Boolean {
                     (element as? ArendNsId)?.defIdentifier?.let { dI ->
                         PsiSearchHelperImpl(project).processElementsWithWord({ element, _ ->
-                            !(element is ArendRefIdentifier && element.reference.isReferenceTo(elementToSearch) && !consumer.process(element.reference))
+                            !(element is ArendRefIdentifier && element.reference?.isReferenceTo(elementToSearch) == true && !consumer.process(element.reference))
                         }, dI.useScope, dI.name, searchContext, true)
                     }
                     for (ref in PsiReferenceService.getService().getReferences(element, PsiReferenceService.Hints(elementToSearch, offsetInElement))) { // Copypasted from SingleTargetRequestResultProcessor

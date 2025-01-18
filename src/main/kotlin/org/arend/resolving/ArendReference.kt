@@ -1,38 +1,21 @@
 package org.arend.resolving
 
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.openapi.application.Application
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
-import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.util.concurrency.ThreadingAssertions
 import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
-import org.arend.core.definition.Definition
-import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.ext.reference.DataContainer
 import org.arend.naming.reference.*
-import org.arend.naming.reference.converter.ReferableConverter
-import org.arend.naming.resolving.ResolverListener
-import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
-import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.PrivateFilteredScope
 import org.arend.naming.scope.Scope
-import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.psi.ext.ArendDefMeta
 import org.arend.psi.ext.ReferableBase
 import org.arend.refactoring.ArendNamesValidator
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
-import org.arend.term.abs.ConcreteBuilder
-import org.arend.term.concrete.Concrete
-import org.arend.toolWindow.repl.getReplCompletion
-import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 
 interface ArendReference : PsiReference {
@@ -41,7 +24,7 @@ interface ArendReference : PsiReference {
     override fun resolve(): PsiElement?
 }
 
-abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: TextRange, private val beforeImportDot: Boolean = false, protected val scopeContext: Scope.ScopeContext = Scope.ScopeContext.STATIC) : PsiReferenceBase<T>(element, range), ArendReference {
+abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: TextRange, protected val scopeContext: Scope.ScopeContext = Scope.ScopeContext.STATIC) : PsiReferenceBase<T>(element, range), ArendReference {
     override fun handleElementRename(newName: String): PsiElement {
         element.referenceNameElement?.let { doRename(it, newName) }
         return element
@@ -57,19 +40,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
 
     override fun resolve(): PsiElement? {
         val service = element.project.service<ArendServerService>()
-        val ref = if (ApplicationManager.getApplication().isDispatchThread) {
-            // if on dispatch thread and the reference is not resolved already, run resolver in the background thread and return null
-            val ref = service.server.getCachedReferable(element)
-            if (ref != null) ref else {
-                ApplicationManager.getApplication().executeOnPooledThread {
-                    service.server.resolveReference(element)
-                }
-                null
-            }
-        } else {
-            service.server.resolveReference(element)
-        }
-        return when (ref) {
+        return when (val ref = service.server.resolveReference(element)) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
             else -> null
@@ -127,7 +98,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
     }
 }
 
-open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : ArendReferenceBase<T>(element, TextRange(0, element.textLength)), ArendReference {
+open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : ArendReferenceBase<T>(element, TextRange(0, element.textLength)) {
     override fun getVariants() = if (element.parent is ArendPattern) {
         val file = element.containingFile
         element.scope.globalSubscope.elements.mapNotNull {
@@ -142,31 +113,7 @@ open class ArendDefReferenceImpl<T : ArendReferenceElement>(element: T) : ArendR
     }
 }
 
-class TemporaryLocatedReferable(private val referable: LocatedReferable) : LocatedReferable by referable, TCDefReferable {
-    override fun getData() = referable
-
-    override fun setTypechecked(definition: Definition?) {}
-
-    override fun getTypechecked(): Definition? = null
-
-    override fun getUnderlyingReferable() = referable
-
-    override fun getAccessModifier() = referable.accessModifier
-}
-
-object ArendIdReferableConverter : ReferableConverter {
-    override fun toDataLocatedReferable(referable: LocatedReferable?) = when (referable) {
-        null -> null
-        is TCReferable -> referable
-        is FieldReferable -> FieldReferableImpl(referable.accessModifier, referable.precedence, referable.refName, referable.isExplicitField, referable.isParameterField, TCDefReferable.NULL_REFERABLE)
-        is ArendDefMeta -> referable.metaRef ?: referable.makeTCReferable(TCDefReferable.NULL_REFERABLE)
-        else -> TemporaryLocatedReferable(referable)
-    }
-
-    override fun convert(referable: Referable?) = (referable as? ArendDefMeta)?.metaRef ?: referable
-}
-
-open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, beforeImportDot: Boolean = false, scopeContext: Scope.ScopeContext = Scope.ScopeContext.STATIC) : ArendReferenceBase<T>(element, element.rangeInElement, beforeImportDot, scopeContext), ArendReference {
+open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, scopeContext: Scope.ScopeContext = Scope.ScopeContext.STATIC) : ArendReferenceBase<T>(element, element.rangeInElement, scopeContext) {
     override fun bindToElement(element: PsiElement) = element
 
     override fun getVariants(): Array<Any> {

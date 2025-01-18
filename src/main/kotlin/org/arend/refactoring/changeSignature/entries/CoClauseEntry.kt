@@ -60,7 +60,7 @@ class CoClauseEntry(private val psiLocalCoClause: CoClauseBase,
 
     override fun getContextName(): String =
         getCorrectedContextName(refactoringContext,
-            psiLocalCoClause.longName?.let { it.refIdentifierList.map { refId -> refId.reference }.zip(it.longName) } ?: emptyList())
+            psiLocalCoClause.longName?.let { it.refIdentifierList.mapNotNull { refId -> refId.reference }.zip(it.longName) } ?: emptyList())
 
 
     override fun getArguments(): List<ArgumentPrintResult> = procArguments

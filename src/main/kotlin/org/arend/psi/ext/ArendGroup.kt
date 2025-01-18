@@ -1,6 +1,7 @@
 package org.arend.psi.ext
 
 import com.intellij.openapi.components.service
+import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
@@ -25,6 +26,8 @@ interface ArendGroup: ChildGroup, PsiDefReferable, ArendSourceNode, Abstract.Gro
     override fun getDynamicSubgroups(): List<ArendGroup>
 
     override fun getInternalReferables(): List<ArendInternalReferable>
+
+    override fun getDescription(): Doc
 }
 
 interface ArendInternalReferable: Group.InternalReferable, PsiDefReferable {

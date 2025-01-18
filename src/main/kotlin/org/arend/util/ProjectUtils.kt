@@ -17,6 +17,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiManager
 import org.arend.ArendLanguage
+import org.arend.ext.prettyprinting.doc.BaseDocVisitor
+import org.arend.ext.prettyprinting.doc.ReferenceDoc
+import org.arend.ext.reference.ArendRef
 import org.arend.injection.InjectedArendEditor
 import org.arend.module.ArendModuleType
 import org.arend.module.ModuleLocation
@@ -25,7 +28,10 @@ import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.DataModuleReferable
 import org.arend.naming.reference.MetaReferable
+import org.arend.naming.reference.Referable
+import org.arend.naming.reference.UnresolvedReference
 import org.arend.psi.ArendFile
+import org.arend.psi.ext.ArendGroup
 import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.group.ConcreteGroup
@@ -109,14 +115,37 @@ private fun Project.addGeneratedModule(module: ModuleLocation, group: ConcreteGr
     val builder = StringBuilder()
     PrettyPrintVisitor(builder, 0).printStatements(group.statements())
     runReadAction {
-        val file = PsiFileFactory.getInstance(this).createFileFromText(module.modulePath.toString() + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: return@runReadAction
+        val file = PsiFileFactory.getInstance(this).createFileFromText(module.modulePath.toList().last() + FileUtils.EXTENSION, ArendLanguage.INSTANCE, builder.toString()) as? ArendFile ?: return@runReadAction
         file.virtualFile.isWritable = false
         file.generatedModuleLocation = module
         (group.referable as? DataModuleReferable)?.data = file
         group.match(file) { subgroup1, subgroup2 ->
             (subgroup1.referable as? MetaReferable)?.data = subgroup2.referable
+            val doc1 = (subgroup1 as? ConcreteGroup)?.description()
+            val doc2 = (subgroup2 as? ArendGroup)?.description
+            if (doc1?.isNull == false && doc2?.isNull == false) {
+                val refs1 = ArrayList<ArendRef>()
+                val refs2 = ArrayList<ArendRef>()
+                doc1.accept(CollectingDocVisitor(refs1), null)
+                doc2.accept(CollectingDocVisitor(refs2), null)
+                if (refs1.size == refs2.size) {
+                    val server = service<ArendServerService>().server
+                    for ((referable, reference) in refs1.zip(refs2)) {
+                        if (referable is Referable && reference is UnresolvedReference) {
+                            server.cacheReference(reference, referable)
+                        }
+                    }
+                }
+            }
             true
         }
+    }
+}
+
+private class CollectingDocVisitor(private val references: MutableList<ArendRef>) : BaseDocVisitor<Void>() {
+    override fun visitReference(doc: ReferenceDoc, params: Void?): Void? {
+        references.add(doc.reference)
+        return null
     }
 }
 

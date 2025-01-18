@@ -145,7 +145,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 val isElim = elimVars.isNotEmpty()
                 val elimVarPatterns: List<ExpressionPattern> = if (isElim) elimVars.map { reference ->
                     if (reference is ArendRefIdentifier) {
-                        val parameterIndex = (reference.reference.resolve() as? Referable)?.let { parameters.indexOf(it) }
+                        val parameterIndex = (reference.reference?.resolve() as? Referable)?.let { parameters.indexOf(it) }
                                 ?: -1
                         if (parameterIndex < corePatterns.size && parameterIndex != -1) corePatterns[parameterIndex] else throw IllegalStateException()
                     } else throw IllegalStateException()
@@ -579,7 +579,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             }
         }
 
-        fun doSubstituteUsages(project: Project, elementToReplace: ArendReferenceElement?, element: PsiElement, expressionLine: String, resolver: (ArendRefIdentifier) -> PsiElement? = { it.reference.resolve() }) {
+        fun doSubstituteUsages(project: Project, elementToReplace: ArendReferenceElement?, element: PsiElement, expressionLine: String, resolver: (ArendRefIdentifier) -> PsiElement? = { it.reference?.resolve() }) {
             if (elementToReplace == null || element is ArendWhere) return
             if (element is ArendRefIdentifier && resolver(element) == elementToReplace) {
                 val longName = element.parent as? ArendLongName

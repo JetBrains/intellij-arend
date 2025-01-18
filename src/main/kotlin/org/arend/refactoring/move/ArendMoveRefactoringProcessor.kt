@@ -348,7 +348,7 @@ class ArendMoveRefactoringProcessor(project: Project,
 
                         val nsIds = addIdToUsing(groupMember, myTargetContainer, LongName(openedName).toString(), renamings, psiFactory, uppermostHole).first
                         for (nsId in nsIds) {
-                            val target = nsId.refIdentifier.reference.resolve()
+                            val target = nsId.refIdentifier.reference?.resolve()
                             val name = nsId.refIdentifier.referenceName
                             if (target != referablesWithUniqueNames[name]) /* reference that we added to the namespace command is corrupt, so we need to remove it right after it was added */
                                 doRemoveRefFromStatCmd(nsId.refIdentifier)
@@ -463,7 +463,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                 while (concreteExpr is Concrete.AppExpression) concreteExpr = concreteExpr.arguments.first().expression
                 if (concreteExpr is Concrete.ReferenceExpression) {
                     val reference = element.refIdentifierList.withIndex().firstOrNull {
-                        it.value.reference.resolve() == concreteExpr.referent
+                        it.value.reference?.resolve() == concreteExpr.referent
                     }
                     if (reference != null)
                         collectUsagesAndMembers(prefix + singletonList(reference.index), reference.value, groupNumber, usagesData, memberData, memberReferences)

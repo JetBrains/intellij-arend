@@ -41,7 +41,7 @@ class ArendRainbowVisitor : RainbowVisitor() {
             canGoInside = { it !is ArendWhere }
         ).filterIsInstance<ArendRefIdentifier>()) {
             val reference = path.reference
-            val target = reference.resolve() as? ArendDefIdentifier ?: continue
+            val target = reference?.resolve() as? ArendDefIdentifier ?: continue
             val colorTag = bindingToUniqueName[target] ?: return
             addInfo(path.referenceNameElement, colorTag)
         }

@@ -35,7 +35,8 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
         }
 
         fun getProposedFix(target: PsiLocatedReferable, element: ArendReferenceElement): ResolveReferenceAction? {
-            val currentTarget = element.reference?.resolve()
+            /* TODO[server2]
+            val currentTarget = element.reference?.resolve() // TODO[server2]: Do not invoke resolve on EDT
             val fixRequired = currentTarget != target
             val containingFile: ArendFile = when (val file = element.containingFile) {
                 is ArendFile -> file
@@ -53,6 +54,7 @@ class ResolveReferenceAction(val target: PsiLocatedReferable,
 
                 return ResolveReferenceAction(target, location.getLongName(), importAction, renameAction)
             }
+            */
 
             return null
         }

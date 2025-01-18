@@ -8,9 +8,9 @@ import org.arend.naming.reference.MetaReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.term.group.AccessModifier
 
-class IntellijMetaReferable(private val underlyingRef: SmartPsiElementPointer<PsiLocatedReferable>?, accessModifier: AccessModifier, precedence: Precedence, name: String, aliasPrecedence: Precedence, aliasName: String?, description: String, parent: LocatedReferable?) : MetaReferable(underlyingRef, accessModifier, precedence, name, aliasPrecedence, aliasName, description, null, null, parent), IntellijTCReferable {
+class IntellijMetaReferable(private val underlyingRef: SmartPsiElementPointer<PsiLocatedReferable>?, accessModifier: AccessModifier, precedence: Precedence, name: String, aliasPrecedence: Precedence, aliasName: String?, parent: LocatedReferable?) : MetaReferable(underlyingRef, accessModifier, precedence, name, aliasPrecedence, aliasName, null, null, parent), IntellijTCReferable {
     override fun isEquivalent(ref: LocatedReferable) =
-        precedence == ref.precedence && refName == ref.refName && aliasPrecedence == ref.aliasPrecedence && aliasName == ref.aliasName && description == ref.description
+        precedence == ref.precedence && refName == ref.refName && aliasPrecedence == ref.aliasPrecedence && aliasName == ref.aliasName
 
     override fun getUnderlyingReferable(): LocatedReferable = runReadAction {
         underlyingRef?.element ?: this

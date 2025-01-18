@@ -122,7 +122,7 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                 if (elim == null || elim.withKw != null) {
                     oldParametersFiltered
                 } else elim.refIdentifierList.map { refId ->
-                    val defIdentiier = refId.reference.resolve() as? ArendDefIdentifier
+                    val defIdentiier = refId.reference?.resolve() as? ArendDefIdentifier
                     val pd = oldParametersFiltered.firstOrNull { it.getReferable() == defIdentiier }
                     pd
                 }.toList()
@@ -367,12 +367,14 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                                         externalScope = externalScope
                                     )
                             }
+                            /* TODO[server2]
                             for ((index, field) in typecheckedNotImplementedFields.withIndex())
                                 if ((field.parentClass.referable as? DataLocatedReferable)?.data?.element == locatedReferable && (field.referable !is FieldDataLocatedReferable || field.referable.isParameterField)) {
                                     notImplementedFields[field.name] = descendantOldParameters[index]
                                     if (modifiedArgumentStart == -1) modifiedArgumentStart = index
                                     modifiedArgumentEnd = index
                                 }
+                            */
                         } else { // Fallback code for dumb mode
                             descendantOldParameters = ClassReferable.Helper.getNotImplementedFields(classDescendant).filterIsInstance<PsiElement>().withIndex().map { (index, field) ->
                                 val classParent = field.ancestor<ArendDefClass>()!!

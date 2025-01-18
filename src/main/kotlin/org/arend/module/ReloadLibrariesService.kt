@@ -29,7 +29,9 @@ class ReloadLibrariesService(private val project: Project, private val coroutine
                 }
 
                 val server = project.service<ArendServerService>().server
-                for (library in server.libraries) {
+                val libraries = ArrayList(server.libraries)
+                server.unloadLibraries(onlyInternal)
+                for (library in libraries) {
                     if (!onlyInternal || server.getLibrary(library)?.isExternalLibrary == false) {
                         server.updateLibrary(project.findLibrary(library) ?: continue, NotificationErrorReporter(project))
                     }

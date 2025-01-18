@@ -2,22 +2,17 @@ package org.arend.module
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.psi.PsiFileFactory
-import org.arend.ArendLanguage
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.module.ModulePath
-import org.arend.ext.reference.Precedence
 import org.arend.library.LibraryHeader
 import org.arend.library.LibraryManager
 import org.arend.library.SourceLibrary
 import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.*
-import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiDefReferable
 import org.arend.psi.ext.ArendGroup
-import org.arend.psi.ext.ArendDefMeta
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
@@ -26,9 +21,6 @@ import org.arend.source.PersistableBinarySource
 import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 import org.arend.ui.impl.ArendGeneralUI
-import org.arend.util.FileUtils
-import java.lang.StringBuilder
-import java.util.function.Supplier
 
 class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
@@ -45,25 +37,6 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
     override fun loadHeader(errorReporter: ErrorReporter) =
         LibraryHeader(config.findModules(false), config.dependencies, config.version, config.langVersion, config.classLoaderDelegate, config.extensionMainClass)
-
-    fun addGeneratedModule(modulePath: ModulePath, scope: Scope) {
-        val builder = StringBuilder()
-        scopeToText(scope, "", builder)
-        val fileName = modulePath.toString() + FileUtils.EXTENSION
-        val file = PsiFileFactory.getInstance(config.project)
-                .createFileFromText(fileName, ArendLanguage.INSTANCE, builder.toString())
-                as? ArendFile ?: return
-        file.virtualFile.isWritable = false
-        file.generatedModuleLocation = ModuleLocation(this, ModuleLocation.LocationKind.GENERATED, modulePath)
-        fillGroup(file, scope)
-        config.addAdditionalModule(modulePath, file)
-    }
-
-    override fun loadGeneratedModules() {
-        for (entry in additionalModules) {
-            addGeneratedModule(entry.key, entry.value)
-        }
-    }
 
     override fun unload(): Boolean {
         super.unload()
@@ -130,98 +103,5 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
     companion object {
         fun getExternalLibrary(libraryManager: LibraryManager, name: String) =
             libraryManager.getRegisteredLibrary { ((it as? ArendRawLibrary)?.config as? ExternalLibraryConfig)?.name == name } as? ArendRawLibrary
-
-        private fun scopeToText(scope: Scope, prefix: String, builder: StringBuilder) {
-            var first = true
-
-            for (element in scope.elements) {
-                if (!(element is MetaReferable || element is EmptyLocatedReferable || element is ConcreteLocatedReferable)) {
-                    continue
-                }
-
-                val name = element.refName
-                val subscope = scope.resolveNamespace(name)
-                if (subscope == null && element is EmptyLocatedReferable) {
-                    continue
-                }
-
-                if (first) {
-                    first = false
-                } else {
-                    builder.append("\n\n")
-                }
-
-                builder.append(prefix)
-                if (element is TCReferable && element.description.isNotEmpty()) {
-                    val lines = element.description.split('\n')
-                    if (lines.size == 1) {
-                        builder.append("-- | ").append(lines[0])
-                    } else {
-                        builder.append("{- | ")
-                        var firstLine = true
-                        for (line in lines) {
-                            if (firstLine) {
-                                firstLine = false
-                            } else if (line.isNotEmpty()) {
-                                builder.append(" - ")
-                            }
-                            builder.append(line).append('\n')
-                        }
-                        builder.append(" -}")
-                    }
-                    builder.append('\n')
-                }
-
-                when (element) {
-                    is MetaReferable -> {
-                        builder.append("\\meta ")
-                        val prec = element.precedence
-                        if (prec != Precedence.DEFAULT && prec.priority >= 0) {
-                            builder.append('\\').append(prec).append(' ')
-                        }
-                        builder.append(name)
-
-                        val alias = element.aliasName
-                        if (alias != null) {
-                            builder.append(" \\alias")
-                            val aliasPrec = element.aliasPrecedence
-                            if (aliasPrec != Precedence.DEFAULT && aliasPrec.priority >= 0) {
-                                builder.append(" \\").append(aliasPrec)
-                            }
-                            builder.append(' ').append(alias)
-                        }
-                    }
-                    is ConcreteLocatedReferable -> builder.append(element.definition)
-                    else -> builder.append("\\module ").append(name)
-                }
-
-                if (subscope != null) {
-                    builder.append(" \\where {\n")
-                    scopeToText(subscope, "$prefix  ", builder)
-                    builder.append('}')
-                }
-            }
-
-            if (!first) {
-                builder.append('\n')
-            }
-        }
-
-        private fun fillGroup(group: Group, scope: Scope) {
-            for (statement in group.statements) {
-                val subgroup = statement.group ?: continue
-                val name = subgroup.referable.refName
-                val meta = scope.resolveName(name)
-                if (meta is MetaReferable) {
-                    (subgroup as? ArendDefMeta)?.let { module ->
-                        module.metaRef = meta
-                        meta.underlyingReferable = Supplier { module }
-                    }
-                }
-                scope.resolveNamespace(name)?.let {
-                    fillGroup(subgroup, it)
-                }
-            }
-        }
     }
 }

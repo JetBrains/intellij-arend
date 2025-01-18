@@ -17,6 +17,8 @@ import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.IArendFile
 import org.arend.ext.module.LongName
+import org.arend.ext.prettyprinting.doc.Doc
+import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.Precedence
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.module.ArendPreludeLibrary
@@ -62,11 +64,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override var lastModification: AtomicLong = AtomicLong(-1)
     var lastModificationImportOptimizer: AtomicLong = AtomicLong(-1)
     var lastDefinitionModification: AtomicLong = AtomicLong(-1)
-
-    fun decLastModification() {
-        lastModification.updateAndGet { it - 1 }
-        lastDefinitionModification.updateAndGet { it - 1 }
-    }
 
     val isBackgroundTypecheckingFinished: Boolean
         get() = lastDefinitionModification.get() >= service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
@@ -211,6 +208,8 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
+
+    override fun getDescription(): Doc = DocFactory.nullDoc()
 
     override fun getStatements() = ArendStat.flatStatements(children.filterIsInstance<ArendStat>())
 

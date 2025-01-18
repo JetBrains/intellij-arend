@@ -345,7 +345,7 @@ fun addIdToUsing(groupMember: PsiElement?,
         if (statCmd != null) {
             val ref = statCmd.longName?.refIdentifierList?.lastOrNull()
             if (ref != null) {
-                val target = ref.reference.resolve()
+                val target = ref.reference?.resolve()
                 if (target == targetContainer)
                     return doAddIdToUsing(statCmd, renamings)
             }

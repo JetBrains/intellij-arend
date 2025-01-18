@@ -12,10 +12,10 @@ import org.arend.naming.reference.*
 import org.arend.naming.scope.Scope.ScopeContext
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
+import org.arend.psi.doc.ArendDocReference
 import org.arend.resolving.*
 import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
-import org.arend.term.NamespaceCommand
 import org.arend.term.abs.Abstract
 import org.arend.util.mapUntilNotNull
 
@@ -214,7 +214,7 @@ class ArendRefIdentifier(node: ASTNode) : ArendIdentifierBase(node), ArendSource
             ?: listOf(referenceName)
 
     override val resolve: PsiElement?
-        get() = reference.resolve()
+        get() = reference?.resolve()
 
     override val unresolvedReference: UnresolvedReference
         get() = referent
@@ -226,12 +226,18 @@ class ArendRefIdentifier(node: ASTNode) : ArendIdentifierBase(node), ArendSource
 
     override fun getReferent() = NamedUnresolvedReference(this, referenceName)
 
-    override fun getReference(): ArendReference {
+    override fun getReference(): ArendReference? {
         val parent = parent
-        val parentLongName = parent as? ArendLongName
-        val isImport = (parentLongName?.parent as? ArendStatCmd)?.kind == NamespaceCommand.Kind.IMPORT
-        val last = if (isImport) parentLongName?.refIdentifierList?.lastOrNull() else null
-        return ArendReferenceImpl(this, last != null && last != this, if (parent is ArendAtomLevelExpr) (if (ancestors.filterIsInstance<ArendTopLevelLevelExpr>().firstOrNull()?.isPLevels() != false) ScopeContext.PLEVEL else ScopeContext.HLEVEL) else ScopeContext.STATIC)
+        if (parent is ArendLongName) {
+            val pParent = parent.parent
+            if (pParent is ArendDocReference) {
+                val ppParent = pParent.parent
+                if (ppParent !is ArendDocComment || ppParent.owner == null) {
+                    return null
+                }
+            }
+        }
+        return ArendReferenceImpl(this, if (parent is ArendAtomLevelExpr) (if (ancestors.filterIsInstance<ArendTopLevelLevelExpr>().firstOrNull()?.isPLevels() != false) ScopeContext.PLEVEL else ScopeContext.HLEVEL) else ScopeContext.STATIC)
     }
 
     override fun getTopmostEquivalentSourceNode() = getTopmostEquivalentSourceNode(this)

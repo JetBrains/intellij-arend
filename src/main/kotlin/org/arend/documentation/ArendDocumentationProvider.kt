@@ -18,10 +18,7 @@ import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import org.arend.documentation.ArendKeyword.Companion.isArendKeyword
-import org.arend.ext.module.LongName
 import org.arend.naming.reference.FieldReferable
-import org.arend.naming.reference.RedirectingReferable
-import org.arend.naming.scope.Scope
 import org.arend.psi.ArendFile
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.ext.*
@@ -59,10 +56,13 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             }
             return null
         }
+        /* TODO[server2]
         val longName = link.removePrefix(FULL_PREFIX)
         val scope = ArendDocComment.getScope((context as? ArendDocComment)?.owner ?: context) ?: return null
         val ref = RedirectingReferable.getOriginalReferable(Scope.resolveName(scope, LongName.fromString(longName).toList()))
         return if (ref is PsiReferable && longName.length != link.length) ref.documentation else ref as? PsiElement
+        */
+        return null
     }
 
     override fun getCustomDocumentationElement(editor: Editor, file: PsiFile, contextElement: PsiElement?, targetOffset: Int): PsiElement? {
@@ -216,7 +216,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
                 """
                 browser?.executeJavaScript(jsWidth, browser.url, 0)
                 browser?.executeJavaScript(jsHeight, browser.url, 0)
-                browser?.executeJavaScript(jsColorLink, browser.url, 0);
+                browser?.executeJavaScript(jsColorLink, browser.url, 0)
             }
         }
 

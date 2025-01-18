@@ -21,6 +21,7 @@ import com.maddyhome.idea.vim.VimPlugin
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.DefinitionContributor
 import org.arend.ext.module.ModulePath
+import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.Precedence
 import org.arend.extImpl.OldDefinitionContributorImpl
 import org.arend.module.AREND_LIB
@@ -203,9 +204,11 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         fun addGeneratedModules(library: ArendRawLibrary, filler: DefinitionContributor.() -> Unit) {
             val moduleScopeProvider = SimpleModuleScopeProvider()
             filler(OldDefinitionContributorImpl(library.name, DummyErrorReporter.INSTANCE, moduleScopeProvider))
+            /* TODO[server2]
             for (entry in moduleScopeProvider.registeredEntries) {
                 library.addGeneratedModule(entry.key, entry.value)
             }
+            */
         }
     }
 
@@ -265,9 +268,9 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     private fun setupLibraryManager(config: ExternalLibraryConfig) {
         val arendLib = ArendRawLibrary(config)
         addGeneratedModules(arendLib) {
-            declare(MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "using", "", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Meta")))), null)
-            declare(MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "$", "", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Function", "Meta")))), null)
-            declare(MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "rewrite", "", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Paths", "Meta")))), null)
+            declare(DocFactory.nullDoc(), MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "using", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Meta")))), null)
+            declare(DocFactory.nullDoc(), MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "$", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Function", "Meta")))), null)
+            declare(DocFactory.nullDoc(), MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "rewrite", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Paths", "Meta")))), null)
         }
         TypeCheckingService.LibraryManagerTestingOptions.setStdLibrary(arendLib, testRootDisposable)
     }

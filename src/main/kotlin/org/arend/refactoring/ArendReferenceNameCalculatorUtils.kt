@@ -258,7 +258,7 @@ class LocationData private constructor (
     private fun calculateShorterNames(statCmd: ArendStatCmd): List<List<String>> {
         val lastRef = statCmd.longName?.refIdentifierList?.lastOrNull()
         if (lastRef != null) {
-            val openedGroup = lastRef.reference.resolve()
+            val openedGroup = lastRef.reference?.resolve()
             if (openedGroup is PsiLocatedReferable) {
                 val remainder = calculateRemainder(openedGroup)
                 if (!remainder.isNullOrEmpty()) {
