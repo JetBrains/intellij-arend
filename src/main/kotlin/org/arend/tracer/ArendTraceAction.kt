@@ -24,6 +24,7 @@ import org.arend.psi.ext.*
 import org.arend.refactoring.collectArendExprs
 import org.arend.refactoring.selectedExpr
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.server.ArendServerService
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.LibraryArendExtensionProvider
 import org.arend.typechecking.PsiInstanceProviderSet
@@ -93,7 +94,7 @@ class ArendTraceAction : ArendPopupAction() {
             val range = EditorUtil.getSelectionInAnyMode(editor)
             val sExpr = selectedExpr(file, range)
             if (sExpr != null) {
-                val def = sExpr.ancestor<TCDefinition>()?.tcReferable
+                val def = sExpr.ancestor<TCDefinition>()?.let { file.project.service<ArendServerService>().server.getTCReferable(it) }
                 if (def != null) {
                     return Pair(sExpr, def)
                 }
@@ -111,7 +112,7 @@ class ArendTraceAction : ArendPopupAction() {
             if (sExpr != null) {
                 val expression = collectArendExprs(sExpr.parent, range)?.first as? ArendExpr
                 if (expression != null) {
-                    val def = sExpr.ancestor<TCDefinition>()?.tcReferable
+                    val def = sExpr.ancestor<TCDefinition>()?.let { file.project.service<ArendServerService>().server.getTCReferable(it) }
                     if (def != null) {
                         return Pair(expression, def)
                     }
@@ -122,7 +123,7 @@ class ArendTraceAction : ArendPopupAction() {
 
         private fun getDeclarationAtCaret(file: PsiFile, editor: Editor): Pair<ArendExpr, TCDefReferable>? {
             val def = file.findElementAt(editor.caretModel.currentCaret.offset)?.ancestor<TCDefinition>() ?: return null
-            val ref = def.tcReferable ?: return null
+            val ref = file.project.service<ArendServerService>().server.getTCReferable(def) ?: return null
             val head = when (def) {
                 is ArendFunctionDefinition<*> -> {
                     val body = def.body ?: return null

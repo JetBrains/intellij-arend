@@ -1,11 +1,8 @@
 package org.arend.psi.ext
 
-import com.intellij.openapi.components.service
 import org.arend.ext.prettyprinting.doc.Doc
-import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.group.ChildGroup
-import org.arend.term.group.ConcreteGroup
 import org.arend.term.group.Group
 import org.arend.term.group.Statement
 
@@ -32,9 +29,4 @@ interface ArendGroup: ChildGroup, PsiDefReferable, ArendSourceNode, Abstract.Gro
 
 interface ArendInternalReferable: Group.InternalReferable, PsiDefReferable {
     override fun getReferable(): PsiDefReferable
-}
-
-val ArendGroup.concreteGroup: ConcreteGroup? get() {
-    val path = groupPath ?: return null
-    return project.service<ArendServerService>().server.getGroup(path.module)?.getSubgroup(path)
 }

@@ -51,12 +51,7 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
                                     }
                                 })
                         } else {
-                            server.resolveModules(
-                                listOf(module),
-                                DummyErrorReporter.INSTANCE,
-                                indicator,
-                                resolverListener
-                            )
+                            server.resolveModules(listOf(module), DummyErrorReporter.INSTANCE, indicator, resolverListener)
                             /* TODO[server2]
                             if (definition == "") {
                                 val group = library?.getModuleGroup(modulePath, command.isTest)

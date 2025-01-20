@@ -5,8 +5,6 @@ import com.intellij.openapi.components.service
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import com.intellij.psi.util.CachedValueProvider
-import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.elementType
 import org.arend.core.definition.Definition
 import org.arend.ext.module.LongName
@@ -58,9 +56,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         documentation?.doc ?: DocFactory.nullDoc()
 
     override val tcReferable: TCReferable?
-        get() = CachedValuesManager.getCachedValue(this) {
-            CachedValueProvider.Result((this as? ArendGroup)?.concreteGroup?.referable as? TCReferable, this)
-        }
+        get() = null
 
     val tcDefinition: Definition?
         get() = (tcReferable as? TCDefReferable)?.typechecked

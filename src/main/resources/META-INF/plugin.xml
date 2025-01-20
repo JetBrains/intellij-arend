@@ -321,12 +321,10 @@
 
         <!-- Line Marker Providers -->
 
-        <!-- TODO[server2]
         <runLineMarkerContributor language="Arend"
                                   implementationClass="org.arend.typechecking.execution.TypeCheckRunLineMarkerContributor"/>
 
         <codeInsight.lineMarkerProvider language="Arend" implementationClass="org.arend.codeInsight.ArendLineMarkerProvider"/>
-        -->
 
         <!-- Color Settings -->
 

@@ -1,5 +1,6 @@
 package org.arend.intention
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -33,6 +34,7 @@ import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.*
 import org.arend.resolving.PsiConcreteProvider
+import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -124,7 +126,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         }
 
         if (definition != null && clauseIndex != -1) {
-            var typeCheckedDefinition = definition.tcReferable?.typechecked
+            var typeCheckedDefinition = project.service<ArendServerService>().server.getTCReferable(definition)?.typechecked
             var concreteClauseOwner = (element.containingFile as? ArendFile)?.concreteDefinitions?.get(definition.refLongName) as? Concrete.FunctionDefinition ?: PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcreteFunction(definition) ?: return null
             if (typeCheckedDefinition is FunctionDefinition && definition is Abstract.ParametersHolder && definition is Abstract.EliminatedExpressionsHolder && abstractPatterns != null) {
                 if (coClauseName != null) {

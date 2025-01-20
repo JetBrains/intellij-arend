@@ -1,5 +1,6 @@
 package org.arend.refactoring.changeSignature
 
+import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.elementType
@@ -19,6 +20,7 @@ import org.arend.refactoring.move.MoveRefactoringSignatureContext
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.search.ClassDescendantsSearch
+import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.Abstract.ParametersHolder
 import org.arend.term.group.AccessModifier
@@ -337,7 +339,7 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                     ))) {
                         var modifiedArgumentStart = -1
                         var modifiedArgumentEnd = -1
-                        val typecheckedNotImplementedFields = (classDescendant.tcReferable?.typechecked as? org.arend.core.definition.ClassDefinition)?.notImplementedFields
+                        val typecheckedNotImplementedFields = (classDescendant.project.service<ArendServerService>().server.getTCReferable(classDescendant)?.typechecked as? org.arend.core.definition.ClassDefinition)?.notImplementedFields
                         val externalParameterData = HashMap<String, ArendGroup>()
                         ArendCodeInsightUtils.getExternalParameters(classDescendant)?.forEach {
                             val externalScope = it.getExternalScope()

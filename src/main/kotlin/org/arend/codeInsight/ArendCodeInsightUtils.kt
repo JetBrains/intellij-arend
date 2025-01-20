@@ -1,5 +1,6 @@
 package org.arend.codeInsight
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -17,6 +18,7 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.resolving.DataLocatedReferable
 import org.arend.resolving.FieldDataLocatedReferable
+import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -453,7 +455,7 @@ class ArendCodeInsightUtils {
             val externalParametersMap = HashMap<String, ParameterDescriptor>()
             if (externalParameters != null) for (eP in externalParameters) eP.name?.let{ externalParametersMap[it] = eP }
 
-            val result = (def.tcReferable?.typechecked as? ClassDefinition)?.notImplementedFields?.map {
+            val result = (def.project.service<ArendServerService>().server.getTCReferable(def)?.typechecked as? ClassDefinition)?.notImplementedFields?.map {
                 val psiReferable = (it.referable as? FieldDataLocatedReferable)?.data?.element as? PsiReferable
                 val classParameterKind = when {
                     psiReferable is ArendClassField -> ClassParameterKind.CLASS_FIELD

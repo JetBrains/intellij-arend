@@ -21,7 +21,7 @@ class ArendSettingsView {
     private val typecheckingMode = JBCheckBox("Enable background typechecking", true)
     private val timeLimitSwitch = JBCheckBox("Stop typechecking after ", true)
     private val timeLimit = JBIntSpinner(5, 1, 3600)
-    private val typecheckOnlyLastSwitch = JBCheckBox("Stop typechecking if the last modified definition has errors", true)
+    private val typecheckOnlyLastSwitch = JBCheckBox("Stop typechecking if the last modified definition has errors", false)
 
     // Other settings
     private val clauseLimitSwitch = JBCheckBox("Limit the maximum number of clauses generated at once: ", true)
