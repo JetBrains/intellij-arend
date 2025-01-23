@@ -2,7 +2,6 @@ package org.arend.highlight
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.ResolverListener
 import org.arend.psi.ext.*
@@ -77,14 +76,7 @@ class HighlightingResolverListener(private val pass: BasePass, private val progr
         }
 
         if (data is ArendPattern && (referent as? GlobalReferable?)?.kind == GlobalReferable.Kind.CONSTRUCTOR) {
-            pass.addHighlightInfo(data.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
-        }
-    }
-
-    override fun patternParsed(pattern: Concrete.ConstructorPattern) {
-        val data = pattern.constructorData
-        if (data is PsiElement) {
-            pass.addHighlightInfo(data.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
+            pass.addHighlightInfo(data.textRange, if (referent.precedence.isInfix) ArendHighlightingColors.OPERATORS else ArendHighlightingColors.CONSTRUCTOR_PATTERN)
         }
     }
 
