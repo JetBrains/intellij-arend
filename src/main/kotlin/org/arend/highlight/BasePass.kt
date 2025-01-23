@@ -112,7 +112,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
         }
     }
 
-    protected fun addHighlightInfo(range: TextRange, colors: ArendHighlightingColors) {
+    fun addHighlightInfo(range: TextRange, colors: ArendHighlightingColors) {
         addHighlightInfo(HighlightInfo.newHighlightInfo(HighlightInfoType.INFORMATION).range(range).textAttributes(colors.textAttributesKey))
     }
 
