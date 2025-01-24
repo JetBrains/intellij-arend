@@ -46,7 +46,7 @@ private abstract class ProofSearchToggleSettingsAction(
     val searchUI: ProofSearchUI,
     val project: Project,
     val settingsProperty: KMutableProperty1<ArendProjectSettingsState, Boolean>,
-    actionText: @Nls String
+    @Nls actionText: String
 ) : ToggleAction(actionText) {
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

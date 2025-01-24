@@ -1,6 +1,7 @@
 package org.arend.notification
 
 import com.intellij.ide.BrowserUtil
+import com.intellij.ide.scratch.ScratchFileService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.project.Project
@@ -20,7 +21,8 @@ class FileOutsideSourcesProvider : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, virtualFile: VirtualFile): Function<in FileEditor, out JComponent?>? {
         val file = PsiManager.getInstance(project).findFile(virtualFile)
         if (file !is ArendFile || ProjectFileIndex.getInstance(project).isInSource(virtualFile) ||
-                project.service<TypeCheckingService>().prelude == file || virtualFile is LightVirtualFile) {
+                project.service<TypeCheckingService>().prelude == file || virtualFile is LightVirtualFile ||
+            ScratchFileService.getInstance().getRootType(virtualFile) != null) {
             return null
         }
 

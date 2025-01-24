@@ -110,7 +110,8 @@ abstract class ArendCommonStarterInitialStep(
         }
     }
 
-    private fun getLocationComment(): @Nls String {
+    @Nls
+    private fun getLocationComment(): String {
         val shortPath = StringUtil.shortenPathWithEllipsis(getPresentablePath(canonicalPathProperty.get()), 60)
         return UIBundle.message(
             "label.project.wizard.new.project.path.description",
