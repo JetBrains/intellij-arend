@@ -9,7 +9,7 @@ import org.arend.codeInsight.completion.ArendCompletionContributor.Companion.joi
 import org.arend.psi.ArendFile
 import org.jetbrains.annotations.Nls
 
-abstract class ArendTemplateContextType(presentableName: @Nls String) : TemplateContextType(presentableName) {
+abstract class ArendTemplateContextType(@Nls presentableName: String) : TemplateContextType(presentableName) {
 
     override fun isInContext(templateActionContext: TemplateActionContext): Boolean {
         val file = templateActionContext.file as? ArendFile ?: return false

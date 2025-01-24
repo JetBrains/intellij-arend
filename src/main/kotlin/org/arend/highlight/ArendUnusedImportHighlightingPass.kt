@@ -48,7 +48,7 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
 
     private fun registerUnusedThing(
         element: PsiElement,
-        description: @Nls String,
+        @Nls description: String,
         collector: MutableList<HighlightInfo>
     ) {
         val profile = InspectionProjectProfileManager.getInstance(myProject).currentProfile

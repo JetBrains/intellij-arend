@@ -40,7 +40,7 @@ dependencies {
     intellijPlatform {
         create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
         instrumentationTools()
-        bundledPlugins("org.jetbrains.plugins.yaml", "com.intellij.java")
+        bundledPlugins("org.jetbrains.plugins.yaml", "com.intellij.java", "org.jetbrains.kotlin")
         plugins("IdeaVIM:2.16.0")
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.Plugin.Java)
