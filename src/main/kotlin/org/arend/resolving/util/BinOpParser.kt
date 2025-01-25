@@ -6,7 +6,7 @@ import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.ErrorReporter
 import org.arend.naming.binOp.ExpressionBinOpEngine
 import org.arend.naming.reference.*
-import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.scope.Scope
 import org.arend.psi.ancestor
 import org.arend.psi.ext.*
@@ -41,7 +41,7 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
         var isCachedValue = true
         val referentComputer = {
             isCachedValue = false
-            resolved = ExpressionResolveNameVisitor.resolve(refExpr, scope1, false, null, null)
+            resolved = null // TODO[server2]: ExpressionResolveNameVisitor.resolve(refExpr, scope1, false, null, null)
             refExpr.referent
         }
 
@@ -58,7 +58,7 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
             val referable1 = RedirectingReferable.getOriginalReferable(refExpr.referent)
             val resolvedRefs = data.refIdentifierList.map { it.resolve as? Referable }.toMutableList()
             if (referable1 is UnresolvedReference) {
-                resolved = referable1.resolveExpression(scope1, resolvedRefs, null)
+                resolved = referable1.resolveExpression(scope1, TypingInfo.EMPTY, resolvedRefs, null)
                 referable = referable1.resolve(scope1, null, null)
             }
         }

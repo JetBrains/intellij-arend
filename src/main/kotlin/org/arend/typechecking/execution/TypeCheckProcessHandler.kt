@@ -25,6 +25,7 @@ import org.arend.module.error.ModuleNotFoundError
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.FullModuleReferable
 import org.arend.naming.reference.TCDefReferable
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
@@ -133,7 +134,7 @@ class TypeCheckProcessHandler(
                                             ?: testsModuleScopeProvider.forModule(modulePath)
                                     }
                                 } else sourcesModuleScopeProvider
-                                DefinitionResolveNameVisitor(concreteProvider, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))
+                                DefinitionResolveNameVisitor(concreteProvider, TypingInfo.EMPTY, typecheckingErrorReporter).resolveGroup(module, ScopeFactory.forGroup(module, moduleScopeProvider))
                             }
                             module
                         }

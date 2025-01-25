@@ -12,6 +12,7 @@ import org.arend.naming.reference.LocatedReferableImpl
 import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.naming.resolving.ResolverListener
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
@@ -34,6 +35,7 @@ private object NullDefinition : Concrete.Definition(LocatedReferableImpl(AccessM
     override fun <P : Any?, R : Any?> accept(visitor: ConcreteDefinitionVisitor<in P, out R>?, params: P): R? = null
 }
 
+// TODO[server2]: Delete this
 class PsiConcreteProvider(private val project: Project, private val errorReporter: ErrorReporter, private val eventsProcessor: TypecheckingEventsProcessor?, var resolve: Boolean = true, private val resolverListener: ResolverListener? = null, private val referableConverter: ReferableConverter = ArendReferableConverter) : ConcreteProvider {
     private val cache: MutableMap<PsiLocatedReferable, Concrete.GeneralDefinition> = HashMap()
 
@@ -50,7 +52,7 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
             val def = psiReferable.computeConcrete(referableConverter, errorReporter)
             if (resolve && def.relatedDefinition.stage == Concrete.Stage.NOT_RESOLVED) {
                 scope = CachingScope.make(psiReferable.scope)
-                def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, errorReporter, resolverListener), scope)
+                def.relatedDefinition.accept(DefinitionResolveNameVisitor(this, true, TypingInfo.EMPTY, errorReporter, resolverListener), scope)
             }
             eventsProcessor?.stopTimer(psiReferable)
             return@runReadAction cache.putIfAbsent(psiReferable, def) ?: def
@@ -68,7 +70,7 @@ class PsiConcreteProvider(private val project: Project, private val errorReporte
                 if (scope == null) {
                     scope = CachingScope.make(psiReferable.scope)
                 }
-                DefinitionResolveNameVisitor(this, errorReporter, resolverListener).resolveDefinition(result.relatedDefinition, scope, psiReferable.ancestor<ArendGroup>())
+                DefinitionResolveNameVisitor(this, TypingInfo.EMPTY, errorReporter, resolverListener).resolveDefinition(result.relatedDefinition, scope, psiReferable.ancestor<ArendGroup>())
             }
         }
 

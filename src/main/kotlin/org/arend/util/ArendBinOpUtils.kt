@@ -9,6 +9,8 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.typing.TypedReferable
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.psi.ext.*
@@ -66,9 +68,9 @@ fun patternToConcrete(unparsedPattern: ArendPattern, errorReporter: ErrorReporte
         }
     }
     val unparsed = builder.buildPattern(unparsedPattern)
-    val referables = ArrayList<Referable>()
+    val referables = ArrayList<TypedReferable>()
     val patterns = ArrayList<Concrete.Pattern>(); patterns.add(unparsed)
-    ExpressionResolveNameVisitor(scope, referables, errorReporter, null).visitPatterns(patterns, HashMap())
+    ExpressionResolveNameVisitor(scope, referables, TypingInfo.EMPTY, errorReporter, null).visitPatterns(patterns, HashMap())
     return patterns.firstOrNull()
 }
 

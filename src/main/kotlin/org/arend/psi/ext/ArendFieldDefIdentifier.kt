@@ -16,7 +16,6 @@ import org.arend.resolving.ArendReference
 import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.ext.concrete.definition.ClassFieldKind
 import org.arend.term.abs.Abstract
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.group.AccessModifier
 
 class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendInternalReferable, Abstract.ClassField, FieldReferable, ArendReferenceElement, StubBasedPsiElement<ArendClassFieldParamStub> {
@@ -62,9 +61,6 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
     override fun isClassifying() = parentFieldTele?.isClassifying == true
 
     override fun isCoerce() = parentFieldTele?.isCoerce == true
-
-    override fun getTypeClassReference(): ClassReferable? =
-        resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
     override val typeOf: ArendExpr?
         get() = resultType

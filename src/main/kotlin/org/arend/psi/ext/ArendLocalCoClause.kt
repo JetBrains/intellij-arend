@@ -21,9 +21,7 @@ open class ArendLocalCoClause(node: ASTNode) : ArendSourceNodeImpl(node), CoClau
 
     override fun getCoClauseData() = lbrace
 
-    override fun getClassReference() = CoClauseBase.getClassReference(this)
-
-    override fun getClassReferenceData(onlyClassRef: Boolean) = CoClauseBase.getClassReferenceData(this)
+    override fun getClassReference() = null
 
     override fun isDefault() = false
 }

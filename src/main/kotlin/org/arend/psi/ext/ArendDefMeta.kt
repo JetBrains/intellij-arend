@@ -9,12 +9,9 @@ import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.MetaReferable
-import org.arend.naming.reference.Referable
-import org.arend.naming.resolving.visitor.TypeClassReferenceExtractVisitor
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefMetaStub
 import org.arend.resolving.IntellijMetaReferable
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import java.util.function.Supplier
@@ -39,9 +36,6 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
 
     override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
         prepareTCRef(data, parent).apply { underlyingReferable = Supplier { runReadAction { data.element } } }
-
-    override fun getBodyReference(visitor: TypeClassReferenceExtractVisitor): Referable? =
-        ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr)
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 

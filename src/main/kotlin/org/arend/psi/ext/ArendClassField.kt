@@ -7,7 +7,6 @@ import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.util.elementType
 import org.arend.ArendIcons
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.stubs.ArendClassFieldStub
@@ -17,7 +16,6 @@ import org.arend.naming.reference.FieldReferable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.term.abs.Abstract
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
 import org.arend.term.group.AccessModifier
 import javax.swing.Icon
@@ -60,11 +58,6 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
     override fun isCoerce() = hasChildOfType(COERCE_KW)
 
     override fun getAccessModifier(): AccessModifier = (childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC).max(classAccessModifier)
-
-    override fun getTypeClassReference(): ClassReferable? {
-        val type = resultType ?: return null
-        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
-    }
 
     override val typeOf: Abstract.Expression?
         get() = getTypeOf(parameters, resultType)

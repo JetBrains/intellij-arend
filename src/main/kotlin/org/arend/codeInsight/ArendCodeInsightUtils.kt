@@ -13,6 +13,7 @@ import org.arend.error.CountingErrorReporter
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.naming.reference.*
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.*
@@ -147,12 +148,7 @@ class ArendCodeInsightUtils {
                 }
                 val clausePatterns = clause?.patterns?.run {
                     val newList = ArrayList(this)
-                    ExpressionResolveNameVisitor(
-                        data.scope,
-                        mutableListOf(),
-                        DummyErrorReporter.INSTANCE,
-                        null
-                    ).visitPatterns(newList, mutableMapOf())
+                    ExpressionResolveNameVisitor(data.scope, mutableListOf(), TypingInfo.EMPTY, DummyErrorReporter.INSTANCE, null).visitPatterns(newList, mutableMapOf())
                     newList
                 } ?: throw IllegalStateException()
 

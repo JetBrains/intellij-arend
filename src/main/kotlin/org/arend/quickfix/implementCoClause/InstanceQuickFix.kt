@@ -74,10 +74,12 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
             continue
         }
 
+        /* TODO[server2]
         if (clauseBlock || emptyGoal) {
             val severity = if (clauseBlock) InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR else InstanceQuickFixAnnotation.NO_ANNOTATION
             doAnnotateInternal(coClause, /*rangeToReport,*/ coClause.localCoClauseList, severity)
         }
+        */
     }
 }
 
@@ -140,17 +142,21 @@ fun makeFieldList(fields: Collection<ArendRef>, classRef: ClassReferable): List<
 
 fun doAnnotate(element: PsiElement?) {
     when (element) {
+        /* TODO[server2]
         is ArendNewExpr -> element.argumentAppExpr?.let {
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, it),*/ element.localCoClauseList, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.isNew != true)
         }
+        */
         is ArendDefInstance -> if (element.returnExpr != null && element.classReference?.isRecord == false && element.body.let { it == null || it.fatArrow == null && it.elim == null })
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.body?.coClauseList
                     ?: emptyList())
         is ArendDefFunction -> if (element.body?.cowithKw != null)
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.body?.coClauseList
                     ?: emptyList())
+        /* TODO[server2]
         is CoClauseBase -> if (element.fatArrow == null)
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.localCoClauseList, InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)
+        */
     }
 }
 

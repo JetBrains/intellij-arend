@@ -36,9 +36,9 @@ import com.intellij.util.Consumer
 import org.arend.ArendFileTypeInstance
 import org.arend.ext.module.LongName
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.scope.ListScope
 import org.arend.naming.scope.MergeScope
 import org.arend.naming.scope.Scope
+import org.arend.naming.scope.local.ListScope
 import org.arend.psi.ArendCodeFragmentController
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendExpressionCodeFragment

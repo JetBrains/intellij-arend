@@ -8,6 +8,7 @@ import org.arend.naming.reference.AliasReferable
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
+import org.arend.naming.scope.local.ListScope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendPsiFactory
@@ -377,7 +378,5 @@ class AddIdToUsingAction(currentFile: ArendFile,
     override fun getImportedParts(): List<String>? = singletonList(myId)
 
     override fun getAmendedScope(): Scope =
-        ListScope(singletonList(
-            if (locationData.alias) AliasReferable(locationData.target) else locationData.target
-        ))
+        SingletonScope(if (locationData.alias) AliasReferable(locationData.target) else locationData.target)
 }

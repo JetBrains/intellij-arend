@@ -42,9 +42,7 @@ class ArendClassImplement : ReferableBase<ArendClassImplementStub>, PsiLocatedRe
 
     override fun getCoClauseData() = lbrace
 
-    override fun getClassReference() = CoClauseBase.getClassReference(this)
-
-    override fun getClassReferenceData(onlyClassRef: Boolean) = CoClauseBase.getClassReferenceData(this)
+    override fun getClassReference() = null
 
     override fun getIcon(flags: Int) = ArendIcons.IMPLEMENTATION
 

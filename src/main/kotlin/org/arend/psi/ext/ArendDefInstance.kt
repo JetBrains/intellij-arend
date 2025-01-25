@@ -7,7 +7,6 @@ import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.util.elementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.*
-import org.arend.naming.resolving.visitor.TypeClassReferenceExtractVisitor
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefInstanceStub
 import org.arend.ext.concrete.definition.FunctionKind
@@ -41,16 +40,6 @@ class ArendDefInstance : ArendFunctionDefinition<ArendDefInstanceStub>, Abstract
     override fun getKind() = if (functionKind == FunctionKind.INSTANCE) GlobalReferable.Kind.INSTANCE else GlobalReferable.Kind.DEFINED_CONSTRUCTOR
 
     override fun getIcon(flags: Int): Icon = ArendIcons.CLASS_INSTANCE
-
-    override fun getTypeClassReference(): ClassReferable? {
-        val type = resultType ?: return null
-        return if (parameters.all { !it.isExplicit }) ReferableExtractVisitor().findClassReferable(type) else null
-    }
-
-    override fun getBodyReference(visitor: TypeClassReferenceExtractVisitor): Referable? {
-        val expr = body?.expr ?: return null
-        return ReferableExtractVisitor(requiredAdditionalInfo = false, isExpr = true).findReferable(expr)
-    }
 
     private val allParameters
         get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters

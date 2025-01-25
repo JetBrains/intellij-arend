@@ -8,14 +8,14 @@ import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
 import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ModuleReferable
-import org.arend.naming.reference.TypedReferable
+import org.arend.naming.reference.Referable
 import org.arend.navigation.getPresentation
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
 
-interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, TypedReferable {
+interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, Referable {
     val psiElementType: PsiElement?
         get() = null
 

@@ -38,6 +38,7 @@ import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
 import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.prelude.Prelude
@@ -196,7 +197,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                     run {
                         val cer = CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
                         val psiConcreteProvider = PsiConcreteProvider(project, cer, null)
-                        val resolveNameVisitor = DefinitionResolveNameVisitor(psiConcreteProvider, cer)
+                        val resolveNameVisitor = DefinitionResolveNameVisitor(psiConcreteProvider, TypingInfo.EMPTY, cer)
                         val errorReporter = ListErrorReporter()
                         var concreteDefinition : Concrete.GeneralDefinition = convert(definitionPsi as Abstract.Definition, null, cer)
 
@@ -272,7 +273,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             val primerOk: Boolean
                             run {
                                 val cer = CountingErrorReporter(DummyErrorReporter.INSTANCE)
-                                val resolver = ExpressionResolveNameVisitor(patternPrimer.scope, ArrayList<Referable>(), cer, null)
+                                val resolver = ExpressionResolveNameVisitor(patternPrimer.scope, ArrayList(), TypingInfo.EMPTY, cer, null)
                                 val primerList = ArrayList<Concrete.Pattern>()
                                 primerList.add(concretePrimer)
                                 resolver.visitPatterns(primerList, null)

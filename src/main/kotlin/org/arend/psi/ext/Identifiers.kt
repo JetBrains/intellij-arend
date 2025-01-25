@@ -14,7 +14,6 @@ import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.doc.ArendDocReference
 import org.arend.resolving.*
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
 import org.arend.term.abs.Abstract
 import org.arend.util.mapUntilNotNull
@@ -110,7 +109,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
         }
 }
 
-class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR), TypedReferable {
+class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR) {
     val id: PsiElement
         get() = childOfTypeStrict(ArendElementTypes.ID)
 
@@ -129,15 +128,6 @@ class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable
             }
             else -> null
         }
-
-    override fun getTypeClassReference(): ClassReferable? {
-        val parent = parent
-        return if (parent is ArendLetClause) {
-            parent.typeClassReference
-        } else {
-            (typeOf as? ArendExpr)?.let { ReferableExtractVisitor().findClassReferable(it) }
-        }
-    }
 }
 
 class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable, LevelReferable {

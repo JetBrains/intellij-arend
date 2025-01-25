@@ -27,6 +27,7 @@ import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.intention.checkNotGeneratePreview
 import org.arend.injection.PsiInjectionTextFile
 import org.arend.naming.resolving.ResolverListener
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
 import org.arend.psi.*
@@ -146,7 +147,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
             val scope = CachingScope.make(injectionHost.scope)
             val subExprVisitor = CorrespondedSubExprVisitor(resolver?.result ?: subExpr)
             errors = subExprVisitor.errors
-            SyntacticDesugarVisitor.desugar(cExpr.accept(ExpressionResolveNameVisitor(scope, null, DummyErrorReporter.INSTANCE, null), null), DummyErrorReporter.INSTANCE).accept(subExprVisitor, injectedExpr)
+            SyntacticDesugarVisitor.desugar(cExpr.accept(ExpressionResolveNameVisitor(scope, null, TypingInfo.EMPTY, DummyErrorReporter.INSTANCE, null), null), DummyErrorReporter.INSTANCE).accept(subExprVisitor, injectedExpr)
         } else {
             errors = emptyList()
             null

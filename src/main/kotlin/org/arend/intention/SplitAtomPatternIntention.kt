@@ -27,6 +27,7 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.renamer.StringRenamer
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.prelude.Prelude
 import org.arend.psi.*
@@ -346,7 +347,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             val topLevelPatterns = localClause.patterns.mapTo(mutableListOf()) {
                 ConcreteBuilder.convertPattern(it, DummyErrorReporter.INSTANCE, null)
             }
-            ExpressionResolveNameVisitor(localClause.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(topLevelPatterns, mutableMapOf())
+            ExpressionResolveNameVisitor(localClause.scope, mutableListOf(), TypingInfo.EMPTY, DummyErrorReporter.INSTANCE, null).visitPatterns(topLevelPatterns, mutableMapOf())
 
             val localNames = HashSet<Variable>()
             localNames.addAll(findAllVariablePatterns(topLevelPatterns, element).map(::VariableImpl))
@@ -547,7 +548,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             if (enclosingPattern.isTuplePattern) return false
             if (patternLine.startsWith("(") && patternLine.endsWith(")")) return false
             val patternList = mutableListOf(ConcreteBuilder.convertPattern(enclosingPattern, DummyErrorReporter.INSTANCE, null))
-            ExpressionResolveNameVisitor(enclosingPattern.scope, mutableListOf(), DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf())
+            ExpressionResolveNameVisitor(enclosingPattern.scope, mutableListOf(), TypingInfo.EMPTY, DummyErrorReporter.INSTANCE, null).visitPatterns(patternList, mutableMapOf())
             val parsedConcretePattern = patternList[0]
             val correspondingConcrete = findParentConcrete(parsedConcretePattern, elementToReplace)
             if (correspondingConcrete !is Concrete.ConstructorPattern) {
