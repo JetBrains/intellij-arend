@@ -124,6 +124,10 @@ class HighlightingResolverListener(private val pass: BasePass, private val progr
         resolveReference(refExpr.data, refExpr.referent, resolvedRefs)
     }
 
+    override fun fieldCallResolved(expr: Concrete.FieldCallExpression, originalRef: Referable?, resolvedRef: Referable) {
+        resolveReference(expr.data, resolvedRef, listOf(resolvedRef))
+    }
+
     override fun levelResolved(originalRef: Referable?, refExpr: Concrete.VarLevelExpression, resolvedRef: Referable, availableRefs: MutableCollection<Referable>?) {
         resolveReference(refExpr.data, refExpr.referent, listOf(resolvedRef))
     }

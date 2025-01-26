@@ -75,7 +75,7 @@ class ShrinkAbstractVisitor(val textRange: TextRange) : AbstractExpressionVisito
     }
 
     override fun visitFieldAccs(data: Any?, expression: Abstract.Expression, fieldAccs: MutableList<Abstract.FieldAcc>, infixReference: AbstractReference?, infixName: String?, isInfix: Boolean, params: Unit?): String {
-        return "${expression.accept(this, Unit)}.${fieldAccs.joinToString(".") { it.number?.toString() ?: it.fieldName ?: "_" }}"
+        return "${expression.accept(this, Unit)}.${fieldAccs.joinToString(".") { it.number?.toString() ?: it.fieldRef?.refName ?: "_" }}"
     }
 
     override fun visitClassExt(data: Any?, isNew: Boolean, evalKind: Abstract.EvalKind?, baseClass: Abstract.Expression?, coclausesData: Any?, implementations: MutableCollection<out Abstract.ClassFieldImpl>?, sequence: MutableCollection<out Abstract.BinOpSequenceElem>, clauses: Abstract.FunctionClauses?, params: Unit?): String {

@@ -45,9 +45,9 @@ fun appExprToConcrete(appExpr: ArendExpr, setData: Boolean, errorReporter: Error
                 if (number != null) {
                     result = Concrete.ProjExpression(data, result, number - 1)
                 } else {
-                    val fieldName = fieldAcc.fieldName
-                    if (fieldName != null) {
-                        result = Concrete.FieldCallExpression(data, fieldName, Fixity.UNKNOWN, result)
+                    val fieldRef = fieldAcc.fieldRef
+                    if (fieldRef != null) {
+                        result = Concrete.FieldCallExpression(data, fieldRef, Fixity.UNKNOWN, result)
                     }
                 }
             }
