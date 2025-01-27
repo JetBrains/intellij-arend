@@ -11,7 +11,6 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.converter.ReferableConverter
-import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
@@ -27,9 +26,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
-
-    override val scope: Scope
-        get() = groupScope
 
     override fun getStatements(): List<ArendStatement> = ArendStat.flatStatements(where?.statList)
 

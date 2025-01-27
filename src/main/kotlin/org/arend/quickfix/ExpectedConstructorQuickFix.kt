@@ -47,7 +47,6 @@ import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.PsiLocatedRenamer
 import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder.convert
@@ -191,9 +190,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                 if (definitionPsi is Abstract.Definition) {
                     //STEP 0: Typecheck patterns of the function definition for the 2nd time
-                    val elimParams: List<DependentLink>
+                    val elimParams: List<DependentLink> = emptyList()
                     val expectedConstructorErrorEntries = ArrayList<K>()
 
+                    /* TODO[server2]
                     run {
                         val cer = CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE)
                         val psiConcreteProvider = PsiConcreteProvider(project, cer, null)
@@ -242,6 +242,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             }
                         }
                     }
+                    */
 
                     val definitionParameters = DependentLink.Helper.toList(typecheckedParameters)
 

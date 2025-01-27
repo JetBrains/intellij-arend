@@ -33,7 +33,6 @@ import org.arend.naming.scope.CachingScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
@@ -129,7 +128,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
     val psiDef = exprAncestor.ancestor<TCDefinition>()
         ?: throw SubExprException("selected text is not in a definition")
-    val concreteDef = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, resolver).getConcrete(psiDef) as? Concrete.Definition
+    val concreteDef: Concrete.Definition? = null // TODO[server2]: PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, resolver).getConcrete(psiDef) as? Concrete.Definition
     val body = concreteDef?.let { it to psiDef }
 
     val injectionContext = (file as? ArendFile)?.injectionContext

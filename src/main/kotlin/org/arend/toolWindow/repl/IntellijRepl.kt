@@ -19,7 +19,6 @@ import org.arend.psi.ArendPsiFactory
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.repl.Repl
 import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -32,6 +31,7 @@ import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.dependency.DummyDependencyListener
 import org.arend.typechecking.order.listener.CollectingOrderingListener
+import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.typechecking.result.TypecheckingResult
 import java.lang.StringBuilder
 import java.util.function.Consumer
@@ -41,7 +41,7 @@ abstract class IntellijRepl private constructor(
     service: TypeCheckingService,
     extensionProvider: LibraryArendExtensionProvider,
     errorReporter: ListErrorReporter,
-    psiConcreteProvider: PsiConcreteProvider,
+    psiConcreteProvider: ConcreteProvider,
 ) : Repl(
     errorReporter,
     service.libraryManager,
@@ -61,7 +61,7 @@ abstract class IntellijRepl private constructor(
         service,
         LibraryArendExtensionProvider(service.libraryManager),
         errorReporter,
-        PsiConcreteProvider(service.project, errorReporter, null, true),
+        ConcreteProvider.EMPTY // TODO[server2]: PsiConcreteProvider(service.project, errorReporter, null, true)
     )
 
     init {

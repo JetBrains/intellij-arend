@@ -9,7 +9,6 @@ import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.order.dependency.DependencyListener
@@ -23,7 +22,7 @@ open class ArendTypechecking(protected val typeCheckingService: TypeCheckingServ
     companion object {
         fun create(project: Project, concreteProvider: ConcreteProvider? = null, errorReporter: ErrorReporter = project.service<ErrorService>()): ArendTypechecking {
             val typecheckingService = project.service<TypeCheckingService>()
-            return ArendTypechecking(typecheckingService, PsiInstanceProviderSet(), concreteProvider ?: PsiConcreteProvider(project, errorReporter, null, true), errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
+            return ArendTypechecking(typecheckingService, PsiInstanceProviderSet(), concreteProvider ?: ConcreteProvider.EMPTY, errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
         }
     }
 

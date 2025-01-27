@@ -5,12 +5,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.PsiCodeFragmentImpl
 import org.arend.IArendFile
-import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.parser.ArendParser
 import org.arend.psi.ArendCodeFragmentElementType
 import org.arend.psi.ArendElementTypes
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.resolving.ArendReference
 import java.util.concurrent.atomic.AtomicLong
 
@@ -23,9 +21,6 @@ class ArendLongNameCodeFragment(project: Project,
     override var lastModification: AtomicLong
         get() = AtomicLong(-1)
         set(_) {}
-
-    override val scope: Scope
-        get() = customScopeGetter?.invoke() ?: (context as? ArendCompositeElement)?.scope ?: EmptyScope.INSTANCE
 
     override fun getReference(): ArendReference? = null // TODO:
 

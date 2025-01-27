@@ -34,7 +34,6 @@ import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.ArendGroup
 import org.arend.psi.findGroupByFullName
 import org.arend.resolving.ArendReferableConverter
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.*
 import org.arend.typechecking.error.ParserError
@@ -107,6 +106,7 @@ class TypeCheckProcessHandler(
         }
         typeCheckerService.updatedModules.clear()
 
+        /* TODO[server2]
         PooledThreadExecutor.INSTANCE.execute {
             val concreteProvider = PsiConcreteProvider(typeCheckerService.project, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()
@@ -203,6 +203,7 @@ class TypeCheckProcessHandler(
                 }
             }
         }
+        */
     }
 
     private fun resetGroup(group: ArendGroup) {

@@ -20,7 +20,6 @@ import org.arend.ext.module.LongName
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.Precedence
-import org.arend.injection.PsiInjectionTextFile
 import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleLocation
@@ -99,19 +98,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     val isInjected: Boolean
         get() = injectionContext != null
 
-    override val scope: Scope
-        get() = CachedValuesManager.getCachedValue(this) {
-            val enforcedScope = (originalFile as? ArendFile ?: this).enforcedScope()
-            if (enforcedScope != null) return@getCachedValue cachedValue(enforcedScope)
-            val injectedIn = injectionContext
-            cachedValue(if (injectedIn != null) {
-                (injectedIn.containingFile as? PsiInjectionTextFile)?.scope
-                    ?: EmptyScope.INSTANCE
-            } else {
-                CachingScope.make(ScopeFactory.forGroup(this, moduleScopeProvider))
-            })
-        }
-
     private fun <T> cachedValue(value: T) =
         CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT, service<ArendPsiChangeService>().definitionModificationTracker)
 
@@ -186,8 +172,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override fun getTypecheckable(): PsiLocatedReferable = this
 
     override fun getLocatedReferableParent(): LocatedReferable? = null
-
-    override fun getGroupScope() = scope
 
     override fun getNameIdentifier(): PsiElement? = null
 

@@ -1,14 +1,10 @@
 package org.arend.typechecking
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.EditorFactory
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
@@ -44,18 +40,14 @@ import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.resolving.*
-import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.computation.ComputationRunner
 import org.arend.typechecking.dfs.DFS
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.typechecking.execution.PsiElementComparator
 import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.instance.pool.LocalInstancePool
 import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
-import org.arend.typechecking.instance.provider.InstanceProviderSet
 import org.arend.typechecking.instance.provider.SimpleInstanceProvider
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.visitor.CheckTypeVisitor
@@ -182,10 +174,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                     }
                 }
             }
-
-            val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
-            preludeLibrary.resolveNames(concreteProvider, libraryManager.libraryErrorReporter)
-            Prelude.PreludeTypechecking(InstanceProviderSet(), concreteProvider, ArendReferableConverter, PsiElementComparator).typecheckLibrary(preludeLibrary)
 
             // Set the listener that updates typechecked definitions
             service<ArendPsiChangeService>().addListener(this)

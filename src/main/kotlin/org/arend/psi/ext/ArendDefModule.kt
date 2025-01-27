@@ -7,7 +7,6 @@ import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefModuleStub
 import org.arend.resolving.DataLocatedReferable
@@ -17,9 +16,6 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefModuleStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
-
-    override val scope: Scope
-        get() = groupScope
 
     override val where: ArendWhere?
         get() = childOfType()

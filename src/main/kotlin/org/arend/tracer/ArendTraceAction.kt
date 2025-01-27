@@ -23,7 +23,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.collectArendExprs
 import org.arend.refactoring.selectedExpr
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.server.ArendServerService
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.LibraryArendExtensionProvider
@@ -63,6 +62,7 @@ class ArendTraceAction : ArendPopupAction() {
 
     override fun getHandler() = object : ArendPopupHandler(requestFocus) {
         override fun invoke(project: Project, editor: Editor, file: PsiFile) {
+            /* TODO[server2]
             val (expression, definitionRef) = getElementAtCursor(file, editor)
                 ?: return displayErrorHint(editor, ArendBundle.message("arend.trace.action.cannot.find.expression"))
             val definition = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
@@ -84,6 +84,7 @@ class ArendTraceAction : ArendPopupAction() {
                 false,
                 starter
             )
+            */
         }
     }
 

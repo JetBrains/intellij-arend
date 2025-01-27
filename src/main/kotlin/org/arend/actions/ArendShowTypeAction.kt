@@ -20,7 +20,6 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.refactoring.*
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
@@ -30,6 +29,7 @@ import org.arend.typechecking.LibraryArendExtensionProvider
 import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.instance.pool.GlobalInstancePool
+import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.visitor.DefinitionTypechecker
 import org.arend.typechecking.visitor.DesugarVisitor
@@ -77,19 +77,21 @@ class ArendShowTypeAction : ArendPopupAction() {
 
         val (expr, definitionRef) = ArendTraceAction.getElementAtRange(file, editor)
             ?: return displayErrorHint(editor, ArendBundle.message("arend.trace.action.cannot.find.expression"))
-        val result = (PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
+        val result: Pair<TypecheckingResult?, TextRange?>? = null
+        /* TODO[server2]
+          (PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
             .getConcrete(definitionRef) as? Concrete.Definition)?.let {
             val extension = LibraryArendExtensionProvider(project.service<TypeCheckingService>().libraryManager)
                 .getArendExtension(it.data)
-            val errorReporter = ErrorReporter {  }
-            DesugarVisitor.desugar(it, errorReporter)
-            WhereVarsFixVisitor.fixDefinition(listOf(it), errorReporter)
-            val typechecker = ArendExpressionTypechecker(expr, errorReporter, extension).apply {
+            DesugarVisitor.desugar(it, DummyErrorReporter.INSTANCE)
+            WhereVarsFixVisitor.fixDefinition(listOf(it), DummyErrorReporter.INSTANCE)
+            val typechecker = ArendExpressionTypechecker(expr, DummyErrorReporter.INSTANCE).apply {
                 instancePool = GlobalInstancePool(PsiInstanceProviderSet()[it.data], this)
             }
             it.accept(DefinitionTypechecker(typechecker, it.recursiveDefinitions).apply { updateState(false) }, null)
             Pair(typechecker.checkedExprResult, typechecker.checkedExprRange)
         }
+        */
         if (result?.first != null && result.second != null) {
             select(result.second!!)
             hint(result.first?.type, expr)

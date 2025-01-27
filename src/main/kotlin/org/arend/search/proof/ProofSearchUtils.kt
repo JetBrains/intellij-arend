@@ -24,11 +24,11 @@ import org.arend.psi.ext.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.refactoring.rangeOfConcrete
 import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.search.collectSearchScopes
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
 import org.arend.term.concrete.Concrete
+import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.util.caching
 
 data class ProofSearchEntry(val def: ReferableBase<*>, val signature: RenderingInfo)
@@ -62,7 +62,7 @@ fun generateProofSearchResults(
         GlobalSearchScope.allScope(project)
     }
 
-    val concreteProvider = PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
+    val concreteProvider = ConcreteProvider.EMPTY // TODO[server2]: PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null)
 
     var idleCounter = 0
 
@@ -126,7 +126,7 @@ data class RenderingInfo(val parameters: List<ProofSearchHighlightingData>, val 
 data class ProofSearchHighlightingData(val typeRep: String, val keywords: List<TextRange>, val match: List<TextRange>)
 
 private fun getSignature(
-    provider: PsiConcreteProvider,
+    provider: ConcreteProvider,
     referable: PsiReferable,
     shouldConsiderParameters: Boolean
 ): SignatureWithHighlighting? {

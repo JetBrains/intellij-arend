@@ -34,7 +34,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction.Companion.getTargetName
 import org.arend.refactoring.*
-import org.arend.resolving.PsiConcreteProvider
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -126,6 +125,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
             return null // TODO: Implement some behavior for constructor clauses as well
         }
 
+        /* TODO[server2]
         if (definition != null && clauseIndex != -1) {
             var typeCheckedDefinition = project.service<ArendServerService>().server.getTCReferable(definition)?.typechecked
             var concreteClauseOwner = (element.containingFile as? ArendFile)?.concreteDefinitions?.get(definition.refLongName) as? Concrete.FunctionDefinition ?: PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null).getConcreteFunction(definition) ?: return null
@@ -171,6 +171,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
                 }
             }
         }
+        */
 
         if (ownerParent is ArendWithBody && patternOwner is ArendClause) {
             val clauseIndex2 = ownerParent.clauseList.indexOf(patternOwner)

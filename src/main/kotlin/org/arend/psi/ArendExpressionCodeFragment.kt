@@ -12,11 +12,8 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.elementType
 import org.arend.ArendLanguage
 import org.arend.IArendFile
-import org.arend.naming.scope.EmptyScope
-import org.arend.naming.scope.MergeScope
 import org.arend.naming.scope.Scope
 import org.arend.parser.ArendParser
-import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendExpr
 import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.resolving.ArendReference
@@ -29,8 +26,6 @@ class ArendExpressionCodeFragment(project: Project, expression: String,
     override var lastModification = AtomicLong(-1)
 
     override fun getReference(): ArendReference? = null
-
-    override val scope: Scope get() = MergeScope(fragmentController?.getFragmentScope(this) ?: EmptyScope.INSTANCE, (context as? ArendCompositeElement)?.scope ?: EmptyScope.INSTANCE)
 
     override fun moduleTextRepresentation(): String = name
 

@@ -8,19 +8,16 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
-import org.arend.IArendFile
 import org.arend.ext.error.SourceInfo
-import org.arend.module.ModuleLocation
-import org.arend.module.ModuleScope
-import org.arend.naming.scope.*
+import org.arend.naming.scope.EmptyScope
+import org.arend.naming.scope.Scope
 import org.arend.psi.*
-import org.arend.psi.doc.ArendDocReference
 import org.arend.resolving.ArendReference
-import org.arend.resolving.util.ModifiedClassFieldImplScope
 import org.arend.term.abs.Abstract
 
 interface ArendCompositeElement : PsiElement, SourceInfo {
     val scope: Scope // TODO[server2]: Remove this
+        get() = EmptyScope.INSTANCE
     override fun getReference(): ArendReference?
 }
 
@@ -40,20 +37,6 @@ fun PsiElement.positionTextRepresentationImpl(): String? {
 interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
     override fun getTopmostEquivalentSourceNode(): ArendSourceNode
     override fun getParentSourceNode(): ArendSourceNode?
-}
-
-fun getArendScope(element: ArendCompositeElement): Scope {
-    if (!element.isValid)
-        return EmptyScope.INSTANCE
-    val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
-    ((sourceNode as? ArendLongName)?.parent as? ArendDocReference)?.let { return it.scope }
-
-    val parentScope = sourceNode.parentSourceNode?.scope ?: (sourceNode.containingFile as? IArendFile)?.scope ?: EmptyScope.INSTANCE
-    val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope {
-        val containingFile = sourceNode.containingFile?.originalFile as? ArendFile
-        containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == ModuleLocation.LocationKind.TEST) } ?: EmptyScope.INSTANCE
-    }) { classRef -> if (classRef is ArendDefClass) ModifiedClassFieldImplScope(classRef, sourceNode.parentSourceNode?.parentSourceNode as? ClassReferenceHolder) else null }
-    return if (element is ArendDefIdentifier && sourceNode is Abstract.Pattern) ConstructorFilteredScope(scope.globalSubscope) else scope
 }
 
 fun getTopmostEquivalentSourceNode(sourceNode: ArendSourceNode): ArendSourceNode {
@@ -83,9 +66,6 @@ fun getParentSourceNode(sourceNode: ArendSourceNode) =
     sourceNode.topmostEquivalentSourceNode.parent?.ancestor<ArendSourceNode>()
 
 open class ArendCompositeElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), ArendCompositeElement {
-    override val scope
-        get() = getArendScope(this)
-
     override fun getReference(): ArendReference? = null
 
     override fun moduleTextRepresentation(): String? = runReadAction { moduleTextRepresentationImpl() }
@@ -103,9 +83,6 @@ abstract class ArendStubbedElementImpl<StubT : StubElement<*>> : StubBasedPsiEle
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
-
-    override val scope
-        get() = getArendScope(this)
 
     override fun getReference(): ArendReference? = null
 
