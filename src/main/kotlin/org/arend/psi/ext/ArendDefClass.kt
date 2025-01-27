@@ -14,7 +14,7 @@ import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.resolving.util.Universe
 import javax.swing.Icon
 
-class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefinition, StubBasedPsiElement<ArendDefClassStub>, Abstract.ClassDefinition, ClassReferenceHolder {
+class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefinition, StubBasedPsiElement<ArendDefClassStub>, Abstract.ClassDefinition {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -94,10 +94,6 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefi
     }
 
     override fun getCoClauseElements(): List<ArendClassImplement> = classStatList.mapNotNull { it.classImplement } + classImplementList
-
-    override fun getClassReference() = this
-
-    override fun getClassReferenceData(onlyClassRef: Boolean) = ClassReferenceData(this, emptyList(), emptySet(), false)
 
     override val typeOf: Abstract.Expression
         get() = Universe

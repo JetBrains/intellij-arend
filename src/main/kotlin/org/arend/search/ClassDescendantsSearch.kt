@@ -71,12 +71,14 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
                 }
             }
 
+            /* TODO[server2]
             if (FIND_INSTANCES) {
                 val defInst = usage.element?.parentOfType<ArendDefInstance>() //ArendReturnExpr>()?.parent as? InstanceAdapter
                 if (defInst?.classReference == clazz) {
                     descendants.add(defInst)
                 }
             }
+            */
         }
 
         res = descendants.toList()

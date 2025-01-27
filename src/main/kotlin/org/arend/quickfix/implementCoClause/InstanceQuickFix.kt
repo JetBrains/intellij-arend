@@ -5,9 +5,6 @@ import com.intellij.psi.PsiElement
 import org.arend.ext.reference.ArendRef
 import org.arend.highlight.BasePass.Companion.isEmptyGoal
 import org.arend.naming.reference.*
-import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ClassFieldImplScope
-import org.arend.psi.ClassReferenceHolder
 import org.arend.psi.ext.*
 
 enum class InstanceQuickFixAnnotation {
@@ -83,6 +80,7 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
     }
 }
 
+/* TODO[server2]
 private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
         //rangeToReport: TextRange,
                                coClausesList: List<CoClauseBase>,
@@ -127,10 +125,13 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
     }
     return emptyList()
 }
+*/
 
 private fun getTCRef(ref: Referable?) = (ref as? PsiLocatedReferable)?.tcReferable ?: ref
 
 fun makeFieldList(fields: Collection<ArendRef>, classRef: ClassReferable): List<Pair<LocatedReferable, Boolean>> {
+    return emptyList()
+    /* TODO[server2]
     val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
     return fields.mapNotNull { field ->
         if (field is LocatedReferable) {
@@ -138,26 +139,25 @@ fun makeFieldList(fields: Collection<ArendRef>, classRef: ClassReferable): List<
             Pair(field, if (field is TCFieldReferable || field2 is TCFieldReferable) getTCRef(field) != getTCRef(field2) else field != field2)
         } else null
     }
+    */
 }
 
 fun doAnnotate(element: PsiElement?) {
+    /* TODO[server2]
     when (element) {
-        /* TODO[server2]
         is ArendNewExpr -> element.argumentAppExpr?.let {
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, it),*/ element.localCoClauseList, InstanceQuickFixAnnotation.NO_ANNOTATION, element.appPrefix?.isNew != true)
         }
-        */
         is ArendDefInstance -> if (element.returnExpr != null && element.classReference?.isRecord == false && element.body.let { it == null || it.fatArrow == null && it.elim == null })
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.body?.coClauseList
                     ?: emptyList())
         is ArendDefFunction -> if (element.body?.cowithKw != null)
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.body?.coClauseList
                     ?: emptyList())
-        /* TODO[server2]
         is CoClauseBase -> if (element.fatArrow == null)
             doAnnotateInternal(element, /*BasePass.getImprovedTextRange(null, element),*/ element.localCoClauseList, InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR)
-        */
     }
+    */
 }
 
 

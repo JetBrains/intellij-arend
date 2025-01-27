@@ -12,11 +12,10 @@ import org.arend.psi.stubs.ArendDefInstanceStub
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ParameterImpl
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
-class ArendDefInstance : ArendFunctionDefinition<ArendDefInstanceStub>, Abstract.FunctionDefinition, ClassReferenceHolder, StubBasedPsiElement<ArendDefInstanceStub> {
+class ArendDefInstance : ArendFunctionDefinition<ArendDefInstanceStub>, Abstract.FunctionDefinition, StubBasedPsiElement<ArendDefInstanceStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefInstanceStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -46,13 +45,6 @@ class ArendDefInstance : ArendFunctionDefinition<ArendDefInstanceStub>, Abstract
 
     override val typeOf: Abstract.Expression?
         get() = getTypeOf(allParameters, resultType)
-
-    override fun getClassReferenceData(onlyClassRef: Boolean): ClassReferenceData? {
-        val type = resultType ?: return null
-        val visitor = ReferableExtractVisitor(true)
-        val classRef = (if (isCowith) visitor.findReferableInType(type) as? ClassReferable else visitor.findClassReferable(type)) ?: return null
-        return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields, true)
-    }
 
     override val psiElementType: PsiElement?
         get() = resultType

@@ -117,11 +117,13 @@ fun doCalculateReferenceName(
         if (statements != null)
             ancestorGroups.add(0, Pair(containingGroup, statements.filter { it.kind == NamespaceCommand.Kind.OPEN }))
 
+        /* TODO[server2]
         if (psi is ArendDefClass) {
             val scope = ClassFieldImplScope(psi, true)
             for (location in locations)
                 location.checkShortNameInScope(scope)
         }
+        */
 
         psi = psi.parent
     }

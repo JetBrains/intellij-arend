@@ -5,13 +5,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
-import org.arend.naming.reference.ClassReferable
-import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.TCDefReferable
-import org.arend.naming.scope.LazyScope
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendNamedStub
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 
@@ -39,12 +35,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun withTerm() = body?.fatArrow != null
 
     override fun isCowith() = body?.cowithKw != null
-
-    override fun getClassReference(): ClassReferable? {
-        val type = resultType ?: return null
-        val visitor = ReferableExtractVisitor()
-        return if (isCowith) visitor.findClassReference(visitor.findReferableInType(type), LazyScope { type.scope }) else visitor.findClassReferable(type)
-    }
 
     override fun getCoClauseElements() = body?.coClauseList ?: emptyList()
 

@@ -9,7 +9,6 @@ import org.arend.psi.stubs.ArendCoClauseDefStub
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.naming.reference.*
 import org.arend.term.abs.Abstract
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.term.group.AccessModifier
 import javax.swing.Icon
 
@@ -45,8 +44,6 @@ class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract
 
     override val where: ArendWhere?
         get() = null
-
-    override fun getClassReference(): ClassReferable? = resultType?.let { ReferableExtractVisitor().findClassReferable(it) }
 
     override fun getFunctionKind() = if (isDefault) FunctionKind.CLASS_COCLAUSE else FunctionKind.FUNC_COCLAUSE
 

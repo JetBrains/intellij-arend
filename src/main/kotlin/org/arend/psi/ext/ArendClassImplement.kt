@@ -42,8 +42,6 @@ class ArendClassImplement : ReferableBase<ArendClassImplementStub>, PsiLocatedRe
 
     override fun getCoClauseData() = lbrace
 
-    override fun getClassReference() = null
-
     override fun getIcon(flags: Int) = ArendIcons.IMPLEMENTATION
 
     override fun getKind() = GlobalReferable.Kind.OTHER

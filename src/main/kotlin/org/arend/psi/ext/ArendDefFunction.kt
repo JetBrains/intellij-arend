@@ -13,11 +13,10 @@ import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.psi.ArendElementTypes.*
 import org.arend.term.abs.Abstract
 import org.arend.resolving.util.ParameterImpl
-import org.arend.resolving.util.ReferableExtractVisitor
 import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
-class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract.FunctionDefinition, TCDefinition, ClassReferenceHolder, StubBasedPsiElement<ArendDefFunctionStub> {
+class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract.FunctionDefinition, TCDefinition, StubBasedPsiElement<ArendDefFunctionStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefFunctionStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -48,13 +47,6 @@ class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract
 
     override val typeOf: Abstract.Expression?
         get() = getTypeOf(allParameters, resultType)
-
-    override fun getClassReferenceData(onlyClassRef: Boolean): ClassReferenceData? {
-        val type = resultType ?: return null
-        val visitor = ReferableExtractVisitor(true)
-        val classRef = (if (isCowith) visitor.findReferableInType(type) as? ClassReferable else visitor.findClassReferable(type)) ?: return null
-        return ClassReferenceData(classRef, visitor.argumentsExplicitness, visitor.implementedFields, true)
-    }
 
     override fun getKind() = GlobalReferable.Kind.FUNCTION
 

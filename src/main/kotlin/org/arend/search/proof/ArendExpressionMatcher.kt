@@ -2,7 +2,6 @@ package org.arend.search.proof
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
-import com.jetbrains.rd.util.string.printToString
 import org.arend.error.DummyErrorReporter
 import org.arend.naming.binOp.ExpressionBinOpEngine
 import org.arend.naming.reference.LocatedReferable
@@ -168,7 +167,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
                 }
             }
             is PatternTree.LeafNode -> {
-                val referable = Scope.resolveName(scope, tree.referenceName, false)
+                val referable = Scope.resolveName(scope, tree.referenceName)
                     ?: references.value[tree.referenceName.last()]?.let { disambiguate(it, tree.referenceName) }
                 if (referable != null) {
                     val refExpr = Concrete.FixityReferenceExpression.make(null, referable, Fixity.UNKNOWN, null, null)

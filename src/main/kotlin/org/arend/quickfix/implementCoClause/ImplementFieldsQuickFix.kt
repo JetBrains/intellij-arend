@@ -78,9 +78,11 @@ open class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPoint
 
     private fun getMinDefaultFields(): Pair<Set<Set<PsiElement>>, Set<PsiElement>> {
         val defaultStatements = mutableSetOf<ArendClassStat>()
+        /*
         ((instanceRef.element as Abstract.ClassReferenceHolder).classReference as? ArendDefClass?)?.let {
             collectDefaultStatements(it, defaultStatements)
         }
+        */
         val defaultFields = defaultStatements.mapNotNull { it.coClause?.longName?.resolve }.toSet()
 
         val rules = mutableMapOf<PsiElement, MutableList<PsiElement>>()
@@ -141,9 +143,12 @@ open class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPoint
     }
 
     private fun getFullClassName(): String {
+        return ""
+        /* TODO[server2]
         val classReferable = (instanceRef.element as ArendDefInstance).classReference as PsiLocatedReferable
         val name = (classReferable.containingFile as ArendFile).moduleLocation.toString() + "." + classReferable.fullName
         return name
+        */
     }
 
     private fun showFields(

@@ -24,7 +24,6 @@ import org.arend.ext.variable.VariableImpl
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LongUnresolvedReference
 import org.arend.naming.renamer.StringRenamer
-import org.arend.naming.scope.ClassFieldImplScope
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
@@ -608,6 +607,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                         if (oldThisParameterClass != null) {
                             fun collectClassMembers(group: ArendGroup, sink: MutableSet<PsiLocatedReferable>) {
                                 if (group !is ArendDefClass) sink.add(group)
+                                /* TODO[server2]
                                 if (group is ArendDefClass) {
                                     for (classMember in ClassFieldImplScope(group, true).elements)
                                         if (classMember is PsiLocatedReferable) {
@@ -615,6 +615,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                                             if (classMember is ArendGroup) collectClassMembers(classMember, sink)
                                         }
                                 }
+                                */
 
                                 for (member in group.dynamicSubgroups) collectClassMembers(member, sink)
                             }
