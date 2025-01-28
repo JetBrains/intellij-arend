@@ -20,10 +20,10 @@ import com.intellij.psi.util.parentsOfType
 import com.intellij.util.SmartList
 import org.arend.documentation.ArendKeyword.Companion.AREND_KEYWORDS
 import org.arend.error.DummyErrorReporter
+import org.arend.ext.reference.DataContainer
 import org.arend.psi.ext.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.refactoring.rangeOfConcrete
-import org.arend.resolving.DataLocatedReferable
 import org.arend.search.collectSearchScopes
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.Abstract
@@ -112,7 +112,7 @@ fun generateProofSearchResults(
 
 private fun Any?.getPsi() : PsiElement? {
     if (this is PsiElement) return this
-    if (this is DataLocatedReferable) return this.data?.element
+    if (this is DataContainer) return data as? PsiElement
     return null
 }
 
@@ -136,7 +136,7 @@ private fun getSignature(
             ?.let(provider::getConcrete)
             as? Concrete.ClassDefinition)
             ?.elements
-            ?.find { it is Concrete.ClassField && (it.data as? DataLocatedReferable)?.underlyingReferable == referable }
+            ?.find { (it as? Concrete.ClassField)?.data?.data == referable }
             as? Concrete.ClassField
             ?: return null
         val parameters = concrete.parameters.mapNotNull { it.type }.toMutableList()
@@ -156,7 +156,7 @@ private fun getSignature(
             ?.let(provider::getConcrete)
             as? Concrete.DataDefinition)
             ?.constructorClauses?.flatMap { it.constructors }
-            ?.find { (it.data as? DataLocatedReferable)?.underlyingReferable == referable }
+            ?.find { it.data.data == referable }
             ?: return null
         val codomain = Concrete.ReferenceExpression(
             concrete.relatedDefinition.data,

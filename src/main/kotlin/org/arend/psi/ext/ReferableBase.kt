@@ -2,11 +2,9 @@ package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.components.service
-import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
-import org.arend.core.definition.Definition
 import org.arend.ext.module.LongName
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
@@ -20,6 +18,7 @@ import org.arend.term.group.AccessModifier
 import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentHashMap
 
+// TODO[server2]: Remove everything that mentions TCReferable, and maybe the class itself?
 abstract class ReferableBase<StubT> : PsiStubbedReferableImpl<StubT>, PsiDefReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
@@ -58,9 +57,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val tcReferable: TCReferable?
         get() = null
 
-    val tcDefinition: Definition?
-        get() = (tcReferable as? TCDefReferable)?.typechecked
-
     protected var tcReferableCache: TCReferable? = null
     private var tcRefMapCache: ConcurrentHashMap<LongName, IntellijTCReferable>? = null
 
@@ -77,8 +73,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override val tcReferableCached: TCReferable?
         get() = tcReferableCache
-
-    protected abstract fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable
 
     override fun dropTypechecked() {
         val service = project.service<TypeCheckingService>()

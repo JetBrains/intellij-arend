@@ -10,6 +10,7 @@ import com.intellij.refactoring.util.MoveRenameUsageInfo
 import com.intellij.util.containers.SortedList
 import org.arend.codeInsight.DefaultParameterDescriptorFactory
 import org.arend.codeInsight.ParameterDescriptor
+import org.arend.ext.reference.DataContainer
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.Referable
@@ -21,7 +22,6 @@ import org.arend.refactoring.changeSignature.entries.*
 import org.arend.refactoring.changeSignature.entries.UsageEntry.Companion.RenderedParameterKind
 import org.arend.refactoring.rename.ArendRenameProcessor
 import org.arend.refactoring.rename.ArendRenameRefactoringContext
-import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.Abstract.ParametersHolder
 import org.arend.term.concrete.Concrete
 import java.util.*
@@ -256,7 +256,7 @@ fun printPattern(pattern: Concrete.Pattern, psiElement: ArendPattern, refactorin
             (pattern.data as? ArendPattern)?.let{ it.constructorReference != null && it.parent == psiElement } == true)
 
     if (pattern is Concrete.ConstructorPattern && !isInsideAppExprLeaf) {
-        val constructor = (pattern.constructor as DataLocatedReferable).data?.element
+        val constructor = (pattern.constructor as? DataContainer)?.data
         val constructorIsInfix = constructor is GlobalReferable && constructor.precedence.isInfix
         val asTextWithWhitespace = (psiElement.asPattern?.getWhitespace(SpaceDirection.LeadingSpace) ?: "") + (psiElement.asPattern?.text ?: "")
         val descriptor = if (constructor is Referable) refactoringContext.identifyDescriptor(constructor) else null

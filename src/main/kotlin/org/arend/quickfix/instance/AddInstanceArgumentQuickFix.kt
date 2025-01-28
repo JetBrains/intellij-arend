@@ -19,7 +19,6 @@ import org.arend.psi.ancestor
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.*
-import org.arend.resolving.DataLocatedReferable
 import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.naming.reference.TCDefReferable
@@ -55,7 +54,7 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
             val classifyingField = implementedClass.classifyingField
             val fCallOk = classifyingField == null || implementedClass.notImplementedFields.filter { it.referable.isExplicitField }.let{ it.isNotEmpty() && it[0] == classifyingField }
             val classCall = if (fCallOk) className + (classifyingTypeExpr?.let { if (argNeedsParentheses(it)) " ($it)" else " $it" } ?: "") else "$className { | ${classifyingField!!.name} => $classifyingTypeExpr }"
-            val ambientDefTypechecked = (error.definition as? DataLocatedReferable)?.typechecked
+            val ambientDefTypechecked = (error.definition as? TCDefReferable)?.typechecked
             val l  = when (ambientDefinition) {
                 is ArendFunctionDefinition -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.identifierOrUnknownList.size) }
                 is ArendDefData -> ambientDefinition.parameters.map { tele -> Pair(tele, tele.typedExpr?.identifierOrUnknownList?.size ?: 1) }

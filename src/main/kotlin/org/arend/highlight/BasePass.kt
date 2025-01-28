@@ -21,6 +21,7 @@ import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersFor
 import org.arend.codeInsight.completion.STATEMENT_WT_KWS_TOKENS
 import org.arend.codeInsight.completion.withAncestors
 import org.arend.core.context.param.DependentLink
+import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.expr.Expression
 import org.arend.core.expr.ReferenceExpression
 import org.arend.error.ParsingError
@@ -52,7 +53,6 @@ import org.arend.quickfix.referenceResolve.ArendImportHintAction
 import org.arend.quickfix.removers.*
 import org.arend.quickfix.replacers.*
 import org.arend.refactoring.replaceExprSmart
-import org.arend.resolving.DataLocatedReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.concrete.Concrete
@@ -62,6 +62,7 @@ import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.injection.InjectedArendEditor
+import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.ConvertingScope
 import org.arend.psi.ArendExpressionCodeFragment
@@ -407,7 +408,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
             is InstanceInferenceError -> if (cause is ArendLongName) {
                 val classifyingExpression = error.classifyingExpression
-                val isLocal = (classifyingExpression is ReferenceExpression) && DependentLink.Helper.toList((error.definition as DataLocatedReferable).typechecked.parameters).contains(classifyingExpression.binding)
+                val isLocal = (classifyingExpression is ReferenceExpression) && DependentLink.Helper.toList((error.definition as? TCDefReferable)?.typechecked?.parameters ?: EmptyDependentLink.getInstance()).contains(classifyingExpression.binding)
                 if (isLocal) registerFix(builder, ReplaceWithLocalInstanceQuickFix(error, SmartPointerManager.createPointer(cause))) else registerFix(builder, InstanceInferenceQuickFix(error, SmartPointerManager.createPointer(cause)))
                 registerFix(builder, AddInstanceArgumentQuickFix(error, SmartPointerManager.createPointer(cause)))
                 if (error is RecursiveInstanceInferenceError) {
@@ -451,7 +452,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
             }
 
             is TruncatedDataError -> {
-                if ((error.definition as? DataLocatedReferable)?.data?.element?.descendantOfType<ArendReturnExpr>()?.firstChild?.text == "\\level") {
+                if (((error.definition as? DataContainer)?.data as? PsiElement)?.descendantOfType<ArendReturnExpr>()?.firstChild?.text == "\\level") {
                     registerFix(builder, TruncatedDataQuickFix(SmartPointerManager.createPointer(cause), error))
                 }
             }

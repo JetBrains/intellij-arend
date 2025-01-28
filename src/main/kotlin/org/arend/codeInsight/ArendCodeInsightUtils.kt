@@ -17,8 +17,6 @@ import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
@@ -142,9 +140,7 @@ class ArendCodeInsightUtils {
                 if (concreteData !is Concrete.DataDefinition) throw IllegalStateException()
 
                 val clause = concreteData.constructorClauses.firstOrNull { clause ->
-                    clause.constructors.map { constructor ->
-                        (constructor.data as? DataLocatedReferable)?.data?.element
-                    }.contains(constructor)
+                    clause.constructors.any { it.data.data == constructor }
                 }
                 val clausePatterns = clause?.patterns?.run {
                     val newList = ArrayList(this)
@@ -400,7 +396,7 @@ class ArendCodeInsightUtils {
         fun getParameters(concrete: Concrete.SourceNode): Pair<List<ParameterDescriptor>, Boolean>? {
             val concreteReferent = when (concrete) {
                 is Concrete.AppExpression -> (concrete.function as? Concrete.ReferenceExpression)?.referent
-                is Concrete.ConstructorPattern -> (concrete.constructor as DataLocatedReferable).data?.element
+                is Concrete.ConstructorPattern -> concrete.constructor
                 is Concrete.ReferenceExpression -> concrete.referent
                 else -> null
             }
@@ -452,10 +448,10 @@ class ArendCodeInsightUtils {
             if (externalParameters != null) for (eP in externalParameters) eP.name?.let{ externalParametersMap[it] = eP }
 
             val result = (def.project.service<ArendServerService>().server.getTCReferable(def)?.typechecked as? ClassDefinition)?.notImplementedFields?.map {
-                val psiReferable = (it.referable as? FieldDataLocatedReferable)?.data?.element as? PsiReferable
+                val psiReferable = it.referable?.data as? PsiReferable
                 val classParameterKind = when {
                     psiReferable is ArendClassField -> ClassParameterKind.CLASS_FIELD
-                    (it.parentClass.referable as? DataLocatedReferable)?.data?.element == def -> ClassParameterKind.OWN_PARAMETER
+                    it.parentClass.referable.data == def -> ClassParameterKind.OWN_PARAMETER
                     else -> ClassParameterKind.INHERITED_PARAMETER
                 }
 

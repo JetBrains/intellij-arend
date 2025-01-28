@@ -3,7 +3,6 @@ package org.arend.psi.ext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiRecursiveElementVisitor
-import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
@@ -14,8 +13,6 @@ import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
-import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.IntellijTCReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.abs.IncompleteExpressionError
@@ -84,9 +81,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     protected open val parametersExt: List<Abstract.Parameter>
         get() = emptyList()
-
-    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?): IntellijTCReferable =
-        DataLocatedReferable(data, accessModifier, this, parent)
 
     override fun getPLevelParameters(): ArendLevelParamsSeq? =
         getChild { it.elementType == P_LEVEL_PARAMS_SEQ }

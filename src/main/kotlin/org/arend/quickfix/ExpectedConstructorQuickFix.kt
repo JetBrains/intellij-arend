@@ -12,6 +12,7 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.core.context.binding.Binding
 import org.arend.core.context.binding.TypedBinding
 import org.arend.core.context.param.DependentLink
+import org.arend.core.context.param.EmptyDependentLink
 import org.arend.core.context.param.UntypedDependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.core.definition.Constructor
@@ -36,6 +37,7 @@ import org.arend.intention.SplitAtomPatternIntention
 import org.arend.intention.SplitAtomPatternIntention.Companion.doReplacePattern
 import org.arend.naming.reference.NamedUnresolvedReference
 import org.arend.naming.reference.Referable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.renamer.Renamer
 import org.arend.naming.renamer.StringRenamer
 import org.arend.naming.resolving.typing.TypingInfo
@@ -46,7 +48,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.PsiLocatedRenamer
-import org.arend.resolving.DataLocatedReferable
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder.convert
@@ -170,8 +171,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
             val psiFactory = ArendPsiFactory(project)
 
             private val entriesToRemove = ArrayList<AbstractExpectedConstructorErrorEntry>()
-            val definition = thisError.definition as DataLocatedReferable
-            private val definitionPsi = definition.data?.element
+            val definition = thisError.definition as? TCDefReferable
+            private val definitionPsi = definition?.data
             val constructorPsi = cause.element?.ancestor<ArendConstructor>()
             val bodyPsi = (definitionPsi as? ArendFunctionDefinition<*>)?.body
             val dataBodyPsi = (definitionPsi as? ArendDefData)?.dataBody
@@ -653,10 +654,10 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
 
                 val typecheckedParameters = when {
                     constructorPsi != null -> {
-                        (definition.typechecked as DataDefinition).constructors.firstOrNull { (it.referable as DataLocatedReferable).data?.element == constructorPsi }?.parameters ?: throw java.lang.IllegalStateException()
+                        (definition?.typechecked as? DataDefinition)?.constructors?.firstOrNull { it.referable.data == constructorPsi }?.parameters
                     }
-                    else -> definition.typechecked.parameters
-                }
+                    else -> definition?.typechecked?.parameters
+                } ?: EmptyDependentLink.getInstance()
 
                 val clauses = when (concreteDefinition) {
                     is Concrete.BaseFunctionDefinition -> (concreteDefinition.body as? Concrete.ElimFunctionBody)?.clauses
@@ -1090,7 +1091,7 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                             result[patternParameter] = ExplicitNamePattern(data)
                         }
                         is Concrete.ConstructorPattern -> {
-                            val typechecked = (concretePattern.constructor as? DataLocatedReferable)?.typechecked as? Constructor
+                            val typechecked = (concretePattern.constructor as? TCDefReferable)?.typechecked as? Constructor
                                     ?: return false
                             if (!matchConcreteWithWellTyped(data, concretePattern.patterns, prepareExplicitnessMask(DependentLink.Helper.toList(typechecked.parameters), null), patternParameterIterator, result)) return false
                         }

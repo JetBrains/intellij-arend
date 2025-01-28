@@ -18,6 +18,7 @@ import org.arend.core.subst.ExprSubstitution
 import org.arend.core.subst.SubstVisitor
 import org.arend.ext.core.level.LevelSubstitution
 import org.arend.ext.variable.Variable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ancestor
 import org.arend.psi.ancestors
@@ -27,7 +28,6 @@ import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doInsertCaseArgs
 import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doInsertPatternPrimers
 import org.arend.quickfix.ExpectedConstructorQuickFix.Companion.doWriteTypeQualification
 import org.arend.quickfix.removers.RemoveClauseQuickFix.Companion.doRemoveClause
-import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.error.local.ImpossibleEliminationError
 import org.arend.util.ArendBundle
 
@@ -39,17 +39,17 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
     override fun getText(): String = ArendBundle.message("arend.pattern.doMatching")
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean =
-        error.myCaseExpressions != null || error.myElimParams != null // this prevents quickfix from showing in the "no matching constructor" case
+        error.caseExpressions != null || error.elimParams != null // this prevents quickfix from showing in the "no matching constructor" case
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val psiFactory = ArendPsiFactory(project)
         val dataDefinition = error.defCall.definition as? DataDefinition ?: return
-        val definition = error.definition as DataLocatedReferable
-        val definitionPsi = definition.data?.element
+        val definition = error.definition as? TCDefReferable ?: return
+        val definitionPsi = definition.data
         val constructorPsi = cause.element?.ancestor<ArendConstructor>()
         val typecheckedParameters = when {
             constructorPsi != null -> {
-                (definition.typechecked as DataDefinition).constructors.firstOrNull { (it.referable as DataLocatedReferable).data?.element == constructorPsi }?.parameters
+                (definition.typechecked as DataDefinition).constructors.firstOrNull { it.referable.data == constructorPsi }?.parameters
             }
             else -> definition.typechecked.parameters
         } ?: return
@@ -71,9 +71,9 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
         }
 
         // determine matching expressions
-        val elimParams = error.myElimParams
+        val elimParams = error.elimParams
 
-        if (error.myCaseExpressions != null) { // case
+        if (error.caseExpressions != null) { // case
             val stuckParameter = error.myParameters
             val stuckParameterType = stuckParameter.type
 
@@ -89,7 +89,7 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
                 val caseOccupiedLocalNames = HashSet<String>(); doInitOccupiedLocalNames(caseExprPsi, caseOccupiedLocalNames)
                 val bindingToCaseArgMap = HashMap<Binding, ArendCaseArg>()
 
-                if (error.myCaseExpressions != null) for (triple in toList(error.clauseParameters).zip(error.myCaseExpressions.zip(caseExprPsi.caseArguments))) {
+                if (error.caseExpressions != null) for (triple in toList(error.clauseParameters).zip(error.caseExpressions.zip(caseExprPsi.caseArguments))) {
                     parameterToCaseArgMap[triple.first] = triple.second.second
                     parameterToCaseExprMap.add(triple.first, triple.second.first)
                 }
@@ -99,7 +99,7 @@ class ImpossibleEliminationQuickFix(val error: ImpossibleEliminationError, val c
                 for (expression in exprsToEliminate) {
                     val exprSubst =
                         expression.first.accept(SubstVisitor(parameterToCaseExprMap, LevelSubstitution.EMPTY), null)
-                    doInsertCaseArgs(psiFactory, caseExprPsi, oldCaseArgs, expression.second, exprSubst, dependentCaseArg, error.myCaseExpressions, caseOccupiedLocalNames, bindingToCaseArgMap,null)
+                    doInsertCaseArgs(psiFactory, caseExprPsi, oldCaseArgs, expression.second, exprSubst, dependentCaseArg, error.caseExpressions, caseOccupiedLocalNames, bindingToCaseArgMap,null)
                 }
 
                 val toInsertedBindingsSubstitution = ExprSubstitution(); for (e in bindingToCaseArgMap) toInsertedBindingsSubstitution.add(e.key, ReferenceExpression(UntypedDependentLink(e.value.referable!!.name)))

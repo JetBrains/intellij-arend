@@ -164,13 +164,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
                     Prelude.forEach {
                         val name = it.referable.refLongName
                         tcRefMap[name] = it.referable as IntellijTCReferable
-                        val dataRef = it.referable
-                        if (dataRef is DataLocatedReferable) {
-                            val ref = Scope.resolveName(preludeScope, name.toList())
-                            if (ref is PsiLocatedReferable) {
-                                dataRef.setPointer(ref)
-                            }
-                        }
                     }
                 }
             }

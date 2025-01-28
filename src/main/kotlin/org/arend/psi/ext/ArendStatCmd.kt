@@ -6,11 +6,10 @@ import com.intellij.psi.util.elementType
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
-import org.arend.term.ChildNamespaceCommand
 import org.arend.term.NamespaceCommand
 import org.arend.term.abs.Abstract
 
-class ArendStatCmd(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.NamespaceCommandHolder, ChildNamespaceCommand {
+class ArendStatCmd(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.NamespaceCommandHolder, NamespaceCommand {
     override fun getKind(): NamespaceCommand.Kind = when (firstRelevantChild.elementType) {
         IMPORT_KW -> NamespaceCommand.Kind.IMPORT
         OPEN_KW -> NamespaceCommand.Kind.OPEN
@@ -50,8 +49,6 @@ class ArendStatCmd(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.Namespac
     override fun getOpenedReferences(): List<ArendNsId> = nsUsing?.nsIdList ?: emptyList()
 
     override fun getHiddenReferences(): List<ArendScId> = getChildrenOfType()
-
-    override fun getParentGroup() = parent.ancestor<ArendGroup>()
 
     override fun getOpenedReference() = longName
 

@@ -8,10 +8,9 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.refactoring.extractMethod.newImpl.ExtractMethodHelper.addSiblingAfter
 import org.arend.core.definition.Constructor
 import org.arend.core.elimtree.IntervalElim
-import org.arend.psi.ArendElementTypes.PROP_KW
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendDefData
-import org.arend.resolving.DataLocatedReferable
 import org.arend.util.ArendBundle
 import kotlin.math.max
 
@@ -29,7 +28,7 @@ class AddTruncatedUniverseQuickFix(private val cause: SmartPsiElementPointer<Are
 
         var maxPatternMatching = 0
         for (constructor in (defData?.constructors ?: emptyList())) {
-            val definition = (constructor.tcReferable as? DataLocatedReferable?)?.typechecked
+            val definition = (constructor.tcReferable as? TCDefReferable)?.typechecked
             if (definition is Constructor) {
                 if (definition.body is IntervalElim) {
                     maxPatternMatching = max(maxPatternMatching, (definition.body as IntervalElim).cases.size)
@@ -38,11 +37,7 @@ class AddTruncatedUniverseQuickFix(private val cause: SmartPsiElementPointer<Are
         }
 
         val psiFactory = ArendPsiFactory(project)
-        val universeName = if (maxPatternMatching == 0) {
-            PROP_KW.debugName
-        } else {
-            "\\${maxPatternMatching - 1}-Type"
-        }
+        val universeName = if (maxPatternMatching == 0) "\\Prop" else "\\${maxPatternMatching - 1}-Type"
         val actualUniverse = psiFactory.createUniverse(universeName)
         val space = psiFactory.createWhitespace(" ")
 

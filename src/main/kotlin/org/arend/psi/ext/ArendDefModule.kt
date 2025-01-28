@@ -1,15 +1,12 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefModuleStub
-import org.arend.resolving.DataLocatedReferable
 
 
 class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedPsiElement<ArendDefModuleStub> {
@@ -39,9 +36,6 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
 
     override val alias: ArendAlias?
         get() = null
-
-    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        DataLocatedReferable(data, accessModifier, this, parent)
 
     override fun getIcon(flags: Int) = ArendIcons.MODULE_DEFINITION
 

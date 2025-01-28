@@ -1,20 +1,15 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import com.intellij.openapi.application.runReadAction
-import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefMetaStub
-import org.arend.resolving.IntellijMetaReferable
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import java.util.function.Supplier
 
 
 class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition, StubBasedPsiElement<ArendDefMetaStub> {
@@ -30,12 +25,6 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
         set(value) {
             tcReferableCache = value
         }
-
-    private fun prepareTCRef(data: SmartPsiElementPointer<PsiLocatedReferable>?, parent: LocatedReferable?) =
-        IntellijMetaReferable(data, accessModifier, precedence, refName, aliasPrecedence, aliasName, parent)
-
-    override fun makeTCReferable(data: SmartPsiElementPointer<PsiLocatedReferable>, parent: LocatedReferable?) =
-        prepareTCRef(data, parent).apply { underlyingReferable = Supplier { runReadAction { data.element } } }
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 

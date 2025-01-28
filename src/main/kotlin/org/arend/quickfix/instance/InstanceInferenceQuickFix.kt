@@ -27,11 +27,11 @@ import org.arend.psi.ext.ArendDefinition
 import org.arend.psi.ext.ArendGroup
 import org.arend.psi.ext.ArendLongName
 import org.arend.refactoring.*
-import org.arend.resolving.DataLocatedReferable
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.ErrorService
 import org.arend.ext.error.InstanceInferenceError
 import org.arend.naming.reference.TCDefReferable
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.resolving.ArendReferenceBase
 import org.arend.util.ArendBundle
 
@@ -96,7 +96,7 @@ class InstanceInferenceQuickFix(val error: InstanceInferenceError, val cause: Sm
 
                     for (element in chosenElement) {
                         val sourceContainerFile = (mySourceContainer as PsiElement).containingFile as ArendFile
-                        val elementReferable = (element.referable as? DataLocatedReferable)?.data?.element ?: continue
+                        val elementReferable = element.referable?.data as? PsiLocatedReferable ?: continue
                         val targetLocation = LocationData.createLocationData(elementReferable)
                         val importData = targetLocation?.let { calculateReferenceName(it, sourceContainerFile, longName) }
 

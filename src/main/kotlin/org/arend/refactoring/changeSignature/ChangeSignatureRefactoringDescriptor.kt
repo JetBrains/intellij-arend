@@ -9,6 +9,7 @@ import com.intellij.psi.util.startOffset
 import org.arend.codeInsight.*
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
+import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ancestor
 import org.arend.psi.childrenWithLeaves
@@ -17,8 +18,6 @@ import org.arend.psi.findPrevSibling
 import org.arend.refactoring.changeSignature.ArendChangeInfo.Companion.getDefinitionsWithExternalParameters
 import org.arend.refactoring.changeSignature.ArendParametersInfo.Companion.getParameterInfo
 import org.arend.refactoring.move.MoveRefactoringSignatureContext
-import org.arend.resolving.DataLocatedReferable
-import org.arend.resolving.FieldDataLocatedReferable
 import org.arend.search.ClassDescendantsSearch
 import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
@@ -351,10 +350,10 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
 
                         if (typecheckedNotImplementedFields != null) {
                             descendantOldParameters = typecheckedNotImplementedFields.map {
-                                val psiReferable = (it.referable as? DataLocatedReferable)?.data?.element
+                                val psiReferable = it.referable.data as? Referable
                                 val (classParameterKind, externalScope) = when {
                                     psiReferable is ArendClassField -> Pair(ClassParameterKind.CLASS_FIELD, null)
-                                    (it.parentClass.referable as? DataLocatedReferable)?.data?.element == classDescendant ->
+                                    it.parentClass.referable?.data == classDescendant ->
                                         Pair(ClassParameterKind.OWN_PARAMETER, externalParameterData[it.name])
                                     else -> Pair(ClassParameterKind.INHERITED_PARAMETER, null)
                                 }
