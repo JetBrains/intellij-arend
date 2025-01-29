@@ -8,6 +8,7 @@ import org.arend.ArendIcons
 import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.reference.DataContainer
+import org.arend.module.ModuleLocation
 import org.arend.naming.reference.*
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
@@ -18,6 +19,7 @@ import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.util.FileUtils
+import org.arend.util.findLibrary
 
 interface ArendReference : PsiReference {
     override fun getElement(): ArendReferenceElement
@@ -50,9 +52,6 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
 
     companion object {
         fun createArendLookUpElement(origElement: Referable, containingFile: PsiFile?, fullName: Boolean, clazz: Class<*>?, notARecord: Boolean, lookup: String? = null): LookupElementBuilder? {
-            if (origElement is ModuleReferable && containingFile is ArendFile && origElement.path == containingFile.moduleLocation?.modulePath) {
-                return null
-            }
             val ref = origElement.abstractReferable
             return if (ref == null || origElement is AliasReferable || ref !is ModuleReferable && (clazz != null && !clazz.isInstance(ref) || notARecord && (ref as? ArendDefClass)?.isRecord == true)) {
                 null
@@ -82,15 +81,17 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                     builder
                 }
                 is ModuleReferable -> {
-                    val module = if (ref is PsiModuleReferable) {
-                        ref.modules.firstOrNull()
-                    } else {
-                        (containingFile as? ArendFile)?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
+                    val module: Any? = when (ref) {
+                        is PsiModuleReferable -> ref.modules.firstOrNull()
+                        is FullModuleReferable -> if (ref.location.locationKind == ModuleLocation.LocationKind.GENERATED) ref else
+                            containingFile?.project?.findLibrary(ref.location.libraryName)?.findArendFileOrDirectory(ref.location.modulePath, false, ref.location.locationKind == ModuleLocation.LocationKind.TEST)
+                        else -> (containingFile as? ArendFile)?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                     }
-                    when (module) {
-                        null -> LookupElementBuilder.create(ref, ref.path.toString()).withIcon(ArendIcons.DIRECTORY)
-                        is ArendFile -> LookupElementBuilder.create(module, ref.path.toString()).withIcon(ArendIcons.AREND_FILE)
-                        else -> LookupElementBuilder.createWithIcon(module)
+                    val result = LookupElementBuilder.create(if (ref is FullModuleReferable) ModuleReferable(ref.location.modulePath) else ref, ref.path.lastName)
+                    when {
+                        (module as? PsiFileSystemItem)?.isDirectory == true -> result.withIcon(ArendIcons.DIRECTORY)
+                        module is ArendFile || module is FullModuleReferable -> result.withIcon(ArendIcons.AREND_FILE)
+                        else -> result
                     }
                 }
                 else -> LookupElementBuilder.create(ref, origElement.textRepresentation())

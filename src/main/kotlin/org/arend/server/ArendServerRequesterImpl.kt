@@ -2,12 +2,17 @@ package org.arend.server
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.findDirectory
+import com.intellij.psi.PsiManager
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.module.ModuleLocation
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.psi.ArendFile
 import org.arend.term.abs.ConcreteBuilder
+import org.arend.util.FileUtils
 import org.arend.util.findInternalLibrary
+import org.arend.util.findLibrary
 import org.arend.util.moduleConfigs
 
 class ArendServerRequesterImpl(private val project: Project) : ArendServerRequester {
@@ -19,6 +24,19 @@ class ArendServerRequesterImpl(private val project: Project) : ArendServerReques
                 ConcreteBuilder.convertGroup(file, DummyErrorReporter.INSTANCE)
             }
         }
+    }
+
+    override fun getFiles(libraryName: String, inTests: Boolean, prefix: List<String>): List<String>? {
+        val library = project.findLibrary(libraryName) ?: return null
+        var dir = (if (inTests) library.testsDirFile else library.sourcesDirFile) ?: return null
+        for (name in prefix) {
+            dir = dir.findDirectory(name) ?: return null
+        }
+        return dir.children.mapNotNull { when {
+            it.isDirectory -> it.name
+            PsiManager.getInstance(project).findFile(it) is ArendFile -> it.name.removeSuffix(FileUtils.EXTENSION)
+            else -> null
+        } }
     }
 
     private fun requestUpdate(server: ArendServer, modules: List<ModulePath>, library: String, inTests: Boolean) {
