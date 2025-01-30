@@ -11,6 +11,7 @@ import org.arend.module.ArendPreludeLibrary
 import org.arend.module.ArendPreludeLibrary.Companion.PRELUDE_FILE_NAME
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
+import org.arend.server.impl.ArendServerImpl
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.util.FileUtils
 import java.nio.charset.StandardCharsets
@@ -18,7 +19,8 @@ import java.nio.charset.StandardCharsets
 @Service(Service.Level.PROJECT)
 class ArendServerService(val project: Project) : Disposable {
     val prelude: ArendFile?
-    val server: ArendServer = ArendServerImpl(ArendServerRequesterImpl(project), true, true, null)
+    val server: ArendServer =
+        ArendServerImpl(ArendServerRequesterImpl(project), true, true, null)
 
     init {
         val preludeText = String(ArendPreludeLibrary::class.java.getResourceAsStream("/lib/Prelude" + FileUtils.EXTENSION)!!.readBytes(), StandardCharsets.UTF_8)

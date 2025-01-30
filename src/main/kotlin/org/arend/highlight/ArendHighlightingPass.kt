@@ -19,7 +19,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         if (file is ArendFile) {
             val module = file.moduleLocation
             if (module != null) {
-                myProject.service<ArendServerService>().server.resolveModules(listOf(module), this, ProgressCancellationIndicator(progress), HighlightingResolverListener(this, progress))
+                myProject.service<ArendServerService>().server.getCheckerFor(listOf(module)).resolveModules(this, ProgressCancellationIndicator(progress), HighlightingResolverListener(this, progress))
             }
         }
     }

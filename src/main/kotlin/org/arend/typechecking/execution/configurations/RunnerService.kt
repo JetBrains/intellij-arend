@@ -40,14 +40,14 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
                 reportSequentialProgress(modules.size) { reporter ->
                     readAction {
                         if (module == null) {
-                            server.resolveModules(modules, DummyErrorReporter.INSTANCE, indicator, object : DelegateResolverListener(resolverListener) {
+                            server.getCheckerFor(modules).resolveModules(DummyErrorReporter.INSTANCE, indicator, object : DelegateResolverListener(resolverListener) {
                                 override fun moduleResolved(module: ModuleLocation?) {
                                     super.moduleResolved(module)
                                     reporter.itemStep()
                                 }
                             })
                         } else {
-                            server.resolveModules(listOf(module), DummyErrorReporter.INSTANCE, indicator, resolverListener)
+                            server.getCheckerFor(listOf(module)).resolveModules(DummyErrorReporter.INSTANCE, indicator, resolverListener)
                             /* TODO[server2]
                             if (definition == "") {
                                 val group = library?.getModuleGroup(modulePath, command.isTest)
