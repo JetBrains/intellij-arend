@@ -1,27 +1,20 @@
 package org.arend.module
 
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFileFactory
 import org.arend.ArendLanguage
-import org.arend.ext.error.ErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.library.BaseLibrary
 import org.arend.library.LibraryDependency
 import org.arend.library.LibraryManager
 import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.resolving.typing.TypingInfo
-import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
-import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
 import org.arend.term.group.Group
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
-import org.arend.typechecking.provider.ConcreteProvider
 import org.arend.util.FileUtils
 import org.arend.util.Version
 import java.nio.charset.StandardCharsets
@@ -75,13 +68,6 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
     override fun unload() = false
 
     override fun reset() {}
-
-    fun resolveNames(concreteProvider: ConcreteProvider, errorReporter: ErrorReporter) {
-        if (scope != null) throw IllegalStateException()
-        val preludeFile = prelude ?: return
-        scope = CachingScope.make(LexicalScope.opened(preludeFile))
-        runReadAction { DefinitionResolveNameVisitor(concreteProvider, TypingInfo.EMPTY, errorReporter).resolveGroup(preludeFile, scope) }
-    }
 
     companion object {
         const val PRELUDE = "Prelude"

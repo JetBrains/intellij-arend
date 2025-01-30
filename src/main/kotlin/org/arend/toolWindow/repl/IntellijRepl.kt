@@ -6,6 +6,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.core.expr.Expression
+import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.error.ListErrorReporter
 import org.arend.ext.module.ModulePath
@@ -22,6 +23,7 @@ import org.arend.resolving.ArendReferableConverter
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
+import org.arend.term.group.ConcreteGroup
 import org.arend.term.group.Group
 import org.arend.toolWindow.repl.action.SetPromptCommand
 import org.arend.toolWindow.repl.action.ShowContextCommandIntellij
@@ -71,8 +73,8 @@ abstract class IntellijRepl private constructor(
     private val project = service.project
     private val definitionModificationTracker = service<ArendPsiChangeService>().definitionModificationTracker
     private val psiFactory = ArendPsiFactory(project, replModulePath.libraryName)
-    override fun parseStatements(line: String): Group? = psiFactory.createFromText(line)
-        ?.also { it.enforcedScope = ::resetCurrentLineScope }
+    override fun parseStatements(line: String): ConcreteGroup? = psiFactory.createFromText(line)
+        ?.let { ConcreteBuilder.convertGroup(it, DummyErrorReporter.INSTANCE) }
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(it) }
 
