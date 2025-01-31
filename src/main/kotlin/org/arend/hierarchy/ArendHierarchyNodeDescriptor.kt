@@ -23,7 +23,7 @@ open class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeD
                     myHighlightedText.ending.addText(fullName.longName.lastName.toString())
                 } else {
                     myHighlightedText.ending.addText(fullName.longName.toString())
-                    myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', getPackageNameAttributes())
+                    myHighlightedText.ending.addText(" (" + fullName.module + ')', getPackageNameAttributes())
                 }
             }
             /*is ArendClassImplement -> {
@@ -41,7 +41,7 @@ open class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeD
             is PsiLocatedReferable -> {
                 val fullName = FullName(element)
                 myHighlightedText.ending.addText(fullName.longName.toString())
-                myHighlightedText.ending.addText(" (" + fullName.modulePath + ')', getPackageNameAttributes())
+                myHighlightedText.ending.addText(" (" + fullName.module + ')', getPackageNameAttributes())
             }
         }
 

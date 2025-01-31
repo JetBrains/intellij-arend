@@ -18,7 +18,6 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.library.SourceLibrary
 import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleLocation
-import org.arend.naming.reference.converter.ReferableConverter
 import org.arend.psi.ArendFile
 import org.arend.util.FileUtils
 import org.arend.util.getRelativeFile
@@ -27,7 +26,7 @@ import org.arend.util.getRelativeFile
 @Service(Service.Level.PROJECT)
 class BinaryFileSaver(private val project: Project) {
     private val typeCheckingService = project.service<TypeCheckingService>()
-    private val typecheckedModules = LinkedHashMap<ArendFile, ReferableConverter>()
+    private val typecheckedModules = LinkedHashSet<ArendFile>()
 
     init {
         // TODO: Replace with AsyncFileListener?
@@ -41,7 +40,9 @@ class BinaryFileSaver(private val project: Project) {
                 for (event in events) {
                     val file = (if (event is VFileContentChangeEvent && event.isFromSave) PsiManager.getInstance(project).findFile(event.file) as? ArendFile else null) ?: continue
                     synchronized(project) {
-                        saveFile(file, typecheckedModules.remove(file) ?: return@synchronized, typeCheckingService.libraryManager.libraryErrorReporter, savedFiles)
+                        if (typecheckedModules.remove(file)) {
+                            saveFile(file, typeCheckingService.libraryManager.libraryErrorReporter, savedFiles)
+                        }
                     }
                 }
                 updateFiles(savedFiles)
@@ -63,14 +64,14 @@ class BinaryFileSaver(private val project: Project) {
         VfsUtil.markDirtyAndRefresh(true, false, false, *savedFiles.toTypedArray())
     }
 
-    private fun saveFile(file: ArendFile, referableConverter: ReferableConverter, errorReporter: ErrorReporter, savedFiles: HashSet<VirtualFile>) {
+    private fun saveFile(file: ArendFile, errorReporter: ErrorReporter, savedFiles: HashSet<VirtualFile>) {
         val moduleLocation = file.moduleLocation ?: return
         if (moduleLocation.locationKind != ModuleLocation.LocationKind.SOURCE) {
             return
         }
         val library = typeCheckingService.libraryManager.getRegisteredLibrary(moduleLocation.libraryName) as? SourceLibrary ?: return
         if (library.supportsPersisting()) {
-            if (runReadAction { library.persistModule(moduleLocation.modulePath, referableConverter, errorReporter) }) {
+            if (runReadAction { library.persistModule(moduleLocation.modulePath, errorReporter) }) {
                 val config = (library as? ArendRawLibrary)?.config ?: return
                 val root = config.root ?: return
                 val binDir = config.binariesDirList ?: return
@@ -80,9 +81,9 @@ class BinaryFileSaver(private val project: Project) {
         }
     }
 
-    fun addToQueue(file: ArendFile, referableConverter: ReferableConverter) {
+    fun addToQueue(file: ArendFile) {
         synchronized(project) {
-            typecheckedModules[file] = referableConverter
+            typecheckedModules.add(file)
         }
     }
 
@@ -93,9 +94,9 @@ class BinaryFileSaver(private val project: Project) {
 
         synchronized(project) {
             val savedFiles = HashSet<VirtualFile>()
-            for (entry in typecheckedModules) {
+            for (file in typecheckedModules) {
                 ApplicationManager.getApplication().executeOnPooledThread {
-                    saveFile(entry.key, entry.value, typeCheckingService.libraryManager.libraryErrorReporter, savedFiles)
+                    saveFile(file, typeCheckingService.libraryManager.libraryErrorReporter, savedFiles)
                 }
             }
             typecheckedModules.clear()
