@@ -500,6 +500,10 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
         errorList.add(error)
     }
 
+    fun reportAll(errors: List<GeneralError>) {
+        errorList.addAll(errors)
+    }
+
     companion object {
         private fun getTargetPsiElement(quickFix: ErrorQuickFix, cause: PsiElement): PsiElement? =
             when (val target = quickFix.target) {

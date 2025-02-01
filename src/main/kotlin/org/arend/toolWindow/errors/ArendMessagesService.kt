@@ -57,7 +57,7 @@ class ArendMessagesService(private val project: Project) {
     fun update(module: ModuleLocation? = null) {
         val view = view
         if (view == null) {
-            if (project.service<ArendServerService>().server.modulesWithErrors.isNotEmpty()) {
+            if (project.service<ArendServerService>().server.hasErrors()) {
                 activate(project, true)
             }
         } else {

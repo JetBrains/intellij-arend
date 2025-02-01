@@ -333,14 +333,7 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     fun update(module: ModuleLocation? = null) {
         val server = project.service<ArendServerService>().server
         val filterSet = project.service<ArendProjectSettings>().messagesFilterSet
-        val errorMap = HashMap<ModuleLocation, List<GeneralError>>()
-        for (aModule in server.modulesWithErrors) {
-            val list = server.getErrorList(aModule).filter { it.satisfies(filterSet) }
-            if (list.isNotEmpty()) {
-                errorMap[aModule] = list
-            }
-        }
-
+        val errorMap = server.errorMap
         val expandedPaths = TreeUtil.collectExpandedPaths(tree)
         val selectedPath = tree.selectionPath
 

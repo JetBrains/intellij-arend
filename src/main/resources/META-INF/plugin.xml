@@ -422,8 +422,8 @@
         <!-- Highlighting Pass Factories -->
 
         <highlightingPassFactory implementation="org.arend.highlight.ArendHighlightingPassFactory"/>
-        <!-- TODO[server2]
         <highlightingPassFactory implementation="org.arend.highlight.TypecheckerPassFactory"/>
+        <!-- TODO[server2]
         <highlightingPassFactory implementation="org.arend.injection.InjectionHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.ArendUnusedImportHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.highlight.RedundantParensPassFactory"/>

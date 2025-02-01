@@ -2,7 +2,6 @@ package org.arend.highlight
 
 import com.intellij.codeHighlighting.TextEditorHighlightingPassFactoryRegistrar
 import com.intellij.codeHighlighting.TextEditorHighlightingPassRegistrar
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -21,12 +20,7 @@ class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java)
     override fun allowWhiteSpaces() = true
 
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange) =
-        if (file.isBackgroundTypecheckingFinished || ApplicationManager.getApplication().isUnitTestMode) {
-            TypecheckerPass(file, editor)
-        } else {
-            TypecheckerPass.updateErrors(file)
-            null
-        }
+        TypecheckerPass(file, editor)
 
     override fun getPassId() = myPassId
 }

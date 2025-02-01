@@ -69,7 +69,7 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
             if (definitions > 0) {
                 withBackgroundProgress(project, "Typechecking $message") {
                     reportSequentialProgress(definitions) { reporter ->
-                        checker.typecheckPrepared(DummyErrorReporter.INSTANCE, indicator) { reporter.itemStep() }
+                        checker.typecheckPrepared(indicator) { reporter.itemStep() }
                     }
                 }
 
