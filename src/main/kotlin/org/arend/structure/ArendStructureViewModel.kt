@@ -41,7 +41,7 @@ class ArendStructureViewModel(editor: Editor?, file: ArendFile)
     }
 }
 
-private class ArendStructureViewElement(val psi: ArendCompositeElement)
+class ArendStructureViewElement(val psi: ArendCompositeElement)
     : StructureViewTreeElement, Navigatable by (psi as NavigatablePsiElement) {
 
     override fun getValue(): Any = psi
