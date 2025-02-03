@@ -29,4 +29,6 @@ interface ArendGroup: ChildGroup, PsiDefReferable, ArendSourceNode, Abstract.Gro
 
 interface ArendInternalReferable: Group.InternalReferable, PsiDefReferable {
     override fun getReferable(): PsiDefReferable
+
+    override fun isVisible(): Boolean
 }

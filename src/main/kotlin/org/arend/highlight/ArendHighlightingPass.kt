@@ -1,5 +1,6 @@
 package org.arend.highlight
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -13,20 +14,20 @@ import org.arend.typechecking.*
 class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRange)
     : BasePass(file, editor, "Arend resolver annotator", textRange) {
 
+    private val module = (file as? ArendFile)?.moduleLocation
+
     public override fun collectInformationWithProgress(progress: ProgressIndicator) {
         progress.isIndeterminate = true
 
-        if (file is ArendFile) {
-            val module = file.moduleLocation
-            if (module != null) {
-                myProject.service<ArendServerService>().server.getCheckerFor(listOf(module)).resolveModules(this, ProgressCancellationIndicator(progress), HighlightingResolverListener(this, progress))
-            }
+        if (module != null) {
+            myProject.service<ArendServerService>().server.getCheckerFor(listOf(module)).resolveModules(this, ProgressCancellationIndicator(progress), HighlightingResolverListener(this, progress))
         }
     }
 
     override fun applyInformationWithProgress() {
         super.applyInformationWithProgress()
-        file.project.service<ArendMessagesService>().update((file as? ArendFile)?.moduleLocation)
+        file.project.service<ArendMessagesService>().update(module)
+        DaemonCodeAnalyzer.getInstance(myProject).restart()
     }
 
     /*  TODO[server2]

@@ -5,14 +5,19 @@ import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import org.arend.core.definition.Definition.TypeCheckingStatus
 import org.arend.core.definition.Definition.TypeCheckingStatus.*
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.*
 import org.arend.server.ArendServerService
 
 class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
+    // Store previous definition status to prevent flickering during resolving
+    private val statusKey: Key<TypeCheckingStatus> = Key.create("AREND_DEFINITION_STATUS")
+
     override fun getInfo(element: PsiElement): Info? {
         if (!(element is LeafPsiElement && element.node.elementType == ArendElementTypes.ID)) {
             return null
@@ -24,8 +29,18 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             else -> null
         } ?: return null
 
-        val def = parent.project.service<ArendServerService>().server.getTCReferable(parent)?.typechecked
-        val icon = when (def?.status()) {
+        val ref = parent.project.service<ArendServerService>().server.getTCReferable(parent)
+        val status = if (ref == null) {
+            parent.getUserData(statusKey)
+        } else {
+            val status = ref.typechecked?.status()
+            if (status != null) {
+                parent.putUserData(statusKey, status)
+            }
+            status
+        }
+
+        val icon = when (status) {
             NO_ERRORS -> AllIcons.RunConfigurations.TestState.Green2
             HAS_WARNINGS -> AllIcons.RunConfigurations.TestState.Yellow2
             null, TYPE_CHECKING, NEEDS_TYPE_CHECKING -> AllIcons.RunConfigurations.TestState.Run
