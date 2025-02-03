@@ -100,11 +100,13 @@ class HighlightingResolverListener(private val pass: BasePass, private val progr
         progress.checkCanceled()
 
         (definition.data.data as? PsiLocatedReferable)?.let { ref ->
-            ref.nameIdentifier?.let {
-                pass.addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
-            }
-            (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.let {
-                pass.addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
+            if (ref.isValid) {
+                ref.nameIdentifier?.let {
+                    pass.addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
+                }
+                (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.let {
+                    pass.addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
+                }
             }
         }
 

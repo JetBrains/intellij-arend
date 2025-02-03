@@ -26,16 +26,6 @@ abstract class BasePassFactory<T : PsiFile>(private val clazz: Class<T>) : Dirty
         } else {
             val psi = PsiUtil.getElementInclusiveRange(file, textRange)
             if (psi !is PsiComment && (psi !is PsiWhiteSpace || allowWhiteSpaces())) {
-                /*
-                var group: ArendGroup = file
-                while (psi is ArendCompositeElement && psi !is ArendFile) {
-                    if (psi is ArendGroup) {
-                        group = psi
-                        break
-                    }
-                    psi = psi.parent
-                }
-                */
                 createPass(clazz.cast(file), editor, textRange)
             } else {
                 EmptyHighlightingPass(file.project, editor.document)
