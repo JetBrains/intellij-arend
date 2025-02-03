@@ -33,7 +33,7 @@ class FileOutsideSourcesProvider : EditorNotificationProvider {
         val panel = EditorNotificationPanel(editor, EditorNotificationPanel.Status.Info)
         panel.text = ArendBundle.message("arend.message.fileOutsideSources")
         panel.createActionLabel(ArendBundle.message("arend.yaml.openDocumentation")) {
-            BrowserUtil.browse("https://arend-lang.github.io/documentation/libraries")
+            BrowserUtil.browse("https://arend-lang.github.io/documentation/getting-started/libraries")
         }
         return panel
     }
