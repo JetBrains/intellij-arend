@@ -1,6 +1,5 @@
 package org.arend.highlight
 
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -17,10 +16,8 @@ class TypecheckerPass(override val file: ArendFile, editor: Editor)
         reportAll(myProject.service<ArendServerService>().server.getTypecheckingErrors(module))
     }
 
-    override fun applyInformationWithProgress() {
-        super.applyInformationWithProgress()
-        invokeLater {
-            selectErrorFromEditor(file.project, editor, file, always = false, activate = false)
-        }
+    override fun applyInformationLater() {
+        super.applyInformationLater()
+        selectErrorFromEditor(file.project, editor, file, always = false, activate = false)
     }
 }

@@ -100,7 +100,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
     }
 
-    val dependencyListener = DependencyCollector(libraryManager)
+    val dependencyListener = DependencyCollector(null)
 
     private val extensionDefinitions = HashMap<TCDefReferable, Library>()
 
@@ -362,47 +362,11 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
     }
 
-    private fun doUpdateDefinition(referable: LocatedReferable) {
-        val tcReferable = removeDefinition(referable) ?: return
-        val dependencies = synchronized(project) {
-            dependencyListener.update(tcReferable)
-        }
-        for (ref in dependencies) {
-            removeDefinition(ref)
-        }
-
-        if (referable is ArendDefinition<*>) {
-            for (ref in referable.usedDefinitions) {
-                doUpdateDefinition(ref)
-            }
-        }
-        if (referable is ArendDefClass) {
-            for (ref in referable.dynamicSubgroups) {
-                doUpdateDefinition(ref)
-            }
-        }
-    }
-
-    fun updateDefinition(ref: TCDefReferable) {
-        removeTCDefinition(ref)
-        val tcRef = ref.typecheckable
-        val dependencies = synchronized(project) {
-            dependencyListener.update(tcRef)
-        }
-        for (dep in dependencies) {
-            if (dep is TCDefReferable) {
-                removeTCDefinition(dep)
-            }
-        }
-    }
-
     override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
         var ref: LocatedReferable = def
         while ((ref as? ArendDefinition<*>)?.withUse() == true) {
             ref = ref.useParent as? ArendDefinition<*> ?: break
         }
-
-        doUpdateDefinition(ref)
     }
 
     class LibraryManagerTestingOptions {

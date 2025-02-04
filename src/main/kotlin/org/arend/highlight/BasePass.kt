@@ -6,7 +6,6 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.Strings
@@ -15,6 +14,8 @@ import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.util.startOffset
+import com.intellij.psi.util.validOrNull
+import com.intellij.util.containers.mapSmartNotNull
 import com.intellij.xml.util.XmlStringUtil
 import org.arend.IArendFile
 import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getAllParametersForReferable
@@ -56,8 +57,6 @@ import org.arend.refactoring.replaceExprSmart
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.IncompleteExpressionError
 import org.arend.term.concrete.Concrete
-import org.arend.typechecking.error.ArendError
-import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.local.*
 import org.arend.typechecking.error.local.CertainTypecheckingError.Kind.*
 import org.arend.ext.error.InstanceInferenceError
@@ -86,24 +85,29 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
     fun getHighlights() = highlights
 
     override fun applyInformationWithProgress() {
-        val errorService = myProject.service<ErrorService>()
-
         ApplicationManager.getApplication().invokeLater({
-            for (error in errorList) {
-                val list = error.cause?.let { it as? Collection<*> ?: listOf(it) } ?: return@invokeLater
-                for (cause in list) {
-                    val psi = getCauseElement(cause)
-                    if (psi != null && psi.isValid) {
-                        reportToEditor(error, psi)
-                        errorService.report(ArendError(error, runReadAction { SmartPointerManager.createPointer(psi) }))
-                    }
+            applyInformationLater()
+        }, if (file is ArendExpressionCodeFragment) ModalityState.defaultModalityState() else ModalityState.stateForComponent(editor.component))
+    }
+
+    open fun applyInformationLater() {
+        for (error in errorList) {
+            val list = error.cause?.let { it as? Collection<*> ?: listOf(it) }?.mapSmartNotNull { getCauseElement(it)?.validOrNull() }
+            if (list.isNullOrEmpty()) {
+                val psi = ((error as? LocalError)?.definition as? DataContainer)?.data as? PsiElement
+                if (psi != null) {
+                    reportToEditor(error, psi)
+                }
+            } else {
+                for (psi in list) {
+                    reportToEditor(error, psi)
                 }
             }
+        }
 
-            if (isValid) {
-                UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
-            }
-        }, if (file is ArendExpressionCodeFragment) ModalityState.defaultModalityState() else ModalityState.stateForComponent(editor.component))
+        if (isValid) {
+            UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
+        }
     }
 
     fun addHighlightInfo(builder: HighlightInfo.Builder) {
