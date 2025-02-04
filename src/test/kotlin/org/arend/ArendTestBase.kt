@@ -35,10 +35,11 @@ import org.arend.module.scopeprovider.SimpleModuleScopeProvider
 import org.arend.naming.reference.FullModuleReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.psi.parentOfType
+import org.arend.server.ArendServerService
 import org.arend.settings.ArendSettings
 import org.arend.term.group.AccessModifier
-import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.TypeCheckingService
+import org.arend.typechecking.computation.UnstoppableCancellationIndicator
 import org.arend.util.FileUtils
 import org.arend.util.findExternalLibrary
 import org.intellij.lang.annotations.Language
@@ -241,9 +242,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     }
 
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
-        val configService = ArendModuleConfigService.getInstance(myFixture.module)
-        val targetFiles = fileNames.map { configService!!.findArendFile(it, withAdditional = false, withTests = false) }
-        ArendTypechecking.create(project).typecheckModules(targetFiles, null)
+        project.service<ArendServerService>().server.getCheckerFor(fileNames.map { ModuleLocation(module.name, ModuleLocation.LocationKind.SOURCE, it) }).typecheck(DummyErrorReporter.INSTANCE, UnstoppableCancellationIndicator.INSTANCE)
     }
 
     protected fun withStdLib(name: String = AREND_LIB, test: () -> Unit) {
