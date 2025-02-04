@@ -59,11 +59,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         service<ArendSettings>().isBackgroundTypechecking = true
         service<ArendSettings>().withTimeLimit = false
 
-        val module = module
-        val service = module.project.service<TypeCheckingService>()
-        service.initialize()
-        service.clearTCRefMaps()
-        library.config.clearAdditionalModules()
         library.setArendExtension(null)
 
         VimPlugin.setEnabled(false)
@@ -79,6 +74,9 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
         super.runTestRunnable(testRunnable)
     }
+
+    protected fun makeMetaRef(name: String): MetaReferable =
+        MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, name, null, null, FullModuleReferable(ModuleLocation(module.name, ModuleLocation.LocationKind.GENERATED, ModulePath("Meta"))))
 
     protected fun addGeneratedModules(filler: DefinitionContributor.() -> Unit) {
         addGeneratedModules(this.library, filler)

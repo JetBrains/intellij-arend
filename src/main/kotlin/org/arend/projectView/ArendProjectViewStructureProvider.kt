@@ -8,17 +8,14 @@ import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
-import com.intellij.openapi.roots.impl.libraries.LibraryEx
 import com.intellij.openapi.vfs.VirtualFile
 import org.arend.ext.module.ModulePath
-import org.arend.module.AREND_LIB
-import org.arend.module.ArendLibraryKind
-import org.arend.module.ArendRawLibrary
-import org.arend.module.orderRoot.ArendConfigOrderRootType
+import org.arend.module.ModuleLocation
+import org.arend.module.config.LibraryConfig
 import org.arend.psi.ArendFile
-import org.arend.typechecking.TypeCheckingService
+import org.arend.server.ArendServerService
 import org.arend.util.FileUtils
-import org.arend.util.configFile
+import org.arend.util.findLibrary
 
 class ArendProjectViewStructureProvider : TreeStructureProvider {
     override fun modify(parent: AbstractTreeNode<*>,
@@ -28,27 +25,18 @@ class ArendProjectViewStructureProvider : TreeStructureProvider {
         if (parent !is NamedLibraryElementNode) {
             return children
         }
-        val library = findArendLibrary(parent)
-        if (library == null || library.config.additionalModulesSet.isEmpty()) {
-            return children
-        }
-        return mutableListOf(ArendMetasNode(parent.project, library, settings), *children.toTypedArray())
-    }
-
-    private fun findArendLibrary(parent: NamedLibraryElementNode): ArendRawLibrary? {
-        val ideaLibrary = (parent.value?.orderEntry as? LibraryOrderEntry)?.library
-        if (ideaLibrary is LibraryEx && ideaLibrary.kind is ArendLibraryKind) {
-            val configUrl = ideaLibrary.getUrls(ArendConfigOrderRootType.INSTANCE).singleOrNull() ?: return null
-            return parent.project?.service<TypeCheckingService>()?.libraryManager
-                    ?.getRegisteredLibrary { it is ArendRawLibrary && it.config.root?.configFile?.url == configUrl }
-                    as? ArendRawLibrary
-        }
-        return null
+        val name = (parent.value?.orderEntry as? LibraryOrderEntry)?.library?.name ?: return children
+        val config = parent.project?.findLibrary(name) ?: return children
+        val server = parent.project?.service<ArendServerService>()?.server ?: return children
+        val modules = server.modules.filter { it.locationKind == ModuleLocation.LocationKind.GENERATED && it.libraryName == name }
+        if (modules.isEmpty()) return children
+        return mutableListOf(ArendMetasNode(parent.project, config, modules, settings), *children.toTypedArray())
     }
 }
 
 private class ArendMetasNode(project: Project?,
-                             val library: ArendRawLibrary,
+                             val config: LibraryConfig,
+                             val modules: List<ModuleLocation>,
                              settings: ViewSettings?) : ProjectViewNode<String>(project, "ext", settings) {
     override fun update(presentation: PresentationData) {
         presentation.presentableText = "ext"
@@ -56,11 +44,10 @@ private class ArendMetasNode(project: Project?,
     }
 
     override fun getChildren(): MutableCollection<out AbstractTreeNode<*>> {
-        val childConstructor = if (library.name == AREND_LIB) ::ArendStdLibMetaModuleNode else ::ArendMetaModuleNode
-        return library.config.additionalModulesSet
+        return modules
                 .mapNotNull {
-                    library.config.findArendFile(it, withAdditional = true, withTests = false)
-                            ?.let { file -> childConstructor(parent.project, it, file, settings) }
+                    config.findArendFile(it.modulePath, it.locationKind == ModuleLocation.LocationKind.GENERATED, it.locationKind == ModuleLocation.LocationKind.TEST)
+                            ?.let { file -> ArendMetaModuleNode(parent.project, it.modulePath, file, settings) }
                 }.toMutableList()
     }
 
@@ -86,7 +73,7 @@ private class ArendMetasNode(project: Project?,
      * Used to calculate background color of the node.
      * @see com.intellij.ide.projectView.impl.ProjectViewTree.getFileColorFor
      */
-    override fun getVirtualFile(): VirtualFile? = library.config.extensionDirFile
+    override fun getVirtualFile(): VirtualFile? = config.extensionDirFile
 
     override fun contains(file: VirtualFile): Boolean = false
 }
@@ -99,17 +86,4 @@ private open class ArendMetaModuleNode(project: Project?,
     override fun updateImpl(data: PresentationData) {
         data.presentableText = modulePath.toString() + FileUtils.EXTENSION
     }
-}
-
-private class ArendStdLibMetaModuleNode(project: Project?,
-                                        modulePath: ModulePath,
-                                        file: ArendFile,
-                                        settings: ViewSettings?)
-    : ArendMetaModuleNode(project, modulePath, file, settings) {
-    // "Meta.ard" is always on top of the metas list
-    override fun getSortKey(): String =
-            if (modulePath.toString() == "Meta") "" else modulePath.toString()
-
-    override fun getTypeSortKey(): Comparable<ExtensionSortKey?>? =
-            if (modulePath.toString() == "Meta") ExtensionSortKey("") else super.getTypeSortKey()
 }

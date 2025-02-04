@@ -1,9 +1,7 @@
 package org.arend.quickfix
 
 import com.intellij.openapi.command.WriteCommandAction
-import org.arend.ext.module.LongName
-import org.arend.ext.module.ModulePath
-import org.arend.ext.reference.Precedence
+import org.arend.ext.prettyprinting.doc.DocFactory.nullDoc
 import org.arend.refactoring.ImportFileAction
 import org.arend.refactoring.doAddIdToUsing
 import org.arend.refactoring.doRemoveRefFromStatCmd
@@ -838,7 +836,7 @@ class ResolveRefQuickFixTest : QuickFixTestBase() {
 
     fun `test importing of meta`() {
         addGeneratedModules {
-            declare(ModulePath("Foo"), LongName("foo"), "", Precedence.DEFAULT, null)
+            declare(nullDoc(), makeMetaRef("foo"), null)
         }
 
         simpleImportFixTest("""

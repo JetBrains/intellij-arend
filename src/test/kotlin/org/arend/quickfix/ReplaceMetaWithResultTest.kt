@@ -1,10 +1,8 @@
 package org.arend.quickfix
 
 import org.arend.ext.concrete.expr.ConcreteExpression
-import org.arend.ext.module.LongName
-import org.arend.ext.module.ModulePath
+import org.arend.ext.prettyprinting.doc.DocFactory.nullDoc
 import org.arend.ext.reference.ExpressionResolver
-import org.arend.ext.reference.Precedence
 import org.arend.ext.typechecking.*
 import org.arend.extImpl.ConcreteFactoryImpl
 import org.arend.term.concrete.Concrete
@@ -15,7 +13,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     private fun addMeta() {
         addGeneratedModules {
-            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, object : MetaDefinition {
+            declare(nullDoc(), makeMetaRef("myMeta"), object : MetaDefinition {
                 override fun invokeMeta(typechecker: ExpressionTypechecker, contextData: ContextData) =
                     typechecker.typecheck(contextData.arguments[1].expression, null)
             })
@@ -46,7 +44,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     fun `test meta resolver`() {
         addGeneratedModules {
-            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
+            declare(nullDoc(), makeMetaRef("myMeta"), null, object : MetaResolver {
                 override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData) =
                     Concrete.TupleExpression(contextData.marker.data, contextData.arguments.map { it.expression as Concrete.Expression })
             })
@@ -63,7 +61,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     fun addResolver() {
         addGeneratedModules {
-            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
+            declare(nullDoc(),  makeMetaRef("myMeta"), null, object : MetaResolver {
                 override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData) =
                     resolver.resolve(contextData.arguments[1].expression)
             })
@@ -105,7 +103,7 @@ class ReplaceMetaWithResultTest : QuickFixTestBase() {
 
     fun `test meta resolver with case`() {
         addGeneratedModules {
-            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
+            declare(nullDoc(), makeMetaRef("myMeta"), null, object : MetaResolver {
                 override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData): ConcreteExpression {
                     val factory = ConcreteFactoryImpl(contextData.marker.data)
                     return resolver.resolve(factory.caseExpr(false, listOf(factory.caseArg(contextData.arguments[0].expression, null, null)), null, null, contextData.clauses?.clauseList ?: emptyList()))

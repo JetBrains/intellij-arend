@@ -1,10 +1,8 @@
 package org.arend.quickfix
 
 import org.arend.ext.concrete.expr.ConcreteExpression
-import org.arend.ext.module.LongName
-import org.arend.ext.module.ModulePath
+import org.arend.ext.prettyprinting.doc.DocFactory.nullDoc
 import org.arend.ext.reference.ExpressionResolver
-import org.arend.ext.reference.Precedence
 import org.arend.ext.typechecking.ContextData
 import org.arend.ext.typechecking.MetaResolver
 import org.arend.extImpl.ConcreteFactoryImpl
@@ -739,7 +737,7 @@ class MissingClausesQuickFixTest: QuickFixTestBase() {
 
     private fun addMeta(useClauses: Boolean) {
         addGeneratedModules {
-            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
+            declare(nullDoc(), makeMetaRef("myMeta"), null, object : MetaResolver {
                 override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData): ConcreteExpression {
                     val factory = ConcreteFactoryImpl(if (useClauses) contextData.clauses?.data else contextData.marker.data)
                     return resolver.resolve(factory.caseExpr(false, listOf(factory.caseArg(contextData.arguments[0].expression, null, null)), null, null, contextData.clauses?.clauseList ?: emptyList()))

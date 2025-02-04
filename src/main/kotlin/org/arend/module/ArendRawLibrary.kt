@@ -22,6 +22,7 @@ import org.arend.term.group.Group
 import org.arend.typechecking.TypeCheckingService
 import org.arend.ui.impl.ArendGeneralUI
 
+// TODO[server2]: Delete this.
 class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
 
     override fun isExternal() = config.isExternal

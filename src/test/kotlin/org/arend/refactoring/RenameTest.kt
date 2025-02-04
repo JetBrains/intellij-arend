@@ -10,10 +10,8 @@ import com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
 import com.intellij.testFramework.fixtures.CodeInsightTestUtil
 import org.arend.ArendTestBase
 import org.arend.ext.concrete.expr.ConcreteExpression
-import org.arend.ext.module.LongName
-import org.arend.ext.module.ModulePath
+import org.arend.ext.prettyprinting.doc.DocFactory.nullDoc
 import org.arend.ext.reference.ExpressionResolver
-import org.arend.ext.reference.Precedence
 import org.arend.ext.typechecking.ContextData
 import org.arend.ext.typechecking.MetaResolver
 import org.arend.extImpl.ConcreteFactoryImpl
@@ -260,7 +258,7 @@ class RenameTest : ArendTestBase() {
 
     fun `test rename refIdentifier`() {
         addGeneratedModules {
-            declare(ModulePath("Meta"), LongName("myMeta"), "", Precedence.DEFAULT, null, null, null, object : MetaResolver {
+            declare(nullDoc(), makeMetaRef("myMeta"), null, object : MetaResolver {
                 override fun resolvePrefix(resolver: ExpressionResolver, contextData: ContextData): ConcreteExpression {
                     val factory = ConcreteFactoryImpl(contextData.marker.data)
                     val ref = (contextData.arguments[0].expression as Concrete.ReferenceExpression).referent
