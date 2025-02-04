@@ -7,6 +7,7 @@ import com.intellij.execution.ui.layout.PlaceInGrid
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.progress.ProcessCanceledException
@@ -147,9 +148,11 @@ class ArendTraceProcess(session: XDebugSession, private val tracingData: ArendTr
     }
 
     override fun stop() {
-        contextViewPanel.removeAll()
-        contextViewPanel.add(emptyContextView)
-        contextView.release()
+        invokeLater {
+            contextViewPanel.removeAll()
+            contextViewPanel.add(emptyContextView)
+            contextView.release()
+        }
     }
 
     override fun getEditorsProvider(): XDebuggerEditorsProvider = EditorsProvider
