@@ -1,6 +1,7 @@
 package org.arend.highlight
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -27,7 +28,9 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
     override fun applyInformationWithProgress() {
         super.applyInformationWithProgress()
         file.project.service<ArendMessagesService>().update(module)
-        DaemonCodeAnalyzer.getInstance(myProject).restart()
+        if (!ApplicationManager.getApplication().isUnitTestMode) {
+            DaemonCodeAnalyzer.getInstance(myProject).restart()
+        }
     }
 
     /*  TODO[server2]
