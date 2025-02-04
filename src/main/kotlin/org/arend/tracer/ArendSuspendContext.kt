@@ -15,6 +15,7 @@ import org.arend.ArendIcons
 import org.arend.core.expr.*
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.injection.InjectedArendEditor
+import org.arend.naming.reference.Referable
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.util.ArendBundle
 
@@ -57,16 +58,19 @@ class ArendSuspendContext(traceEntry: ArendTraceEntry, contextView: ArendTraceCo
         override fun customizePresentation(component: ColoredTextContainer) {
             component.setIcon(icon)
 
-            ApplicationManager.getApplication().executeOnPooledThread {
-                runReadAction {
-                    val (resolve, _) = InjectedArendEditor.resolveCauseReference(traceEntry.goalDataHolder)
-                    if (InjectedArendEditor.causeIsMetaExpression(traceEntry.goalDataHolder.cause, resolve)) {
-                        val metaExpressionText = traceEntry.goalDataHolder.getCauseDoc(PrettyPrinterConfig.DEFAULT).toString()
-                        component.append(shorten(metaExpressionText), SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                        val psiElement = traceEntry.psiElement
-                        setPositionText(component, positionComponents() + listOfNotNull(psiElement?.text))
-                        return@runReadAction
+            runReadAction {
+                var resolve: Referable? = null
+                ApplicationManager.getApplication().executeOnPooledThread {
+                    runReadAction {
+                        resolve = InjectedArendEditor.resolveCauseReference(traceEntry.goalDataHolder).first
                     }
+                }.get()
+                if (InjectedArendEditor.causeIsMetaExpression(traceEntry.goalDataHolder.cause, resolve)) {
+                    val metaExpressionText = traceEntry.goalDataHolder.getCauseDoc(PrettyPrinterConfig.DEFAULT).toString()
+                    component.append(shorten(metaExpressionText), SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                    val psiElement = traceEntry.psiElement
+                    setPositionText(component, positionComponents() + listOfNotNull(psiElement?.text))
+                    return@runReadAction
                 }
             }
             val psiElement = getSourcePositionElement(traceEntry)
