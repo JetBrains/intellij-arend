@@ -2,6 +2,7 @@ package org.arend.module
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -30,9 +31,12 @@ class ReloadLibrariesService(private val project: Project, private val coroutine
 
                 val server = project.service<ArendServerService>().server
                 val libraries = server.libraries.filter { !onlyInternal || server.getLibrary(it)?.isExternalLibrary == false }
-                server.unloadLibraries(onlyInternal)
-                for (library in libraries) {
-                    server.updateLibrary(project.findLibrary(library) ?: continue, NotificationErrorReporter(project))
+                runReadAction {
+                    server.unloadLibraries(onlyInternal)
+                    for (libraryName in libraries) {
+                        val library = project.findLibrary(libraryName) ?: continue
+                        server.updateLibrary(library, NotificationErrorReporter(project))
+                    }
                 }
 
                 DaemonCodeAnalyzer.getInstance(project).restart()

@@ -39,6 +39,12 @@ class ArendServerRequesterImpl(private val project: Project) : ArendServerReques
         } }
     }
 
+    override fun runUnderReadLock(runnable: Runnable) {
+        runReadAction {
+            runnable.run()
+        }
+    }
+
     private fun requestUpdate(server: ArendServer, modules: List<ModulePath>, library: String, inTests: Boolean) {
         for (module in modules) {
             val file = project.findInternalLibrary(library)?.findArendFile(module, inTests)

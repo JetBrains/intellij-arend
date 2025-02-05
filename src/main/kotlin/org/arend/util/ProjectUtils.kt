@@ -99,7 +99,9 @@ fun Module.register() {
     refreshLibrariesDirectory(project.service<ArendProjectSettings>().librariesRoot)
 
     val server = project.service<ArendServerService>().server
-    server.updateLibrary(config, NotificationErrorReporter(project))
+    runReadAction {
+        server.updateLibrary(config, NotificationErrorReporter(project))
+    }
     for (module in server.modules) {
         if (module.locationKind == ModuleLocation.LocationKind.GENERATED && module.libraryName == name) {
             project.addGeneratedModule(module, server.getRawGroup(module) ?: continue)
