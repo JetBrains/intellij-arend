@@ -10,18 +10,19 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.execution.PsiElementComparator
+import org.arend.typechecking.instance.provider.InstanceScopeProvider
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
 
 
-open class ArendTypechecking(protected val typeCheckingService: TypeCheckingService, instanceProviderSet: PsiInstanceProviderSet, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter, dependencyListener: DependencyListener, extensionProvider: ArendExtensionProvider)
-    : TypecheckingOrderingListener(instanceProviderSet, concreteProvider, errorReporter, dependencyListener, PsiElementComparator, extensionProvider) {
+open class ArendTypechecking(protected val typeCheckingService: TypeCheckingService, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter, dependencyListener: DependencyListener, extensionProvider: ArendExtensionProvider)
+    : TypecheckingOrderingListener(InstanceScopeProvider.EMPTY, concreteProvider, errorReporter, dependencyListener, PsiElementComparator, extensionProvider) {
 
     companion object {
         fun create(project: Project, concreteProvider: ConcreteProvider? = null, errorReporter: ErrorReporter = project.service<ErrorService>()): ArendTypechecking {
             val typecheckingService = project.service<TypeCheckingService>()
-            return ArendTypechecking(typecheckingService, PsiInstanceProviderSet(), concreteProvider ?: ConcreteProvider.EMPTY, errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
+            return ArendTypechecking(typecheckingService, concreteProvider ?: ConcreteProvider.EMPTY, errorReporter, typecheckingService.dependencyListener, LibraryArendExtensionProvider(typecheckingService.libraryManager))
         }
     }
 

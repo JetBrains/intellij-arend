@@ -233,7 +233,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         val result = ArrayList<List<FunctionDefinition>>()
         val functions = ArrayList(instances[classRef])
         while (functions.isNotEmpty()) {
-            val collected = getInstances(GlobalInstancePool(SimpleInstanceProvider(functions), null), classDef, classifyingExpression, SubclassSearchParameters(classDef))
+            val collected = getInstances(GlobalInstancePool(EmptyScope.INSTANCE /* TODO[server2]: SimpleInstanceProvider(functions) */, null), classDef, classifyingExpression, SubclassSearchParameters(classDef))
             if (collected.isEmpty()) break
             result.add(collected)
             if (!functions.remove(collected[0].referable)) break
@@ -264,7 +264,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
         if (isRecursive) {
             val visitor = CheckTypeVisitor(DummyErrorReporter.INSTANCE, pool, null)
-            visitor.instancePool = GlobalInstancePool(pool.instanceProvider, visitor, LocalInstancePool(visitor))
+            visitor.instancePool = GlobalInstancePool(pool.instanceScope, visitor, LocalInstancePool(visitor))
             val tcResult = visitor.checkExpr(result, null)
             val field = classDef.classifyingField
             if (tcResult != null && classifyingExpression != null && field != null) {

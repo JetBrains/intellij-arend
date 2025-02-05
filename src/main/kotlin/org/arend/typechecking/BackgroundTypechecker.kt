@@ -44,7 +44,7 @@ class BackgroundTypechecker(private val project: Project, private val instancePr
                 var i = 0
 
                 val tcService = project.service<TypeCheckingService>()
-                val typechecking = ArendTypechecking(tcService, instanceProviderSet, concreteProvider, errorService, tcService.dependencyListener, LibraryArendExtensionProvider(tcService.libraryManager))
+                val typechecking = ArendTypechecking(tcService, concreteProvider, errorService, tcService.dependencyListener, LibraryArendExtensionProvider(tcService.libraryManager))
 
                 if (!collector1.isEmpty) {
                     for (element in collector1.elements) {

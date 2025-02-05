@@ -19,6 +19,7 @@ import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.naming.reference.TCDefReferable
+import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.collectArendExprs
@@ -170,7 +171,7 @@ class ArendTraceAction : ArendPopupAction() {
                 .getArendExtension(definition.data)
             val errorsConsumer = ErrorsConsumer()
             val tracer = ArendTracingTypechecker(errorsConsumer, extension).apply {
-                instancePool = GlobalInstancePool(PsiInstanceProviderSet()[definition.data], this)
+                instancePool = GlobalInstancePool(EmptyScope.INSTANCE /* TODO[server2]: PsiInstanceProviderSet()[definition.data] */, this)
             }
             var firstTraceEntryIndex = -1
             ActionUtil.underModalProgress(project, ArendBundle.message("arend.tracer.collecting.tracing.data")) {

@@ -47,7 +47,7 @@ abstract class IntellijRepl private constructor(
 ) : Repl(
     errorReporter,
     service.libraryManager,
-    ArendTypechecking(service, PsiInstanceProviderSet(), psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
+    ArendTypechecking(service, psiConcreteProvider, errorReporter, DummyDependencyListener.INSTANCE, extensionProvider),
 ) {
     constructor(
         handler: ArendReplExecutionHandler,
@@ -128,7 +128,7 @@ abstract class IntellijRepl private constructor(
     override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?, continuation: Consumer<TypecheckingResult>) {
         definitionModificationTracker.incModificationCount()
         val collector = CollectingOrderingListener()
-        Ordering(typechecking.instanceProviderSet, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator).orderExpression(expr)
+        Ordering(typechecking.instanceScopeProvider, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator).orderExpression(expr)
         ApplicationManager.getApplication().executeOnPooledThread {
             ComputationRunner<Unit>().run(ModificationCancellationIndicator(definitionModificationTracker)) {
                 typechecking.typecheckCollected(collector, ModificationCancellationIndicator(definitionModificationTracker))
@@ -144,7 +144,7 @@ abstract class IntellijRepl private constructor(
     override fun typecheckStatements(group: Group, scope: Scope) {
         definitionModificationTracker.incModificationCount()
         val collector = CollectingOrderingListener()
-        Ordering(typechecking.instanceProviderSet, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator).orderModule(group)
+        Ordering(typechecking.instanceScopeProvider, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator).orderModule(group)
         ApplicationManager.getApplication().executeOnPooledThread {
             val ok = typechecking.typecheckCollected(collector, ModificationCancellationIndicator(definitionModificationTracker))
             runReadAction {
@@ -152,7 +152,6 @@ abstract class IntellijRepl private constructor(
                     checkErrors()
                     removeScope(scope)
                 }
-                onScopeAdded(group)
             }
         }
     }
