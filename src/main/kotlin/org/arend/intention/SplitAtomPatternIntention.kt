@@ -93,7 +93,7 @@ class SplitAtomPatternIntention : SelfTargetingIntention<PsiElement>(PsiElement:
         val project = editor.project
         caseClauseParameters = null
         if (project == null) return null
-        var definition: TCDefinition? = null
+        var definition: PsiLocatedReferable? = null
         val (patternOwner, indexList) = locatePattern(element) ?: return null
         val ownerParent = (patternOwner as PsiElement).parent
         var abstractPatterns: List<Abstract.Pattern>? = null

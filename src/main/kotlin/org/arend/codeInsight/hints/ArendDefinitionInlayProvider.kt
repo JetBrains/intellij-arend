@@ -3,6 +3,7 @@ package org.arend.codeInsight.hints
 import com.intellij.codeInsight.hints.*
 import com.intellij.codeInsight.hints.presentation.MenuOnClickPresentation
 import com.intellij.lang.Language
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.BlockInlayPriority
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
@@ -12,9 +13,9 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.startOffset
 import org.arend.ArendLanguage
 import org.arend.core.definition.Definition
-import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ext.ArendDefIdentifier
 import org.arend.psi.ext.ArendDefinition
+import org.arend.server.ArendServerService
 import javax.swing.JPanel
 
 @Suppress("UnstableApiUsage")
@@ -32,7 +33,7 @@ abstract class ArendDefinitionInlayProvider : InlayHintsProvider<NoSettings> {
             override fun collect(element: PsiElement, editor: Editor, sink: InlayHintsSink): Boolean {
                 if (element !is ArendDefIdentifier) return true
                 val arendDef = element.parent as? ArendDefinition<*> ?: return true
-                val def = (arendDef.tcReferable as? TCDefReferable)?.typechecked ?: return true
+                val def = project.service<ArendServerService>().server.getTCReferable(arendDef)?.typechecked ?: return true
                 val text = getText(def) ?: return true
 
                 val offset = (arendDef.parent ?: arendDef).startOffset

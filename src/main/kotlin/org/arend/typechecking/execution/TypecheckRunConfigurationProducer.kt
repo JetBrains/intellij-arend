@@ -6,7 +6,7 @@ import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.TCDefinition
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.fullName
 import org.arend.psi.parentOfType
 import org.arend.typechecking.execution.configurations.ArendRunConfigurationFactory
@@ -36,8 +36,17 @@ class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckC
 
     private fun configurationFromContext(context: ConfigurationContext, sourceElement: Ref<PsiElement>?): MyConfiguration? {
         val element = context.location?.psiElement
-        when (val definition = element?.parentOfType<TCDefinition>(false) ?: element?.parentOfType<ArendFile>(false)) {
-            is TCDefinition -> {
+        when (val definition = element?.parentOfType<PsiLocatedReferable>(false) ?: element?.parentOfType<ArendFile>(false)) {
+            is ArendFile -> {
+                sourceElement?.set(definition)
+                val fullName = definition.moduleLocation?.toString() ?: return null
+
+                val test = ArendModuleConfigService.getInstance(context.module)?.testsDirFile
+                val isTest = test?.getRelativePath(definition.virtualFile)?.joinToString(".")
+
+                return MyConfiguration("Typecheck $fullName", TypeCheckCommand(definition.libraryName ?: "", isTest != null, fullName))
+            }
+            is PsiLocatedReferable -> {
                 val file = definition.containingFile as? ArendFile ?: return null
                 val modulePath = file.moduleLocation ?: return null
                 sourceElement?.set(definition)
@@ -47,15 +56,6 @@ class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckC
                 val isTest = test?.getRelativePath(file.virtualFile)?.joinToString(".")
 
                 return MyConfiguration("Typecheck $fullName", TypeCheckCommand(file.libraryName ?: "", isTest != null, modulePath.toString(), fullName))
-            }
-            is ArendFile -> {
-                sourceElement?.set(definition)
-                val fullName = definition.moduleLocation?.toString() ?: return null
-
-                val test = ArendModuleConfigService.getInstance(context.module)?.testsDirFile
-                val isTest = test?.getRelativePath(definition.virtualFile)?.joinToString(".")
-
-                return MyConfiguration("Typecheck $fullName", TypeCheckCommand(definition.libraryName ?: "", isTest != null, fullName))
             }
             else -> return null
         }

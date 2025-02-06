@@ -6,8 +6,6 @@ import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefDataStub
 import org.arend.term.abs.Abstract
@@ -17,7 +15,7 @@ import org.arend.resolving.util.Universe
 import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
-class ArendDefData : ArendDefinition<ArendDefDataStub>, TCDefinition, Abstract.DataDefinition, StubBasedPsiElement<ArendDefDataStub> {
+class ArendDefData : ArendDefinition<ArendDefDataStub>, Abstract.DataDefinition, StubBasedPsiElement<ArendDefDataStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefDataStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -65,7 +63,4 @@ class ArendDefData : ArendDefinition<ArendDefDataStub>, TCDefinition, Abstract.D
 
     override val psiElementType: PsiElement?
         get() = universe
-
-    override val tcReferable: TCDefReferable?
-        get() = super.tcReferable as TCDefReferable?
 }

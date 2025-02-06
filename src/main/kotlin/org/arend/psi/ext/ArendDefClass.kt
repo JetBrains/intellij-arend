@@ -14,7 +14,7 @@ import org.arend.term.abs.AbstractDefinitionVisitor
 import org.arend.resolving.util.Universe
 import javax.swing.Icon
 
-class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefinition, StubBasedPsiElement<ArendDefClassStub>, Abstract.ClassDefinition {
+class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, StubBasedPsiElement<ArendDefClassStub>, Abstract.ClassDefinition {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -103,7 +103,4 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, TCDefi
     override fun <R : Any?> accept(visitor: AbstractDefinitionVisitor<out R>): R = visitor.visitClass(this)
 
     override fun getIcon(flags: Int): Icon = if (isRecord) ArendIcons.RECORD_DEFINITION else ArendIcons.CLASS_DEFINITION
-
-    override val tcReferable: TCDefReferable?
-        get() = super.tcReferable as TCDefReferable?
 }

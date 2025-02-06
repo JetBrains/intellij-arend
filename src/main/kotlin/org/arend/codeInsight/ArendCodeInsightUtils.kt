@@ -274,7 +274,7 @@ class ArendCodeInsightUtils {
         }
 
         fun getExternalParameters(def: PsiLocatedReferable): List<ParameterDescriptor>? {
-            val tcDef = (def.tcReferable as? TCDefReferable)?.typechecked
+            val tcDef = def.project.service<ArendServerService>().server.getTCReferable(def)?.typechecked
             if (tcDef == null)
                 for (p in def.ancestors)
                     if (p is ArendDefinition<*> /* TODO[server2]: && p.externalParameters.isNotEmpty() */)

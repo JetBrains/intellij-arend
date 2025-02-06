@@ -42,13 +42,12 @@ internal fun fixMissingClausesError(project: Project, file: ArendFile, editor: E
     val errorService = project.service<ErrorService>()
     (group as? ArendDefFunction?)?.let { errorService.clearTypecheckingErrors(it) }
 
-    group.dropTypechecked()
     ArendTypechecking.create(project).typecheckModules(listOf(group), null)
 
     val error = errorService.getErrors(file).filter { it.error is MissingClausesError }.find {
         it.definition?.endOffset == offset
     } ?: return
-    (error.definition as? TCDefinition?)?.let {
+    error.definition?.let {
         errorService.clearTypecheckingErrors(it)
     }
     runWriteAction {

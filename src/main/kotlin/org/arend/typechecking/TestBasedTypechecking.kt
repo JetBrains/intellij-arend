@@ -6,7 +6,6 @@ import org.arend.core.definition.Definition
 import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.TCDefinition
 import org.arend.typechecking.error.ErrorService
 import org.arend.typechecking.error.TypecheckingErrorReporter
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
@@ -27,7 +26,7 @@ class TestBasedTypechecking(
     val filesToRestart = LinkedHashSet<ArendFile>()
 
     private fun startTypechecking(definition: PsiLocatedReferable, clearErrors: Boolean) {
-        if (clearErrors && definition is TCDefinition) {
+        if (clearErrors) {
             runReadAction {
                 typeCheckingService.project.service<ErrorService>().clearTypecheckingErrors(definition)
             }
@@ -50,7 +49,7 @@ class TestBasedTypechecking(
         }
 
         eventsProcessor.stopTimer(ref)?.let { diff ->
-            if (ref is TCDefinition && definitionBlacklistService.removeFromBlacklist(ref, (diff / 1000).toInt())) {
+            if (definitionBlacklistService.removeFromBlacklist(ref, (diff / 1000).toInt())) {
                 runReadAction {
                     val file = ref.containingFile as? ArendFile ?: return@runReadAction
                     filesToRestart.add(file)

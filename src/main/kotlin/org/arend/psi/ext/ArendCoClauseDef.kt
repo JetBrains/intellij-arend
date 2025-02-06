@@ -12,7 +12,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.group.AccessModifier
 import javax.swing.Icon
 
-class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract.FunctionDefinition, TCDefinition, StubBasedPsiElement<ArendCoClauseDefStub> {
+class ArendCoClauseDef : ArendFunctionDefinition<ArendCoClauseDefStub>, Abstract.FunctionDefinition, StubBasedPsiElement<ArendCoClauseDefStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendCoClauseDefStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

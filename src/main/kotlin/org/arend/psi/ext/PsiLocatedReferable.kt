@@ -2,7 +2,6 @@ package org.arend.psi.ext
 
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.TCReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
 
@@ -12,20 +11,9 @@ interface PsiLocatedReferable : LocatedReferable, PsiReferable {
 
     val defIdentifier: ArendDefIdentifier?
 
-    val tcReferable: TCReferable?
-
-    val tcReferableCached: TCReferable?
-        get() = null
-
-    fun dropTCReferable()
-
     companion object {
         fun fromReferable(referable: GlobalReferable) = referable.underlyingReferable as? PsiLocatedReferable
     }
-}
-
-interface PsiDefReferable : PsiLocatedReferable {
-    fun dropTypechecked()
 }
 
 private fun PsiLocatedReferable.getFullName(builder: StringBuilder) {

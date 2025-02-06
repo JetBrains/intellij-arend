@@ -53,7 +53,7 @@ import org.arend.server.ArendServerService
  */
 class SubExprException(
     message: String,
-    val def: Pair<Concrete.Definition, TCDefinition>? = null
+    val def: Pair<Concrete.Definition, PsiLocatedReferable>? = null
 ) : Throwable(message)
 
 fun binding(p: PsiElement, selected: TextRange) = SyntaxTraverser
@@ -125,7 +125,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val resolver = subExpr.underlyingReferenceExpression?.let { refExpr -> refExpr.data?.let { MyResolverListener(it) } }
 
     // if (possibleParent is PsiWhiteSpace) return "selected text are whitespaces"
-    val psiDef = exprAncestor.ancestor<TCDefinition>()
+    val psiDef = exprAncestor.ancestor<PsiLocatedReferable>()
         ?: throw SubExprException("selected text is not in a definition")
     val concreteDef: Concrete.Definition? = null // TODO[server2]: PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, resolver).getConcrete(psiDef) as? Concrete.Definition
     val body = concreteDef?.let { it to psiDef }

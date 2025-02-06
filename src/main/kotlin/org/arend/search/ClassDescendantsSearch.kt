@@ -11,7 +11,6 @@ import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
-import org.arend.psi.parentOfType
 import java.util.concurrent.ConcurrentHashMap
 
 @Service(Service.Level.PROJECT)
@@ -107,7 +106,7 @@ class ClassDescendantsSearch(val project: Project) : ArendDefinitionChangeListen
         return visited.toList()
     }
 
-    override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
+    override fun updateDefinition(def: PsiLocatedReferable, file: ArendFile, isExternalUpdate: Boolean) {
         if (def is ArendDefClass && FIND_SUBCLASSES || def is ArendDefInstance && FIND_INSTANCES) {
             cache.clear()
         }

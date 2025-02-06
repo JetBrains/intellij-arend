@@ -7,19 +7,19 @@ import com.intellij.psi.SmartPsiElementPointer
 import org.arend.ext.error.GeneralError
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
-import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.psi.ext.PsiLocatedReferable
 
 
 // TODO[server2]: Delete this
 class ArendError(val error: GeneralError, private val pointer: SmartPsiElementPointer<*>) : Comparable<ArendError> {
     private val definitionPointer = runReadAction {
-        cause?.ancestor<PsiConcreteReferable>()?.let { SmartPointerManager.createPointer(it) }
+        cause?.ancestor<PsiLocatedReferable>()?.let { SmartPointerManager.createPointer(it) }
     }
 
     val cause: PsiElement?
         get() = pointer.element
 
-    val definition: PsiConcreteReferable?
+    val definition: PsiLocatedReferable?
         get() = definitionPointer?.element
 
     val file: ArendFile?

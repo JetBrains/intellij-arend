@@ -1,6 +1,7 @@
 package org.arend.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
@@ -8,9 +9,9 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.refactoring.extractMethod.newImpl.ExtractMethodHelper.addSiblingAfter
 import org.arend.core.definition.Constructor
 import org.arend.core.elimtree.IntervalElim
-import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.ArendDefData
+import org.arend.server.ArendServerService
 import org.arend.util.ArendBundle
 import kotlin.math.max
 
@@ -28,7 +29,7 @@ class AddTruncatedUniverseQuickFix(private val cause: SmartPsiElementPointer<Are
 
         var maxPatternMatching = 0
         for (constructor in (defData?.constructors ?: emptyList())) {
-            val definition = (constructor.tcReferable as? TCDefReferable)?.typechecked
+            val definition = project.service<ArendServerService>().server.getTCReferable(constructor)?.typechecked
             if (definition is Constructor) {
                 if (definition.body is IntervalElim) {
                     maxPatternMatching = max(maxPatternMatching, (definition.body as IntervalElim).cases.size)

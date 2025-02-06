@@ -36,7 +36,7 @@ class ArendPsiChangeService {
         listeners.remove(listener)
     }
 
-    fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
+    fun updateDefinition(def: PsiLocatedReferable, file: ArendFile, isExternalUpdate: Boolean) {
         synchronized(listeners) {
             for (listener in listeners) {
                 listener.updateDefinition(def, file, isExternalUpdate)

@@ -206,27 +206,6 @@ class TypeCheckProcessHandler(
         */
     }
 
-    private fun resetGroup(group: ArendGroup) {
-        if (indicator.isCanceled) {
-            return
-        }
-
-        val tcReferable = group.tcReferable
-        if (tcReferable is TCDefReferable) {
-            val typechecked = tcReferable.typechecked
-            if (typechecked != null && !typechecked.status().isOK) {
-                typeCheckerService.dependencyListener.update(tcReferable)
-            }
-        }
-
-        for (stat in group.statements) {
-            resetGroup(stat.group ?: continue)
-        }
-        for (subgroup in group.dynamicSubgroups) {
-            resetGroup(subgroup)
-        }
-    }
-
     private fun orderGroup(group: ArendGroup, ordering: Ordering) {
         if (indicator.isCanceled) {
             return

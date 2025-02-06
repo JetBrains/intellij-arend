@@ -164,7 +164,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         selection: SelectionResult,
         allParameters: List<Pair<Binding, ParameterExplicitnessState>>
     ): (Expression) -> Concrete.Expression {
-        val enclosingDefinitionReferable = selection.contextPsi.parentOfType<TCDefinition>()!!
+        val enclosingDefinitionReferable = selection.contextPsi.parentOfType<PsiLocatedReferable>()!!
 
         val ip = getInstanceProvider(enclosingDefinitionReferable)
 
@@ -215,7 +215,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         return Supplier { MapReferableRenamer(thisMapping) }
     }
 
-    private fun getInstanceProvider(enclosingDefinitionReferable: TCDefinition): InstanceProvider? =
+    private fun getInstanceProvider(enclosingDefinitionReferable: PsiLocatedReferable): InstanceProvider? =
         ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)
             ?.let { PsiInstanceProviderSet().get(it) }
 

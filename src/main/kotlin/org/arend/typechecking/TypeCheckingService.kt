@@ -48,7 +48,6 @@ import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.instance.pool.LocalInstancePool
 import org.arend.typechecking.instance.pool.RecursiveInstanceHoleExpression
-import org.arend.typechecking.instance.provider.SimpleInstanceProvider
 import org.arend.typechecking.order.dependency.DependencyCollector
 import org.arend.typechecking.visitor.CheckTypeVisitor
 import org.arend.util.*
@@ -310,7 +309,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         get() = additionalNames
 
     private fun resetErrors(def: Referable) {
-        if (def is TCDefinition) {
+        if (def is PsiLocatedReferable) {
             project.service<ErrorService>().clearTypecheckingErrors(def)
         }
     }
@@ -362,7 +361,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         }
     }
 
-    override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
+    override fun updateDefinition(def: PsiLocatedReferable, file: ArendFile, isExternalUpdate: Boolean) {
         var ref: LocatedReferable = def
         while ((ref as? ArendDefinition<*>)?.withUse() == true) {
             ref = ref.useParent as? ArendDefinition<*> ?: break

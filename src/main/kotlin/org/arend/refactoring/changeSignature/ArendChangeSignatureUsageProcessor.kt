@@ -17,7 +17,6 @@ import org.arend.codeInsight.ParameterDescriptor
 import org.arend.psi.ext.*
 import org.arend.refactoring.rename.ArendRenameProcessor
 import org.arend.refactoring.rename.ArendRenameRefactoringContext
-import org.arend.term.abs.Abstract
 import org.arend.term.abs.Abstract.ParametersHolder
 import kotlin.collections.ArrayList
 
@@ -73,9 +72,9 @@ class ArendChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
         val document = documentManager.getDocument(changeInfo.method.containingFile)
         document?.let { documentManager.doPostponedOperationsAndUnblockDocument(document) }
 
-        val definition = changeInfo.method as PsiDefReferable
+        val definition = changeInfo.method as PsiLocatedReferable
 
-        if (changeInfo.isParameterNamesChanged && definition is Abstract.ParametersHolder)
+        if (changeInfo.isParameterNamesChanged && definition is ParametersHolder)
             renameParameters(project, changeInfo, definition)
 
         val secondaryRefactoringDescriptors = descriptors.drop(1)

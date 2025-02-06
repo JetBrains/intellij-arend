@@ -43,7 +43,7 @@ class AddInstanceArgumentQuickFix(val error: InstanceInferenceError, val cause: 
         val ambientDefinition = (cause.element as? PsiElement)?.ancestor<ArendDefinition<*>>()
         val missingClassInstance = (classRef?.data as? SmartPsiElementPointer<*>)?.element
         val implementedClass = classRef?.typechecked
-        if (ambientDefinition is PsiConcreteReferable && missingClassInstance is ArendDefClass && implementedClass is ClassDefinition) {
+        if (ambientDefinition is PsiLocatedReferable && missingClassInstance is ArendDefClass && implementedClass is ClassDefinition) {
             val psiFactory = ArendPsiFactory(project)
             val className = ResolveReferenceAction.getTargetName(missingClassInstance, ambientDefinition).let {
                 it.second?.execute()

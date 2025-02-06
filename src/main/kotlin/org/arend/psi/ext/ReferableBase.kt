@@ -1,7 +1,6 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
-import com.intellij.openapi.components.service
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
@@ -15,11 +14,10 @@ import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.resolving.IntellijTCReferable
 import org.arend.term.group.AccessModifier
-import org.arend.typechecking.TypeCheckingService
 import java.util.concurrent.ConcurrentHashMap
 
 // TODO[server2]: Remove everything that mentions TCReferable, and maybe the class itself?
-abstract class ReferableBase<StubT> : PsiStubbedReferableImpl<StubT>, PsiDefReferable
+abstract class ReferableBase<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
@@ -39,7 +37,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getPrecedence() = stub?.precedence ?: calcPrecedence(prec)
 
-    override fun getTypecheckable(): PsiLocatedReferable = ancestor<PsiConcreteReferable>() ?: this
+    override fun getTypecheckable(): PsiLocatedReferable = ancestor<PsiLocatedReferable>() ?: this
 
     override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
 
@@ -54,9 +52,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     fun getDescription(): Doc =
         documentation?.doc ?: DocFactory.nullDoc()
 
-    override val tcReferable: TCReferable?
-        get() = null
-
     protected var tcReferableCache: TCReferable? = null
     private var tcRefMapCache: ConcurrentHashMap<LongName, IntellijTCReferable>? = null
 
@@ -66,42 +61,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
             val file = if (isValid) containingFile as? ArendFile else null
             return file?.getTCRefMap(Referable.RefKind.EXPR)
         }
-
-    fun dropTCCache() {
-        tcReferableCache = null
-    }
-
-    override val tcReferableCached: TCReferable?
-        get() = tcReferableCache
-
-    override fun dropTypechecked() {
-        val service = project.service<TypeCheckingService>()
-        val tcRef = tcReferableCache ?: run {
-            val location = (containingFile as? ArendFile)?.moduleLocation ?: return
-            service.getTCRefMaps(Referable.RefKind.EXPR)[location]?.get(refLongName)
-        } ?: return
-        service.dependencyListener.update(tcRef)
-        (tcRef as? TCDefReferable)?.typechecked = null
-        tcReferableCache = null
-    }
-
-    override fun dropTCReferable() {
-        tcReferableCache = null
-        val tcRefMap = tcRefMap
-        val name = refLongName
-        tcRefMap?.remove(name)
-        if (this is ArendGroup) {
-            val list = ArrayList<String>(name.toList().size)
-            list.addAll(name.toList())
-            list.add("")
-            val internalName = LongName(list)
-            for (referable in internalReferables) {
-                (referable as? ReferableBase<*>)?.tcReferableCache = null
-                list[list.size - 1] = referable.refName
-                tcRefMap?.remove(internalName)
-            }
-        }
-    }
 
     companion object {
         fun calcPrecedence(prec: ArendPrec?): Precedence {

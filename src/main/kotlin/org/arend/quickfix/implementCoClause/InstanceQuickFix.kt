@@ -1,11 +1,13 @@
 package org.arend.quickfix.implementCoClause
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import org.arend.ext.reference.ArendRef
 import org.arend.highlight.BasePass.Companion.isEmptyGoal
 import org.arend.naming.reference.*
 import org.arend.psi.ext.*
+import org.arend.server.ArendServerService
 
 enum class InstanceQuickFixAnnotation {
     IMPLEMENT_FIELDS_ERROR,
@@ -127,7 +129,7 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
 }
 */
 
-private fun getTCRef(ref: Referable?) = (ref as? PsiLocatedReferable)?.tcReferable ?: ref
+private fun getTCRef(ref: Referable?) = if (ref is PsiLocatedReferable) ref.project.service<ArendServerService>().server.getTCReferable(ref) else ref
 
 fun makeFieldList(fields: Collection<ArendRef>, classRef: ClassReferable): List<Pair<LocatedReferable, Boolean>> {
     return emptyList()

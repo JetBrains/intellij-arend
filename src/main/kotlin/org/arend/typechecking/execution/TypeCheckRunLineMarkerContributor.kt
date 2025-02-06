@@ -24,7 +24,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
         }
 
         val parent = when (val id = element.parent) {
-            is ArendDefIdentifier -> id.parent as? TCDefinition
+            is ArendDefIdentifier -> id.parent as? PsiLocatedReferable
             is ArendRefIdentifier -> ((id.parent as? ArendLongName)?.parent as? ArendCoClause)?.functionReference
             else -> null
         } ?: return null

@@ -5,20 +5,16 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
-import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 
-abstract class ArendFunctionDefinition<StubT> : ArendDefinition<StubT>, TCDefinition, Abstract.FunctionDefinition
+abstract class ArendFunctionDefinition<StubT> : ArendDefinition<StubT>, Abstract.FunctionDefinition
 where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
-
-    override val tcReferable: TCDefReferable?
-        get() = super.tcReferable as TCDefReferable?
 
     val body: ArendFunctionBody?
         get() = childOfType()

@@ -96,7 +96,7 @@ class ArendTraceAction : ArendPopupAction() {
             val range = EditorUtil.getSelectionInAnyMode(editor)
             val sExpr = selectedExpr(file, range)
             if (sExpr != null) {
-                val def = sExpr.ancestor<TCDefinition>()?.let { file.project.service<ArendServerService>().server.getTCReferable(it) }
+                val def = sExpr.ancestor<PsiLocatedReferable>()?.let { file.project.service<ArendServerService>().server.getTCReferable(it) }
                 if (def != null) {
                     return Pair(sExpr, def)
                 }
@@ -114,7 +114,7 @@ class ArendTraceAction : ArendPopupAction() {
             if (sExpr != null) {
                 val expression = collectArendExprs(sExpr.parent, range)?.first as? ArendExpr
                 if (expression != null) {
-                    val def = sExpr.ancestor<TCDefinition>()?.let { file.project.service<ArendServerService>().server.getTCReferable(it) }
+                    val def = sExpr.ancestor<PsiLocatedReferable>()?.let { file.project.service<ArendServerService>().server.getTCReferable(it) }
                     if (def != null) {
                         return Pair(expression, def)
                     }
@@ -124,7 +124,7 @@ class ArendTraceAction : ArendPopupAction() {
         }
 
         private fun getDeclarationAtCaret(file: PsiFile, editor: Editor): Pair<ArendExpr, TCDefReferable>? {
-            val def = file.findElementAt(editor.caretModel.currentCaret.offset)?.ancestor<TCDefinition>() ?: return null
+            val def = file.findElementAt(editor.caretModel.currentCaret.offset)?.ancestor<PsiLocatedReferable>() ?: return null
             val ref = file.project.service<ArendServerService>().server.getTCReferable(def) ?: return null
             val head = when (def) {
                 is ArendFunctionDefinition<*> -> {

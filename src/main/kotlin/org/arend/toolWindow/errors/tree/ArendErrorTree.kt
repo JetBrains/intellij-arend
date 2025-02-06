@@ -16,7 +16,7 @@ import org.arend.module.ModuleLocation
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.navigate
 import org.arend.util.ArendBundle
 import java.awt.event.MouseAdapter
@@ -117,7 +117,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
         return result!!
     }
 
-    fun containsNode(definition: PsiConcreteReferable): Boolean {
+    fun containsNode(definition: PsiLocatedReferable): Boolean {
         val file = definition.containingFile as? ArendFile ?: return false
         val root = treeModel.root as? DefaultMutableTreeNode ?: return false
         for (child in root.children()) {

@@ -13,7 +13,7 @@ interface ArendStatement : Statement, ArendCompositeElement, Abstract.Statement 
     override fun getHLevelsDefinition(): ArendLevelParamsSeq?
 }
 
-interface ArendGroup: ChildGroup, PsiDefReferable, ArendSourceNode, Abstract.Group {
+interface ArendGroup: ChildGroup, PsiLocatedReferable, ArendSourceNode, Abstract.Group {
     val where: ArendWhere?
 
     override fun getStatements(): List<ArendStatement>
@@ -27,8 +27,8 @@ interface ArendGroup: ChildGroup, PsiDefReferable, ArendSourceNode, Abstract.Gro
     override fun getDescription(): Doc
 }
 
-interface ArendInternalReferable: Group.InternalReferable, PsiDefReferable {
-    override fun getReferable(): PsiDefReferable
+interface ArendInternalReferable: Group.InternalReferable, PsiLocatedReferable {
+    override fun getReferable(): PsiLocatedReferable
 
     override fun isVisible(): Boolean
 }

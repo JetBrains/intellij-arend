@@ -30,7 +30,6 @@ import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable.RefKind
-import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.*
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.*
@@ -39,7 +38,6 @@ import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.resolving.IntellijTCReferable
 import org.arend.server.ArendServerService
-import org.arend.term.concrete.Concrete
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
 import org.arend.util.libraryName
@@ -77,8 +75,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     val libraryName: String?
         get() = arendLibrary?.name ?: if (name == ArendPreludeLibrary.PRELUDE_FILE_NAME) Prelude.LIBRARY_NAME else null
-
-    val concreteDefinitions = ConcurrentHashMap<LongName, Concrete.Definition>()
 
     fun getTCRefMap(refKind: RefKind): ConcurrentHashMap<LongName, IntellijTCReferable> {
         val location = moduleLocation ?: return ConcurrentHashMap<LongName, IntellijTCReferable>()
@@ -156,16 +152,9 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     override val defIdentifier: ArendDefIdentifier?
         get() = null
 
-    override val tcReferable: TCReferable?
-        get() = null
-
-    override fun dropTypechecked() {}
-
     override fun moduleInitialized(): Boolean {
         return ArendModuleConfigService.getInstance(module)?.isInitialized != false
     }
-
-    override fun dropTCReferable() {}
 
     override fun getLocation() = moduleLocation
 

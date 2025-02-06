@@ -515,7 +515,7 @@ fun <T : ArendCompositeElement> ArendGroup.addToWhere(elementToAdd: T): T {
     return where.addBefore(elementToAdd, where.rbrace) as T
 }
 
-fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiConcreteReferable, typeExpr: String, variable: Variable = VariableImpl("this"), anchor: PsiElement? = definition.nameIdentifier): String {
+fun addImplicitClassDependency(psiFactory: ArendPsiFactory, definition: PsiLocatedReferable, typeExpr: String, variable: Variable = VariableImpl("this"), anchor: PsiElement? = definition.nameIdentifier): String {
     val thisVarName = StringRenamer().generateFreshName(variable, getAllBindings(definition).map { VariableImpl(it) }.toList())
 
     val thisTele: PsiElement = when (definition) {

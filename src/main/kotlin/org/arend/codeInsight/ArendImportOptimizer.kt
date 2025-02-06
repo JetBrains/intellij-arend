@@ -21,13 +21,13 @@ import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
-import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.scope.NamespaceCommandNamespace
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.getCompleteWhere
+import org.arend.server.ArendServerService
 import org.arend.settings.ArendCustomCodeStyleSettings
 import org.arend.settings.ArendCustomCodeStyleSettings.OptimizeImportsPolicy
 import org.arend.term.NamespaceCommand
@@ -420,7 +420,7 @@ private class ImportStructureCollector(
     }
 
     private fun addCoreGlobalInstances(element: ArendDefinition<*>) {
-        val tcReferable = (element.tcReferable as? TCDefReferable)?.typechecked
+        val tcReferable = element.project.service<ArendServerService>().server.getTCReferable(element)?.typechecked
         allDefinitionsTypechecked = allDefinitionsTypechecked && (tcReferable != null && tcReferable.status() == NO_ERRORS)
         if (!allDefinitionsTypechecked) return
         tcReferable!!.accept(object : SearchVisitor<Unit>() { // not-null assertion implied by '&&' above

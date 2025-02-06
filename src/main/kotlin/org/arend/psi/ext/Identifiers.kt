@@ -150,46 +150,6 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
-
-    private var tcReferableCache: TCLevelReferable? = null
-
-    override val tcReferableCached: IntellijTCReferable?
-        get() = tcReferableCache as? IntellijTCReferable
-
-    override fun dropTCReferable() {
-        tcReferableCache = null
-    }
-
-    override val tcReferable: TCReferable?
-        get() = tcReferableCache ?: runReadAction {
-            val parent = parent
-            synchronized(parent) {
-                tcReferableCache ?: run {
-                    val file = (if (parent.isValid) parent.containingFile as? ArendFile else null) ?: return@run null
-                    val list = parent.getChildrenOfType<ArendLevelIdentifier>().ifEmpty { listOf(this) }
-                    val index = list.indexOf(this).let { if (it == -1) 0 else it }
-                    val longName = list.first().refLongName
-                    val tcRefMap = file.getTCRefMap(refKind)
-                    (tcRefMap[longName] as? TCLevelReferable)?.let {
-                        val refs = it.defParent.referables
-                        if (index < refs.size) {
-                            tcReferableCache = refs[index]
-                            return@run refs[index]
-                        }
-                    }
-                    val locatedParent = locatedReferableParent
-                    val actualParent = if (locatedParent is ArendFile) locatedParent.moduleLocation?.let { FullModuleReferable(it) } else locatedParent?.tcReferable
-                    val tcList = ArrayList<IntellijTCLevelReferable>(list.size)
-                    val levelDef = LevelDefinition(refKind == Referable.RefKind.PLEVEL, parent.childOfType<ArendLevelCmp>()?.isIncreasing != false, tcList, actualParent)
-                    for (ref in list) {
-                        tcList.add(IntellijTCLevelReferable(SmartPointerManager.getInstance(file.project).createSmartPsiElementPointer(ref, file), ref.refName, levelDef))
-                    }
-                    tcRefMap[longName] = tcList[0]
-                    tcReferableCache = tcList[index]
-                    tcList[index]
-                }
-            }
-        }
 }
 
 class ArendRefIdentifier(node: ASTNode) : ArendIdentifierBase(node), ArendSourceNode, Abstract.Reference {

@@ -11,8 +11,6 @@ import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.*
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.PsiDefReferable
-import org.arend.psi.ext.ArendGroup
 import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
@@ -78,21 +76,6 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
         (group as? ArendFile)?.apply {
             moduleLocation?.let {
                 config.project.service<TypeCheckingService>().getTCRefMaps(Referable.RefKind.EXPR).remove(it)
-            }
-        }
-    }
-
-    override fun resetDefinition(referable: LocatedReferable) {
-        if (referable !is PsiDefReferable) {
-            return
-        }
-        runReadAction {
-            if (!config.project.isDisposed) {
-                referable.dropTypechecked()
-                if (referable !is ArendGroup) return@runReadAction
-                for (ref in referable.internalReferables) {
-                    ref.dropTypechecked()
-                }
             }
         }
     }

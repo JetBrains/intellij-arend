@@ -16,7 +16,7 @@ import org.arend.resolving.util.ParameterImpl
 import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
-class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract.FunctionDefinition, TCDefinition, StubBasedPsiElement<ArendDefFunctionStub> {
+class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract.FunctionDefinition, StubBasedPsiElement<ArendDefFunctionStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefFunctionStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)

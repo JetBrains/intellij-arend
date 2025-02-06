@@ -37,7 +37,7 @@ class ArendConstructorGroupingRuleProvider : FileStructureGroupRuleProvider {
 }
 
 class ArendDefGroupingRuleProvider : FileStructureGroupRuleProvider {
-    override fun getUsageGroupingRule(project: Project) = createGroupingRule<PsiConcreteReferable>()
+    override fun getUsageGroupingRule(project: Project) = createGroupingRule<PsiLocatedReferable>()
 }
 
 private inline fun <reified T : PsiReferable> createGroupingRule(): UsageGroupingRule {

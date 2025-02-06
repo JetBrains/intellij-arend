@@ -3,6 +3,7 @@ package org.arend.codeInsight.hints
 import com.intellij.codeInsight.hints.*
 import com.intellij.codeInsight.hints.presentation.MenuOnClickPresentation
 import com.intellij.lang.Language
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -17,10 +18,10 @@ import org.arend.core.context.binding.ParamLevelVariable
 import org.arend.core.context.param.DependentLink
 import org.arend.core.definition.ClassDefinition
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
-import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.ext.*
 import org.arend.psi.ArendElementTypes.NO_CLASSIFYING_KW
 import org.arend.psi.findNextSibling
+import org.arend.server.ArendServerService
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.term.prettyprint.ToAbstractVisitor
@@ -61,7 +62,7 @@ class ArendParametersInlayProvider : InlayHintsProvider<ArendParametersInlayProv
             override fun collect(element: PsiElement, editor: Editor, sink: InlayHintsSink): Boolean {
                 if (element !is ArendDefIdentifier) return true
                 val arendDef = element.parent as? ArendDefinition<*> ?: return true
-                val def = (arendDef.tcReferable as? TCDefReferable)?.typechecked ?: return true
+                val def = project.service<ArendServerService>().server.getTCReferable(arendDef)?.typechecked ?: return true
                 val levelParams = def.levelParameters
                 if ((levelParams == null || levelParams.isEmpty()) && def.parametersOriginalDefinitions.isEmpty()) return true
                 val builder = StringBuilder()

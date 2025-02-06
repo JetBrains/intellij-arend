@@ -19,7 +19,6 @@ import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.SmartList
 import org.arend.documentation.ArendKeyword.Companion.AREND_KEYWORDS
-import org.arend.error.DummyErrorReporter
 import org.arend.ext.reference.DataContainer
 import org.arend.psi.ext.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
@@ -170,7 +169,7 @@ private fun getSignature(
                 RenderingInfo(parameters.map(::gatherHighlightingData), gatherHighlightingData(codomain))
             })
     }
-    if (referable !is PsiConcreteReferable) return null
+    if (referable !is PsiLocatedReferable) return null
     if (referable !is ArendCoClauseDef && referable !is ArendDefFunction) return null
     return when (val concrete = provider.getConcrete(referable)) {
         is Concrete.FunctionDefinition -> {

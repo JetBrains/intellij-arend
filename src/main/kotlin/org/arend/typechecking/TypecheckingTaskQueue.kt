@@ -4,7 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import org.arend.psi.ArendFile
-import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.listener.ArendDefinitionChangeListener
 import org.arend.psi.listener.ArendPsiChangeService
 import java.util.concurrent.LinkedBlockingQueue
@@ -54,7 +54,7 @@ class TypecheckingTaskQueue : ArendDefinitionChangeListener {
         queue.clear()
     }
 
-    override fun updateDefinition(def: PsiConcreteReferable, file: ArendFile, isExternalUpdate: Boolean) {
+    override fun updateDefinition(def: PsiLocatedReferable, file: ArendFile, isExternalUpdate: Boolean) {
         clearQueue()
     }
 }

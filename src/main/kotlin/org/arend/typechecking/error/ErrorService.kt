@@ -10,9 +10,8 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.reference.DataContainer
 import org.arend.psi.ArendFile
 import org.arend.psi.ancestor
-import org.arend.psi.ext.TCDefinition
 import org.arend.ext.error.LocalError
-import org.arend.psi.ext.PsiConcreteReferable
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.typechecking.computation.ComputationRunner
 import java.util.*
 
@@ -138,7 +137,7 @@ class ErrorService : ErrorReporter {
         nameResolverErrors.remove(file)
     }
 
-    fun updateTypecheckingErrors(file: ArendFile, definition: TCDefinition?) {
+    fun updateTypecheckingErrors(file: ArendFile, definition: PsiLocatedReferable?) {
         val arendErrors = typecheckingErrors[file]
         if (arendErrors != null) {
             synchronized(arendErrors) {
@@ -146,7 +145,7 @@ class ErrorService : ErrorReporter {
                 while (it.hasNext()) {
                     val arendError = it.next()
                     val errorCause = arendError.cause
-                    if (errorCause == null || errorCause.ancestor<PsiConcreteReferable>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
+                    if (errorCause == null || errorCause.ancestor<PsiLocatedReferable>().let { definition != null && definition == it || it == null && arendError.error is LocalError }) {
                         it.remove()
                     }
                 }
@@ -157,7 +156,7 @@ class ErrorService : ErrorReporter {
         }
     }
 
-    fun clearTypecheckingErrors(definition: TCDefinition) {
+    fun clearTypecheckingErrors(definition: PsiLocatedReferable) {
         updateTypecheckingErrors(definition.containingFile as? ArendFile ?: return, definition)
     }
 
