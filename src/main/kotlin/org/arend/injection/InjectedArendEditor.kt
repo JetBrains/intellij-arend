@@ -318,7 +318,7 @@ abstract class InjectedArendEditor(
         PsiDocumentManager.getInstance(project).getPsiFile(it) as? PsiInjectionTextFile
     }
 
-    class ProjectPrintConfig(
+    private class ProjectPrintConfig(
         project: Project,
         printOptionsKind: PrintOptionKind,
         scope: Scope?,
