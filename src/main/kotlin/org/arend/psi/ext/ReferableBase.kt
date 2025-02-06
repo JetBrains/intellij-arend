@@ -4,17 +4,13 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
-import org.arend.ext.module.LongName
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.Precedence
-import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
-import org.arend.resolving.IntellijTCReferable
 import org.arend.term.group.AccessModifier
-import java.util.concurrent.ConcurrentHashMap
 
 // TODO[server2]: Remove everything that mentions TCReferable, and maybe the class itself?
 abstract class ReferableBase<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
@@ -37,8 +33,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getPrecedence() = stub?.precedence ?: calcPrecedence(prec)
 
-    override fun getTypecheckable(): PsiLocatedReferable = ancestor<PsiLocatedReferable>() ?: this
-
     override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
 
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
@@ -51,16 +45,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     fun getDescription(): Doc =
         documentation?.doc ?: DocFactory.nullDoc()
-
-    protected var tcReferableCache: TCReferable? = null
-    private var tcRefMapCache: ConcurrentHashMap<LongName, IntellijTCReferable>? = null
-
-    private val tcRefMap: ConcurrentHashMap<LongName, IntellijTCReferable>?
-        get() {
-            tcRefMapCache?.let { return it }
-            val file = if (isValid) containingFile as? ArendFile else null
-            return file?.getTCRefMap(Referable.RefKind.EXPR)
-        }
 
     companion object {
         fun calcPrecedence(prec: ArendPrec?): Precedence {

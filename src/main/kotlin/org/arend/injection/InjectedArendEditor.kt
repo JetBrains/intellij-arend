@@ -393,7 +393,10 @@ abstract class InjectedArendEditor(
         }
 
         fun causeIsMetaExpression(cause: ConcreteSourceNode?, resolve: Referable?) =
+            resolve is ArendDefMeta
+            /* TODO[server2]
             (resolve as? ArendDefMeta)?.metaRef?.definition != null &&
                     (cause as? Concrete.ReferenceExpression)?.referent != resolve
+            */
     }
 }

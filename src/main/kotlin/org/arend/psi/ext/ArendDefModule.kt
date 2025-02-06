@@ -40,6 +40,4 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
     override fun getIcon(flags: Int) = ArendIcons.MODULE_DEFINITION
 
     override fun getGroupDefinition() = null
-
-    override fun getTypecheckable() = this
 }

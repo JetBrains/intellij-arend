@@ -7,8 +7,6 @@ import org.arend.psi.ancestor
 
 
 interface PsiLocatedReferable : LocatedReferable, PsiReferable {
-    override fun getTypecheckable(): PsiLocatedReferable
-
     val defIdentifier: ArendDefIdentifier?
 
     companion object {

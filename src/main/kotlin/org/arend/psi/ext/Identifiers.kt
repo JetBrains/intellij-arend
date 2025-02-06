@@ -145,8 +145,6 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
 
     override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
 
-    override fun getTypecheckable() = this
-
     override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT

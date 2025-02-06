@@ -316,7 +316,7 @@ fun doAddIdToOpen(psiFactory: ArendPsiFactory, openedName: List<String>, positio
         if (anchor != null) {
             val targetContainer = when (elementReferable) {
                 is ArendGroup -> elementReferable.parentGroup
-                else -> elementReferable.typecheckable.let { if (it is ArendGroup) it.parentGroup else it }
+                else -> if (elementReferable is ArendGroup) elementReferable.parentGroup else elementReferable
             }
             if (openedName.size > 1 && targetContainer != null) {
                 val containingFile = positionInFile.containingFile as? ArendFile

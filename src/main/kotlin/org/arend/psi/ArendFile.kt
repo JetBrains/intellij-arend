@@ -158,8 +158,6 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getLocation() = moduleLocation
 
-    override fun getTypecheckable(): PsiLocatedReferable = this
-
     override fun getLocatedReferableParent(): LocatedReferable? = null
 
     override fun getNameIdentifier(): PsiElement? = null

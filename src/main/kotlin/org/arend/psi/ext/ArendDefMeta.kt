@@ -5,7 +5,6 @@ import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
 import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.MetaReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefMetaStub
 import org.arend.term.abs.Abstract
@@ -19,12 +18,6 @@ class ArendDefMeta : ArendDefinition<ArendDefMetaStub>, Abstract.MetaDefinition,
 
     val expr: ArendExpr?
         get() = childOfType()
-
-    var metaRef: MetaReferable?
-        get() = tcReferableCache as MetaReferable?
-        set(value) {
-            tcReferableCache = value
-        }
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 
