@@ -30,20 +30,18 @@ import org.arend.naming.reference.LocalReferable
 import org.arend.naming.renamer.MapReferableRenamer
 import org.arend.naming.renamer.ReferableRenamer
 import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
+import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.*
 import org.arend.refactoring.addToWhere
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
-import org.arend.resolving.ArendReferableConverter
 import org.arend.resolving.ArendResolveCache
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.MinimizedRepresentation
 import org.arend.term.prettyprint.ToAbstractVisitor
-import org.arend.typechecking.PsiInstanceProviderSet
-import org.arend.typechecking.instance.provider.InstanceProvider
+import org.arend.typechecking.instance.provider.EmptyInstanceProvider
 import org.arend.util.*
 import org.arend.util.ParameterExplicitnessState.*
 import java.util.*
@@ -166,7 +164,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     ): (Expression) -> Concrete.Expression {
         val enclosingDefinitionReferable = selection.contextPsi.parentOfType<PsiLocatedReferable>()!!
 
-        val ip = getInstanceProvider(enclosingDefinitionReferable)
+        val ip = EmptyInstanceProvider.getInstance() // TODO[server2]: getInstanceProvider(enclosingDefinitionReferable)
 
         val definitionRenamer = getDefinitionRenamer(selection)
         val referableRenamer = getReferableRenamer(allParameters.mapToSet(Pair<Binding, ParameterExplicitnessState>::first))
@@ -215,9 +213,11 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         return Supplier { MapReferableRenamer(thisMapping) }
     }
 
+    /* TODO[server2]
     private fun getInstanceProvider(enclosingDefinitionReferable: PsiLocatedReferable): InstanceProvider? =
         ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)
             ?.let { PsiInstanceProviderSet().get(it) }
+    */
 
     private fun getAllParameters(
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
@@ -230,7 +230,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
     }
 
     private fun getDefinitionRenamer(selection: SelectionResult): DefinitionRenamer =
-        CachingDefinitionRenamer(ScopeDefinitionRenamer(selection.contextPsi.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) }))
+        CachingDefinitionRenamer(ScopeDefinitionRenamer(EmptyScope.INSTANCE /* TODO[server2]: selection.contextPsi.scope.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) } */))
 
     private fun Boolean.toExplicitnessState(): ParameterExplicitnessState = if (this) EXPLICIT else IMPLICIT
 

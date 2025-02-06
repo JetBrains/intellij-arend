@@ -34,14 +34,12 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefMeta
-import org.arend.resolving.ArendReferableConverter
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.term.prettyprint.TermWithSubtermDoc
@@ -243,7 +241,7 @@ abstract class InjectedArendEditor(
         return ProjectPrintConfig(
             project,
             printOptionKind,
-            scope?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) },
+            scope /* TODO[server2]: ?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) } */,
             verboseLevelMap,
             verboseLevelParameterMap
         )

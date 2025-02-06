@@ -2,46 +2,20 @@ package org.arend.typechecking.execution
 
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.ide.SaveAndSyncHandler
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiErrorElement
-import com.intellij.psi.SmartPointerManager
+import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.ext.module.ModulePath
-import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.library.Library
 import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
 import org.arend.module.ArendRawLibrary
-import org.arend.module.ModuleLocation
 import org.arend.module.error.ModuleNotFoundError
-import org.arend.module.scopeprovider.ModuleScopeProvider
-import org.arend.naming.reference.FullModuleReferable
-import org.arend.naming.reference.TCDefReferable
-import org.arend.naming.resolving.typing.TypingInfo
-import org.arend.naming.resolving.visitor.DefinitionResolveNameVisitor
-import org.arend.naming.scope.ScopeFactory
-import org.arend.psi.ArendFile
-import org.arend.psi.ext.ArendStat
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.ArendGroup
-import org.arend.psi.findGroupByFullName
-import org.arend.resolving.ArendReferableConverter
-import org.arend.term.concrete.Concrete
 import org.arend.typechecking.*
-import org.arend.typechecking.error.ParserError
-import org.arend.typechecking.error.TypecheckingErrorReporter
-import org.arend.typechecking.order.Ordering
-import org.arend.typechecking.order.listener.CollectingOrderingListener
-import org.arend.util.afterTypechecking
-import org.jetbrains.ide.PooledThreadExecutor
+import org.arend.typechecking.error.ErrorService
 import java.io.OutputStream
 
 
@@ -60,7 +34,7 @@ class TypeCheckProcessHandler(
         val eventsProcessor = eventsProcessor ?: return
         SaveAndSyncHandler.getInstance().scheduleSave(SaveAndSyncHandler.SaveTask(typeCheckerService.project))
 
-        val typecheckingErrorReporter = TypecheckingErrorReporter(typeCheckerService.project.service(), PrettyPrinterConfig.DEFAULT, eventsProcessor)
+        val typecheckingErrorReporter = typeCheckerService.project.service<ErrorService>()
         val modulePath = if (command.modulePath == "") null else ModulePath(command.modulePath.split('.'))
         if (modulePath != null) {
             eventsProcessor.onSuiteStarted(modulePath)
@@ -206,42 +180,7 @@ class TypeCheckProcessHandler(
         */
     }
 
-    private fun orderGroup(group: ArendGroup, ordering: Ordering) {
-        if (indicator.isCanceled) {
-            return
-        }
-
-        (ordering.concreteProvider.getConcrete(group) as? Concrete.Definition)?.let { ordering.order(it) }
-
-        for (stat in group.statements) {
-            orderGroup(stat.group ?: continue, ordering)
-        }
-        for (subgroup in group.dynamicSubgroups) {
-            orderGroup(subgroup, ordering)
-        }
-    }
-
-    private fun reportParserErrors(group: PsiElement, module: ArendFile, typecheckingErrorReporter: TypecheckingErrorReporter) {
-        for (child in group.children) {
-            when (child) {
-                is PsiErrorElement -> {
-                    val moduleLocation = module.moduleLocation
-                    if (moduleLocation != null) {
-                        typecheckingErrorReporter.report(ParserError(SmartPointerManager.createPointer(child),
-                            group as? PsiLocatedReferable ?: FullModuleReferable(moduleLocation), child.errorDescription))
-                        if (group is PsiLocatedReferable) {
-                            typecheckingErrorReporter.eventsProcessor.onTestFailure(group)
-                        } else {
-                            typecheckingErrorReporter.eventsProcessor.onSuiteFailure(moduleLocation.modulePath)
-                        }
-                    }
-                }
-                is ArendStat -> child.group?.let { reportParserErrors(it, module, typecheckingErrorReporter) }
-            }
-        }
-    }
-
-    private fun findLibrary(modulePath: ModulePath, registeredLibraries: Collection<Library>, typecheckingErrorReporter: TypecheckingErrorReporter): Library? {
+    private fun findLibrary(modulePath: ModulePath, registeredLibraries: Collection<Library>, typecheckingErrorReporter: ErrorReporter): Library? {
         var library: Library? = null
         var libraries: MutableList<Library>? = null
         for (lib in registeredLibraries) {

@@ -11,7 +11,6 @@ import org.arend.module.config.ExternalLibraryConfig
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.reference.*
 import org.arend.psi.ArendFile
-import org.arend.resolving.ArendReferableConverter
 import org.arend.source.BinarySource
 import org.arend.source.FileBinarySource
 import org.arend.source.GZIPStreamBinarySource
@@ -79,8 +78,6 @@ class ArendRawLibrary(val config: LibraryConfig) : SourceLibrary() {
             }
         }
     }
-
-    override fun getReferableConverter() = ArendReferableConverter
 
     override fun getDependencyListener() = config.project.service<TypeCheckingService>().dependencyListener
 

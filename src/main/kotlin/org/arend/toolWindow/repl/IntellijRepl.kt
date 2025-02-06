@@ -13,13 +13,11 @@ import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.config.LibraryConfig
 import org.arend.naming.scope.CachingScope
-import org.arend.naming.scope.ConvertingScope
 import org.arend.naming.scope.Scope
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendPsiFactory
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.repl.Repl
-import org.arend.resolving.ArendReferableConverter
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
@@ -65,10 +63,6 @@ abstract class IntellijRepl private constructor(
         errorReporter,
         ConcreteProvider.EMPTY // TODO[server2]: PsiConcreteProvider(service.project, errorReporter, null, true)
     )
-
-    init {
-        myScope = ConvertingScope(ArendReferableConverter, myScope)
-    }
 
     private val project = service.project
     private val definitionModificationTracker = service<ArendPsiChangeService>().definitionModificationTracker
