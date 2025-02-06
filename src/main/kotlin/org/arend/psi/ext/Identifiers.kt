@@ -130,7 +130,7 @@ class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable
         }
 }
 
-class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable, LevelReferable {
+class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable {
     val id: PsiElement
         get() = childOfTypeStrict(ArendElementTypes.ID)
 
@@ -138,8 +138,6 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
         get() = id.text
 
     override val defIdentifier: ArendDefIdentifier? = null
-
-    override fun getData() = this
 
     override fun getKind() = GlobalReferable.Kind.LEVEL
 
