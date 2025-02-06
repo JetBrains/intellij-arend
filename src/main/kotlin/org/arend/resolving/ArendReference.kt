@@ -43,7 +43,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
 
     override fun resolve(): PsiElement? {
         val service = element.project.service<ArendServerService>()
-        return when (val ref = service.server.resolveReference(element)) {
+        return when (val ref = service.server.resolveReference(element)?.abstractReferable) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
             else -> null

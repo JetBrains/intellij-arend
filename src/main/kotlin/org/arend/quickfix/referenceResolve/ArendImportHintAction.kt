@@ -20,6 +20,7 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.ThreeState
+import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendFileScope
@@ -181,6 +182,6 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         }
 
         fun referenceUnresolved(referenceElement: ArendReferenceElement) =
-            referenceElement.project.service<ArendServerService>().server.getCachedReferable(referenceElement)?.isErrorReferable == true
+            referenceElement.project.service<ArendServerService>().server.getCachedReferable(referenceElement) == TCDefReferable.NULL_REFERABLE
     }
 }
