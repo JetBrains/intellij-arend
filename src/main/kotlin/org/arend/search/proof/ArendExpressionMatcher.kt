@@ -6,6 +6,7 @@ import org.arend.error.DummyErrorReporter
 import org.arend.naming.binOp.ExpressionBinOpEngine
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.scope.CachingScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.ArendElementTypes.*
@@ -163,7 +164,7 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
                 if (binOpList.size != tree.subNodes.size) {
                     null
                 } else {
-                    ExpressionBinOpEngine.parse(Concrete.BinOpSequenceExpression(null, binOpList, null), DummyErrorReporter.INSTANCE)
+                    ExpressionBinOpEngine.parse(Concrete.BinOpSequenceExpression(null, binOpList, null), DummyErrorReporter.INSTANCE, TypingInfo.EMPTY)
                 }
             }
             is PatternTree.LeafNode -> {
