@@ -136,7 +136,7 @@ class ArendCodeInsightUtils {
                 val dataBody = constructorClause?.parent as? ArendDataBody
                 val elim = dataBody?.elim ?: throw IllegalStateException()
 
-                val concreteData: Concrete.GeneralDefinition = ConcreteBuilder.convert(data, null, CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE))
+                val concreteData: Concrete.GeneralDefinition = ConcreteBuilder.convert(data, null, CountingErrorReporter(GeneralError.Level.ERROR, DummyErrorReporter.INSTANCE), null, null)
                 if (concreteData !is Concrete.DataDefinition) throw IllegalStateException()
 
                 val clause = concreteData.constructorClauses.firstOrNull { clause ->
