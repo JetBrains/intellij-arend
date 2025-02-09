@@ -4,12 +4,13 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import org.arend.naming.reference.*
 import org.arend.naming.resolving.ResolverListener
+import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.psi.ext.*
 import org.arend.psi.extendLeft
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.term.concrete.Concrete
 
-class HighlightingResolverListener(private val pass: BasePass, private val progress: ProgressIndicator) : ResolverListener {
+class HighlightingResolverListener(private val pass: BasePass, private val progress: ProgressIndicator, private val typingInfo: TypingInfo) : ResolverListener {
     private fun resolveReference(data: Any?, referent: Referable, resolvedRefs: List<Referable?>) {
         val list = when (data) {
             is ArendLongName -> data.refIdentifierList
@@ -34,7 +35,7 @@ class HighlightingResolverListener(private val pass: BasePass, private val progr
         val lastReference = list.lastOrNull() ?: return
         if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
             when {
-                referent is GlobalReferable && referent.precedence.isInfix ->
+                referent is GlobalReferable && typingInfo.getRefPrecedence(referent).isInfix ->
                     pass.addHighlightInfo(lastReference.textRange, ArendHighlightingColors.OPERATORS)
 
                 (((referent as? RedirectingReferable)?.originalReferable

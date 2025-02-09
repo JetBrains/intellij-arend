@@ -21,7 +21,8 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         progress.isIndeterminate = true
 
         if (module != null) {
-            myProject.service<ArendServerService>().server.getCheckerFor(listOf(module)).resolveModules(this, ProgressCancellationIndicator(progress), HighlightingResolverListener(this, progress))
+            val server = myProject.service<ArendServerService>().server
+            server.getCheckerFor(listOf(module)).resolveModules(this, ProgressCancellationIndicator(progress), HighlightingResolverListener(this, progress, server.typingInfo))
         }
     }
 
