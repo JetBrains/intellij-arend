@@ -7,10 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.platform.util.progress.reportSequentialProgress
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.LongName
 import org.arend.module.ModuleLocation
@@ -19,14 +16,13 @@ import org.arend.naming.resolving.ResolverListener
 import org.arend.server.ArendServerRequesterImpl
 import org.arend.server.ArendServerService
 import org.arend.toolWindow.errors.ArendMessagesService
-import org.arend.typechecking.computation.CancellationIndicator
-import org.arend.typechecking.computation.UnstoppableCancellationIndicator
+import org.arend.typechecking.CoroutineCancellationIndicator
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.arend.util.FullName
 
 @Service(Service.Level.PROJECT)
 class RunnerService(private val project: Project, private val coroutineScope: CoroutineScope) {
-    fun runChecker(library: String?, isTest: Boolean, module: ModuleLocation?, definition: String?, resolverListener: ResolverListener = ResolverListener.EMPTY, indicator: CancellationIndicator = UnstoppableCancellationIndicator.INSTANCE) {
+    fun runChecker(library: String?, isTest: Boolean, module: ModuleLocation?, definition: String?, resolverListener: ResolverListener = ResolverListener.EMPTY) {
         coroutineScope.launch {
             val message = if (module == null) {
                 if (library == null) "project" else "library $library"
@@ -40,14 +36,14 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
                     ArendServerRequesterImpl(project).requestUpdate(server, library, isTest)
                 }
                 val checker = server.getCheckerFor(if (module == null) server.modules.filter { (library == null || it.libraryName == library) && (it.locationKind == ModuleLocation.LocationKind.SOURCE || isTest && it.locationKind == ModuleLocation.LocationKind.TEST) } else listOf(module))
-                checker.getDependencies(indicator)
+                checker.getDependencies(CoroutineCancellationIndicator(this))
                 checker
             }
 
-            val dependencies = checker.getDependencies(indicator)?.size ?: return@launch
+            val dependencies = checker.getDependencies(CoroutineCancellationIndicator(this))?.size ?: return@launch
             withBackgroundProgress(project, "Resolving $message") {
                 reportSequentialProgress(dependencies) { reporter ->
-                    checker.resolveAll(DummyErrorReporter.INSTANCE, indicator, object : DelegateResolverListener(resolverListener) {
+                    checker.resolveAll(DummyErrorReporter.INSTANCE, CoroutineCancellationIndicator(this), object : DelegateResolverListener(resolverListener) {
                         override fun moduleResolved(module: ModuleLocation?) {
                             super.moduleResolved(module)
                             reporter.itemStep()
@@ -69,7 +65,7 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
             if (definitions > 0) {
                 withBackgroundProgress(project, "Typechecking $message") {
                     reportSequentialProgress(definitions) { reporter ->
-                        checker.typecheckPrepared(indicator) { reporter.itemStep() }
+                        checker.typecheckPrepared(CoroutineCancellationIndicator(this)) { reporter.itemStep() }
                     }
                 }
 
