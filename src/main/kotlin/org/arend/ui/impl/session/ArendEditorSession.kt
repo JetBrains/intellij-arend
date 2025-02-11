@@ -2,16 +2,13 @@ package org.arend.ui.impl.session
 
 import com.intellij.codeInsight.lookup.*
 import com.intellij.codeInsight.lookup.impl.LookupImpl
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import org.arend.core.definition.Definition
 import org.arend.extImpl.ui.DelegateQuery
 import org.arend.extImpl.ui.SimpleQuery
-import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.resolving.ArendReferenceBase
-import org.arend.typechecking.TypeCheckingService
 import org.arend.ui.ArendDialog
 
 class ArendEditorSession(private val project: Project, private val editor: Editor) : ComponentSession() {
@@ -51,9 +48,8 @@ class ArendEditorSession(private val project: Project, private val editor: Edito
         val query = SimpleQuery<T>()
         request.query.setDelegate(query)
 
-        val service = project.service<TypeCheckingService>()
         val lookupList = request.list.map { elem ->
-            val ref = (elem as? LocatedReferable)?.let { service.getPsiReferable(it) } ?: if (elem is Definition) service.getDefinitionPsiReferable(elem) else elem as? Referable
+            val ref = (elem as? Definition)?.referable ?: elem as? Referable
             val element = (if (ref != null) ArendReferenceBase.createArendLookUpElement(ref, null, false, null, false, "")?.withInsertHandler { _, _ -> } else null)
                 ?: LookupElementBuilder.create(elem, "")
             element.withPresentableText(ref?.refName ?: elem.toString())

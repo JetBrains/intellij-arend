@@ -251,7 +251,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                             }
                         }
                         registerFix(builder, GoalSolverFillingQuickFix(expr, error, action))
-                        for (solver in error.goalSolver.additionalSolvers) {
+                        for (solver in error.additionalSolvers) {
                             registerFix(builder, InteractiveGoalSolverQuickFix(expr, error, solver, action))
                         }
                     }
