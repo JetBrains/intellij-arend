@@ -24,12 +24,7 @@ import org.arend.util.FullName
 class RunnerService(private val project: Project, private val coroutineScope: CoroutineScope) {
     fun runChecker(library: String?, isTest: Boolean, module: ModuleLocation?, definition: String?, resolverListener: ResolverListener = ResolverListener.EMPTY) =
         coroutineScope.launch {
-            val message = if (module == null) {
-                if (library == null) "project" else "library $library"
-            } else {
-                "module $module"
-            }
-
+            val message = module?.toString() ?: (library ?: "project")
             val server = project.service<ArendServerService>().server
             val checker = withBackgroundProgress(project, "Loading $message") {
                 if (module == null) {

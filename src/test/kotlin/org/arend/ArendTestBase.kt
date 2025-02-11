@@ -58,7 +58,6 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         super.setUp()
 
         service<ArendSettings>().isBackgroundTypechecking = true
-        service<ArendSettings>().withTimeLimit = false
 
         library.setArendExtension(null)
 

@@ -24,9 +24,6 @@ class ArendSettings : PersistentStateComponent<ArendSettings> {
 
     // Background typechecking
     var isBackgroundTypechecking = true
-    var withTimeLimit = true
-    var typecheckingTimeLimit = 5
-    var typecheckOnlyLast = true
 
     // Other settings
     var withClauseLimit = true

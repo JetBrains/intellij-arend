@@ -296,7 +296,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
 
     private fun prepareReload(): ArendTypechecking {
         project.service<ErrorService>().clearAllErrors()
-        service<TypecheckingTaskQueue>().clearQueue()
         return ArendTypechecking.create(project)
     }
 
