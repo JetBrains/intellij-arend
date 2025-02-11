@@ -22,7 +22,7 @@ import org.arend.util.FullName
 
 @Service(Service.Level.PROJECT)
 class RunnerService(private val project: Project, private val coroutineScope: CoroutineScope) {
-    fun runChecker(library: String?, isTest: Boolean, module: ModuleLocation?, definition: String?, resolverListener: ResolverListener = ResolverListener.EMPTY) {
+    fun runChecker(library: String?, isTest: Boolean, module: ModuleLocation?, definition: String?, resolverListener: ResolverListener = ResolverListener.EMPTY) =
         coroutineScope.launch {
             val message = if (module == null) {
                 if (library == null) "project" else "library $library"
@@ -75,5 +75,7 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
                 }
             }
         }
-    }
+
+    fun runChecker(module: ModuleLocation) =
+        runChecker(module.libraryName, module.locationKind == ModuleLocation.LocationKind.TEST, module, null)
 }
