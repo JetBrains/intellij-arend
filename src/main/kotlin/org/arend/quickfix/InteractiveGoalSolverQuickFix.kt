@@ -25,7 +25,7 @@ class InteractiveGoalSolverQuickFix(private val element: ArendExpr,
                                     private val action: (Editor, Concrete.Expression, String) -> Unit)
     : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
-        solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
+        solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<ErrorService>()), goal.goalExpression, goal.expectedType, ArendEditorUI(project, editor)) {
             if (it != null) {
                 if (it !is Concrete.Expression) throw IllegalArgumentException()
                 CommandProcessor.getInstance().executeCommand(project, {
@@ -53,7 +53,7 @@ class InteractiveGoalSolverQuickFix(private val element: ArendExpr,
     override fun getFamilyName() = text
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?) =
-        element.isValid && goal.typecheckingContext != null && solver.isApplicable(goal.causeSourceNode, goal.expectedType)
+        element.isValid && goal.typecheckingContext != null && solver.isApplicable(goal.goalExpression, goal.expectedType)
 
     override fun getElementToMakeWritable(currentFile: PsiFile) = currentFile
 
