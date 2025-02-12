@@ -17,7 +17,7 @@ class ArendUnusedImportHighlightingPassFactory : TextEditorHighlightingPassFacto
     override fun createHighlightingPass(file: PsiFile, editor: Editor): TextEditorHighlightingPass? {
         if (file !is ArendFile) return null
         val modCount = PsiModificationTracker.getInstance(file.project).modificationCount
-        if (file.lastModificationImportOptimizer.get() >= modCount) return null
+        // TODO[server2]: if (file.lastModificationImportOptimizer.get() >= modCount) return null
         return ArendUnusedImportHighlightingPass(file, editor, modCount)
     }
 }

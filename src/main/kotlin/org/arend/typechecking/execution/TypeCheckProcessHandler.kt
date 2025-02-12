@@ -5,6 +5,7 @@ import com.intellij.ide.SaveAndSyncHandler
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
+import com.intellij.openapi.project.Project
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
 import org.arend.ext.module.ModulePath
@@ -12,7 +13,6 @@ import org.arend.library.Library
 import org.arend.library.SourceLibrary
 import org.arend.library.error.LibraryError
 import org.arend.library.error.ModuleInSeveralLibrariesError
-import org.arend.module.ArendRawLibrary
 import org.arend.module.error.ModuleNotFoundError
 import org.arend.typechecking.*
 import org.arend.typechecking.error.ErrorService
@@ -21,7 +21,7 @@ import java.io.OutputStream
 
 // TODO[server2]: Do we still need this?
 class TypeCheckProcessHandler(
-    private val typeCheckerService: TypeCheckingService,
+    private val project: Project,
     private val command: TypeCheckCommand
 ) : ProcessHandler() {
         //OSProcessHandler(GeneralCommandLine()) {
@@ -32,9 +32,9 @@ class TypeCheckProcessHandler(
         super.startNotify()
 
         val eventsProcessor = eventsProcessor ?: return
-        SaveAndSyncHandler.getInstance().scheduleSave(SaveAndSyncHandler.SaveTask(typeCheckerService.project))
+        SaveAndSyncHandler.getInstance().scheduleSave(SaveAndSyncHandler.SaveTask(project))
 
-        val typecheckingErrorReporter = typeCheckerService.project.service<ErrorService>()
+        val typecheckingErrorReporter = project.service<ErrorService>()
         val modulePath = if (command.modulePath == "") null else ModulePath(command.modulePath.split('.'))
         if (modulePath != null) {
             eventsProcessor.onSuiteStarted(modulePath)
@@ -47,6 +47,7 @@ class TypeCheckProcessHandler(
             return
         }
 
+        /* TODO[server2]
         val registeredLibraries = typeCheckerService.libraryManager.registeredLibraries
         val libraries = if (command.library == "" && modulePath == null) registeredLibraries.filterIsInstance<ArendRawLibrary>() else {
             val library = if (command.library != "") typeCheckerService.libraryManager.getRegisteredLibrary(command.library) else findLibrary(modulePath!!, registeredLibraries, typecheckingErrorReporter)
@@ -80,7 +81,6 @@ class TypeCheckProcessHandler(
         }
         typeCheckerService.updatedModules.clear()
 
-        /* TODO[server2]
         PooledThreadExecutor.INSTANCE.execute {
             val concreteProvider = PsiConcreteProvider(typeCheckerService.project, typecheckingErrorReporter, typecheckingErrorReporter.eventsProcessor)
             val collector = CollectingOrderingListener()

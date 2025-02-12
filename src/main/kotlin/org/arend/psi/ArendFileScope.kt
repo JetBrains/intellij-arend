@@ -10,7 +10,7 @@ class ArendFileScope(project: Project): ProjectAndLibrariesScope(project) {
     override fun contains(file: VirtualFile): Boolean {
         val project = project ?: return false
         val psiFile = PsiManager.getInstance(project).findFile(file) as? ArendFile ?: return false
-        if (psiFile.libraryName == Prelude.LIBRARY_NAME) {
+        if (psiFile.generatedModuleLocation?.libraryName == Prelude.LIBRARY_NAME) {
             return true
         }
         if (!super.contains(file)) return false

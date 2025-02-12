@@ -10,9 +10,6 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefDataStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.resolving.util.ParameterImpl
-import org.arend.resolving.util.Universe
-import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
 class ArendDefData : ArendDefinition<ArendDefDataStub>, Abstract.DataDefinition, StubBasedPsiElement<ArendDefDataStub> {
@@ -48,12 +45,6 @@ class ArendDefData : ArendDefinition<ArendDefDataStub>, Abstract.DataDefinition,
         val body = dataBody ?: return emptyList()
         return body.constructorClauseList + body.constructorList
     }
-
-    internal val allParameters
-        get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
-
-    override val typeOf: Abstract.Expression?
-        get() = getTypeOf(allParameters, Universe)
 
     override fun getKind() = GlobalReferable.Kind.DATA
 

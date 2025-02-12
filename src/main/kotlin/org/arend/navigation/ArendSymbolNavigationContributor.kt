@@ -2,7 +2,6 @@ package org.arend.navigation
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import org.arend.module.ArendRawLibrary
 import org.arend.prelude.Prelude
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable

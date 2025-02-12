@@ -60,9 +60,6 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
 
     override fun isCoerce() = parentFieldTele?.isCoerce == true
 
-    override val typeOf: ArendExpr?
-        get() = resultType
-
     override fun getParameters(): List<Abstract.Parameter> = emptyList()
 
     override fun getResultType(): ArendExpr? = parentFieldTele?.type

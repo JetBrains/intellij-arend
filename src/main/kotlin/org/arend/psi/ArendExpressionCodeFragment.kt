@@ -17,14 +17,11 @@ import org.arend.parser.ArendParser
 import org.arend.psi.ext.ArendExpr
 import org.arend.refactoring.NsCmdRefactoringAction
 import org.arend.resolving.ArendReference
-import java.util.concurrent.atomic.AtomicLong
 
 class ArendExpressionCodeFragment(project: Project, expression: String,
                                   context: PsiElement?,
                                   private val fragmentController: ArendCodeFragmentController?):
     PsiCodeFragmentImpl(project, ArendExpressionCodeFragmentElementType, true, "fragment.ard", expression, context), IArendFile {
-    override var lastModification = AtomicLong(-1)
-
     override fun getReference(): ArendReference? = null
 
     override fun moduleTextRepresentation(): String = name

@@ -26,7 +26,6 @@ import org.arend.term.concrete.Concrete
 import org.arend.tracer.ArendTraceAction
 import org.arend.typechecking.ArendExpressionTypechecker
 import org.arend.typechecking.LibraryArendExtensionProvider
-import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.instance.pool.GlobalInstancePool
 import org.arend.typechecking.result.TypecheckingResult

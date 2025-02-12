@@ -26,7 +26,6 @@ import org.arend.ext.reference.Precedence
 import org.arend.extImpl.OldDefinitionContributorImpl
 import org.arend.module.AREND_LIB
 import org.arend.module.ArendModuleType
-import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleLocation
 import org.arend.module.ModuleSynchronizer
 import org.arend.module.config.ArendModuleConfigService
@@ -38,7 +37,6 @@ import org.arend.psi.parentOfType
 import org.arend.server.ArendServerService
 import org.arend.settings.ArendSettings
 import org.arend.term.group.AccessModifier
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.computation.UnstoppableCancellationIndicator
 import org.arend.util.FileUtils
 import org.arend.util.findExternalLibrary
@@ -59,7 +57,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
 
         service<ArendSettings>().isBackgroundTypechecking = true
 
-        library.setArendExtension(null)
+        // TODO[server2]: library.setArendExtension(null)
 
         VimPlugin.setEnabled(false)
     }
@@ -79,11 +77,11 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, name, null, null, FullModuleReferable(ModuleLocation(module.name, ModuleLocation.LocationKind.GENERATED, ModulePath("Meta"))))
 
     protected fun addGeneratedModules(filler: DefinitionContributor.() -> Unit) {
-        addGeneratedModules(this.library, filler)
+        addGeneratedModules(this.library.name, filler)
     }
 
-    protected val library: ArendRawLibrary
-        get() = ArendModuleConfigService.getInstance(module)?.library
+    protected val library: ArendModuleConfigService
+        get() = ArendModuleConfigService.getInstance(module)
                 ?: throw IllegalStateException("Cannot find library")
 
     protected val fileName: String
@@ -199,9 +197,9 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
                     .joinToString("_", transform = String::lowercase)
         }
 
-        fun addGeneratedModules(library: ArendRawLibrary, filler: DefinitionContributor.() -> Unit) {
+        fun addGeneratedModules(library: String, filler: DefinitionContributor.() -> Unit) {
             val moduleScopeProvider = SimpleModuleScopeProvider()
-            filler(OldDefinitionContributorImpl(library.name, DummyErrorReporter.INSTANCE, moduleScopeProvider))
+            filler(OldDefinitionContributorImpl(library, DummyErrorReporter.INSTANCE, moduleScopeProvider))
             /* TODO[server2]
             for (entry in moduleScopeProvider.registeredEntries) {
                 library.addGeneratedModule(entry.key, entry.value)
@@ -262,13 +260,12 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     }
 
     private fun setupLibraryManager(config: ExternalLibraryConfig) {
-        val arendLib = ArendRawLibrary(config)
-        addGeneratedModules(arendLib) {
+        addGeneratedModules(config.name) {
             declare(DocFactory.nullDoc(), MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "using", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Meta")))), null)
             declare(DocFactory.nullDoc(), MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "$", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Function", "Meta")))), null)
             declare(DocFactory.nullDoc(), MetaReferable(AccessModifier.PUBLIC, Precedence.DEFAULT, "rewrite", null, null, FullModuleReferable(ModuleLocation(config.libraryName, ModuleLocation.LocationKind.GENERATED, ModulePath("Paths", "Meta")))), null)
         }
-        TypeCheckingService.LibraryManagerTestingOptions.setStdLibrary(arendLib, testRootDisposable)
+        // TODO[server2]: TypeCheckingService.LibraryManagerTestingOptions.setStdLibrary(arendLib, testRootDisposable)
     }
 
     private fun setupProjectModel(config: ExternalLibraryConfig, libName: String) {

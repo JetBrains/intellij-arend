@@ -16,7 +16,6 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiManager
 import org.arend.ext.error.ErrorReporter
 import org.arend.library.SourceLibrary
-import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleLocation
 import org.arend.psi.ArendFile
 import org.arend.util.FileUtils
@@ -69,6 +68,7 @@ class BinaryFileSaver(private val project: Project) {
         if (moduleLocation.locationKind != ModuleLocation.LocationKind.SOURCE) {
             return
         }
+        /* TODO[server2]
         val library = typeCheckingService.libraryManager.getRegisteredLibrary(moduleLocation.libraryName) as? SourceLibrary ?: return
         if (library.supportsPersisting()) {
             if (runReadAction { library.persistModule(moduleLocation.modulePath, errorReporter) }) {
@@ -79,6 +79,7 @@ class BinaryFileSaver(private val project: Project) {
                 savedFiles.add(vFile)
             }
         }
+        */
     }
 
     fun addToQueue(file: ArendFile) {

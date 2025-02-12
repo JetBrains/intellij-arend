@@ -13,7 +13,6 @@ import org.arend.naming.reference.FieldReferable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.term.abs.Abstract
-import org.arend.resolving.util.getTypeOf
 import org.arend.term.group.AccessModifier
 import javax.swing.Icon
 
@@ -55,9 +54,6 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
     override fun isCoerce() = hasChildOfType(COERCE_KW)
 
     override fun getAccessModifier(): AccessModifier = (childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC).max(classAccessModifier)
-
-    override val typeOf: Abstract.Expression?
-        get() = getTypeOf(parameters, resultType)
 
     override val psiElementType: PsiElement?
         get() = resultType

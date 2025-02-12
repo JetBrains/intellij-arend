@@ -1,12 +1,10 @@
 package org.arend.util
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInsight.hints.InlayHintsFactory
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -59,14 +57,12 @@ fun Project.findInternalLibrary(name: String): ArendModuleConfigService? =
 val Project.moduleConfigs: List<ArendModuleConfigService>
     get() = allModules.map { it.service<ArendModuleConfigService>() }
 
-fun Project.findLibrary(name: String): LibraryConfig? {
-    val config = findInternalLibrary(name)
-    return if (config != null) {
-        config
-    } else {
-        val libRoot = service<ArendProjectSettings>().librariesRoot
-        if (libRoot.isEmpty()) null else findExternalLibrary(Paths.get(libRoot), name)
-    }
+fun Project.findLibrary(name: String): LibraryConfig? =
+    findInternalLibrary(name) ?: findExternalLibrary(name)
+
+fun Project.findExternalLibrary(name: String): LibraryConfig? {
+    val libRoot = service<ArendProjectSettings>().librariesRoot
+    return if (libRoot.isEmpty()) null else findExternalLibrary(Paths.get(libRoot), name)
 }
 
 private fun Project.findConfigInZip(zipFile: VirtualFile): YAMLFile? {
@@ -152,14 +148,3 @@ private class CollectingDocVisitor(private val references: MutableList<ArendRef>
 }
 
 fun Editor.isDetailedViewEditor() : Boolean = getUserData(InjectedArendEditor.AREND_GOAL_EDITOR) != null
-
-fun Project.afterTypechecking(files: Collection<ArendFile>) {
-    for (editor in EditorFactory.getInstance().allEditors) {
-        InlayHintsFactory.clearModificationStamp(editor) // editor.putUserData(PSI_MODIFICATION_STAMP, null)
-    }
-    runReadAction {
-        for (file in files) {
-            DaemonCodeAnalyzer.getInstance(this).restart(file)
-        }
-    }
-}

@@ -32,9 +32,6 @@ interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, Navigata
             }
             return sibling as? ArendDocComment
         }
-
-    val typeOf: Abstract.Expression?
-        get() = null
 }
 
 val Abstract.ParametersHolder.parametersText: String?

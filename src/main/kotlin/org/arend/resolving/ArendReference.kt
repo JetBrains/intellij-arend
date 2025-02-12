@@ -85,7 +85,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                         is PsiModuleReferable -> ref.modules.firstOrNull()
                         is FullModuleReferable -> if (ref.location.locationKind == ModuleLocation.LocationKind.GENERATED) ref else
                             containingFile?.project?.findLibrary(ref.location.libraryName)?.findArendFileOrDirectory(ref.location.modulePath, false, ref.location.locationKind == ModuleLocation.LocationKind.TEST)
-                        else -> (containingFile as? ArendFile)?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
+                        else -> (containingFile as? ArendFile)?.arendLibrary?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
                     }
                     val result = LookupElementBuilder.create(if (ref is FullModuleReferable) ModuleReferable(ref.location.modulePath) else ref, ref.path.lastName)
                     when {

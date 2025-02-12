@@ -12,13 +12,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializer
 import com.intellij.util.xmlb.annotations.Property
 import com.intellij.util.xmlb.annotations.Tag
-import org.arend.module.ArendRawLibrary
+import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
-import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.execution.TypeCheckCommand
 import org.arend.typechecking.execution.TypeCheckRunConfigurationEditor
 import org.arend.util.arendModules
+import org.arend.util.findLibrary
 import org.jdom.Element
 
 class TypeCheckConfiguration(
@@ -58,12 +58,8 @@ class TypeCheckConfiguration(
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
         if (environment.runnerSettings is DebuggingRunnerData) {
-            val libraryManager = project.service<TypeCheckingService>().libraryManager
-            val libPaths = if (arendTypeCheckCommand.library.isEmpty()) {
-                libraryManager.registeredLibraries.filterIsInstance<ArendRawLibrary>().mapNotNull { it.config.localFSRoot?.path }
-            } else {
-                (libraryManager.getRegisteredLibrary(arendTypeCheckCommand.library) as? ArendRawLibrary)?.config?.localFSRoot?.let { listOf(it.path) } ?: emptyList()
-            }
+            val libraries = if (arendTypeCheckCommand.library.isEmpty()) project.service<ArendServerService>().server.libraries else listOf(arendTypeCheckCommand.library)
+            val libPaths = libraries.mapNotNull { libName -> project.findLibrary(libName)?.localFSRoot?.let { listOf(it.path) } }
             val projectPath = if (libPaths.isEmpty()) project.basePath else libPaths.joinToString(" ")
             val librariesRoot = project.service<ArendProjectSettings>().librariesRoot
             val jarConfiguration = JarApplicationConfigurationType.getInstance().createTemplateConfiguration(project) as JarApplicationConfiguration

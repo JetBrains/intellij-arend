@@ -10,7 +10,6 @@ import org.arend.parser.ArendParser
 import org.arend.psi.ArendCodeFragmentElementType
 import org.arend.psi.ArendElementTypes
 import org.arend.resolving.ArendReference
-import java.util.concurrent.atomic.AtomicLong
 
 class ArendLongNameCodeFragment(project: Project,
                                 text: String,
@@ -18,9 +17,6 @@ class ArendLongNameCodeFragment(project: Project,
                                 private val customScopeGetter: (() -> Scope)? = null):
     PsiCodeFragmentImpl(project, ArendLongNameCodeFragmentElementType, true, "fragment.ard", text, context),
     IArendFile {
-    override var lastModification: AtomicLong
-        get() = AtomicLong(-1)
-        set(_) {}
 
     override fun getReference(): ArendReference? = null // TODO:
 

@@ -50,7 +50,7 @@ class TypeCheckRunState(private val environment: ExecutionEnvironment, private v
             environment.project.service<RunnerService>().runChecker(library, command.isTest, if (modulePath != null && library != null) ModuleLocation(library, if (command.isTest) ModuleLocation.LocationKind.TEST else ModuleLocation.LocationKind.SOURCE, modulePath) else null, command.definitionFullName.ifEmpty { null })
             return null
         } else {
-            val processHandler = TypeCheckProcessHandler(environment.project.service(), command)
+            val processHandler = TypeCheckProcessHandler(environment.project, command)
             val console = createConsole(executor)
             console?.attachToProcess(processHandler)
             ProcessTerminatedListener.attach(processHandler)

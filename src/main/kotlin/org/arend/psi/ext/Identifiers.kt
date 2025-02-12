@@ -6,7 +6,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
-import com.intellij.psi.util.childrenOfType
 import org.arend.ext.reference.Precedence
 import org.arend.naming.reference.*
 import org.arend.naming.scope.Scope.ScopeContext
@@ -14,7 +13,6 @@ import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.doc.ArendDocReference
 import org.arend.resolving.*
-import org.arend.resolving.util.getTypeOf
 import org.arend.term.abs.Abstract
 import org.arend.util.mapUntilNotNull
 
@@ -115,19 +113,6 @@ class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable
 
     override val referenceName: String
         get() = id.text
-
-    override val typeOf: Abstract.Expression?
-        get() = when (val parent = parent) {
-            is ArendIdentifierOrUnknown -> getTeleType(parent.parent)
-            is ArendFieldDefIdentifier -> (parent.parent as? ArendFieldTele)?.type
-            is ArendLetClause -> getTypeOf(parent.parameters, parent.resultType)
-            is ArendAsPattern -> parent.type
-            is ArendPattern -> {
-                val parentParent = parent.parent
-                if (parentParent is ArendPattern && parentParent.childrenOfType<ArendPattern>().size == 1) parentParent.type else null
-            }
-            else -> null
-        }
 }
 
 class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable {

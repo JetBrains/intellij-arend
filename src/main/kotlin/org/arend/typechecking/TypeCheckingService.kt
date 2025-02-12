@@ -59,7 +59,7 @@ import java.util.concurrent.ConcurrentHashMap
 // TODO[server2]: Delete this service completely
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener, Disposable {
     private val libraryErrorReporter = NotificationErrorReporter(project)
-    val libraryManager = object : LibraryManager(ArendLibraryResolver(project), null, libraryErrorReporter, libraryErrorReporter, this, this) {
+    val libraryManager = object : LibraryManager(null, null, libraryErrorReporter, libraryErrorReporter, this, this) {
         override fun showLibraryNotFoundError(libraryName: String) {
             if (libraryName == AREND_LIB) {
                 showDownloadNotification(project, Reason.MISSING)
@@ -157,16 +157,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
             this.preludeLibrary = preludeLibrary
             libraryManager.loadLibrary(preludeLibrary, null)
             preludeLibrary.prelude?.generatedModuleLocation = Prelude.MODULE_LOCATION
-
-            if (Prelude.isInitialized()) {
-                val tcRefMap = preludeLibrary.prelude?.getTCRefMap(Referable.RefKind.EXPR)
-                if (tcRefMap != null) {
-                    Prelude.forEach {
-                        val name = it.referable.refLongName
-                        tcRefMap[name] = it.referable as IntellijTCReferable
-                    }
-                }
-            }
 
             // Set the listener that updates typechecked definitions
             service<ArendPsiChangeService>().addListener(this)
@@ -362,10 +352,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
 
     override fun updateDefinition(def: PsiLocatedReferable, file: ArendFile, isExternalUpdate: Boolean) {
-        var ref: LocatedReferable = def
-        while ((ref as? ArendDefinition<*>)?.withUse() == true) {
-            ref = ref.useParent as? ArendDefinition<*> ?: break
-        }
     }
 
     class LibraryManagerTestingOptions {

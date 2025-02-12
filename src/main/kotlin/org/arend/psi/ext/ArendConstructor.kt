@@ -8,9 +8,6 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendConstructorStub
 import org.arend.term.abs.Abstract
-import org.arend.resolving.util.ParameterImpl
-import org.arend.resolving.util.ReferenceImpl
-import org.arend.resolving.util.getTypeOf
 import org.arend.term.group.AccessModifier
 import javax.swing.Icon
 
@@ -46,12 +43,6 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
 
     override fun getAccessModifier(): AccessModifier =
         (childOfType<ArendAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC).max(dataAccessModifier)
-
-    private val allParameters
-        get() = (ancestor<ArendDefData>()?.allParameters?.map { ParameterImpl(false, it.referableList, it.type) } ?: emptyList()) + parameters
-
-    override val typeOf: Abstract.Expression?
-        get() = getTypeOf(allParameters, ancestor<ArendDefData>()?.let { ReferenceImpl(it) })
 
     override fun getIcon(flags: Int): Icon = ArendIcons.CONSTRUCTOR
 

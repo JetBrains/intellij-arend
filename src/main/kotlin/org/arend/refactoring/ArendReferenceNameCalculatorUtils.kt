@@ -49,7 +49,7 @@ fun doCalculateReferenceName(
     val fileGroup = object : Group by currentFile {
         override fun getStatements() = currentFile.statements.filter { it.group == null }
     }
-    val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
+    val importedScope = EmptyScope.INSTANCE // TODO[server2]: CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
     val protectedAccessModifier = defaultLocation.target.accessModifier == AccessModifier.PROTECTED
     var targetFileAlreadyImported = false
     var preludeImportedManually = false
@@ -192,7 +192,7 @@ fun isVisible(importFile: ArendFile, currentFile: ArendFile): Boolean {
 
     if (currentFile.isRepl) return locationsOk
 
-    val conf = currentFile.arendLibrary?.config ?: return false
+    val conf = currentFile.arendLibrary ?: return false
     val inTests = conf.getFileLocationKind(currentFile) == ModuleLocation.LocationKind.TEST
 
     return locationsOk && (importFile.generatedModuleLocation != null || conf.availableConfigs.mapFirstNotNull { it.findArendFile(modulePath, true, inTests) } == importFile) //Needed to prevent attempts of link repairing in a situation when the target directory is not marked as a content root

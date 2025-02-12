@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
@@ -28,30 +27,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
     override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
-
-    // TODO[server2]: Should be removed
-    val enclosingClass: ClassReferable?
-        get () {
-            var prev: ArendGroup = this
-            var parent = parentGroup
-            while (parent != null && parent !is ArendFile) {
-                val ref = parent.referable
-                if (ref is ClassReferable) {
-                    for (subgroup in parent.dynamicSubgroups) {
-                        if (subgroup.referable == prev) {
-                            return ref
-                        }
-                    }
-                }
-                prev = parent
-                parent = parent.parentGroup
-            }
-            return null
-        }
-
-    // TODO[server2]: Should be removed
-    val useParent: LocatedReferable?
-        get() = parentGroup?.referable
 
     override fun withUse() = parent?.hasChildOfType(USE_KW) == true
 

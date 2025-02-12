@@ -44,12 +44,14 @@ class InteractiveGoalSolverQuickFixTest : QuickFixTestBase() {
         @Language("Arend") before: String,
         @Language("Arend") after: String
     ) {
+        /* TODO[server2]
         library.arendExtension = object : ArendExtension {
             override fun getGoalSolver() = object : GoalSolver {
                 override fun getAdditionalSolvers(): MutableCollection<out InteractiveGoalSolver> =
                     mutableListOf(solver)
             }
         }
+        */
         typedQuickFixTest(solver.shortDescription, before, after)
     }
 

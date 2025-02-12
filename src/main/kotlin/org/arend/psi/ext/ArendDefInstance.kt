@@ -11,8 +11,6 @@ import org.arend.psi.*
 import org.arend.psi.stubs.ArendDefInstanceStub
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.term.abs.Abstract
-import org.arend.resolving.util.ParameterImpl
-import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
 class ArendDefInstance : ArendFunctionDefinition<ArendDefInstanceStub>, Abstract.FunctionDefinition, StubBasedPsiElement<ArendDefInstanceStub> {
@@ -39,12 +37,6 @@ class ArendDefInstance : ArendFunctionDefinition<ArendDefInstanceStub>, Abstract
     override fun getKind() = if (functionKind == FunctionKind.INSTANCE) GlobalReferable.Kind.INSTANCE else GlobalReferable.Kind.DEFINED_CONSTRUCTOR
 
     override fun getIcon(flags: Int): Icon = ArendIcons.CLASS_INSTANCE
-
-    private val allParameters
-        get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
-
-    override val typeOf: Abstract.Expression?
-        get() = getTypeOf(allParameters, resultType)
 
     override val psiElementType: PsiElement?
         get() = resultType

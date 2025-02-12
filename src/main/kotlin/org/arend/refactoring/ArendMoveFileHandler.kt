@@ -29,7 +29,7 @@ class ArendMoveFileHandler: MoveFileHandler() {
     override fun prepareMovedFile(file: PsiFile, moveDestination: PsiDirectory, oldToNewMap: MutableMap<PsiElement, PsiElement>) {
         if (file !is ArendFile) return
         val fileUsages = usages[file] ?: return
-        val destinationPath = file.arendLibrary?.config?.sourcesDirFile?.getRelativePath(moveDestination.virtualFile) ?: return
+        val destinationPath = file.arendLibrary?.sourcesDirFile?.getRelativePath(moveDestination.virtualFile) ?: return
         destinationPath.add(file.virtualFile?.name?.removeSuffix(FileUtils.EXTENSION) ?: return)
         val newModulePath = destinationPath.joinToString(".")
         for (usage in fileUsages) {

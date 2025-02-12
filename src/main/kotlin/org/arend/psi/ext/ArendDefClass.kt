@@ -11,7 +11,6 @@ import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendDefClassStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
-import org.arend.resolving.util.Universe
 import javax.swing.Icon
 
 class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, StubBasedPsiElement<ArendDefClassStub>, Abstract.ClassDefinition {
@@ -94,9 +93,6 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, StubBa
     }
 
     override fun getCoClauseElements(): List<ArendClassImplement> = classStatList.mapNotNull { it.classImplement } + classImplementList
-
-    override val typeOf: Abstract.Expression
-        get() = Universe
 
     override fun getKind() = GlobalReferable.Kind.CLASS
 

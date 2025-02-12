@@ -38,12 +38,14 @@ class GoalFillingQuickFixTest: QuickFixTestBase() {
     """)
 
     private fun setGoalSolver() {
+        /* TODO[server2]
         library.arendExtension = object : ArendExtension {
             override fun getGoalSolver() = object : GoalSolver {
                 override fun checkGoal(typechecker: ExpressionTypechecker, goalExpression: ConcreteGoalExpression, expectedType: CoreExpression?) =
                     GoalSolver.CheckGoalResult(Concrete.ReferenceExpression(null, Prelude.ZERO.ref), null)
             }
         }
+        */
     }
 
     fun `test custom fix`() = doTestWithGoalSolver("""

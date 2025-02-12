@@ -91,6 +91,6 @@ class ArendUnusedImportHighlightingPass(private val file: ArendFile, private val
             colorsScheme,
             id
         )
-        file.lastModificationImportOptimizer.updateAndGet { lastModification }
+        // TODO[server2]: file.lastModificationImportOptimizer.updateAndGet { lastModification }
     }
 }

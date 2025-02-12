@@ -16,34 +16,21 @@ import org.arend.ArendFileTypeInstance
 import org.arend.ArendIcons
 import org.arend.ArendLanguage
 import org.arend.IArendFile
-import org.arend.ext.module.LongName
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.Precedence
-import org.arend.module.ArendPreludeLibrary
-import org.arend.module.ArendRawLibrary
 import org.arend.module.ModuleLocation
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.module.orderRoot.ArendConfigOrderRootType
-import org.arend.module.scopeprovider.ModuleScopeProvider
 import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LocatedReferable
-import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.scope.*
-import org.arend.prelude.Prelude
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
-import org.arend.resolving.IntellijTCReferable
-import org.arend.server.ArendServerService
-import org.arend.typechecking.TypeCheckingService
-import org.arend.util.FileUtils
-import org.arend.util.libraryName
-import org.arend.util.mapFirstNotNull
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
+import org.arend.util.*
 
 class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup, IArendFile {
     var generatedModuleLocation: ModuleLocation? = null
@@ -58,28 +45,16 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     val isRepl: Boolean
         get() = enforcedLibraryConfig != null
 
-    override var lastModification: AtomicLong = AtomicLong(-1)
-    var lastModificationImportOptimizer: AtomicLong = AtomicLong(-1)
-    var lastDefinitionModification: AtomicLong = AtomicLong(-1)
-
-    val isBackgroundTypecheckingFinished: Boolean
-        get() = lastDefinitionModification.get() >= service<ArendPsiChangeService>().definitionModificationTracker.modificationCount
-
     val moduleLocation: ModuleLocation?
         get() = generatedModuleLocation ?: CachedValuesManager.getCachedValue(this) {
-            cachedValue(arendLibrary?.config?.getFileModulePath(this))
+            cachedValue(arendLibrary?.getFileModulePath(this))
         }
 
     val fullName: String
         get() = moduleLocation?.toString() ?: name
 
     val libraryName: String?
-        get() = arendLibrary?.name ?: if (name == ArendPreludeLibrary.PRELUDE_FILE_NAME) Prelude.LIBRARY_NAME else null
-
-    fun getTCRefMap(refKind: RefKind): ConcurrentHashMap<LongName, IntellijTCReferable> {
-        val location = moduleLocation ?: return ConcurrentHashMap<LongName, IntellijTCReferable>()
-        return project.service<TypeCheckingService>().getTCRefMaps(refKind).computeIfAbsent(location) { ConcurrentHashMap<LongName, IntellijTCReferable>() }
-    }
+        get() = generatedModuleLocation?.libraryName ?: arendLibrary?.name
 
     override fun setName(name: String): PsiElement =
         super.setName(if (name.endsWith(FileUtils.EXTENSION)) name else name + FileUtils.EXTENSION)
@@ -97,7 +72,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
     private fun <T> cachedValue(value: T) =
         CachedValueProvider.Result(value, PsiModificationTracker.MODIFICATION_COUNT, service<ArendPsiChangeService>().definitionModificationTracker)
 
-    val arendLibrary: ArendRawLibrary?
+    val arendLibrary: LibraryConfig?
         get() = CachedValuesManager.getCachedValue(this) {
             val virtualFile = originalFile.virtualFile ?: return@getCachedValue cachedValue(null)
             val project = project
@@ -108,7 +83,7 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
             val module = runReadAction { fileIndex.getModuleForFile(virtualFile) }
             if (module != null) {
-                return@getCachedValue cachedValue(ArendModuleConfigService.getInstance(module)?.library)
+                return@getCachedValue cachedValue(ArendModuleConfigService.getInstance(module))
             }
 
             if (!fileIndex.isInLibrarySource(virtualFile)) {
@@ -119,34 +94,12 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
                 if (orderEntry is LibraryOrderEntry) {
                     for (file in orderEntry.getRootFiles(ArendConfigOrderRootType.INSTANCE)) {
                         val libName = file.libraryName ?: continue
-                        return@getCachedValue cachedValue(ArendRawLibrary.getExternalLibrary(project.service<TypeCheckingService>().libraryManager, libName))
+                        return@getCachedValue cachedValue(project.findExternalLibrary(libName))
                     }
                 }
             }
 
             cachedValue(null)
-        }
-
-    val moduleScopeProvider: ModuleScopeProvider
-        get() = CachedValuesManager.getCachedValue(this) {
-            val arendFile = originalFile as? ArendFile ?: this
-            val config = arendFile.arendLibrary?.config
-            val project = arendFile.project
-            val inTests = config?.getFileLocationKind(arendFile) == ModuleLocation.LocationKind.TEST
-            cachedValue(ModuleScopeProvider { modulePath ->
-                val file = if (modulePath == Prelude.MODULE_PATH) {
-                    project.service<ArendServerService>().prelude
-                } else {
-                    if (config == null) {
-                        return@ModuleScopeProvider project.service<TypeCheckingService>().libraryManager.registeredLibraries.mapFirstNotNull {
-                            it.moduleScopeProvider.forModule(modulePath)
-                        }
-                    } else {
-                        config.forAvailableConfigs { it.findArendFile(modulePath, true, inTests) }
-                    }
-                }
-                file?.let { LexicalScope.opened(it) }
-            })
         }
 
     override val defIdentifier: ArendDefIdentifier?

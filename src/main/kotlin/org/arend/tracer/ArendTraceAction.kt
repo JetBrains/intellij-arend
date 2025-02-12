@@ -26,7 +26,6 @@ import org.arend.refactoring.selectedExpr
 import org.arend.server.ArendServerService
 import org.arend.term.concrete.Concrete
 import org.arend.typechecking.LibraryArendExtensionProvider
-import org.arend.typechecking.PsiInstanceProviderSet
 import org.arend.typechecking.TypeCheckingService
 import org.arend.typechecking.error.local.GoalDataHolder
 import org.arend.typechecking.instance.pool.GlobalInstancePool

@@ -12,8 +12,6 @@ import org.arend.psi.stubs.ArendDefFunctionStub
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.psi.ArendElementTypes.*
 import org.arend.term.abs.Abstract
-import org.arend.resolving.util.ParameterImpl
-import org.arend.resolving.util.getTypeOf
 import javax.swing.Icon
 
 class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract.FunctionDefinition, StubBasedPsiElement<ArendDefFunctionStub> {
@@ -41,12 +39,6 @@ class ArendDefFunction : ArendFunctionDefinition<ArendDefFunctionStub>, Abstract
         }
 
     override fun getIcon(flags: Int): Icon = ArendIcons.FUNCTION_DEFINITION
-
-    private val allParameters
-        get() = if (enclosingClass == null) parameters else listOf(ParameterImpl(false, listOf(null), null)) + parameters
-
-    override val typeOf: Abstract.Expression?
-        get() = getTypeOf(allParameters, resultType)
 
     override fun getKind() = GlobalReferable.Kind.FUNCTION
 
