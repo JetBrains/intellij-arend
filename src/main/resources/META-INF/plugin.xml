@@ -393,8 +393,6 @@
 
         <!-- Services -->
 
-        <!-- TODO[server2]: <projectService serviceImplementation="org.arend.typechecking.TypeCheckingService"/> -->
-
         <moduleService serviceImplementation="org.arend.module.config.ArendModuleConfigService"/>
 
         <moduleService serviceImplementation="org.arend.module.editor.ArendModuleConfigurationView"/>

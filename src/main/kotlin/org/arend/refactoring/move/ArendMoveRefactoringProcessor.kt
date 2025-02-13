@@ -1,7 +1,6 @@
 package org.arend.refactoring.move
 
 import com.intellij.ide.util.EditorHelper
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.util.TextRange
@@ -34,7 +33,6 @@ import org.arend.refactoring.LocationData
 import org.arend.refactoring.*
 import org.arend.refactoring.changeSignature.*
 import org.arend.refactoring.changeSignature.ArendChangeSignatureProcessor.Companion.getUsagesPreprocessor
-import org.arend.resolving.ArendResolveCache
 import org.arend.resolving.util.resolveReference
 import org.arend.term.abs.Abstract.ParametersHolder
 import org.arend.term.concrete.Concrete
@@ -420,9 +418,6 @@ class ArendMoveRefactoringProcessor(project: Project,
             val (fileImports, optimalTree, _) = optimalStructure
             processRedundantImportedDefinitions(mySourceContainer, fileImports, optimalTree, importRemover)
         }
-
-        //Reset resolve cache
-        myProject.service<ArendResolveCache>().clear()
 
         //Invoke move callback
         myMoveCallback.invoke()

@@ -3,7 +3,6 @@ package org.arend.refactoring.rename
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
@@ -31,7 +30,6 @@ import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.ext.*
 import org.arend.psi.getArendNameText
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler.Util.isMoreSpecific
-import org.arend.resolving.ArendResolveCache
 import java.awt.EventQueue.invokeLater
 
 class ArendGlobalReferableRenameHandler : MemberInplaceRenameHandler() {
@@ -238,7 +236,6 @@ class ArendRenameProcessor(project: Project,
     var relevantNsId: ArendNsId? = null
 
     override fun findUsages(): Array<UsageInfo> {
-        myProject.service<ArendResolveCache>().clear()
         var collection: List<UsageInfo> = super.findUsages().toMutableList()
 
         val nsId = calculateRelevantNsId(context.offset, context.caretElementText, context.file, collection.map { it.reference })

@@ -47,7 +47,7 @@ import org.arend.psi.ext.ArendReferenceElement
 import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.psi.oneLineText
 import org.arend.refactoring.NsCmdRefactoringAction
-import org.arend.resolving.ArendResolveCache
+import org.arend.server.ArendServerService
 import org.arend.util.FileUtils.isCorrectDefinitionName
 import java.awt.Component
 import java.util.Collections.singletonList
@@ -82,7 +82,7 @@ class ArendChangeSignatureDialog(project: Project,
     }
 
     override fun expressionFragmentResolved(codeFragment: ArendExpressionCodeFragment) {
-        val resolveCache = project.service<ArendResolveCache>()
+        val server = project.service<ArendServerService>().server
         val referableToItem = HashMap<ArendChangeSignatureDialogParameter, ArendChangeSignatureDialogParameterTableModelItem>()
         for (item in myParametersTable.items) referableToItem[item.associatedReferable] = item
 
@@ -93,7 +93,7 @@ class ArendChangeSignatureDialog(project: Project,
         val refs = codeFragment.descendantsOfType<ArendReferenceElement>().toList()
 
         for (ref in refs) {
-            val target = resolveCache.getCached(ref)
+            val target = server.getCachedReferable(ref)
             val item = referableToItem[target]
             if (item != null) {
                 newDependencies.add(item)

@@ -5,7 +5,9 @@ import com.intellij.ide.DefaultTreeExpander
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -13,8 +15,10 @@ import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener
+import com.intellij.psi.PsiElement
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.impl.SingleHeightTabs
@@ -25,13 +29,15 @@ import org.arend.ext.error.GeneralError
 import org.arend.ext.error.LocalError
 import org.arend.ext.error.MissingClausesError
 import org.arend.ext.reference.ArendRef
+import org.arend.ext.reference.DataContainer
+import org.arend.injection.InjectedArendEditor
 import org.arend.module.ModuleLocation
 import org.arend.psi.ext.ArendGoal
+import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.tree.*
-import org.arend.typechecking.error.ArendError
 import org.arend.util.ArendBundle
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -165,7 +171,6 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     override fun valueChanged(e: TreeSelectionEvent?) = updateEditors()
 
     fun updateEditors() {
-        /* TODO[server2]
         val treeElement = getSelectedMessage()
         if (treeElement != null) {
             if (isGoal(treeElement) && !isGoalTextPinned()) {
@@ -198,10 +203,9 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                             if (isParentDefinitionPsiInvalid(currentGoal)) {
                                 goalEditor?.clear()
                                 updateGoalsView(goalEmptyPanel)
-                            } else if (currentGoal.file?.isBackgroundTypecheckingFinished == true) {
-                                val error = currentGoal.error
-                                val (resolve, scope) = InjectedArendEditor.resolveCauseReference(error)
-                                val doc = goalEditor?.treeElement?.let { goalEditor?.getDoc(it, error, resolve, scope) }
+                            } else {
+                                val (resolve, scope) = InjectedArendEditor.resolveCauseReference(currentGoal)
+                                val doc = goalEditor?.treeElement?.let { goalEditor?.getDoc(it, currentGoal, resolve, scope) }
 
                                 if (isParentDefinitionRemovedFromTree(currentGoal)) {
                                     goalEditor?.clear()
@@ -229,7 +233,6 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                 }
             }
         }
-        */
     }
 
     private fun getSelectedMessage(): ArendErrorTreeElement? =
@@ -273,18 +276,18 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
         editor.removeUnnecessaryComponents(notActionToolbars)
     }
 
-    private fun isParentDefinitionPsiInvalid(error: ArendError): Boolean {
-        val definition = error.definition
-        return definition == null || !definition.isValid
+    private fun isParentDefinitionPsiInvalid(error: GeneralError): Boolean {
+        val psi = ((error as? LocalError)?.definition as? DataContainer)?.data as? PsiElement
+        return psi == null || !psi.isValid
     }
 
-    private fun isParentDefinitionRemovedFromTree(error: ArendError): Boolean {
-        val definition = error.definition
-        return definition == null || !tree.containsNode(definition)
+    private fun isParentDefinitionRemovedFromTree(error: GeneralError): Boolean {
+        val psi = ((error as? LocalError)?.definition as? DataContainer)?.data as? PsiLocatedReferable
+        return psi == null || !tree.containsNode(psi)
     }
 
-    private fun isCausePsiInvalid(error: ArendError): Boolean {
-        val cause = error.cause
+    private fun isCausePsiInvalid(error: GeneralError): Boolean {
+        val cause = error.cause as? PsiElement
         return cause == null || !cause.isValid
     }
 

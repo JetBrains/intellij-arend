@@ -24,6 +24,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         progress.isIndeterminate = true
 
         if (module != null) {
+            // TODO[server2]: Separate resolving and highlighting: highlighter should just traverse already resolved file.
             val server = myProject.service<ArendServerService>().server
             server.getCheckerFor(listOf(module)).resolveModules(this, ProgressCancellationIndicator(progress), HighlightingResolverListener(this, progress, server.typingInfo))
         }

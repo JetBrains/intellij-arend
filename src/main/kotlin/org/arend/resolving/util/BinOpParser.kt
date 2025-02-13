@@ -10,7 +10,7 @@ import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.naming.scope.Scope
 import org.arend.psi.ancestor
 import org.arend.psi.ext.*
-import org.arend.resolving.ArendResolveCache
+import org.arend.server.ArendServerService
 import org.arend.term.Fixity
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.BaseAbstractExpressionVisitor
@@ -34,7 +34,6 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
             else -> null
         }
 
-        val resolveCache = data.project.service<ArendResolveCache>()
         val refExpr = Concrete.FixityReferenceExpression.make(data, referent, fixity, null, null)
 
         var resolved: Concrete.Expression? = null
@@ -45,7 +44,7 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
             refExpr.referent
         }
 
-        var referable = if (anchor != null) resolveCache.getCached(anchor) else referentComputer.invoke()
+        var referable = if (anchor != null) data.project.service<ArendServerService>().server.getCachedReferable(anchor) else referentComputer.invoke()
 
         if (fixity == Fixity.POSTFIX)
             resolved = null

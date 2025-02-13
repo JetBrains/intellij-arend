@@ -2,7 +2,6 @@ package org.arend.intention
 
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -37,7 +36,6 @@ import org.arend.psi.ext.*
 import org.arend.refactoring.addToWhere
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
-import org.arend.resolving.ArendResolveCache
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.MinimizedRepresentation
 import org.arend.term.prettyprint.ToAbstractVisitor
@@ -94,16 +92,6 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val newFunctionName = generateFreeName(baseIdentifier, selection.contextPsi.scope)
         val newCallConcrete = buildNewCallConcrete(freeVariables, newFunctionName)
         val definitionRepresentation = buildNewFunctionRepresentation(selection, freeVariables, newFunctionName)
-        val cacheService = project.service<ArendResolveCache>()
-
-        selection.contextPsi.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                super.visitElement(element)
-                if (element is ArendReferenceElement && selection.rangeOfReplacement.contains(element.textRange)) {
-                    cacheService.dropCache(element)
-                }
-            }
-        })
 
         val globalOffsetOfNewDefinition = modifyDocument(
             editor,

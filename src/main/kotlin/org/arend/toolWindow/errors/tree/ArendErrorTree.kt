@@ -118,7 +118,7 @@ class ArendErrorTree(treeModel: DefaultTreeModel) : Tree(treeModel) {
     }
 
     fun containsNode(definition: PsiLocatedReferable): Boolean {
-        val file = definition.containingFile as? ArendFile ?: return false
+        val file = (if (definition.isValid) definition.containingFile as? ArendFile else null) ?: return false
         val root = treeModel.root as? DefaultMutableTreeNode ?: return false
         for (child in root.children()) {
             if ((child as? DefaultMutableTreeNode)?.userObject == file) {
