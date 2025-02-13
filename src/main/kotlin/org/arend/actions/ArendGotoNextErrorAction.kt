@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.util.CommonProcessors
@@ -59,7 +60,9 @@ fun selectErrorFromEditor(project: Project, editor: Editor, file: ArendFile?, al
             val filter = project.service<ArendProjectSettings>().autoScrollFromSource
             for (error in errors) {
                 if (always || error.satisfies(filter)) {
-                    val textRange = BasePass.getImprovedTextRange(error) ?: continue
+                    val textRange = runReadAction<TextRange?> {
+                        BasePass.getImprovedTextRange(error)
+                    } ?: continue
                     if (textRange.containsOffset(offset)) {
                         val messagesService = project.service<ArendMessagesService>()
                         runInEdt {

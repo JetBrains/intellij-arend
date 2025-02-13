@@ -130,34 +130,15 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val concreteDef: Concrete.Definition? = null // TODO[server2]: PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true, resolver).getConcrete(psiDef) as? Concrete.Definition
     val body = concreteDef?.let { it to psiDef }
 
-    val injectionContext = (file as? ArendFile)?.injectionContext
-    val injectionHost = injectionContext?.containingFile as? PsiInjectionTextFile
     val errors: List<SubExprError>
-    val result = (if (injectionHost != null) {
-        val index = when (injectionHost.injectedExpressions.size) {
-            0 -> null
-            1 -> 0
-            else -> InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(injectionContext)?.indexOfFirst { it.first == file }
-        }
-        val injectedExpr = if (index != null) injectionHost.injectedExpressions[index] else null
-        val cExpr = (psiDef as? ArendDefFunction)?.body?.expr?.let { ConcreteBuilder.convertExpression(it) }
-        if (injectedExpr != null && cExpr != null && index != null && index < injectionHost.injectedExpressions.size) {
-            val scope = CachingScope.make(injectionHost.scope)
-            val subExprVisitor = CorrespondedSubExprVisitor(resolver?.result ?: subExpr)
-            errors = subExprVisitor.errors
-            SyntacticDesugarVisitor.desugar(cExpr.accept(ExpressionResolveNameVisitor(scope, null, TypingInfo.EMPTY, DummyErrorReporter.INSTANCE, null), null), DummyErrorReporter.INSTANCE).accept(subExprVisitor, injectedExpr)
-        } else {
-            errors = emptyList()
-            null
-        }
-    } else {
+    val result = run {
         concreteDef ?: throw SubExprException("selected text is not in a definition")
         val def = project.service<ArendServerService>().server.getTCReferable(psiDef)?.typechecked
             ?: throw SubExprException("underlying definition is not type checked")
         val subDefVisitor = CorrespondedSubDefVisitor(resolver?.result ?: subExpr)
         errors = subDefVisitor.exprError
         concreteDef.accept(subDefVisitor, def)
-    }) ?: throw SubExprException(buildString {
+    } ?: throw SubExprException(buildString {
         append("cannot find a suitable subexpression")
 
         if (errors.any { it.kind == SubExprError.Kind.MetaRef })
