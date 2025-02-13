@@ -2,6 +2,7 @@ package org.arend.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.components.service
@@ -25,12 +26,14 @@ class InteractiveGoalSolverQuickFix(private val element: ArendExpr,
                                     private val action: (Editor, Concrete.Expression, String) -> Unit)
     : IntentionAction {
     override fun invoke(project: Project, editor: Editor, file: PsiFile?) {
-        solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
-            if (it != null) {
-                if (it !is Concrete.Expression) throw IllegalArgumentException()
-                CommandProcessor.getInstance().executeCommand(project, {
-                    invokeOnConcrete(it, editor)
-                }, text, null, editor.document)
+        invokeLater {
+            solver.solve(CheckTypeVisitor.loadTypecheckingContext(goal.typecheckingContext, project.service<ErrorService>()), goal.causeSourceNode, goal.expectedType, ArendEditorUI(project, editor)) {
+                if (it != null) {
+                    if (it !is Concrete.Expression) throw IllegalArgumentException()
+                    CommandProcessor.getInstance().executeCommand(project, {
+                        invokeOnConcrete(it, editor)
+                    }, text, null, editor.document)
+                }
             }
         }
     }
