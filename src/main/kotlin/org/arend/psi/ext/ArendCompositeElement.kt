@@ -47,7 +47,7 @@ interface ArendSourceNode: ArendCompositeElement, Abstract.SourceNode {
 }
 
 fun getArendScope(element: ArendCompositeElement): Scope {
-    val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE
+    val sourceNode = element.ancestor<ArendSourceNode>()?.topmostEquivalentSourceNode ?: return if (element.isValid) (element.containingFile as? ArendFile)?.scope ?: EmptyScope.INSTANCE else EmptyScope.INSTANCE
     ((sourceNode as? ArendLongName)?.parent as? ArendDocReference)?.let { return it.scope }
 
     var isExtends = false
@@ -58,7 +58,7 @@ fun getArendScope(element: ArendCompositeElement): Scope {
             // The last parameters is set to ONLY_EXTERNAL to prevent infinite recursion during resolving of references in \\extends
             LexicalScope.insideOf(classDef, classDef.parentGroup?.getGroupScope(LexicalScope.Extent.ONLY_EXTERNAL) ?: ScopeFactory.parentScopeForGroup(classDef, EmptyModuleScopeProvider.INSTANCE, true), LexicalScope.Extent.ONLY_EXTERNAL)
         } else it.scope
-    } ?: (sourceNode.containingFile as? IArendFile)?.scope ?: EmptyScope.INSTANCE
+    } ?: if (element.isValid) (sourceNode.containingFile as? IArendFile)?.scope ?: EmptyScope.INSTANCE else EmptyScope.INSTANCE
 
     val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope {
         val containingFile = sourceNode.containingFile?.originalFile as? ArendFile
