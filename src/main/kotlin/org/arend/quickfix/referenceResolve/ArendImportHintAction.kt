@@ -20,6 +20,7 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.ThreeState
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.scope.ScopeFactory
 import org.arend.psi.ArendFile
 import org.arend.psi.ArendFileScope
@@ -27,6 +28,8 @@ import org.arend.psi.ext.*
 import org.arend.psi.libraryConfig
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.psi.stubs.index.ArendFileIndex
+import org.arend.scratch.ArendScratchModuleService
+import org.arend.scratch.isArendScratch
 import org.arend.settings.ArendSettings
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.ArendBundle
@@ -159,7 +162,11 @@ class ArendImportHintAction(private val referenceElement: ArendReferenceElement)
         private fun getStubElementSet(project: Project, refElement: ArendReferenceElement, file: PsiFile?): List<PsiLocatedReferable> {
             val name = refElement.referenceName
             val service = project.service<TypeCheckingService>()
-            val config = (file as? ArendFile)?.libraryConfig
+            val config = (file as? ArendFile)?.libraryConfig ?: if (file?.virtualFile.isArendScratch) {
+                ArendModuleConfigService.getInstance(project.service<ArendScratchModuleService>().getModule(file as ArendFile))
+            } else {
+                null
+            }
             val libRefs = if (config == null) emptyList() else {
                 val result = ArrayList<PsiLocatedReferable>()
                 config.forAvailableConfigs { conf ->
