@@ -1,7 +1,11 @@
 package org.arend.resolving
 
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.progress.util.ProgressIndicatorBase
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
@@ -10,6 +14,7 @@ import org.arend.codeInsight.completion.ReplaceInsertHandler
 import org.arend.core.definition.Definition
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.*
 import org.arend.naming.reference.Referable.RefKind
 import org.arend.naming.reference.converter.ReferableConverter
@@ -21,15 +26,16 @@ import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
-import org.arend.psi.ext.ArendDefMeta
-import org.arend.psi.ext.ReferableBase
 import org.arend.refactoring.ArendNamesValidator
+import org.arend.scratch.ArendScratchModuleService
+import org.arend.scratch.isArendScratch
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.toolWindow.repl.getReplCompletion
 import org.arend.typechecking.TypeCheckingService
 import org.arend.util.FileUtils
+import java.util.concurrent.atomic.AtomicReference
 
 interface ArendReference : PsiReference {
     override fun getElement(): ArendReferenceElement
@@ -77,7 +83,11 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
             }
         }
 
-        return when (val ref = cache.resolveCached(resolver, element)?.underlyingReferable) {
+        val ref = cache.resolveCached(resolver, element)?.underlyingReferable
+        if (element.containingFile.isArendScratch) {
+            return checkScratchRef(ref)
+        }
+        return when (ref) {
             is PsiElement -> ref
             is PsiModuleReferable -> ref.modules.firstOrNull()
             is ModuleReferable -> {
@@ -85,6 +95,45 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                     element.project.service<TypeCheckingService>().prelude
                 } else {
                     (element.containingFile as? ArendFile)?.arendLibrary?.config?.forAvailableConfigs { it.findArendFileOrDirectory(ref.path, withAdditional = true, withTests = true) }
+                }
+            }
+            else -> null
+        }
+    }
+
+    private fun checkScratchRef(ref: Referable?): PsiElement? {
+        val scratchModule =
+            element.project.service<ArendScratchModuleService>().getModule(element.containingFile as ArendFile)
+        return when (ref) {
+            is PsiElement -> {
+                var module: Module? = null
+                ReadAction.nonBlocking {
+                    val moduleRef = AtomicReference<Module?>()
+                    ProgressManager.getInstance().runProcess({
+                        moduleRef.set(ref.module)
+                    }, ProgressIndicatorBase())
+
+                    module = moduleRef.get()
+                }.executeSynchronously()
+
+                if (module != scratchModule && element.containingFile != ref.containingFile &&
+                        ref.containingFile != element.project.service<TypeCheckingService>().prelude && ref !is ArendDefMeta) {
+                    null
+                } else {
+                    ref
+                }
+            }
+            is ModuleReferable -> {
+                if (ref.path == Prelude.MODULE_PATH) {
+                    element.project.service<TypeCheckingService>().prelude
+                } else {
+                    ArendModuleConfigService.getInstance(scratchModule)?.forAvailableConfigs {
+                        it.findArendFileOrDirectory(
+                            ref.path,
+                            withAdditional = true,
+                            withTests = true
+                        )
+                    }
                 }
             }
             else -> null

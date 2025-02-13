@@ -1,5 +1,7 @@
 package org.arend.highlight
 
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -16,6 +18,7 @@ import org.arend.psi.listener.ArendPsiChangeService
 import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.psi.ArendExpressionCodeFragment
 import org.arend.resolving.*
+import org.arend.scratch.isArendScratch
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.ConcreteCompareVisitor
@@ -118,6 +121,10 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
 
                 if (data is ArendPattern && (referent as? GlobalReferable?)?.kind == GlobalReferable.Kind.CONSTRUCTOR) {
                     addHighlightInfo(data.textRange, ArendHighlightingColors.CONSTRUCTOR_PATTERN)
+                }
+
+                if (lastReference.containingFile.isArendScratch && lastReference.resolve == null) {
+                    (data as? PsiElement?)?.textRange?.let { addHighlightInfo(HighlightInfo.newHighlightInfo(HighlightInfoType.ERROR).range(it).descriptionAndTooltip("The resolved element is located outside the current scope")) }
                 }
             }
 

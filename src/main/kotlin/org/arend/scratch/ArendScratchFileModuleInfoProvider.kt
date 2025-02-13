@@ -1,11 +1,13 @@
 package org.arend.scratch
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.psi.PsiManager
 import org.arend.psi.ArendFile
 import org.arend.psi.module
-import org.jetbrains.kotlin.idea.core.script.ScriptDependenciesModificationTracker
-import org.jetbrains.kotlin.idea.core.script.ScriptRelatedModuleNameFile
 import org.jetbrains.kotlin.idea.scratch.ScratchFile
 import org.jetbrains.kotlin.idea.scratch.ScratchFileListener
 import org.jetbrains.kotlin.idea.scratch.ScratchFileModuleInfoProvider
@@ -26,10 +28,15 @@ class ArendScratchFileModuleInfoProvider : ScratchFileListener {
         }
 
         file.addModuleListener { psiFile, module ->
-            ScriptRelatedModuleNameFile[project, psiFile.virtualFile] = module?.name
-
-            ScriptDependenciesModificationTracker.getInstance(project).incModificationCount()
-            DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
+            project.service<ArendScratchModuleService>().updateFileModule(psiFile as ArendFile, module)
+            invokeLater {
+                WriteCommandAction.runWriteCommandAction(project) {
+                    invokeLater {
+                        PsiManager.getInstance(project).dropPsiCaches()
+                        DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
+                    }
+                }
+            }
         }
         file.setModule(arendFile.module)
     }

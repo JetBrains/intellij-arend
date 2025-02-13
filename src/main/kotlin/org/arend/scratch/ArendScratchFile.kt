@@ -22,7 +22,7 @@ class ArendScratchFile(project: Project, file: VirtualFile) : ScratchFile(projec
         arendFile.traverseGroup { group ->
             val ref = group.referable as? PsiLocatedReferable
             if (ref is TCDefinition) {
-                result.add(ScratchExpression(ref, document.getLineNumber(ref.startOffset), document.getLineNumber(ref.endOffset)))
+                result.add(ScratchExpression(ref, document.getLineNumber(minOf(ref.startOffset, document.textLength)), document.getLineNumber(minOf(ref.endOffset, document.textLength))))
             }
         }
         return result

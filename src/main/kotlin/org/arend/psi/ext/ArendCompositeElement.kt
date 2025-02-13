@@ -4,6 +4,7 @@ import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.service
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
@@ -12,6 +13,7 @@ import org.arend.IArendFile
 import org.arend.ext.error.SourceInfo
 import org.arend.module.ModuleLocation
 import org.arend.module.ModuleScope
+import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.scopeprovider.EmptyModuleScopeProvider
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.*
@@ -20,6 +22,8 @@ import org.arend.psi.*
 import org.arend.psi.doc.ArendDocReference
 import org.arend.resolving.ArendReference
 import org.arend.resolving.util.ModifiedClassFieldImplScope
+import org.arend.scratch.ArendScratchModuleService
+import org.arend.scratch.isArendScratch
 import org.arend.term.abs.Abstract
 import java.util.function.Predicate
 
@@ -64,7 +68,8 @@ fun getArendScope(element: ArendCompositeElement): Scope {
 
     val scope = ScopeFactory.forSourceNode(parentScope, sourceNode, LazyScope {
         val containingFile = sourceNode.containingFile?.originalFile as? ArendFile
-        containingFile?.libraryConfig?.let { ModuleScope(it, it.getFileLocationKind(containingFile) == ModuleLocation.LocationKind.TEST) } ?: EmptyScope.INSTANCE
+        (containingFile?.libraryConfig ?: ArendModuleConfigService.getInstance(if (containingFile.isArendScratch) containingFile?.project?.service<ArendScratchModuleService>()?.getModule(containingFile) else containingFile?.module))
+            ?.let { ModuleScope(it, containingFile?.let { file -> it.getFileLocationKind(file) } == ModuleLocation.LocationKind.TEST) } ?: EmptyScope.INSTANCE
     }) { classRef -> if (classRef is ArendDefClass) ModifiedClassFieldImplScope(classRef, sourceNode.parentSourceNode?.parentSourceNode as? ClassReferenceHolder) else null }
     return when {
         element is ArendDefIdentifier && sourceNode is Abstract.Pattern -> ConstructorFilteredScope(scope.globalSubscope)
