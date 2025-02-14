@@ -9,6 +9,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import org.arend.IArendFile
 import org.arend.psi.*
+import org.arend.server.ArendChecker
 import org.arend.server.ArendServerService
 import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.ArendMessagesService
@@ -22,11 +23,14 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
 
     public override fun collectInformationWithProgress(progress: ProgressIndicator) {
         progress.isIndeterminate = true
+        if (module == null) return
 
-        if (module != null) {
-            // TODO[server2]: Separate resolving and highlighting: highlighter should just traverse already resolved file.
-            val server = myProject.service<ArendServerService>().server
-            server.getCheckerFor(listOf(module)).resolveModules(this, ProgressCancellationIndicator(progress), HighlightingResolverListener(this, progress, server.typingInfo), true)
+        val server = myProject.service<ArendServerService>().server
+        server.getCheckerFor(listOf(module)).resolveModules(this, ProgressCancellationIndicator(progress), ArendChecker.ProgressReporter.empty())
+        val definitions = server.getGroupData(module)?.resolvedDefinitions ?: return
+        val visitor = HighlightingVisitor(this, server.typingInfo)
+        for (definitionData in definitions) {
+            definitionData.definition.accept(visitor, null)
         }
     }
 

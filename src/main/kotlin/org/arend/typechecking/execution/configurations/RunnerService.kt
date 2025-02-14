@@ -11,8 +11,6 @@ import kotlinx.coroutines.*
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.LongName
 import org.arend.module.ModuleLocation
-import org.arend.naming.resolving.DelegateResolverListener
-import org.arend.naming.resolving.ResolverListener
 import org.arend.server.ArendServerRequesterImpl
 import org.arend.server.ArendServerService
 import org.arend.toolWindow.errors.ArendMessagesService
@@ -22,7 +20,7 @@ import org.arend.util.FullName
 
 @Service(Service.Level.PROJECT)
 class RunnerService(private val project: Project, private val coroutineScope: CoroutineScope) {
-    fun runChecker(library: String?, isTest: Boolean, module: ModuleLocation?, definition: String?, resolverListener: ResolverListener = ResolverListener.EMPTY) =
+    fun runChecker(library: String?, isTest: Boolean, module: ModuleLocation?, definition: String?) =
         coroutineScope.launch {
             val message = module?.toString() ?: (library ?: "project")
             val server = project.service<ArendServerService>().server
@@ -38,12 +36,7 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
             val dependencies = checker.getDependencies(CoroutineCancellationIndicator(this))?.size ?: return@launch
             withBackgroundProgress(project, "Resolving $message") {
                 reportSequentialProgress(dependencies) { reporter ->
-                    checker.resolveAll(DummyErrorReporter.INSTANCE, CoroutineCancellationIndicator(this), object : DelegateResolverListener(resolverListener) {
-                        override fun moduleResolved(module: ModuleLocation?) {
-                            super.moduleResolved(module)
-                            reporter.itemStep()
-                        }
-                    })
+                    checker.resolveAll(DummyErrorReporter.INSTANCE, CoroutineCancellationIndicator(this)) { reporter.itemStep() }
                 }
             }
 

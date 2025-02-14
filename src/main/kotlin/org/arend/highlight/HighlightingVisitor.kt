@@ -1,17 +1,18 @@
 package org.arend.highlight
 
-import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import org.arend.naming.reference.*
-import org.arend.naming.resolving.ResolverListener
 import org.arend.naming.resolving.typing.TypingInfo
 import org.arend.psi.ext.*
 import org.arend.psi.extendLeft
-import org.arend.quickfix.implementCoClause.IntentionBackEndVisitor
 import org.arend.term.concrete.Concrete
+import org.arend.term.concrete.DefinableMetaDefinition
+import org.arend.typechecking.visitor.VoidConcreteVisitor
 
-class HighlightingResolverListener(private val pass: BasePass, private val progress: ProgressIndicator, private val typingInfo: TypingInfo) : ResolverListener {
-    private fun resolveReference(data: Any?, referent: Referable, resolvedRefs: List<Referable?>) {
+class HighlightingVisitor(private val pass: BasePass, private val typingInfo: TypingInfo) : VoidConcreteVisitor<Void>() {
+    private fun resolveReference(data: Any?, referent: Referable) {
+        if (referent is ErrorReference) return
+
         val list = when (data) {
             is ArendLongName -> data.refIdentifierList
             is ArendAtomFieldsAcc -> listOfNotNull(data.atom.literal?.refIdentifier) + data.fieldAccList.mapNotNull { it.refIdentifier } + listOfNotNull(data.ipName)
@@ -44,11 +45,7 @@ class HighlightingResolverListener(private val pass: BasePass, private val progr
             }
         }
 
-        var index = 0
-        while (index < resolvedRefs.size - 1 && index < list.size - 1 && resolvedRefs[index] !is ErrorReference) {
-            index++
-        }
-
+        val index = list.size - 1
         if (index > 0) {
             val last = list[index]
             val textRange = if (last is ArendIPName) {
@@ -97,9 +94,7 @@ class HighlightingResolverListener(private val pass: BasePass, private val progr
         }
     }
 
-    override fun definitionResolved(definition: Concrete.ResolvableDefinition) {
-        progress.checkCanceled()
-
+    private fun processDefinition(definition: Concrete.ResolvableDefinition) {
         (definition.data.data as? PsiLocatedReferable)?.let { ref ->
             if (ref.isValid) {
                 ref.nameIdentifier?.let {
@@ -110,45 +105,60 @@ class HighlightingResolverListener(private val pass: BasePass, private val progr
                 }
             }
         }
-
         highlightParameters(definition)
-        if (definition is Concrete.DataDefinition) {
-            for (constructorClause in definition.constructorClauses) {
-                for (constructor in constructorClause.constructors) {
-                    highlightParameters(constructor)
-                }
-            }
+    }
+
+    override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
+        processDefinition(def)
+        return super.visitFunction(def, params)
+    }
+
+    override fun visitMeta(def: DefinableMetaDefinition, params: Void?): Void? {
+        processDefinition(def)
+        return super.visitMeta(def, params)
+    }
+
+    override fun visitData(def: Concrete.DataDefinition, params: Void?): Void? {
+        processDefinition(def)
+        return super.visitData(def, params)
+    }
+
+    override fun visitConstructor(def: Concrete.Constructor, params: Void?) {
+        highlightParameters(def)
+        super.visitConstructor(def, params)
+    }
+
+    override fun visitClass(def: Concrete.ClassDefinition, params: Void?): Void? {
+        processDefinition(def)
+        return super.visitClass(def, params)
+    }
+
+    override fun visitReference(expr: Concrete.ReferenceExpression, params: Void?): Void? {
+        resolveReference(expr.data, expr.referent)
+        return null
+    }
+
+    override fun visitFieldCall(expr: Concrete.FieldCallExpression, params: Void?): Void? {
+        resolveReference(expr.data, expr.field)
+        return super.visitFieldCall(expr, params)
+    }
+
+    override fun visitVar(expr: Concrete.VarLevelExpression, param: Void?): Void {
+        resolveReference(expr.data, expr.referent)
+        return super.visitVar(expr, param)
+    }
+
+    override fun visitPattern(pattern: Concrete.Pattern, params: Void?) {
+        if (pattern is Concrete.ConstructorPattern) {
+            val referent = pattern.constructor
+            if (referent != null) resolveReference(pattern.data, referent)
         }
-
-        definition.accept(IntentionBackEndVisitor(), null)
+        super.visitPattern(pattern, params)
     }
 
-    override fun referenceResolved(expr: Concrete.Expression?, originalRef: Referable, refExpr: Concrete.ReferenceExpression, resolvedRefs: List<Referable?>) {
-        resolveReference(refExpr.data, refExpr.referent, resolvedRefs)
-    }
-
-    override fun fieldCallResolved(expr: Concrete.FieldCallExpression, originalRef: Referable?, resolvedRef: Referable) {
-        resolveReference(expr.data, resolvedRef, listOf(resolvedRef))
-    }
-
-    override fun levelResolved(originalRef: Referable?, refExpr: Concrete.VarLevelExpression, resolvedRef: Referable, availableRefs: MutableCollection<Referable>?) {
-        resolveReference(refExpr.data, refExpr.referent, listOf(resolvedRef))
-    }
-
-    override fun patternResolved(originalRef: Referable?, newRef: Referable, pattern: Concrete.Pattern, resolvedRefs: List<Referable?>) {
-        resolveReference(pattern.data, newRef, resolvedRefs)
-    }
-
-    override fun coPatternResolved(element: Concrete.CoClauseElement, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
-        val data = element.data
-        (((data as? ArendCoClauseDef)?.parent ?: data) as? CoClauseBase)?.longName?.let {
-            resolveReference(it, referable, resolvedRefs)
-        }
-    }
-
-    override fun overriddenFieldResolved(overriddenField: Concrete.OverriddenField, originalRef: Referable?, referable: Referable, resolvedRefs: List<Referable?>) {
-        (overriddenField.data as? ArendOverriddenField)?.overriddenField?.let {
-            resolveReference(it, referable, resolvedRefs)
-        }
+    override fun visitClassElement(element: Concrete.ClassElement, params: Void?) {
+        val field = element.field
+        if (field != null) resolveReference(element.data, field)
+        super.visitClassElement(element, params)
     }
 }
