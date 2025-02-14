@@ -1,12 +1,14 @@
 package org.arend.psi.ext
 
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.util.Key
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.Precedence
+import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
@@ -45,6 +47,14 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     fun getDescription(): Doc =
         documentation?.doc ?: DocFactory.nullDoc()
+
+    private object ArendReferableKey : Key<TCDefReferable>("AREND_REFERABLE_KEY")
+
+    var tcReferable: TCDefReferable?
+        get() = getUserData(ArendReferableKey)
+        set(referable) {
+            putUserData(ArendReferableKey, referable)
+        }
 
     companion object {
         fun calcPrecedence(prec: ArendPrec?): Precedence {

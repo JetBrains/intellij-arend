@@ -3,7 +3,6 @@ package org.arend.quickfix
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -48,7 +47,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.quickfix.referenceResolve.ResolveReferenceAction
 import org.arend.refactoring.PsiLocatedRenamer
-import org.arend.server.ArendServerService
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.ConcreteBuilder.convert
 import org.arend.term.abs.ConcreteBuilder.convertPattern
@@ -426,8 +424,8 @@ class ExpectedConstructorQuickFix(val error: ExpectedConstructorError, val cause
                 val subPattern = pattern.sequence[0]
                 val constructor = (subPattern.referenceElement?.unresolvedReference ?: subPattern.singleReferable?.refName?.let { NamedUnresolvedReference(subPattern, it) })?.resolve(pattern.ancestor<ArendDefinition<*>>()?.scope ?: return false, null, null) as? ArendConstructor
                         ?: return false
-                return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.let { project.service<ArendServerService>().server.getTCReferable(it)?.typechecked } == Prelude.NAT ||
-                       constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.let { project.service<ArendServerService>().server.getTCReferable(it)?.typechecked } == Prelude.FIN
+                return constructor.name == Prelude.SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.NAT ||
+                       constructor.name == Prelude.FIN_SUC.name && constructor.ancestor<ArendDefData>()?.tcReferable?.typechecked == Prelude.FIN
             }
 
             abstract fun computeMatchingPatterns(ecEntry: K, definitionParameters: List<DependentLink>, elimParams: List<DependentLink>)

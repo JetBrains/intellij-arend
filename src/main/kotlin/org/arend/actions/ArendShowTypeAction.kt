@@ -20,7 +20,6 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.refactoring.*
-import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
 import org.arend.tracer.ArendTraceAction
@@ -105,7 +104,7 @@ class ArendShowTypeAction : ArendPopupAction() {
             val body = function.body
             // Make sure it's not an expr body
             if (body.term != null) throw e
-            val coreDef = project.service<ArendServerService>().server.getTCReferable(tc)?.typechecked
+            val coreDef = tc.tcReferable?.typechecked
             val coreBody = (coreDef as? Function)?.body as? ElimBody
                 ?: (coreDef as? CoreFunctionDefinition)?.actualBody as? ElimBody
                 ?: throw e

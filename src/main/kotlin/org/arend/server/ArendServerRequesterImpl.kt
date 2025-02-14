@@ -7,6 +7,12 @@ import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.ModulePath
 import org.arend.module.ModuleLocation
 import org.arend.module.config.ArendModuleConfigService
+import org.arend.naming.reference.Referable
+import org.arend.naming.reference.TCDefReferable
+import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.ReferableBase
+import org.arend.term.abs.AbstractReferable
+import org.arend.term.abs.AbstractReference
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.util.FileUtils
 import org.arend.util.findInternalLibrary
@@ -42,6 +48,16 @@ class ArendServerRequesterImpl(private val project: Project) : ArendServerReques
             runnable.run()
         }
     }
+
+    override fun addReference(module: ModuleLocation, reference: AbstractReference, referable: Referable) {
+        (reference as? ArendReferenceElement)?.putResolved(referable)
+    }
+
+    override fun addReference(module: ModuleLocation, referable: AbstractReferable, tcReferable: TCDefReferable) {
+        (referable as? ReferableBase<*>)?.tcReferable = tcReferable
+    }
+
+    override fun addModuleDependency(module: ModuleLocation, dependency: ModuleLocation) {}
 
     private fun requestUpdate(server: ArendServer, modules: List<ModulePath>, library: String, inTests: Boolean) {
         for (module in modules) {

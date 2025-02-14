@@ -4,7 +4,6 @@ import com.intellij.execution.lineMarker.ExecutorAction
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.service
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
@@ -12,7 +11,6 @@ import org.arend.core.definition.Definition.TypeCheckingStatus
 import org.arend.core.definition.Definition.TypeCheckingStatus.*
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.*
-import org.arend.server.ArendServerService
 
 class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
     // Store previous definition status to prevent flickering during resolving
@@ -29,7 +27,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
             else -> null
         } ?: return null
 
-        val ref = parent.project.service<ArendServerService>().server.getTCReferable(parent)
+        val ref = parent.tcReferable
         val status = if (ref == null) {
             parent.getUserData(statusKey)
         } else {

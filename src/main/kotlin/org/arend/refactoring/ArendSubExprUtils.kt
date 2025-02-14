@@ -46,7 +46,6 @@ import org.arend.typechecking.subexpr.FindBinding
 import org.arend.typechecking.subexpr.SubExprError
 import org.arend.typechecking.visitor.SyntacticDesugarVisitor
 import org.arend.resolving.util.parseBinOp
-import org.arend.server.ArendServerService
 
 /**
  * @param def for storing function-level elim/clauses bodies
@@ -133,7 +132,7 @@ fun correspondedSubExpr(range: TextRange, file: PsiFile, project: Project): SubE
     val errors: List<SubExprError>
     val result = run {
         concreteDef ?: throw SubExprException("selected text is not in a definition")
-        val def = project.service<ArendServerService>().server.getTCReferable(psiDef)?.typechecked
+        val def = (psiDef as? ReferableBase<*>)?.tcReferable?.typechecked
             ?: throw SubExprException("underlying definition is not type checked")
         val subDefVisitor = CorrespondedSubDefVisitor(resolver?.result ?: subExpr)
         errors = subDefVisitor.exprError

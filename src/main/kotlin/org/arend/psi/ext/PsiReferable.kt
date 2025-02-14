@@ -14,8 +14,9 @@ import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
+import org.arend.term.abs.AbstractReferable
 
-interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, Referable {
+interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, Referable, AbstractReferable {
     val psiElementType: PsiElement?
         get() = null
 

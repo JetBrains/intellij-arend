@@ -30,6 +30,7 @@ import org.arend.naming.reference.Referable
 import org.arend.naming.reference.UnresolvedReference
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendGroup
+import org.arend.psi.ext.ArendReferenceElement
 import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.group.ConcreteGroup
@@ -127,10 +128,9 @@ private fun Project.addGeneratedModule(module: ModuleLocation, group: ConcreteGr
                 doc1.accept(CollectingDocVisitor(refs1), null)
                 doc2.accept(CollectingDocVisitor(refs2), null)
                 if (refs1.size == refs2.size) {
-                    val server = service<ArendServerService>().server
                     for ((referable, reference) in refs1.zip(refs2)) {
                         if (referable is Referable && reference is UnresolvedReference) {
-                            server.cacheReference(reference, referable)
+                            ArendReferenceElement.cacheResolved(reference, referable)
                         }
                     }
                 }

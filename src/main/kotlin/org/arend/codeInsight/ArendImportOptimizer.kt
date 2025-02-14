@@ -27,7 +27,6 @@ import org.arend.prelude.Prelude
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.getCompleteWhere
-import org.arend.server.ArendServerService
 import org.arend.settings.ArendCustomCodeStyleSettings
 import org.arend.settings.ArendCustomCodeStyleSettings.OptimizeImportsPolicy
 import org.arend.term.NamespaceCommand
@@ -420,7 +419,7 @@ private class ImportStructureCollector(
     }
 
     private fun addCoreGlobalInstances(element: ArendDefinition<*>) {
-        val tcReferable = element.project.service<ArendServerService>().server.getTCReferable(element)?.typechecked
+        val tcReferable = element.tcReferable?.typechecked
         allDefinitionsTypechecked = allDefinitionsTypechecked && (tcReferable != null && tcReferable.status() == NO_ERRORS)
         if (!allDefinitionsTypechecked) return
         tcReferable!!.accept(object : SearchVisitor<Unit>() { // not-null assertion implied by '&&' above
