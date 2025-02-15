@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import org.arend.psi.ArendFile
 
-class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
+class ErrorHighlightingPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java), TextEditorHighlightingPassFactoryRegistrar {
     private var myPassId = -1
 
     override fun registerHighlightingPassFactory(registrar: TextEditorHighlightingPassRegistrar, project: Project) {
@@ -20,7 +20,7 @@ class TypecheckerPassFactory : BasePassFactory<ArendFile>(ArendFile::class.java)
     override fun allowWhiteSpaces() = true
 
     override fun createPass(file: ArendFile, editor: Editor, textRange: TextRange) =
-        TypecheckerPass(file, editor)
+        ErrorHighlightingPass(file, editor)
 
     override fun getPassId() = myPassId
 }

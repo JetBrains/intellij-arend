@@ -8,7 +8,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.platform.util.progress.reportSequentialProgress
 import kotlinx.coroutines.*
-import org.arend.error.DummyErrorReporter
 import org.arend.ext.module.LongName
 import org.arend.module.ModuleLocation
 import org.arend.server.ArendServerRequesterImpl
@@ -36,7 +35,7 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
             val dependencies = checker.getDependencies(CoroutineCancellationIndicator(this))?.size ?: return@launch
             withBackgroundProgress(project, "Resolving $message") {
                 reportSequentialProgress(dependencies) { reporter ->
-                    checker.resolveAll(DummyErrorReporter.INSTANCE, CoroutineCancellationIndicator(this)) { reporter.itemStep() }
+                    checker.resolveAll(CoroutineCancellationIndicator(this)) { reporter.itemStep() }
                 }
             }
 

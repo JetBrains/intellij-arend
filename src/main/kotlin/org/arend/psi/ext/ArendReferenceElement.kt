@@ -4,7 +4,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import org.arend.error.DummyErrorReporter
 import org.arend.naming.reference.*
 import org.arend.server.ArendChecker
 import org.arend.server.ArendServerService
@@ -39,7 +38,7 @@ interface ArendReferenceElement : ArendReferenceContainer, AbstractReference {
         }
 
         val module = referenceModule ?: return null
-        project.service<ArendServerService>().server.getCheckerFor(listOf(module)).resolveModules(DummyErrorReporter.INSTANCE, UnstoppableCancellationIndicator.INSTANCE, ArendChecker.ProgressReporter.empty())
+        project.service<ArendServerService>().server.getCheckerFor(listOf(module)).resolveModules(UnstoppableCancellationIndicator.INSTANCE, ArendChecker.ProgressReporter.empty())
         return cachedOrNull
     }
 

@@ -420,7 +420,7 @@
         <!-- Highlighting Pass Factories -->
 
         <highlightingPassFactory implementation="org.arend.highlight.ArendHighlightingPassFactory"/>
-        <highlightingPassFactory implementation="org.arend.highlight.TypecheckerPassFactory"/>
+        <highlightingPassFactory implementation="org.arend.highlight.ErrorHighlightingPassFactory"/>
         <highlightingPassFactory implementation="org.arend.injection.InjectionHighlightingPassFactory"/>
         <!-- TODO[server2]
         <highlightingPassFactory implementation="org.arend.highlight.ArendUnusedImportHighlightingPassFactory"/>

@@ -8,12 +8,13 @@ import org.arend.actions.selectErrorFromEditor
 import org.arend.psi.ArendFile
 import org.arend.server.ArendServerService
 
-class TypecheckerPass(override val file: ArendFile, editor: Editor)
+class ErrorHighlightingPass(override val file: ArendFile, editor: Editor)
     : BasePass(file, editor, "Arend typechecker annotator", TextRange(0, editor.document.textLength)) {
 
     override fun collectInformationWithProgress(progress: ProgressIndicator) {
         val module = file.moduleLocation ?: return
-        reportAll(myProject.service<ArendServerService>().server.getTypecheckingErrors(module))
+        val errors = myProject.service<ArendServerService>().server.errorMap[module] ?: return
+        reportAll(errors)
     }
 
     override fun applyInformationLater() {

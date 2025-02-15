@@ -239,7 +239,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     }
 
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
-        project.service<ArendServerService>().server.getCheckerFor(fileNames.map { ModuleLocation(module.name, ModuleLocation.LocationKind.SOURCE, it) }).typecheck(DummyErrorReporter.INSTANCE, UnstoppableCancellationIndicator.INSTANCE)
+        project.service<ArendServerService>().server.getCheckerFor(fileNames.map { ModuleLocation(module.name, ModuleLocation.LocationKind.SOURCE, it) }).typecheck(UnstoppableCancellationIndicator.INSTANCE)
     }
 
     protected fun withStdLib(name: String = AREND_LIB, test: () -> Unit) {
