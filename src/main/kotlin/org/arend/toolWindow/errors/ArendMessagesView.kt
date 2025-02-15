@@ -18,7 +18,6 @@ import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 import com.intellij.psi.PsiElement
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
-import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.impl.SingleHeightTabs
@@ -30,7 +29,6 @@ import org.arend.ext.error.LocalError
 import org.arend.ext.error.MissingClausesError
 import org.arend.ext.reference.ArendRef
 import org.arend.ext.reference.DataContainer
-import org.arend.injection.InjectedArendEditor
 import org.arend.module.ModuleLocation
 import org.arend.psi.ext.ArendGoal
 import org.arend.psi.ext.PsiLocatedReferable
@@ -199,28 +197,10 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
             ApplicationManager.getApplication().executeOnPooledThread {
                 runReadAction {
                     if (!isGoalTextPinned()) {
-                        goalEditor?.treeElement?.sampleError?.let { currentGoal ->
-                            if (isParentDefinitionPsiInvalid(currentGoal)) {
-                                goalEditor?.clear()
-                                updateGoalsView(goalEmptyPanel)
-                            } else {
-                                val (_, scope) = InjectedArendEditor.resolveCauseReference(currentGoal)
-                                val doc = goalEditor?.treeElement?.let { goalEditor?.getDoc(it, currentGoal, scope) }
-
-                                if (isParentDefinitionRemovedFromTree(currentGoal)) {
-                                    goalEditor?.clear()
-                                    updateGoalsView(goalEmptyPanel)
-                                } else if (isCausePsiInvalid(currentGoal) && goalsTabInfo.text == defaultGoalsTabTitle) {
-                                    runInEdt {
-                                        goalsTabInfo.append(
-                                            " (${ArendBundle.message("arend.messages.view.latest.goal.removed.title")})",
-                                            SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES
-                                        )
-                                    }
-                                } else if (goalEditor?.currentDoc.toString() != doc.toString()) {
-                                    updateGoalText()
-                                }
-                            }
+                        val currentGoal = goalEditor?.treeElement?.sampleError
+                        if (currentGoal != null && isParentDefinitionPsiInvalid(currentGoal)) {
+                            goalEditor?.clear()
+                            updateGoalsView(goalEmptyPanel)
                         }
                     }
                     if (isShowErrorsPanel() && !isErrorTextPinned()) {
@@ -284,11 +264,6 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
     private fun isParentDefinitionRemovedFromTree(error: GeneralError): Boolean {
         val psi = ((error as? LocalError)?.definition as? DataContainer)?.data as? PsiLocatedReferable
         return psi == null || !tree.containsNode(psi)
-    }
-
-    private fun isCausePsiInvalid(error: GeneralError): Boolean {
-        val cause = error.cause as? PsiElement
-        return cause == null || !cause.isValid
     }
 
     private fun updatePanel(panel: JPanel, component: JComponent) {
