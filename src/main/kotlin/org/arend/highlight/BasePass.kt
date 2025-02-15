@@ -72,7 +72,7 @@ import org.arend.util.ArendBundle
 import java.util.*
 
 abstract class BasePass(protected open val file: IArendFile, editor: Editor, name: String, protected val textRange: TextRange)
-    : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, null), ErrorReporter {
+    : ProgressableTextEditorHighlightingPass(file.project, editor.document, name, file, editor, textRange, false, null), ErrorReporter, HighlightingCollector {
 
     private val highlights = ArrayList<HighlightInfo>()
     private val errorList = ArrayList<GeneralError>()
@@ -112,7 +112,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
         }
     }
 
-    fun addHighlightInfo(range: TextRange, colors: ArendHighlightingColors) {
+    override fun addHighlightInfo(range: TextRange, colors: ArendHighlightingColors) {
         addHighlightInfo(HighlightInfo.newHighlightInfo(HighlightInfoType.INFORMATION).range(range).textAttributes(colors.textAttributesKey))
     }
 

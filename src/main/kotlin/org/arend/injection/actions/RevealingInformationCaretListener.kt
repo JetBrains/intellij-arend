@@ -32,11 +32,11 @@ fun InjectedArendEditor.performPrettyPrinterManipulation(editor: Editor, choice:
     ApplicationManager.getApplication().executeOnPooledThread {
         runReadAction {
             val error = treeElement?.sampleError
-            val (resolve, scope) = error?.let(InjectedArendEditor.Companion::resolveCauseReference) ?: return@runReadAction
+            val (_, scope) = error?.let(InjectedArendEditor.Companion::resolveCauseReference) ?: return@runReadAction
 
             val ppConfig = getCurrentConfig(scope)
             val offset = editor.caretModel.offset
-            val doc = treeElement?.let { getDoc(it, error, resolve, scope) } ?: return@runReadAction
+            val doc = treeElement?.let { getDoc(it, error, scope) } ?: return@runReadAction
             currentDoc = doc
 
             val revealableFragment = findRevealableCoreAtOffset(offset, currentDoc, treeElement?.sampleError, ppConfig, treeElement?.normalizationCache ?: NormalizationCache()) ?: return@runReadAction

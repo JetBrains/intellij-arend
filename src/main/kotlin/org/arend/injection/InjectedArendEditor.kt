@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.*
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.UndoManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
@@ -23,6 +24,7 @@ import org.arend.ext.core.context.CoreParameter
 import org.arend.ext.core.expr.CoreExpression
 import org.arend.ext.core.ops.NormalizationMode
 import org.arend.ext.error.GeneralError
+import org.arend.ext.error.LocalError
 import org.arend.ext.prettyprinting.PrettyPrinterConfig
 import org.arend.ext.prettyprinting.doc.Doc
 import org.arend.ext.prettyprinting.doc.DocFactory
@@ -30,6 +32,7 @@ import org.arend.ext.reference.DataContainer
 import org.arend.injection.actions.RevealingInformationCaretListener
 import org.arend.injection.actions.UnblockingDocumentAction
 import org.arend.injection.actions.withNormalizedTerms
+import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.Reference
 import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
@@ -40,7 +43,7 @@ import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefMeta
-import org.arend.term.concrete.Concrete
+import org.arend.server.ArendServerService
 import org.arend.term.prettyprint.PrettyPrinterConfigWithRenamer
 import org.arend.term.prettyprint.TermWithSubtermDoc
 import org.arend.toolWindow.errors.ArendPrintOptionsFilterAction
@@ -150,11 +153,12 @@ abstract class InjectedArendEditor(
                             builder.append("\n\n")
                         }
 
-                        val (resolve, scope) = resolveCauseReference(error)
+                        val errorDef = (error as? LocalError)?.definition as? LocatedReferable
+                        val scope = if (errorDef == null) null else project.service<ArendServerService>().server.getReferableScope(errorDef)
                         if (scope != null) {
                             fileScope = scope
                         }
-                        val doc = getDoc(treeElement, error, resolve, scope)
+                        val doc = getDoc(treeElement, error, scope)
                         currentDoc = doc
                         doc.accept(visitor, false)
 
@@ -191,7 +195,6 @@ abstract class InjectedArendEditor(
                     modifyDocument { setText(text) }
                     getInjectionFile()?.apply {
                         injectionRanges = visitor.textRanges
-                        scope = fileScope
                         injectedExpressions = visitor.expressions
                         errorRanges = newErrorRanges
                     }
@@ -200,6 +203,9 @@ abstract class InjectedArendEditor(
                         .undoableActionPerformed(UnblockingDocumentAction(editor.document, id, true))
                 }
                 WriteCommandAction.runWriteCommandAction(project, null, id, action)
+                runReadAction {
+                    getInjectionFile()?.annotate(fileScope, 0)
+                }
                 val support = EditorHyperlinkSupport.get(editor)
                 support.clearHyperlinks()
                 for (hyperlink in visitor.hyperlinks) {
@@ -237,26 +243,15 @@ abstract class InjectedArendEditor(
         }
     }
 
-    fun getCurrentConfig(scope: Scope?): PrettyPrinterConfig {
-        return ProjectPrintConfig(
-            project,
-            printOptionKind,
-            scope /* TODO[server2]: ?.let { CachingScope.make(ConvertingScope(ArendReferableConverter, it)) } */,
-            verboseLevelMap,
-            verboseLevelParameterMap
-        )
-    }
+    fun getCurrentConfig(scope: Scope?): PrettyPrinterConfig =
+        ProjectPrintConfig(project, printOptionKind, scope, verboseLevelMap, verboseLevelParameterMap)
 
-    fun getDoc(treeElement: ArendErrorTreeElement, error: GeneralError, resolve: Referable?, scope: Scope?): Doc {
+    fun getDoc(treeElement: ArendErrorTreeElement, error: GeneralError, scope: Scope?): Doc {
         val ppConfig = getCurrentConfig(scope)
-        return if (causeIsMetaExpression(error.causeSourceNode, resolve)) {
-            error.getDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig, error)
-        } else {
-            DocFactory.vHang(
-                error.getHeaderDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig, error),
-                error.getBodyDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig, error)
-            )
-        }
+        return DocFactory.vHang(
+            error.getHeaderDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig, error),
+            error.getBodyDoc(ppConfig).withNormalizedTerms(treeElement.normalizationCache, ppConfig, error)
+        )
     }
 
     fun addDoc(doc: Doc, docScope: Scope) {
@@ -268,31 +263,33 @@ abstract class InjectedArendEditor(
         builder.append('\n')
         val text = builder.toString()
         ApplicationManager.getApplication().invokeLater {
-            runUndoTransparentWriteAction {
-                if (editor.isDisposed) return@runUndoTransparentWriteAction
+            runReadAction {
                 val document = editor.document
                 val length = document.textLength
-                modifyDocument { insertString(textLength, text) }
-                editor.scrollingModel.scrollTo(
-                    editor.offsetToLogicalPosition(length + text.length),
-                    ScrollType.MAKE_VISIBLE
-                )
-
-                getInjectionFile()?.apply {
-                    scope = docScope
-                    injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
-                    injectedExpressions.addAll(visitor.expressions)
-                }
-
-                val support = EditorHyperlinkSupport.get(editor)
-                for (hyperlink in visitor.hyperlinks) {
-                    support.createHyperlink(
-                        length + hyperlink.first.startOffset,
-                        length + hyperlink.first.endOffset,
-                        null,
-                        hyperlink.second
+                runUndoTransparentWriteAction {
+                    if (editor.isDisposed) return@runUndoTransparentWriteAction
+                    modifyDocument { insertString(textLength, text) }
+                    editor.scrollingModel.scrollTo(
+                        editor.offsetToLogicalPosition(length + text.length),
+                        ScrollType.MAKE_VISIBLE
                     )
+
+                    getInjectionFile()?.apply {
+                        injectionRanges.addAll(visitor.textRanges.map { list -> list.map { it.shiftRight(length) } })
+                        injectedExpressions.addAll(visitor.expressions)
+                    }
+
+                    val support = EditorHyperlinkSupport.get(editor)
+                    for (hyperlink in visitor.hyperlinks) {
+                        support.createHyperlink(
+                            length + hyperlink.first.startOffset,
+                            length + hyperlink.first.endOffset,
+                            null,
+                            hyperlink.second
+                        )
+                    }
                 }
+                getInjectionFile()?.annotate(docScope, length)
             }
         }
     }
@@ -302,11 +299,13 @@ abstract class InjectedArendEditor(
         ApplicationManager.getApplication().invokeLater {
             if (editor.isDisposed) return@invokeLater
             runWriteAction {
+                modifyDocument { setText("") }
+            }
+            runReadAction {
                 getInjectionFile()?.apply {
                     injectionRanges.clear()
                     injectedExpressions.clear()
                 }
-                modifyDocument { setText("") }
                 currentDoc = null
             }
         }
@@ -362,13 +361,14 @@ abstract class InjectedArendEditor(
     }
 
     protected fun modifyDocument(modifier: Document.() -> Unit) {
-        val thisEditor = editor ?: return
-        thisEditor.document.setReadOnly(false)
+        val document = editor?.document ?: return
+        document.setReadOnly(false)
         try {
-            thisEditor.document.modifier()
+            document.modifier()
         } finally {
-            thisEditor.document.setReadOnly(true)
+            document.setReadOnly(true)
         }
+        PsiDocumentManager.getInstance(project).commitDocument(document)
     }
 
     companion object {

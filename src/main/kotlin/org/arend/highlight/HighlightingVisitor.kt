@@ -9,7 +9,8 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.DefinableMetaDefinition
 import org.arend.typechecking.visitor.VoidConcreteVisitor
 
-class HighlightingVisitor(private val pass: BasePass, private val typingInfo: TypingInfo) : VoidConcreteVisitor<Void>() {
+// TODO[server2]: Use PSI elements and resolver cache for highlighting instead. Maybe even implement this as an Annotator.
+class HighlightingVisitor(private val collector: HighlightingCollector, private val typingInfo: TypingInfo) : VoidConcreteVisitor<Void>() {
     private fun resolveReference(data: Any?, referent: Referable) {
         if (referent is ErrorReference) return
 
@@ -37,11 +38,11 @@ class HighlightingVisitor(private val pass: BasePass, private val typingInfo: Ty
         if (data !is ArendPattern && (lastReference is ArendRefIdentifier || lastReference is ArendDefIdentifier)) {
             when {
                 referent is GlobalReferable && typingInfo.getRefPrecedence(referent).isInfix ->
-                    pass.addHighlightInfo(lastReference.textRange, ArendHighlightingColors.OPERATORS)
+                    collector.addHighlightInfo(lastReference.textRange, ArendHighlightingColors.OPERATORS)
 
                 (((referent as? RedirectingReferable)?.originalReferable
                     ?: referent) as? MetaReferable)?.resolver != null ->
-                    pass.addHighlightInfo(lastReference.textRange, ArendHighlightingColors.META_RESOLVER)
+                    collector.addHighlightInfo(lastReference.textRange, ArendHighlightingColors.META_RESOLVER)
             }
         }
 
@@ -69,12 +70,12 @@ class HighlightingVisitor(private val pass: BasePass, private val typingInfo: Ty
             }
 
             if (textRange != null) {
-                pass.addHighlightInfo(textRange, ArendHighlightingColors.LONG_NAME)
+                collector.addHighlightInfo(textRange, ArendHighlightingColors.LONG_NAME)
             }
         }
 
         if (data is ArendPattern && (referent as? GlobalReferable?)?.kind == GlobalReferable.Kind.CONSTRUCTOR) {
-            pass.addHighlightInfo(data.textRange, if (referent.precedence.isInfix) ArendHighlightingColors.OPERATORS else ArendHighlightingColors.CONSTRUCTOR_PATTERN)
+            collector.addHighlightInfo(data.textRange, if (referent.precedence.isInfix) ArendHighlightingColors.OPERATORS else ArendHighlightingColors.CONSTRUCTOR_PATTERN)
         }
     }
 
@@ -88,7 +89,7 @@ class HighlightingVisitor(private val pass: BasePass, private val typingInfo: Ty
                     else -> null
                 }
                 if (list != null) for (id in list) {
-                    pass.addHighlightInfo(id.textRange, ArendHighlightingColors.CLASS_PARAMETER)
+                    collector.addHighlightInfo(id.textRange, ArendHighlightingColors.CLASS_PARAMETER)
                 }
             }
         }
@@ -98,10 +99,10 @@ class HighlightingVisitor(private val pass: BasePass, private val typingInfo: Ty
         (definition.data.data as? PsiLocatedReferable)?.let { ref ->
             if (ref.isValid) {
                 ref.nameIdentifier?.let {
-                    pass.addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
+                    collector.addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
                 }
                 (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.let {
-                    pass.addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
+                    collector.addHighlightInfo(it.textRange, ArendHighlightingColors.DECLARATION)
                 }
             }
         }

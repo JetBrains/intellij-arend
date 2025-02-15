@@ -204,8 +204,8 @@ class ArendMessagesView(private val project: Project, toolWindow: ToolWindow) : 
                                 goalEditor?.clear()
                                 updateGoalsView(goalEmptyPanel)
                             } else {
-                                val (resolve, scope) = InjectedArendEditor.resolveCauseReference(currentGoal)
-                                val doc = goalEditor?.treeElement?.let { goalEditor?.getDoc(it, currentGoal, resolve, scope) }
+                                val (_, scope) = InjectedArendEditor.resolveCauseReference(currentGoal)
+                                val doc = goalEditor?.treeElement?.let { goalEditor?.getDoc(it, currentGoal, scope) }
 
                                 if (isParentDefinitionRemovedFromTree(currentGoal)) {
                                     goalEditor?.clear()
