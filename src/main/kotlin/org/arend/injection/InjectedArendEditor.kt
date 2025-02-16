@@ -197,6 +197,7 @@ abstract class InjectedArendEditor(
                         injectionRanges = visitor.textRanges
                         injectedExpressions = visitor.expressions
                         errorRanges = newErrorRanges
+                        concreteExpressions.clear()
                     }
                     postWriteCallback()
                     UndoManager.getInstance(project)
@@ -204,7 +205,7 @@ abstract class InjectedArendEditor(
                 }
                 WriteCommandAction.runWriteCommandAction(project, null, id, action)
                 runReadAction {
-                    getInjectionFile()?.annotate(fileScope, 0)
+                    getInjectionFile()?.annotate(fileScope)
                 }
                 val support = EditorHyperlinkSupport.get(editor)
                 support.clearHyperlinks()
@@ -264,10 +265,10 @@ abstract class InjectedArendEditor(
         val text = builder.toString()
         ApplicationManager.getApplication().invokeLater {
             runReadAction {
-                val document = editor.document
-                val length = document.textLength
                 runUndoTransparentWriteAction {
                     if (editor.isDisposed) return@runUndoTransparentWriteAction
+                    val document = editor.document
+                    val length = document.textLength
                     modifyDocument { insertString(textLength, text) }
                     editor.scrollingModel.scrollTo(
                         editor.offsetToLogicalPosition(length + text.length),
@@ -289,7 +290,7 @@ abstract class InjectedArendEditor(
                         )
                     }
                 }
-                getInjectionFile()?.annotate(docScope, length)
+                getInjectionFile()?.annotate(docScope)
             }
         }
     }
@@ -305,6 +306,7 @@ abstract class InjectedArendEditor(
                 getInjectionFile()?.apply {
                     injectionRanges.clear()
                     injectedExpressions.clear()
+                    concreteExpressions.clear()
                 }
                 currentDoc = null
             }

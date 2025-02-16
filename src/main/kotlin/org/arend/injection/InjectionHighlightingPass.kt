@@ -7,11 +7,14 @@ import com.intellij.codeInsight.daemon.impl.UpdateHighlightersUtil
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import org.arend.highlight.ArendHighlightingColors
 import org.arend.highlight.HighlightingCollector
+import org.arend.highlight.HighlightingVisitor
+import org.arend.server.ArendServerService
 import java.util.ArrayList
 
 class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val editor: Editor)
@@ -22,9 +25,11 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
     override fun doCollectInformation(progress: ProgressIndicator) {
         val manager = InjectedLanguageManager.getInstance(file.project)
         val files = (file.firstChild as? PsiInjectionText)?.let { manager.getInjectedPsiFiles(it) } ?: return
-        for (pair in files) {
+        val typingInfo = file.project.service<ArendServerService>().server.typingInfo
+        for (pair in files.zip(file.concreteExpressions)) {
+            val expr = pair.second ?: continue
             val collector = object : HighlightingCollector {
-                private fun toHostTextRange(range: TextRange) = manager.injectedToHost(pair.first, range)
+                private fun toHostTextRange(range: TextRange) = manager.injectedToHost(pair.first.first, range)
 
                 override fun addHighlightInfo(range: TextRange, colors: ArendHighlightingColors) {
                     val info = HighlightInfo.newHighlightInfo(HighlightInfoType.INFORMATION).range(toHostTextRange(range)).textAttributes(colors.textAttributesKey).create()
@@ -34,7 +39,7 @@ class InjectionHighlightingPass(val file: PsiInjectionTextFile, private val edit
                 }
             }
 
-
+            expr.accept(HighlightingVisitor(collector, typingInfo), null)
         }
         for (range in file.errorRanges) {
             val info = HighlightInfo.newHighlightInfo(HighlightInfoType.WEAK_WARNING).range(range).create()

@@ -1,23 +1,28 @@
 package org.arend.injection
 
 import com.intellij.lang.injection.InjectedLanguageManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.FileViewProvider
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.impl.source.PsiFileImpl
-import com.intellij.psi.util.PsiTreeUtil
 import org.arend.core.expr.Expression
+import org.arend.error.DummyErrorReporter
+import org.arend.naming.resolving.CollectingResolverListener
+import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.naming.scope.Scope
-import org.arend.psi.ext.ArendAtomFieldsAcc
-import org.arend.psi.ext.ArendLongName
-import org.arend.psi.ext.ArendRefIdentifier
+import org.arend.psi.ext.ArendReferenceElement
+import org.arend.psi.ext.ArendReplLine
+import org.arend.server.ArendServerService
+import org.arend.term.abs.ConcreteBuilder
+import org.arend.term.concrete.Concrete
 
 
 class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTextFileElementType, InjectionTextFileElementType, provider) {
     var injectionRanges = ArrayList<List<TextRange>>()
     var injectedExpressions = ArrayList<Expression?>()
     var errorRanges = ArrayList<TextRange>()
+    val concreteExpressions = ArrayList<Concrete.Expression?>()
 
     val hasInjection: Boolean
         get() = injectionRanges.isNotEmpty()
@@ -28,45 +33,24 @@ class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTe
 
     override fun getFileType() = InjectionTextFileType.INSTANCE
 
-    fun annotate(scope: Scope, offset: Int) {
+    fun annotate(scope: Scope) {
         val files = InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(firstChild ?: return) ?: return
-        val visitor = object : PsiElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                when (element) {
-                    is ArendAtomFieldsAcc -> {
-                        val headRefIdentifier = element.atom.literal?.refIdentifier ?: return
-                        val headName = headRefIdentifier.referenceName
-                        val headRef = scope.resolveName(headName)
-                        if (headRef != null) headRefIdentifier.putResolved(headRef)
-                        var curScope = scope.resolveNamespace(headName) ?: return
-                        for (fieldAcc in element.fieldAccList) {
-                            val refIdentifier = fieldAcc.refIdentifier ?: break
-                            val name = refIdentifier.referenceName
-                            val ref = curScope.resolveName(name)
-                            if (ref != null) refIdentifier.putResolved(ref)
-                            curScope = curScope.resolveNamespace(name) ?: break
-                        }
-                    }
-                    is ArendLongName -> {
-                        var curScope = scope
-                        for (refIdentifier in element.refIdentifierList) {
-                            val name = refIdentifier.referenceName
-                            val ref = curScope.resolveName(name)
-                            if (ref != null) refIdentifier.putResolved(ref)
-                            curScope = curScope.resolveNamespace(name) ?: break
-                        }
-                    }
-                    is ArendRefIdentifier -> if (element.cachedReferable == null) {
-                        val ref = scope.resolveName(element.referenceName)
-                        if (ref != null) element.putResolved(ref)
-                    }
-                }
+        if (concreteExpressions.size >= files.size) return
+        val listener = CollectingResolverListener(true)
+        val typingInfo = project.service<ArendServerService>().server.typingInfo
+        for (pair in files.subList(concreteExpressions.size, files.size)) {
+            val expr = (pair.first.firstChild as? ArendReplLine)?.expr
+            if (expr != null) {
+                val concrete = ConcreteBuilder.convertExpression(expr)
+                concrete.accept(ExpressionResolveNameVisitor(scope, mutableListOf(), typingInfo, DummyErrorReporter.INSTANCE, listener), null)
+                concreteExpressions.add(concrete)
+            } else {
+                concreteExpressions.add(null)
             }
         }
 
-        for (pair in files) {
-            if (pair.second.startOffset < offset) continue
-            PsiTreeUtil.processElements(pair.first) { it.accept(visitor); true }
+        for (resolvedReference in listener.getCacheStructure(null).cache) {
+            (resolvedReference.reference as? ArendReferenceElement)?.putResolved(resolvedReference.referable)
         }
     }
 }

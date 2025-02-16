@@ -9,7 +9,6 @@ import org.arend.term.concrete.Concrete
 import org.arend.term.concrete.DefinableMetaDefinition
 import org.arend.typechecking.visitor.VoidConcreteVisitor
 
-// TODO[server2]: Use PSI elements and resolver cache for highlighting instead. Maybe even implement this as an Annotator.
 class HighlightingVisitor(private val collector: HighlightingCollector, private val typingInfo: TypingInfo) : VoidConcreteVisitor<Void>() {
     private fun resolveReference(data: Any?, referent: Referable) {
         if (referent is ErrorReference) return
