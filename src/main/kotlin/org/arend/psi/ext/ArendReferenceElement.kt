@@ -5,8 +5,8 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import org.arend.naming.reference.*
-import org.arend.server.ArendChecker
 import org.arend.server.ArendServerService
+import org.arend.server.ProgressReporter
 import org.arend.term.abs.AbstractReference
 import org.arend.typechecking.computation.UnstoppableCancellationIndicator
 
@@ -38,7 +38,7 @@ interface ArendReferenceElement : ArendReferenceContainer, AbstractReference {
         }
 
         val module = referenceModule ?: return null
-        project.service<ArendServerService>().server.getCheckerFor(listOf(module)).resolveModules(UnstoppableCancellationIndicator.INSTANCE, ArendChecker.ProgressReporter.empty())
+        project.service<ArendServerService>().server.getCheckerFor(listOf(module)).resolveModules(UnstoppableCancellationIndicator.INSTANCE, ProgressReporter.empty())
         return cachedOrNull
     }
 

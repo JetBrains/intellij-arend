@@ -9,12 +9,12 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.TextRange
 import org.arend.IArendFile
 import org.arend.psi.*
-import org.arend.server.ArendChecker
 import org.arend.server.ArendServerService
+import org.arend.server.ProgressReporter
 import org.arend.settings.ArendSettings
 import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.*
-import org.arend.typechecking.execution.configurations.RunnerService
+import org.arend.typechecking.runner.RunnerService
 
 class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRange)
     : BasePass(file, editor, "Arend resolver annotator", textRange) {
@@ -26,7 +26,7 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
         if (module == null) return
 
         val server = myProject.service<ArendServerService>().server
-        server.getCheckerFor(listOf(module)).resolveModules(ProgressCancellationIndicator(progress), ArendChecker.ProgressReporter.empty())
+        server.getCheckerFor(listOf(module)).resolveModules(ProgressCancellationIndicator(progress), ProgressReporter.empty())
         val definitions = server.getGroupData(module)?.resolvedDefinitions ?: return
         val visitor = HighlightingVisitor(this, server.typingInfo)
         for (definitionData in definitions) {

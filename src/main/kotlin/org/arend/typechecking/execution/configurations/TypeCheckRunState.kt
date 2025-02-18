@@ -27,6 +27,7 @@ import org.arend.typechecking.execution.DefinitionNotFoundError
 import org.arend.typechecking.execution.TypeCheckCommand
 import org.arend.typechecking.execution.TypeCheckProcessHandler
 import org.arend.typechecking.execution.TypecheckingEventsProcessor
+import org.arend.typechecking.runner.RunnerService
 
 class TypeCheckRunState(private val environment: ExecutionEnvironment, private val command: TypeCheckCommand) : RunProfileState {
     override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult? {

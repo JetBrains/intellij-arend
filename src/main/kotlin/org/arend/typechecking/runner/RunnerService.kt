@@ -1,4 +1,4 @@
-package org.arend.typechecking.execution.configurations
+package org.arend.typechecking.runner
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.application.EDT
@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.platform.ide.progress.withBackgroundProgress
+import com.intellij.platform.util.progress.reportRawProgress
 import com.intellij.platform.util.progress.reportSequentialProgress
 import kotlinx.coroutines.*
 import org.arend.ext.module.LongName
@@ -24,39 +25,30 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
             val message = module?.toString() ?: (library ?: "project")
             val server = project.service<ArendServerService>().server
             withBackgroundProgress(project, "Checking $message") { reportSequentialProgress { reporter ->
-                val checker = reporter.nextStep(1, "Loading $message") {
+                val checker = reporter.nextStep(5, "Resolving $message") { reportRawProgress { reporter ->
                     if (module == null) {
                         ArendServerRequesterImpl(project).requestUpdate(server, library, isTest)
                     }
                     val checker = server.getCheckerFor(if (module == null) server.modules.filter { (library == null || it.libraryName == library) && (it.locationKind == ModuleLocation.LocationKind.SOURCE || isTest && it.locationKind == ModuleLocation.LocationKind.TEST) } else listOf(module))
-                    checker.getDependencies(CoroutineCancellationIndicator(this))
+                    checker.resolveAll(CoroutineCancellationIndicator(this), IntellijProgressReporter(reporter) { it.toString() })
                     checker
-                }
-
-                val dependencies = checker.getDependencies(CoroutineCancellationIndicator(this))?.size ?: return@reportSequentialProgress
-                reporter.nextStep(5, "Resolving $message") {
-                    reportSequentialProgress(dependencies) { reporter ->
-                        checker.resolveAll(CoroutineCancellationIndicator(this)) { reporter.itemStep() }
-                    }
-                }
+                } }
 
                 withContext(Dispatchers.EDT) {
                     project.service<ArendMessagesService>().update()
                 }
 
-                val definitions = if (definition == null || module == null) {
-                    checker.prepareTypechecking()
-                } else {
-                    checker.prepareTypechecking(listOf(FullName(module, LongName.fromString(definition))), NotificationErrorReporter(project))
+                val updated = reporter.nextStep(100, "Typechecking $message") {
+                    reportRawProgress { reporter ->
+                        checker.typecheck(if (definition == null || module == null) null else listOf(FullName(module, LongName.fromString(definition))), NotificationErrorReporter(project), CoroutineCancellationIndicator(this), IntellijProgressReporter(reporter) {
+                            val ref = it.firstOrNull()?.data ?: return@IntellijProgressReporter null
+                            val location = if (module == null) ref.location else null
+                            (if (location == null) "" else "$location ") + ref.refLongName.toString()
+                        })
+                    } > 0
                 }
 
-                if (definitions > 0) {
-                    reporter.nextStep(100, "Typechecking") {
-                        reportSequentialProgress(definitions) { reporter ->
-                            checker.typecheckPrepared(CoroutineCancellationIndicator(this)) { reporter.itemStep() }
-                        }
-                    }
-
+                if (updated) {
                     DaemonCodeAnalyzer.getInstance(project).restart()
                     withContext(Dispatchers.EDT) {
                         project.service<ArendMessagesService>().update()

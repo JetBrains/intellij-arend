@@ -35,6 +35,7 @@ import org.arend.naming.reference.FullModuleReferable
 import org.arend.naming.reference.MetaReferable
 import org.arend.psi.parentOfType
 import org.arend.server.ArendServerService
+import org.arend.server.ProgressReporter
 import org.arend.settings.ArendSettings
 import org.arend.term.group.AccessModifier
 import org.arend.typechecking.computation.UnstoppableCancellationIndicator
@@ -239,7 +240,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
     }
 
     fun typecheck(fileNames: List<ModulePath> = listOf(ModulePath("Main"))) {
-        project.service<ArendServerService>().server.getCheckerFor(fileNames.map { ModuleLocation(module.name, ModuleLocation.LocationKind.SOURCE, it) }).typecheck(UnstoppableCancellationIndicator.INSTANCE)
+        project.service<ArendServerService>().server.getCheckerFor(fileNames.map { ModuleLocation(module.name, ModuleLocation.LocationKind.SOURCE, it) }).typecheck(null, DummyErrorReporter.INSTANCE, UnstoppableCancellationIndicator.INSTANCE, ProgressReporter.empty())
     }
 
     protected fun withStdLib(name: String = AREND_LIB, test: () -> Unit) {
