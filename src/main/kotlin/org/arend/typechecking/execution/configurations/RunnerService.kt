@@ -23,44 +23,46 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
         coroutineScope.launch {
             val message = module?.toString() ?: (library ?: "project")
             val server = project.service<ArendServerService>().server
-            val checker = withBackgroundProgress(project, "Loading $message") {
-                if (module == null) {
-                    ArendServerRequesterImpl(project).requestUpdate(server, library, isTest)
+            withBackgroundProgress(project, "Checking $message") { reportSequentialProgress { reporter ->
+                val checker = reporter.nextStep(1, "Loading $message") {
+                    if (module == null) {
+                        ArendServerRequesterImpl(project).requestUpdate(server, library, isTest)
+                    }
+                    val checker = server.getCheckerFor(if (module == null) server.modules.filter { (library == null || it.libraryName == library) && (it.locationKind == ModuleLocation.LocationKind.SOURCE || isTest && it.locationKind == ModuleLocation.LocationKind.TEST) } else listOf(module))
+                    checker.getDependencies(CoroutineCancellationIndicator(this))
+                    checker
                 }
-                val checker = server.getCheckerFor(if (module == null) server.modules.filter { (library == null || it.libraryName == library) && (it.locationKind == ModuleLocation.LocationKind.SOURCE || isTest && it.locationKind == ModuleLocation.LocationKind.TEST) } else listOf(module))
-                checker.getDependencies(CoroutineCancellationIndicator(this))
-                checker
-            }
 
-            val dependencies = checker.getDependencies(CoroutineCancellationIndicator(this))?.size ?: return@launch
-            withBackgroundProgress(project, "Resolving $message") {
-                reportSequentialProgress(dependencies) { reporter ->
-                    checker.resolveAll(CoroutineCancellationIndicator(this)) { reporter.itemStep() }
-                }
-            }
-
-            withContext(Dispatchers.EDT) {
-                project.service<ArendMessagesService>().update()
-            }
-
-            val definitions = if (definition == null || module == null) {
-                checker.prepareTypechecking()
-            } else {
-                checker.prepareTypechecking(listOf(FullName(module, LongName.fromString(definition))), NotificationErrorReporter(project))
-            }
-
-            if (definitions > 0) {
-                withBackgroundProgress(project, "Typechecking $message") {
-                    reportSequentialProgress(definitions) { reporter ->
-                        checker.typecheckPrepared(CoroutineCancellationIndicator(this)) { reporter.itemStep() }
+                val dependencies = checker.getDependencies(CoroutineCancellationIndicator(this))?.size ?: return@reportSequentialProgress
+                reporter.nextStep(5, "Resolving $message") {
+                    reportSequentialProgress(dependencies) { reporter ->
+                        checker.resolveAll(CoroutineCancellationIndicator(this)) { reporter.itemStep() }
                     }
                 }
 
-                DaemonCodeAnalyzer.getInstance(project).restart()
                 withContext(Dispatchers.EDT) {
                     project.service<ArendMessagesService>().update()
                 }
-            }
+
+                val definitions = if (definition == null || module == null) {
+                    checker.prepareTypechecking()
+                } else {
+                    checker.prepareTypechecking(listOf(FullName(module, LongName.fromString(definition))), NotificationErrorReporter(project))
+                }
+
+                if (definitions > 0) {
+                    reporter.nextStep(100, "Typechecking") {
+                        reportSequentialProgress(definitions) { reporter ->
+                            checker.typecheckPrepared(CoroutineCancellationIndicator(this)) { reporter.itemStep() }
+                        }
+                    }
+
+                    DaemonCodeAnalyzer.getInstance(project).restart()
+                    withContext(Dispatchers.EDT) {
+                        project.service<ArendMessagesService>().update()
+                    }
+                }
+            } }
         }
 
     fun runChecker(module: ModuleLocation) =
