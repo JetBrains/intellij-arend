@@ -177,6 +177,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
 
             val from = currentNode.fullName
 
+            /* TODO[server2]
             val children = if (isSuperTypes) {
                 currentNode.superClassReferences
             } else {
@@ -194,6 +195,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
                     findEdges(child, isSuperTypes)
                 }
             }
+            */
         }
 
         override fun actionPerformed(e: AnActionEvent) {

@@ -191,8 +191,10 @@ abstract class UsageEntry(val refactoringContext: ChangeSignatureRefactoringCont
                         "{?}"
                     commentedText != null ->
                         "{?} {-${commentedText}-}"
+                    /* TODO[server2]
                     contextClass != null && contextClass.isSubClassOf(parameterClass) ->
                         "\\this"
+                    */
                     contextClass != null -> "{?}"
                     else -> "_"
                 }

@@ -37,7 +37,6 @@ import org.arend.ext.reference.DataContainer
 import org.arend.naming.error.DuplicateOpenedNameError
 import org.arend.naming.error.ExistingOpenedNameError
 import org.arend.naming.error.NotInScopeError
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.EmptyScope
 import org.arend.psi.*
@@ -47,7 +46,6 @@ import org.arend.psi.ext.ReferableBase
 import org.arend.quickfix.*
 import org.arend.quickfix.implementCoClause.CoClausesKey
 import org.arend.quickfix.implementCoClause.ImplementFieldsQuickFix
-import org.arend.quickfix.implementCoClause.makeFieldList
 import org.arend.quickfix.instance.AddInstanceArgumentQuickFix
 import org.arend.quickfix.instance.InstanceInferenceQuickFix
 import org.arend.quickfix.instance.ReplaceWithLocalInstanceQuickFix
@@ -295,11 +293,13 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                         registerFix(builder, RemoveCoClauseQuickFix(SmartPointerManager.createPointer(errorCause)))
                     }
                 } else {
+                    /* TODO[server2]
                     val ref = error.classRef
                     val classRef = if (ref is Referable) ref.underlyingReferable else ref
                     if (classRef is ClassReferable) {
                         registerFix(builder, ImplementFieldsQuickFix(SmartPointerManager.createPointer(cause), false, makeFieldList(error.fields, classRef)))
                     }
+                    */
                     if (cause is ArendNewExpr) {
                         cause.putUserData(CoClausesKey, null)
                     }

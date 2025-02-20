@@ -19,7 +19,6 @@ import org.arend.core.definition.Definition.TypeCheckingStatus.NO_ERRORS
 import org.arend.core.expr.FunCallExpression
 import org.arend.ext.concrete.definition.FunctionKind
 import org.arend.ext.module.ModulePath
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.scope.NamespaceCommandNamespace
 import org.arend.naming.scope.Scope
@@ -414,8 +413,8 @@ private class ImportStructureCollector(
     }
 
     private fun registerCoClauses(element: PsiElement) {
-        if (element !is ClassReferable) return
-        element.fieldReferables.filterIsInstance<ArendClassField>().forEach { currentFrame.definitions.add(it.refName) }
+        if (element !is ArendDefClass) return
+        element.internalReferables.filterIsInstance<ArendClassField>().forEach { currentFrame.definitions.add(it.refName) }
     }
 
     private fun addCoreGlobalInstances(element: ArendDefinition<*>) {
@@ -525,9 +524,11 @@ private fun isSuperAffectsElement(
 ): Boolean {
     if (PsiTreeUtil.isAncestor(resolvedScope, element, false)) return true
     if (element is ArendGroup && resolvedScope is ArendGroup && element.where != null && element.where == resolvedScope.where) return true
+    /* TODO[server2]
     if (resolvedScope is ArendDefClass && isFieldOrDynamic(resolvedScope, resolved)) {
         return element.parentsOfType<ArendDefClass>().any { it.isSubClassOf(resolvedScope) }
     }
+    */
     return false
 }
 

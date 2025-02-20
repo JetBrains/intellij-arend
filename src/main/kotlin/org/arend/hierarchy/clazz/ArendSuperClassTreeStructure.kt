@@ -7,7 +7,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ext.ArendDefClass
 import org.arend.settings.ArendProjectSettings
@@ -17,6 +16,8 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
 
     companion object {
         fun getChildren(descriptor: HierarchyNodeDescriptor, project: Project): Array<ArendHierarchyNodeDescriptor> {
+            return emptyArray()
+            /* TODO[server2]
             val classElement = descriptor.psiElement as? ArendDefClass ?: return emptyArray()
             val result = ArrayList<ArendHierarchyNodeDescriptor>()
             classElement.superClassReferences.mapTo(result) { ArendHierarchyNodeDescriptor(project, descriptor, it as ArendDefClass, false) }
@@ -39,8 +40,10 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
             }
 
             return result.toTypedArray()
+            */
         }
 
+        /* TODO[server2]
         private fun implInAncestors(descriptor: HierarchyNodeDescriptor, implFields: MutableSet<Referable>) {
             val classElement = descriptor.psiElement as? ArendDefClass ?: return
             implFields.addAll(classElement.implementedFields)
@@ -48,6 +51,7 @@ class ArendSuperClassTreeStructure(project: Project, baseNode: PsiElement, priva
                 implInAncestors(descriptor.parentDescriptor as ArendHierarchyNodeDescriptor, implFields)
             }
         }
+        */
     }
 
     override fun buildChildren(descriptor: HierarchyNodeDescriptor): Array<out Any> {

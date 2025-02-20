@@ -6,7 +6,6 @@ import com.intellij.psi.util.elementType
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 import org.arend.codeInsight.*
-import org.arend.naming.reference.ClassReferable
 import org.arend.naming.reference.FieldReferable
 import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes
@@ -375,7 +374,7 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                                 }
                             */
                         } else { // Fallback code for dumb mode
-                            descendantOldParameters = ClassReferable.Helper.getNotImplementedFields(classDescendant).filterIsInstance<PsiElement>().withIndex().map { (index, field) ->
+                            descendantOldParameters = emptyList() /* TODO[server2]: ClassReferable.Helper.getNotImplementedFields(classDescendant).filterIsInstance<PsiElement>().withIndex().map { (index, field) ->
                                 val classParent = field.ancestor<ArendDefClass>()!!
                                 val descriptor = DefaultParameterDescriptorFactory.createFromReferable(field as FieldReferable)
                                 if (classParent == locatedReferable) {
@@ -384,7 +383,7 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                                     modifiedArgumentEnd = index
                                 }
                                 descriptor
-                            }
+                            } */
                         }
 
                         val prefix = if (modifiedArgumentStart > 0) descendantOldParameters.subList(0, modifiedArgumentStart) else emptyList()

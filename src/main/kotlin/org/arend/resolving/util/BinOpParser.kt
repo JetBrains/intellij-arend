@@ -47,7 +47,7 @@ fun resolveReference(data: Any?, referent: Referable, fixity: Fixity?): Concrete
         if (fixity == Fixity.POSTFIX)
             resolved = null
         else {
-            val isDynamicClassMember = (referable as? PsiElement)?.ancestor<ArendDefClass>()?.dynamicReferables?.contains(referable) == true
+            val isDynamicClassMember = (referable as? PsiElement)?.ancestor<ArendDefClass>()?.dynamicSubgroups?.contains(referable) == true
             if (isDynamicClassMember && isCachedValue) referentComputer.invoke()
         }
 

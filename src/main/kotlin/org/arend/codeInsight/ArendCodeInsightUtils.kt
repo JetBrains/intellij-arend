@@ -469,14 +469,14 @@ class ArendCodeInsightUtils {
                 }
             }
 
-            return if (result != null) Pair(result, true) else Pair(ClassReferable.Helper.getNotImplementedFields(def).map {
+            return if (result != null) Pair(result, true) else Pair(/* TODO[server2]: ClassReferable.Helper.getNotImplementedFields(def).map {
                 val classParameterKind = when {
                     it is ArendClassField -> ClassParameterKind.CLASS_FIELD
                     (it as? ArendFieldDefIdentifier)?.ancestor<ArendDefClass>() == def -> ClassParameterKind.OWN_PARAMETER
                     else -> ClassParameterKind.INHERITED_PARAMETER
                 }
                 parameterDescriptorFactory.createFromReferable(it, classParameterKind = classParameterKind)
-            }.toList(), false)
+            }.toList() */ emptyList(), false)
         }
 
         private fun computeCoClauseParameterInfo(node: PsiElement, offset: Int): ParameterInfo? {

@@ -13,7 +13,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractDefinitionVisitor
 import javax.swing.Icon
 
-class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, StubBasedPsiElement<ArendDefClassStub>, Abstract.ClassDefinition {
+class ArendDefClass : ArendDefinition<ArendDefClassStub>, StubBasedPsiElement<ArendDefClassStub>, Abstract.ClassDefinition {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendDefClassStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -51,8 +51,6 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, StubBa
 
     override fun withoutClassifying(): Boolean = noClassifyingKw != null
 
-    override fun getSuperClassReferences(): List<ClassReferable> = superClassList.mapNotNull { it.longName.refIdentifierList.lastOrNull()?.reference?.resolve() as? ClassReferable }
-
     override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.group ?: it.coClause?.functionReference }
 
     override fun getUsedDefinitions(): List<LocatedReferable> = dynamicSubgroups.mapNotNull {
@@ -68,16 +66,6 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, ClassReferable, StubBa
             classFieldList
 
     override fun getFields() = internalReferables
-
-    override fun getFieldReferables(): List<FieldReferable> =
-        (parameterFields as List<FieldReferable>) +
-            classStatList.mapNotNull { it.classField } +
-            classFieldList
-
-    override fun getImplementedFields(): List<LocatedReferable> =
-        coClauseElements.mapNotNull { it.longName?.refIdentifierList?.lastOrNull()?.reference?.resolve() as? LocatedReferable }
-
-    override fun getDynamicReferables() = classStatList.mapNotNull { it.group }
 
     override fun getParameters(): List<Abstract.FieldParameter> = fieldTeleList
 

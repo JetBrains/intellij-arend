@@ -23,7 +23,7 @@ import org.arend.ext.DefinitionContributor
 import org.arend.ext.module.ModulePath
 import org.arend.ext.prettyprinting.doc.DocFactory
 import org.arend.ext.reference.Precedence
-import org.arend.extImpl.OldDefinitionContributorImpl
+import org.arend.extImpl.DefinitionContributorImpl
 import org.arend.module.AREND_LIB
 import org.arend.module.ArendModuleType
 import org.arend.module.ModuleLocation
@@ -199,8 +199,7 @@ abstract class ArendTestBase : BasePlatformTestCase(), ArendTestCase {
         }
 
         fun addGeneratedModules(library: String, filler: DefinitionContributor.() -> Unit) {
-            val moduleScopeProvider = SimpleModuleScopeProvider()
-            filler(OldDefinitionContributorImpl(library, DummyErrorReporter.INSTANCE, moduleScopeProvider))
+            filler(DefinitionContributorImpl(library))
             /* TODO[server2]
             for (entry in moduleScopeProvider.registeredEntries) {
                 library.addGeneratedModule(entry.key, entry.value)

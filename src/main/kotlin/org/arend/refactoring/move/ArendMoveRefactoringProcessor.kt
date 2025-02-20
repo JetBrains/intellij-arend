@@ -618,6 +618,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                             when {
                                 oldThisParameterClass == newThisParameterClass -> // Class unchanged
                                     thisPrefix.add(DefaultParameterDescriptorFactory.createThisParameter(oldThisParameter))
+                                /* TODO[server2]
                                 newThisParameterClass?.isSubClassOf(oldThisParameterClass) == true -> { // Move into descendant
                                     thisPrefix.add(DefaultParameterDescriptorFactory.createThisParameter(newThisParameterClass))
                                 }
@@ -628,6 +629,7 @@ class ArendMoveRefactoringProcessor(project: Project,
                                     collectClassMembers(newThisParameterClass, ancestorLevelParameters)
                                     unmovedMembersThatRequireLocalSignatureModification.removeAll(ancestorLevelParameters)
                                 }
+                                */
                                 else -> { // Move into unrelated class or static context
                                     if (newThisParameterClass != null) thisPrefix.add(DefaultParameterDescriptorFactory.createThisParameter(newThisParameterClass))
 

@@ -418,6 +418,7 @@ fun getAllBindings(psi: PsiElement, stopAtWhere: Boolean = true): Set<String> {
     return result
 }
 
+/* TODO[server2]
 fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
     fun doGetClassifyingField(classDef: ArendDefClass, visitedClasses: MutableSet<ArendDefClass>): ArendFieldDefIdentifier? {
         if (!visitedClasses.add(classDef) || classDef.isRecord) return null
@@ -434,6 +435,7 @@ fun getClassifyingField(classDef: ArendDefClass): ArendFieldDefIdentifier? {
 
     return doGetClassifyingField(classDef, HashSet())
 }
+*/
 
 fun surroundWithBraces(psiFactory: ArendPsiFactory, defClass: ArendDefClass) {
     val braces = psiFactory.createPairOfBraces()

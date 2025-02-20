@@ -12,6 +12,7 @@ enum class InstanceQuickFixAnnotation {
     NO_ANNOTATION
 }
 
+/* TODO[server2]
 private fun findImplementedCoClauses(coClauseList: List<CoClauseBase>,
                                      superClassesFields: HashMap<ClassReferable, MutableSet<FieldReferable>>,
                                      fields: MutableSet<FieldReferable>) {
@@ -71,16 +72,13 @@ private fun annotateCoClauses(coClauseList: List<CoClauseBase>,
             continue
         }
 
-        /* TODO[server2]
         if (clauseBlock || emptyGoal) {
             val severity = if (clauseBlock) InstanceQuickFixAnnotation.IMPLEMENT_FIELDS_ERROR else InstanceQuickFixAnnotation.NO_ANNOTATION
             doAnnotateInternal(coClause, /*rangeToReport,*/ coClause.localCoClauseList, severity)
         }
-        */
     }
 }
 
-/* TODO[server2]
 private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
         //rangeToReport: TextRange,
                                coClausesList: List<CoClauseBase>,
@@ -125,13 +123,10 @@ private fun doAnnotateInternal(classReferenceHolder: ClassReferenceHolder,
     }
     return emptyList()
 }
-*/
 
 private fun getTCRef(ref: Referable?) = (ref as? ReferableBase<*>)?.tcReferable ?: ref
 
 fun makeFieldList(fields: Collection<ArendRef>, classRef: ClassReferable): List<Pair<LocatedReferable, Boolean>> {
-    return emptyList()
-    /* TODO[server2]
     val scope = CachingScope.make(ClassFieldImplScope(classRef, false))
     return fields.mapNotNull { field ->
         if (field is LocatedReferable) {
@@ -139,8 +134,8 @@ fun makeFieldList(fields: Collection<ArendRef>, classRef: ClassReferable): List<
             Pair(field, if (field is TCFieldReferable || field2 is TCFieldReferable) getTCRef(field) != getTCRef(field2) else field != field2)
         } else null
     }
-    */
 }
+*/
 
 fun doAnnotate(element: PsiElement?) {
     /* TODO[server2]
