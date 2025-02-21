@@ -8,7 +8,6 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.editor.Editor
 import com.intellij.pom.Navigatable
 import com.intellij.psi.NavigatablePsiElement
-import org.arend.naming.reference.FieldReferable
 import org.arend.navigation.getPresentationForStructure
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
@@ -33,7 +32,7 @@ class ArendStructureViewModel(editor: Editor?, file: ArendFile)
         is ArendDefModule,
         is ArendDefFunction,
         is ArendDefMeta -> false
-        is FieldReferable,
+        is ArendClassFieldBase<*>,
         is ArendClassImplement,
         is ArendCoClauseDef,
         is ArendConstructor -> true

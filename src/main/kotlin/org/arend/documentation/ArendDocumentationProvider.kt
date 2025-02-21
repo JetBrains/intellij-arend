@@ -18,7 +18,6 @@ import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import org.arend.documentation.ArendKeyword.Companion.isArendKeyword
-import org.arend.naming.reference.FieldReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.doc.ArendDocComment
 import org.arend.psi.ext.*
@@ -309,7 +308,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
 
     private fun getType(element: PsiElement): String? = when (element) {
         is ArendDefClass -> if (element.isRecord) "record" else "class"
-        is FieldReferable -> "field"
+        is ArendClassFieldBase<*> -> "field"
         is ArendDefInstance -> "instance"
         is ArendClassImplement -> "implementation"
         is ArendDefData -> "data"
@@ -325,7 +324,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
     }
 
     private fun getSuperType(element: PsiElement): String? = when (element) {
-        is FieldReferable ->
+        is ArendClassFieldBase<*> ->
             (element.locatedReferableParent as? ArendDefClass)?.let {
                 " of ${if (it.isRecord) "record" else "class"} <b>${it.name ?: return@let null}</b>"
             }

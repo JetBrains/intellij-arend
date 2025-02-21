@@ -1,6 +1,5 @@
 package org.arend.module.config
 
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.*
@@ -11,10 +10,8 @@ import org.arend.ext.module.ModulePath
 import org.arend.library.LibraryDependency
 import org.arend.module.IntellijClassLoaderDelegate
 import org.arend.module.ModuleLocation
-import org.arend.naming.reference.Referable
 import org.arend.psi.ArendFile
 import org.arend.server.ArendLibrary
-import org.arend.typechecking.TypeCheckingService
 import org.arend.ui.impl.ArendGeneralUI
 import org.arend.util.*
 import org.arend.util.FileUtils.EXTENSION
@@ -120,14 +117,6 @@ abstract class LibraryConfig(val project: Project) : ArendLibrary {
 
     val additionalModulesSet: Set<ModulePath>
         get() = additionalModules.keys
-
-    fun clearAdditionalModules() {
-        val maps = project.service<TypeCheckingService>().getTCRefMaps(Referable.RefKind.EXPR)
-        for (file in additionalModules.values) {
-            maps.remove(file.moduleLocation)
-        }
-        additionalModules.clear()
-    }
 
     private fun findParentDirectory(modulePath: ModulePath, inTests: Boolean): VirtualFile? {
         var dir = (if (inTests) testsDirFile else sourcesDirFile) ?: return null

@@ -53,11 +53,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                 is PsiNamedElement -> {
                     val alias = (ref as? ReferableBase<*>)?.alias?.aliasIdentifier?.id?.text
                     val aliasString = if (alias == null) "" else " $alias"
-                    val elementName = if (origElement is IntellijTCReferable) {
-                        origElement.displayName
-                    } else {
-                        origElement.refName
-                    }
+                    val elementName = origElement.refName
                     val lookupString = lookup ?: (elementName + aliasString)
                     var builder = LookupElementBuilder.create(ref, lookupString).withIcon(ref.getIcon(0))
                     if (fullName) {

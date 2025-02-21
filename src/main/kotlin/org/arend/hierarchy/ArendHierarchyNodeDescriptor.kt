@@ -4,9 +4,8 @@ import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
 import com.intellij.psi.PsiElement
-import org.arend.naming.reference.FieldReferable
+import org.arend.psi.ext.ArendClassFieldBase
 import org.arend.psi.ext.ArendDefClass
-import org.arend.psi.ext.ArendInternalReferable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.util.FullName
 
@@ -17,10 +16,10 @@ open class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeD
         val oldText = myHighlightedText
 
         if (myHighlightedText.ending.appearance.text == "") when (val element = psiElement) {
-            is FieldReferable -> {
+            is ArendClassFieldBase<*> -> {
                 val fullName = FullName(element)
                 val clazz = (parentDescriptor as? ArendHierarchyNodeDescriptor)?.psiElement as? ArendDefClass
-                if (parentDescriptor?.parentDescriptor != null || element is ArendInternalReferable && clazz?.internalReferables?.contains(element) == true) {
+                if (parentDescriptor?.parentDescriptor != null || clazz?.internalReferables?.contains(element) == true) {
                     myHighlightedText.ending.addText(fullName.longName.lastName.toString())
                 } else {
                     myHighlightedText.ending.addText(fullName.longName.toString())

@@ -6,7 +6,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.IStubElementType
-import org.arend.ArendIcons
 import org.arend.naming.reference.*
 import org.arend.psi.*
 import org.arend.psi.stubs.ArendClassFieldParamStub
@@ -16,7 +15,7 @@ import org.arend.ext.concrete.definition.ClassFieldKind
 import org.arend.term.abs.Abstract
 import org.arend.term.group.AccessModifier
 
-class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendInternalReferable, Abstract.ClassField, FieldReferable, ArendReferenceElement, StubBasedPsiElement<ArendClassFieldParamStub> {
+class ArendFieldDefIdentifier : ArendClassFieldBase<ArendClassFieldParamStub>, ArendReferenceElement, StubBasedPsiElement<ArendClassFieldParamStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendClassFieldParamStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -26,8 +25,6 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
 
     override val defIdentifier: ArendDefIdentifier?
         get() = childOfType()
-
-    override fun getKind() = GlobalReferable.Kind.FIELD
 
     override val referenceNameElement
         get() = this
@@ -48,8 +45,6 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
 
     override fun getReference(): ArendReference = ArendDefReferenceImpl(this)
 
-    override fun getReferable() = this
-
     override fun isVisible() = false
 
     override fun isExplicitField() = parentFieldTele?.isExplicit ?: true
@@ -66,8 +61,6 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
 
     override fun getResultTypeLevel(): ArendExpr? = null
 
-    override fun getIcon(flags: Int) = ArendIcons.CLASS_FIELD
-
     override fun getUseScope() = GlobalSearchScope.projectScope(project)
 
     override fun getReferenceText(): String = referenceName
@@ -81,7 +74,7 @@ class ArendFieldDefIdentifier : ReferableBase<ArendClassFieldParamStub>, ArendIn
         get() = TextRange(0, text.length)
 
     override fun getAccessModifier(): AccessModifier =
-        super<ReferableBase>.getAccessModifier().max(classAccessModifier)
+        super<ArendClassFieldBase>.getAccessModifier().max(classAccessModifier)
 
     private val classAccessModifier: AccessModifier
         get() = ancestor<ArendDefClass>()?.accessModifier ?: AccessModifier.PUBLIC

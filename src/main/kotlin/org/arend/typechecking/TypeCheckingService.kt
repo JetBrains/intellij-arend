@@ -114,24 +114,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
     }
     */
 
-    private val tcRefMaps = Array<MutableMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>>(Referable.RefKind.entries.size) {
-        ConcurrentHashMap<ModuleLocation, ConcurrentHashMap<LongName, IntellijTCReferable>>()
-    }
-
-    fun getTCRefMaps(refKind: Referable.RefKind) = tcRefMaps[refKind.ordinal]
-
-    fun clearTCRefMaps() {
-        for (tcRefMap in tcRefMaps) {
-            tcRefMap.clear()
-        }
-    }
-
-    fun cleanupTCRefMaps(module: ModuleLocation) {
-        for (tcRefMap in tcRefMaps) {
-            tcRefMap[module]?.values?.removeIf { !it.isConsistent }
-        }
-    }
-
     val updatedModules = HashSet<ModuleLocation>()
 
     var isInitialized = false

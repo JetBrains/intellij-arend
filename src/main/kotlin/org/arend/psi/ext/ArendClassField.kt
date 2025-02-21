@@ -5,26 +5,19 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.util.elementType
-import org.arend.ArendIcons
-import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.stubs.ArendClassFieldStub
 import org.arend.ext.concrete.definition.ClassFieldKind
-import org.arend.naming.reference.FieldReferable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
-import org.arend.term.abs.Abstract
 import org.arend.term.group.AccessModifier
-import javax.swing.Icon
 
-class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferable, FieldReferable, Abstract.ClassField, StubBasedPsiElement<ArendClassFieldStub> {
+class ArendClassField : ArendClassFieldBase<ArendClassFieldStub>, StubBasedPsiElement<ArendClassFieldStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendClassFieldStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     val returnExpr: ArendReturnExpr?
         get() = childOfType()
-
-    override fun getKind() = GlobalReferable.Kind.FIELD
 
     override fun getClassFieldKind(): ClassFieldKind =
         when ((parent as? ArendClassStat)?.firstRelevantChild.elementType) {
@@ -33,8 +26,6 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
             else -> ClassFieldKind.ANY
         }
 
-    override fun getReferable() = this
-
     override fun getParameters(): List<ArendTypeTele> = getChildrenOfType()
 
     override fun getResultType(): ArendExpr? = returnExpr?.type
@@ -42,8 +33,6 @@ class ArendClassField : ReferableBase<ArendClassFieldStub>, ArendInternalReferab
     override fun getResultTypeLevel(): ArendExpr? = returnExpr?.typeLevel
 
     override fun isVisible() = true
-
-    override fun getIcon(flags: Int): Icon = ArendIcons.CLASS_FIELD
 
     override fun isExplicitField() = true
 
