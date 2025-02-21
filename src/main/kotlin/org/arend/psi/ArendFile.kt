@@ -123,15 +123,15 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
 
-    override fun getParentGroup(): ArendGroup? = null
+    override val parentGroup
+        get() = null
 
     override fun getReferable(): PsiLocatedReferable = this
 
-    override fun isDynamicContext() = false
-
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
-    override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
+    override val internalReferables: List<ReferableBase<*>>
+        get() = emptyList()
 
     override fun getDescription(): Doc = DocFactory.nullDoc()
 

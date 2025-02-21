@@ -23,12 +23,11 @@ class ArendDefData : ArendDefinition<ArendDefDataStub>, Abstract.DataDefinition,
     val truncatedKw: PsiElement?
         get() = findChildByType(ArendElementTypes.TRUNCATED_KW)
 
-    override fun getConstructors(): List<ArendConstructor> {
-        val body = dataBody ?: return emptyList()
-        return body.constructorClauseList.flatMap { it.constructors } + body.constructorList
-    }
-
-    override fun getInternalReferables(): List<ArendInternalReferable> = constructors
+    override val internalReferables: List<ArendConstructor>
+        get() {
+            val body = dataBody ?: return emptyList()
+            return body.constructorClauseList.flatMap { it.constructors } + body.constructorList
+        }
 
     override fun getParameters(): List<ArendTypeTele> = getChildrenOfType()
 

@@ -13,7 +13,6 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
-import com.intellij.psi.util.parentsOfType
 import com.intellij.util.concurrency.annotations.RequiresWriteLock
 import org.arend.core.definition.Definition.TypeCheckingStatus.NO_ERRORS
 import org.arend.core.expr.FunCallExpression

@@ -11,7 +11,6 @@ import com.intellij.psi.NavigatablePsiElement
 import org.arend.navigation.getPresentationForStructure
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
-import org.arend.term.group.Group
 
 class ArendStructureViewModel(editor: Editor?, file: ArendFile)
     : StructureViewModelBase(file, editor, ArendStructureViewElement(file)),
@@ -51,5 +50,5 @@ private class ArendStructureViewElement(val psi: ArendCompositeElement)
             childElements.mapNotNull { e -> (e as? ArendCompositeElement)?.let { ArendStructureViewElement(it) } }.toTypedArray()
 
     private val childElements: List<Any>
-        get() = (psi as? Group)?.let { it.internalReferables + it.statements.mapNotNull { stat -> stat.group } + it.dynamicSubgroups } ?: emptyList()
+        get() = (psi as? ArendGroup)?.let { it.internalReferables + it.statements.mapNotNull { stat -> stat.group } + it.dynamicSubgroups } ?: emptyList()
 }

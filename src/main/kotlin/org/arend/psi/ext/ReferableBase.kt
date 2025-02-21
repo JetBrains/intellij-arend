@@ -21,6 +21,9 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     constructor(stub: StubT, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
+    open val isVisible: Boolean
+        get() = true
+
     open val prec: ArendPrec?
         get() = childOfType()
 

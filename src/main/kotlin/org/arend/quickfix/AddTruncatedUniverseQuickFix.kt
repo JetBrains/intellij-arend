@@ -26,7 +26,7 @@ class AddTruncatedUniverseQuickFix(private val cause: SmartPsiElementPointer<Are
         val defData = cause.element
 
         var maxPatternMatching = 0
-        for (constructor in (defData?.constructors ?: emptyList())) {
+        for (constructor in (defData?.internalReferables ?: emptyList())) {
             val definition = constructor.tcReferable?.typechecked
             if (definition is Constructor) {
                 if (definition.body is IntervalElim) {

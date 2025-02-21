@@ -15,8 +15,6 @@ import org.arend.psi.ArendPsiFactory
 import org.arend.psi.ext.*
 import org.arend.term.NamespaceCommand
 import org.arend.term.group.AccessModifier
-import org.arend.term.group.ChildGroup
-import org.arend.term.group.Group
 import org.arend.toolWindow.repl.ArendReplService
 import org.arend.util.mapFirstNotNull
 import java.util.Collections.singletonList
@@ -46,10 +44,13 @@ fun doCalculateReferenceName(
 
     var fallbackImportAction: NsCmdRefactoringAction?
 
+    /* TODO[server2]
     val fileGroup = object : Group by currentFile {
         override fun getStatements() = currentFile.statements.filter { it.group == null }
     }
-    val importedScope = EmptyScope.INSTANCE // TODO[server2]: CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
+    val importedScope = CachingScope.make(ScopeFactory.forGroup(fileGroup, currentFile.moduleScopeProvider, false))
+    */
+    val importedScope = EmptyScope.INSTANCE
     val protectedAccessModifier = defaultLocation.target.accessModifier == AccessModifier.PROTECTED
     var targetFileAlreadyImported = false
     var preludeImportedManually = false
@@ -98,18 +99,18 @@ fun doCalculateReferenceName(
         }
     }
 
-    val ancestorGroups = ArrayList<Pair<ChildGroup?, List<ArendStatCmd>>>()
+    val ancestorGroups = ArrayList<Pair<ArendGroup?, List<ArendStatCmd>>>()
 
     var psi: PsiElement = anchor
     while (psi.parent != null) {
-        val containingGroup: ChildGroup? = when (psi) {
-            is ArendWhere -> psi.parent as? ChildGroup
+        val containingGroup: ArendGroup? = when (psi) {
+            is ArendWhere -> psi.parent as? ArendGroup
             is ArendFile -> psi
             is ArendDefClass -> psi
             else -> null
         }
 
-        val statements: List<ArendStatCmd>? = containingGroup?.statements?.mapNotNull { it.namespaceCommand as? ArendStatCmd }
+        val statements: List<ArendStatCmd>? = containingGroup?.statements?.mapNotNull { it.namespaceCommand }
 
         if (psi is PsiLocatedReferable && psi.isAncestor(defaultLocation.target))
             defaultLocation.processParentGroup(psi)
@@ -220,10 +221,12 @@ class LocationData private constructor (
     fun getComplementScope(): Scope {
         val targetContainers = myLongNameWithRefs.reversed().map { it.second }
         return object : ListScope(targetContainers + targetContainers.mapNotNull { if (it is GlobalReferable) AliasReferable(it) else null }) {
+            /* TODO[server2]
             override fun resolveNamespace(name: String): Scope? = targetContainers
                     .filterIsInstance<ArendGroup>()
                     .firstOrNull { name == it.textRepresentation() || name == it.aliasName }
                     ?.let { LexicalScope.opened(it) }
+            */
         }
     }
 

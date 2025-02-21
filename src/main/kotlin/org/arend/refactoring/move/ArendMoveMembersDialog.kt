@@ -23,11 +23,8 @@ import com.intellij.util.Alarm
 import org.arend.ArendFileTypeInstance
 import org.arend.codeInsight.ArendCodeInsightUtils
 import org.arend.ext.module.ModulePath
-import org.arend.module.AllArendFilesScope
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.naming.reference.Referable
-import org.arend.naming.scope.EmptyScope
-import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
 import org.arend.psi.*
 import org.arend.psi.ext.*
@@ -74,15 +71,8 @@ class ArendMoveMembersDialog(project: Project,
             null
         }
 
-        val containingFile = container.containingFile as? ArendFile
-        val globalScope = containingFile?.libraryConfig?.let { AllArendFilesScope(it) } ?: EmptyScope.INSTANCE
-
-        targetFileField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.module?.toString() ?: "", null, customScopeGetter = { globalScope })), project, ArendFileTypeInstance)
-        targetModuleField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.longName?.toString() ?: "", null, customScopeGetter = {
-            val group = simpleLocate(targetFileField.text, "", enclosingModule).first
-            group?.let { FilteringScope(LexicalScope.insideOf(it, EmptyScope.INSTANCE, true)) { referable ->
-                referable !is ArendClassField && referable !is ArendConstructor && referable !is ArendFieldDefIdentifier
-            } } ?: EmptyScope.INSTANCE })), project, ArendFileTypeInstance)
+        targetFileField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.module?.toString() ?: "", null)), project, ArendFileTypeInstance)
+        targetModuleField = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(ArendLongNameCodeFragment(project, fullName?.longName?.toString() ?: "", null)), project, ArendFileTypeInstance)
 
         memberSelectionPanel = ArendMemberSelectionPanel("Members to move", memberInfos)
         staticGroup = JRadioButton("Static")

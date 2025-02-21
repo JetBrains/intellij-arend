@@ -162,7 +162,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         get() = preludeLibrary?.prelude
 
     val preludeScope: Scope
-        get() = prelude?.let { LexicalScope.opened(it) } ?: EmptyScope.INSTANCE
+        get() = EmptyScope.INSTANCE
 
     fun getPsiReferable(referable: LocatedReferable): PsiLocatedReferable? {
         PsiLocatedReferable.fromReferable(referable)?.let { return it }

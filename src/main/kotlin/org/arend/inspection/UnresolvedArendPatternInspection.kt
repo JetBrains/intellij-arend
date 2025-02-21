@@ -12,7 +12,6 @@ import org.arend.psi.ext.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.refactoring.isPrelude
 import org.arend.term.abs.Abstract
-import org.arend.term.group.Group
 import org.arend.util.ArendBundle
 
 class UnresolvedArendPatternInspection : ArendInspectionBase() {
@@ -38,8 +37,8 @@ class UnresolvedArendPatternInspection : ArendInspectionBase() {
 
                 if (constructors.isNotEmpty() && (!constructors.contains(resolve) &&
                     (resolve.containingFile as? ArendFile?)?.let { isPrelude(it) } == false)) {
-                    val group = (getTypeOfPattern(element) as? ArendLiteral?)?.refIdentifier?.resolve as? Group?
-                    val groupConstructors = group?.constructors ?: emptyList()
+                    val defData = (getTypeOfPattern(element) as? ArendLiteral?)?.refIdentifier?.resolve as? ArendDefData
+                    val groupConstructors = defData?.internalReferables ?: emptyList()
                     if (groupConstructors.any { constructors.contains(it) }) {
                         registerProblem(element)
                     }

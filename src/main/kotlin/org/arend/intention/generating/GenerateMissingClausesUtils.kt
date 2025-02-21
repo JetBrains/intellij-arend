@@ -14,7 +14,6 @@ import org.arend.psi.ArendElementTypes
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
 import org.arend.quickfix.ImplementMissingClausesQuickFix
-import org.arend.typechecking.ArendTypechecking
 import org.arend.typechecking.error.ErrorService
 
 internal fun checkMissingClauses(element: PsiElement): Boolean {
@@ -42,7 +41,7 @@ internal fun fixMissingClausesError(project: Project, file: ArendFile, editor: E
     val errorService = project.service<ErrorService>()
     (group as? ArendDefFunction?)?.let { errorService.clearTypecheckingErrors(it) }
 
-    ArendTypechecking.create(project).typecheckModules(listOf(group), null)
+    // TODO[server2]: ArendTypechecking.create(project).typecheckModules(listOf(group), null)
 
     val error = errorService.getErrors(file).filter { it.error is MissingClausesError }.find {
         it.definition?.endOffset == offset

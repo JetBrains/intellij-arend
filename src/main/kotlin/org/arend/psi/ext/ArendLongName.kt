@@ -30,11 +30,6 @@ class ArendLongName(node: ASTNode) : ArendSourceNodeImpl(node), Abstract.LongRef
 
     override fun getHeadReference(): Abstract.Reference = refIdentifierList[0]
 
-    override fun getTailReferences(): List<Abstract.Reference> {
-        val refs = refIdentifierList
-        return refs.subList(1, refs.size)
-    }
-
     override val referenceName: String
         get() = referenceNameElement?.referenceName ?: ""
 

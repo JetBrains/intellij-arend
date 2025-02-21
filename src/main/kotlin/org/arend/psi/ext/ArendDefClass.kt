@@ -60,12 +60,8 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, StubBasedPsiElement<Ar
     private inline val parameterFields: List<ArendFieldDefIdentifier>
         get() = fieldTeleList.flatMap { it.referableList }
 
-    override fun getInternalReferables(): List<ArendInternalReferable> =
-        (parameterFields as List<ArendInternalReferable> ) +
-            classStatList.mapNotNull { it.classField } +
-            classFieldList
-
-    override fun getFields() = internalReferables
+    override val internalReferables: List<ArendClassFieldBase<*>>
+        get() = parameterFields + classStatList.mapNotNull { it.classField } + classFieldList
 
     override fun getParameters(): List<Abstract.FieldParameter> = fieldTeleList
 

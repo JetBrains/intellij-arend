@@ -9,7 +9,7 @@ import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
 import javax.swing.Icon
 
-abstract class ArendClassFieldBase<StubT> : ReferableBase<StubT>, ArendInternalReferable, Abstract.ClassField
+abstract class ArendClassFieldBase<StubT> : ReferableBase<StubT>, Abstract.ClassField
     where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     constructor(node: ASTNode) : super(node)

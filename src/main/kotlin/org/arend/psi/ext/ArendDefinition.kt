@@ -18,15 +18,15 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getStatements(): List<ArendStatement> = ArendStat.flatStatements(where?.statList)
 
-    override fun isDynamicContext() = parent is ArendClassStat
-
-    override fun getParentGroup() = parent?.ancestor<ArendGroup>()
+    override val parentGroup
+        get() = parent?.ancestor<ArendGroup>()
 
     override fun getReferable(): LocatedReferable = this
 
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
-    override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
+    override val internalReferables: List<ReferableBase<*>>
+        get() = emptyList()
 
     override fun withUse() = parent?.hasChildOfType(USE_KW) == true
 

@@ -45,7 +45,8 @@ class ArendFieldDefIdentifier : ArendClassFieldBase<ArendClassFieldParamStub>, A
 
     override fun getReference(): ArendReference = ArendDefReferenceImpl(this)
 
-    override fun isVisible() = false
+    override val isVisible
+        get() = false
 
     override fun isExplicitField() = parentFieldTele?.isExplicit ?: true
 
@@ -74,7 +75,7 @@ class ArendFieldDefIdentifier : ArendClassFieldBase<ArendClassFieldParamStub>, A
         get() = TextRange(0, text.length)
 
     override fun getAccessModifier(): AccessModifier =
-        super<ArendClassFieldBase>.getAccessModifier().max(classAccessModifier)
+        super.getAccessModifier().max(classAccessModifier)
 
     private val classAccessModifier: AccessModifier
         get() = ancestor<ArendDefClass>()?.accessModifier ?: AccessModifier.PUBLIC

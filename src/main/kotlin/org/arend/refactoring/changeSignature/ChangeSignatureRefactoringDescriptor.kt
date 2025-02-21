@@ -432,7 +432,7 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
                         }
                     }
 
-                    if (locatedReferable is ArendDefData && !mainRefactoringDescriptor.isSetOrOrderPreserved()) for (cons in locatedReferable.constructors) {
+                    if (locatedReferable is ArendDefData && !mainRefactoringDescriptor.isSetOrOrderPreserved()) for (cons in locatedReferable.internalReferables) {
                         val constructorDataParameters =
                             ArendCodeInsightUtils.getPartialExpectedConstructorSignature(
                                 cons,

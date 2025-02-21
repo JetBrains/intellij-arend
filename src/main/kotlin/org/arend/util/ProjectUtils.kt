@@ -38,7 +38,6 @@ import org.arend.term.prettyprint.PrettyPrintVisitor
 import org.arend.typechecking.ArendExtensionChangeService
 import org.arend.typechecking.error.NotificationErrorReporter
 import org.jetbrains.yaml.psi.YAMLFile
-import java.lang.StringBuilder
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -110,6 +109,19 @@ fun Module.register() {
     DaemonCodeAnalyzer.getInstance(project).restart()
 }
 
+private fun groupMatch(group1: ConcreteGroup, group2: ArendGroup, function: (ConcreteGroup, ArendGroup) -> Boolean): Boolean {
+    val stats1 = group1.statements()
+    val stats2 = group2.getStatements()
+    if (stats1.size != stats2.size) return false
+    for (i in stats1.indices) {
+        val subgroup1 = stats1[i].group()
+        val subgroup2 = stats2[i].getGroup()
+        if (subgroup1 == null && subgroup2 == null) continue
+        if (subgroup1 == null || subgroup2 == null || !function(subgroup1, subgroup2)) return false
+    }
+    return true
+}
+
 private fun Project.addGeneratedModule(module: ModuleLocation, group: ConcreteGroup) {
     val builder = StringBuilder()
     PrettyPrintVisitor(builder, 0).printStatements(group.statements())
@@ -118,7 +130,7 @@ private fun Project.addGeneratedModule(module: ModuleLocation, group: ConcreteGr
         file.virtualFile.isWritable = false
         file.generatedModuleLocation = module
         (group.referable as? DataModuleReferable)?.data = file
-        group.match(file) { subgroup1, subgroup2 ->
+        groupMatch(group, file) { subgroup1, subgroup2 ->
             (subgroup1.referable as? MetaReferable)?.data = subgroup2.referable
             val doc1 = (subgroup1 as? ConcreteGroup)?.description()
             val doc2 = (subgroup2 as? ArendGroup)?.description

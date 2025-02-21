@@ -12,7 +12,7 @@ import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.Scope
 import org.arend.prelude.Prelude
 import org.arend.psi.ArendFile
-import org.arend.term.group.Group
+import org.arend.term.group.ConcreteGroup
 import org.arend.typechecking.order.Ordering
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.util.FileUtils
@@ -34,8 +34,7 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
 
     override fun getDependencies(): List<LibraryDependency> = emptyList()
 
-    override fun getModuleGroup(modulePath: ModulePath, inTests: Boolean) =
-        if (!inTests && modulePath == Prelude.MODULE_PATH) prelude else null
+    override fun getModuleGroup(modulePath: ModulePath, inTests: Boolean) = null
 
     override fun getDeclaredModuleScopeProvider() = ModuleScopeProvider { if (it == Prelude.MODULE_PATH) scope else null }
 
@@ -61,7 +60,7 @@ class ArendPreludeLibrary(private val project: Project) : BaseLibrary() {
         return prelude != null && super.load(libraryManager, typechecking)
     }
 
-    override fun resetGroup(group: Group) {}
+    override fun resetGroup(group: ConcreteGroup) {}
 
     override fun resetDefinition(referable: LocatedReferable) {}
 

@@ -5,16 +5,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.PsiCodeFragmentImpl
 import org.arend.IArendFile
-import org.arend.naming.scope.Scope
 import org.arend.parser.ArendParser
 import org.arend.psi.ArendCodeFragmentElementType
 import org.arend.psi.ArendElementTypes
 import org.arend.resolving.ArendReference
 
-class ArendLongNameCodeFragment(project: Project,
-                                text: String,
-                                context: PsiElement?,
-                                private val customScopeGetter: (() -> Scope)? = null):
+class ArendLongNameCodeFragment(project: Project, text: String, context: PsiElement?) :
     PsiCodeFragmentImpl(project, ArendLongNameCodeFragmentElementType, true, "fragment.ard", text, context),
     IArendFile {
 

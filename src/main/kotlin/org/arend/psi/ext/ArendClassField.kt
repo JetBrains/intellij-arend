@@ -32,8 +32,6 @@ class ArendClassField : ArendClassFieldBase<ArendClassFieldStub>, StubBasedPsiEl
 
     override fun getResultTypeLevel(): ArendExpr? = returnExpr?.typeLevel
 
-    override fun isVisible() = true
-
     override fun isExplicitField() = true
 
     override fun isParameterField() = false

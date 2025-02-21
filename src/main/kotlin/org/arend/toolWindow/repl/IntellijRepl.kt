@@ -22,7 +22,6 @@ import org.arend.settings.ArendProjectSettings
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.term.group.ConcreteGroup
-import org.arend.term.group.Group
 import org.arend.toolWindow.repl.action.SetPromptCommand
 import org.arend.toolWindow.repl.action.ShowContextCommandIntellij
 import org.arend.typechecking.*
@@ -105,8 +104,10 @@ abstract class IntellijRepl private constructor(
     }
 
     fun resetCurrentLineScope(): Scope {
+        /* TODO[server2]
         val scope = ScopeFactory.forGroup(handler.arendFile, availableModuleScopeProvider)
         myReplScope.setCurrentLineScope(CachingScope.make(scope))
+        */
         return myScope
     }
 
@@ -135,7 +136,7 @@ abstract class IntellijRepl private constructor(
         super.checkErrors()
     }
 
-    override fun typecheckStatements(group: Group, scope: Scope) {
+    override fun typecheckStatements(group: ConcreteGroup, scope: Scope) {
         definitionModificationTracker.incModificationCount()
         val collector = CollectingOrderingListener()
         Ordering(typechecking.instanceScopeProvider, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator).orderModule(group)

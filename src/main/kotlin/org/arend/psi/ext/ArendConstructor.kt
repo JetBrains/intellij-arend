@@ -11,7 +11,7 @@ import org.arend.term.abs.Abstract
 import org.arend.term.group.AccessModifier
 import javax.swing.Icon
 
-class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalReferable, Abstract.Constructor, Abstract.ConstructorClause, StubBasedPsiElement<ArendConstructorStub> {
+class ArendConstructor : ReferableBase<ArendConstructorStub>, Abstract.Constructor, Abstract.ConstructorClause, StubBasedPsiElement<ArendConstructorStub> {
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: ArendConstructorStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
@@ -34,8 +34,6 @@ class ArendConstructor : ReferableBase<ArendConstructorStub>, ArendInternalRefer
     override fun getEliminatedExpressions(): List<ArendRefIdentifier> = elim?.refIdentifierList ?: emptyList()
 
     override fun getClauses(): List<ArendClause> = getChildrenOfType()
-
-    override fun isVisible(): Boolean = true
 
     override fun getResultType(): ArendExpr? = childOfType()
 

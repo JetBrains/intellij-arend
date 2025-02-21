@@ -19,15 +19,15 @@ class ArendDefModule : ReferableBase<ArendDefModuleStub>, ArendGroup, StubBasedP
 
     override fun getStatements(): List<ArendStat> = ArendStat.flatStatements(where?.statList)
 
-    override fun getParentGroup() = parent.ancestor<ArendGroup>()
+    override val parentGroup
+        get() = parent.ancestor<ArendGroup>()
 
     override fun getReferable() = this
 
-    override fun isDynamicContext() = parent is ArendClassStat
-
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
-    override fun getInternalReferables(): List<ArendInternalReferable> = emptyList()
+    override val internalReferables: List<ReferableBase<*>>
+        get() = emptyList()
 
     override fun getKind() = GlobalReferable.Kind.OTHER
 
