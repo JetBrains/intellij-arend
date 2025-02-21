@@ -162,8 +162,7 @@ fun doCalculateReferenceName(
     for (location in locations) {
         location.getReferenceNames().map { referenceName ->
             if (referenceName.isEmpty() ||
-                Scope.resolveName(correctedScope, referenceName)?.underlyingReferable
-                == defaultLocation.target) {
+                Scope.resolveName(correctedScope, referenceName)?.abstractReferable == defaultLocation.target) {
                 resultingDecisions.add(ImportDecision(referenceName, fileResolveActions[location], location.alias))
             }
         }

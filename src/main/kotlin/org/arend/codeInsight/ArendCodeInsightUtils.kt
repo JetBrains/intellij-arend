@@ -17,6 +17,7 @@ import org.arend.naming.resolving.visitor.ExpressionResolveNameVisitor
 import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.term.abs.Abstract
+import org.arend.term.abs.AbstractReferable
 import org.arend.term.abs.ConcreteBuilder
 import org.arend.term.concrete.Concrete
 import org.arend.util.appExprToConcrete
@@ -155,7 +156,7 @@ class ArendCodeInsightUtils {
 
                 fun collectNamePatternDescriptors(pattern: Concrete.Pattern): List<ParameterDescriptor> =
                     collectNamePatterns(pattern).map { nP ->
-                        val psiReferable = nP.referable?.underlyingReferable as? PsiReferable
+                        val psiReferable = nP.referable?.abstractReferable as? PsiReferable
                         if (psiReferable != null)
                             DefaultParameterDescriptorFactory.createNamedDataParameter(psiReferable, data) else
                             DefaultParameterDescriptorFactory.createUnnamedDataParameter(null) // In principle, we could try to `guess` names of these unnamed parameters
@@ -399,7 +400,7 @@ class ArendCodeInsightUtils {
                 else -> null
             }
             return if (concreteReferent != null)
-                getAllParametersForReferable(concreteReferent, getData(concrete) as ArendCompositeElement, addTailParameters = true) else
+                getAllParametersForReferable(concreteReferent.abstractReferable, getData(concrete) as ArendCompositeElement, addTailParameters = true) else
                 null
         }
 
@@ -410,8 +411,7 @@ class ArendCodeInsightUtils {
             else -> null
         }
 
-        fun getAllParametersForReferable(referable: Referable, anchor: ArendCompositeElement?, addTailParameters: Boolean = false): Pair<List<ParameterDescriptor>, Boolean>? {
-            val def: Referable = if (referable is RedirectingReferable) referable.originalReferable else referable
+        fun getAllParametersForReferable(def: AbstractReferable?, anchor: ArendCompositeElement?, addTailParameters: Boolean = false): Pair<List<ParameterDescriptor>, Boolean>? {
             val result = ArrayList<ParameterDescriptor>()
             var resType: ArendExpr? = null
             if (def !is Abstract.ParametersHolder) {
@@ -483,7 +483,7 @@ class ArendCodeInsightUtils {
             val localCoClause = node.parent as CoClauseBase
             val arguments = localCoClause.lamParameters
             val referable = localCoClause.longName?.resolve as? Referable ?: return null
-            val data = getAllParametersForReferable(referable, localCoClause.longName, addTailParameters = true)
+            val data = getAllParametersForReferable(referable.abstractReferable, localCoClause.longName, addTailParameters = true)
             val parameters = data?.first
 
             var paramIndex = 0

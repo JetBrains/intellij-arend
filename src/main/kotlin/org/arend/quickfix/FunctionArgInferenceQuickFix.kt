@@ -62,8 +62,7 @@ class FunctionArgInferenceQuickFix(
         }
 
         val subExpr = findSubExpr(concreteExpr)
-        val underlyingReferable = error.definition.referable.underlyingReferable
-        val parameters = getAllParametersForReferable(underlyingReferable, rootPsi)?.first ?: return
+        val parameters = getAllParametersForReferable(error.definition.referable.abstractReferable, rootPsi)?.first ?: return
         var textPieceToReplace: TextRange? = null
         var replacementText = ""
         var caretShift = 0

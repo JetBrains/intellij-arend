@@ -267,9 +267,9 @@ open class ImplementFieldsQuickFix(private val instanceRef: SmartPsiElementPoint
         }
 
         val allFields = fieldsToImplement.toMap()
-        val baseFields = fieldsToImplement.filter { !defaultFields.contains(it.first.underlyingReferable as? PsiElement?) }
-        val extraFields = fieldsToImplement.filter { defaultFields.contains(it.first.underlyingReferable as? PsiElement?) }
-            .associateBy { (referable, _) -> defaultFields.find { referable.underlyingReferable == it }!! }
+        val baseFields = fieldsToImplement.filter { !defaultFields.contains(it.first.abstractReferable as? PsiElement?) }
+        val extraFields = fieldsToImplement.filter { defaultFields.contains(it.first.abstractReferable as? PsiElement?) }
+            .associateBy { (referable, _) -> defaultFields.find { referable.abstractReferable == it }!! }
 
         var variants = mutableListOf<MutableList<LocatedReferable>>()
         for (group in groups) {

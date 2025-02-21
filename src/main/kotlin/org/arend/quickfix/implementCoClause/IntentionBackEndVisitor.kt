@@ -7,7 +7,7 @@ import org.arend.typechecking.visitor.VoidConcreteVisitor
 class IntentionBackEndVisitor : VoidConcreteVisitor<Void>() {
     override fun visitFunction(def: Concrete.BaseFunctionDefinition, params: Void?): Void? {
         super.visitFunction(def, params)
-        doAnnotate(def.data.underlyingReferable as? PsiElement)
+        doAnnotate(def.data.abstractReferable as? PsiElement)
         return null
     }
 

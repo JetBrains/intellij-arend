@@ -7,7 +7,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import com.intellij.psi.PsiElement
 import com.intellij.testFramework.TestModeFlags
 import com.intellij.util.containers.MultiMap
 import org.arend.core.definition.ClassDefinition
@@ -30,7 +29,6 @@ import org.arend.module.*
 import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.reference.Referable
 import org.arend.naming.reference.TCDefReferable
-import org.arend.naming.reference.TCReferable
 import org.arend.naming.scope.EmptyScope
 import org.arend.naming.scope.LexicalScope
 import org.arend.naming.scope.Scope
@@ -185,7 +183,7 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         get() = prelude?.let { LexicalScope.opened(it) } ?: EmptyScope.INSTANCE
 
     fun getPsiReferable(referable: LocatedReferable): PsiLocatedReferable? {
-        (referable.underlyingReferable as? PsiLocatedReferable)?.let { return it }
+        PsiLocatedReferable.fromReferable(referable)?.let { return it }
         return Scope.resolveName(preludeScope, referable.refLongName.toList()) as? PsiLocatedReferable
     }
 
@@ -302,31 +300,6 @@ class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener,
         if (def is PsiLocatedReferable) {
             project.service<ErrorService>().clearTypecheckingErrors(def)
         }
-    }
-
-    private fun removeDefinition(referable: LocatedReferable): TCReferable? {
-        if (referable is PsiElement && !referable.isValid) {
-            return null
-        }
-
-        val curRef = referable.underlyingReferable
-        val fullName = FullName(referable)
-        val tcRefMap = fullName.module?.let { getTCRefMaps(Referable.RefKind.EXPR)[it] }
-        val tcReferable = tcRefMap?.get(fullName.longName)
-        if (tcReferable !is TCDefReferable) {
-            resetErrors(curRef)
-            return tcReferable
-        }
-
-        removeTCDefinition(tcReferable)
-
-        val prevRef = (tcReferable as TCDefReferable).underlyingReferable
-        val tcTypecheckable = (tcReferable as TCDefReferable).typecheckable
-        if (curRef is PsiLocatedReferable && prevRef is PsiLocatedReferable && prevRef != curRef && prevRef.containingFile == curRef.containingFile) {
-            return null
-        }
-        resetErrors(curRef)
-        return tcTypecheckable
     }
 
     private fun removeTCDefinition(ref: TCDefReferable) {

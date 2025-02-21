@@ -562,7 +562,7 @@ fun admitsPatternMatchingOnIdp(expr: CoreExpression,
 // Binop util method plus auxiliary stuff
 
 fun getFirstExplicitParameter(ref: Referable?, defaultName: String): String {
-    val definition = ref?.underlyingReferable
+    val definition = ref?.abstractReferable
     if (definition is Abstract.ParametersHolder) {
         val firstParameter = definition.parameters.firstOrNull { it.isExplicit }
         val firstReferable = firstParameter?.referableList?.firstOrNull()

@@ -425,7 +425,7 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
             is FunctionArgInferenceError -> {
                 if (error.definition != null) {
-                    val params = getAllParametersForReferable(error.definition.referable.underlyingReferable, cause as? ArendCompositeElement)?.first
+                    val params = getAllParametersForReferable(error.definition.referable.abstractReferable, cause as? ArendCompositeElement)?.first
                     if (params != null && error.index <= params.size)
                         registerFix(builder, FunctionArgInferenceQuickFix(SmartPointerManager.createPointer(cause), error))
                 }
@@ -553,8 +553,8 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
                     else -> null
                 }
                 is ExpectedConstructorError -> (element as? ArendPattern)?.firstChild
-                is ImplicitLambdaError -> error.parameter?.underlyingReferable as? PsiElement
-                is LambdaInferenceError -> error.parameter?.underlyingReferable as? PsiElement
+                is ImplicitLambdaError -> error.parameter?.abstractReferable as? PsiElement
+                is LambdaInferenceError -> error.parameter?.abstractReferable as? PsiElement
                 else -> null
             }
 

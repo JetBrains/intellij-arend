@@ -133,17 +133,12 @@ internal class ArendExpressionMatcher(private val query: ProofSearchQuery) {
             }
             return true
         } else if (pattern is Concrete.ReferenceExpression && matched is Concrete.ReferenceExpression) {
-            return pattern.underlyingReferable?.recursiveReferable() == matched.underlyingReferable?.recursiveReferable()
+            return pattern.underlyingReferable?.abstractReferable == matched.underlyingReferable?.abstractReferable
         } else if (pattern is NumericLiteral && matched is NumericLiteral && pattern.number == matched.number) {
             return true
         } else {
             return false
         }
-    }
-
-    private fun Referable.recursiveReferable(): Referable {
-        val underlying = underlyingReferable
-        return if (underlying === this) this else underlying.recursiveReferable()
     }
 
     private fun reassembleConcrete(
