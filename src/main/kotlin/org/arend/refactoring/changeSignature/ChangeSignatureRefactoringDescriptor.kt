@@ -347,7 +347,7 @@ class ChangeSignatureRefactoringDescriptor private constructor(val affectedDefin
 
                         if (typecheckedNotImplementedFields != null) {
                             descendantOldParameters = typecheckedNotImplementedFields.map {
-                                val psiReferable = it.referable.data as? Referable
+                                val psiReferable = it.referable.data as? PsiReferable
                                 val (classParameterKind, externalScope) = when {
                                     psiReferable is ArendClassField -> Pair(ClassParameterKind.CLASS_FIELD, null)
                                     it.parentClass.referable?.data == classDescendant ->

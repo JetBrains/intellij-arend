@@ -8,7 +8,6 @@ import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
 import org.arend.ext.module.ModulePath
 import org.arend.naming.reference.ModuleReferable
-import org.arend.naming.reference.Referable
 import org.arend.navigation.getPresentation
 import org.arend.psi.*
 import org.arend.psi.doc.ArendDocComment
@@ -16,7 +15,7 @@ import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.abs.Abstract
 import org.arend.term.abs.AbstractReferable
 
-interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, Referable, AbstractReferable {
+interface PsiReferable : ArendCompositeElement, PsiNameIdentifierOwner, NavigatablePsiElement, Abstract.AbstractReferable, AbstractReferable {
     val psiElementType: PsiElement?
         get() = null
 
@@ -59,7 +58,7 @@ abstract class PsiReferableImpl(node: ASTNode) : ArendCompositeElementImpl(node)
 
     override fun getName(): String? = nameIdentifier?.text
 
-    override fun textRepresentation(): String = name ?: "_"
+    override fun getRefName(): String = name ?: "_"
 
     override fun setName(name: String): PsiElement? {
         nameIdentifier?.replace(ArendPsiFactory(project).createDefIdentifier(name))
@@ -71,7 +70,7 @@ abstract class PsiReferableImpl(node: ASTNode) : ArendCompositeElementImpl(node)
     override fun getPresentation(): ItemPresentation = getPresentation(this)
 }
 
-abstract class PsiStubbedReferableImpl<StubT> : ArendStubbedElementImpl<StubT>, PsiReferable
+abstract class PsiStubbedReferableImpl<StubT> : ArendStubbedElementImpl<StubT>, PsiReferable, Abstract.AbstractLocatedReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     constructor(node: ASTNode) : super(node)
@@ -82,7 +81,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
 
     override fun getName(): String? = stub?.name ?: if (isValid) descendantOfType<ArendDefIdentifier>()?.referenceName else null
 
-    override fun textRepresentation(): String = name ?: "_"
+    override fun getRefName(): String = name ?: "_"
 
     override fun setName(name: String): PsiElement? {
         nameIdentifier?.replace(ArendPsiFactory(project).createDefIdentifier(name))

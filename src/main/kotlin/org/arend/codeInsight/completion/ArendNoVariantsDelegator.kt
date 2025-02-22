@@ -80,6 +80,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                     locatedReferables.forEach {
                         val isInsideTest = (it.containingFile as? ArendFile)?.moduleLocation?.locationKind == ModuleLocation.LocationKind.TEST
                         val isImportAllowed = it.accessModifier != AccessModifier.PRIVATE && isVisible(it.containingFile as ArendFile, file)
+                        /* TODO[server2]
                         if (!tracker.variants.contains(it) && (isTestFile || !isInsideTest) && isImportAllowed)
                             ArendReferenceBase.createArendLookUpElement(it, parameters.originalFile, true, null, it !is ArendDefClass || !it.isRecord)?.let {
                                 result.addElement(
@@ -105,6 +106,7 @@ class ArendNoVariantsDelegator : CompletionContributor() {
                                     }
                                 )
                         }
+                        */
                     }
                 }
             }

@@ -20,7 +20,6 @@ import org.arend.codeInsight.*
 import org.arend.codeInsight.ArendCodeInsightUtils.Companion.getExternalParameters
 import org.arend.ext.module.LongName
 import org.arend.ext.variable.VariableImpl
-import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.LongUnresolvedReference
 import org.arend.naming.renamer.StringRenamer
 import org.arend.psi.*
@@ -503,15 +502,13 @@ class ArendMoveRefactoringProcessor(project: Project,
 
             val localNamesMap = HashMap<String, ArendGroup>()
             for (psi in localGroup) {
-                localNamesMap[psi.textRepresentation()] = psi
-                if (psi is GlobalReferable) {
-                    val aliasName = psi.aliasName
-                    if (aliasName != null) localNamesMap[aliasName] = psi
-                }
+                localNamesMap[psi.refName] = psi
+                val aliasName = psi.aliasName
+                if (aliasName != null) localNamesMap[aliasName] = psi
             }
 
             for (member in myMembers) {
-                val text = member.textRepresentation()
+                val text = member.refName
                 val psi = localNamesMap[text]
                 if (psi != null) conflicts.put(psi, singletonList("Name clash with one of the members of the target module ($text)"))
             }

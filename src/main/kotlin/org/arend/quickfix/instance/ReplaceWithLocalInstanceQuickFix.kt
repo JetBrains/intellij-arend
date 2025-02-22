@@ -50,7 +50,7 @@ class ReplaceWithLocalInstanceQuickFix(val error: InstanceInferenceError, val ca
             if (tele != null && index < tele.second && ambientDefinition != null && missingClassInstance is PsiLocatedReferable) {
                 val className = ResolveReferenceAction.getTargetName(missingClassInstance, ambientDefinition).let {
                     it.second?.execute()
-                    it.first.ifEmpty { missingClassInstance.defIdentifier?.textRepresentation() }
+                    it.first.ifEmpty { missingClassInstance.defIdentifier?.refName }
                 }
                 val psiFactory = ArendPsiFactory(project)
                 val telescope = tele.first

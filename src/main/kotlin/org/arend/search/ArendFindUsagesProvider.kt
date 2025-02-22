@@ -27,14 +27,14 @@ class ArendFindUsagesProvider : FindUsagesProvider {
     }
 
     override fun getDescriptiveName(element: PsiElement): String = when (element) {
-        is PsiLocatedReferable -> element.fullName
+        is PsiLocatedReferable -> element.fullNameText
         is PsiReferable -> element.name ?: "<unnamed>"
-        is ArendAliasIdentifier -> (if (element.parent is ArendAlias && element.parent.parent is PsiLocatedReferable) (element.parent.parent as? PsiLocatedReferable)?.fullName else null) ?: ""
+        is ArendAliasIdentifier -> (if (element.parent is ArendAlias && element.parent.parent is PsiLocatedReferable) (element.parent.parent as? PsiLocatedReferable)?.fullNameText else null) ?: ""
         else -> ""
     }
 
     override fun getNodeText(element: PsiElement, useFullName: Boolean): String = when (element) {
-        is PsiLocatedReferable -> if (useFullName) element.fullName else element.textRepresentation()
+        is PsiLocatedReferable -> if (useFullName) element.fullNameText else element.refName
         is PsiReferable -> element.name ?: ""
         is ArendAliasIdentifier -> getNodeText(element.parent.parent, useFullName)
         else -> ""

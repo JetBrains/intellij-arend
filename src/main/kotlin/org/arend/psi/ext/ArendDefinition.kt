@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.elementType
-import org.arend.naming.reference.LocatedReferable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
@@ -21,7 +20,7 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     override val parentGroup
         get() = parent?.ancestor<ArendGroup>()
 
-    override fun getReferable(): LocatedReferable = this
+    override fun getReferable(): PsiLocatedReferable = this
 
     override fun getDynamicSubgroups(): List<ArendGroup> = emptyList()
 
@@ -29,11 +28,6 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
         get() = emptyList()
 
     override fun withUse() = parent?.hasChildOfType(USE_KW) == true
-
-    override fun getUsedDefinitions(): List<LocatedReferable> = statements.mapNotNull {
-        val group = it.group
-        if (group is ArendDefinition<*> && group.withUse()) group.referable else null
-    }
 
     protected open val parametersExt: List<Abstract.Parameter>
         get() = emptyList()

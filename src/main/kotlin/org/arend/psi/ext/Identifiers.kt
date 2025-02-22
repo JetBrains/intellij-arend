@@ -75,7 +75,7 @@ abstract class ArendIdentifierBase(node: ASTNode) : PsiReferableImpl(node), Aren
     }
 }
 
-abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Referable.RefKind) : ArendIdentifierBase(node) {
+abstract class ArendDefIdentifierBase(node: ASTNode) : ArendIdentifierBase(node) {
     override val longName: List<String>
         get() = listOf(referenceName)
 
@@ -88,14 +88,12 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
     override fun setName(name: String): PsiElement? =
             this.replace(ArendPsiFactory(project).createDefIdentifier(name))
 
-    override fun textRepresentation(): String = referenceName
+    override fun getRefName(): String = referenceName
 
     override fun getReference() = when (parent) {
         is PsiLocatedReferable -> null
         else -> ArendDefReferenceImpl<ArendReferenceElement>(this)
     }
-
-    override fun getRefKind() = refKind
 
     override val psiElementType: PsiElement?
         get() {
@@ -107,7 +105,7 @@ abstract class ArendDefIdentifierBase(node: ASTNode, private val refKind: Refera
         }
 }
 
-class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable.RefKind.EXPR) {
+class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node) {
     val id: PsiElement
         get() = childOfTypeStrict(ArendElementTypes.ID)
 
@@ -115,7 +113,7 @@ class ArendDefIdentifier(node: ASTNode) : ArendDefIdentifierBase(node, Referable
         get() = id.text
 }
 
-class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDefIdentifierBase(node, refKind), PsiLocatedReferable {
+class ArendLevelIdentifier(node: ASTNode) : ArendDefIdentifierBase(node), PsiLocatedReferable {
     val id: PsiElement
         get() = childOfTypeStrict(ArendElementTypes.ID)
 
@@ -126,11 +124,11 @@ class ArendLevelIdentifier(node: ASTNode, refKind: Referable.RefKind) : ArendDef
 
     override fun getKind() = GlobalReferable.Kind.LEVEL
 
-    override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
-
-    override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
-
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
+
+    override fun getAliasPrecedence(): Precedence = Precedence.DEFAULT
+
+    override fun getAliasName() = null
 }
 
 class ArendRefIdentifier(node: ASTNode) : ArendIdentifierBase(node), ArendSourceNode, Abstract.Reference {

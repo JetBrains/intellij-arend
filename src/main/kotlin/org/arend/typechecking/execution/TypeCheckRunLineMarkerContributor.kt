@@ -47,7 +47,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
 
         return Info(icon, ExecutorAction.getActions(1)) {
             runReadAction {
-                if (parent.isValid) "Typecheck ${parent.fullName}" else "Typecheck definition"
+                if (parent.isValid) "Typecheck ${parent.fullNameText}" else "Typecheck definition"
             }
         }
     }

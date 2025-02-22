@@ -45,7 +45,7 @@ class ArendPattern(node: ASTNode) : ArendLamParam(node), Abstract.Pattern {
 
     override fun getSingleReferable(): ArendDefIdentifier? = childOfType()
 
-    override fun getConstructorReference() = singleReferable ?: referenceElement?.unresolvedReference
+    override fun getConstructorReference() = referenceElement?.unresolvedReference
 
     val referenceElement: ArendReferenceContainer?
         get() = getChild { it is ArendLongName || it is ArendIPName }

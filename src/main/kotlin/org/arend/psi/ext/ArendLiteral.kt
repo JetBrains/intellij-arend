@@ -28,7 +28,7 @@ class ArendLiteral(node: ASTNode) : ArendExpr(node) {
         }
         return when (val child = firstRelevantChild) {
             is ArendRefIdentifier -> visitor.visitReference(child, child.referent, null, null, null, params)
-            is ArendGoal -> visitor.visitGoal(child, child.defIdentifier?.textRepresentation(), child.expr, params)
+            is ArendGoal -> visitor.visitGoal(child, child.defIdentifier?.refName, child.expr, params)
             else -> when (child.elementType) {
                 PROP_KW -> visitor.visitUniverse(this, 0, -1, null, null, params)
                 UNDERSCORE -> visitor.visitInferHole(this, params)

@@ -4,7 +4,6 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import org.arend.ext.concrete.definition.ClassFieldKind
-import org.arend.naming.reference.Referable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.term.abs.Abstract
@@ -22,7 +21,7 @@ class ArendNameTele(node: ASTNode): ArendLamParam(node), Abstract.Parameter {
 
     override fun isExplicit() = firstRelevantChild.elementType != LBRACE
 
-    override fun getReferableList(): List<Referable?> = identifierOrUnknownList.map { it.defIdentifier }
+    override fun getReferableList(): List<ArendDefIdentifier?> = identifierOrUnknownList.map { it.defIdentifier }
 
     override fun getType(): ArendExpr? = childOfType()
 
@@ -39,7 +38,7 @@ class ArendNameTeleUntyped(node: ASTNode): ArendSourceNodeImpl(node), Abstract.P
 
     override fun isExplicit() = true
 
-    override fun getReferableList(): List<Referable?> = listOf(defIdentifier)
+    override fun getReferableList(): List<ArendDefIdentifier?> = listOf(defIdentifier)
 
     override fun getType(): ArendExpr? = null
 
@@ -65,7 +64,7 @@ class ArendTypeTele(node: ASTNode): ArendSourceNodeImpl(node), Abstract.Paramete
 
     override fun isExplicit() = firstRelevantChild.elementType != LBRACE
 
-    override fun getReferableList(): List<Referable?> =
+    override fun getReferableList(): List<ArendDefIdentifier?> =
         typedExpr?.identifierOrUnknownList?.map { it.defIdentifier }?.ifEmpty { listOf(null) } ?: listOf(null)
 
     override fun getType() = typedExpr?.type ?: firstRelevantChild as? ArendExpr

@@ -374,7 +374,7 @@ fun getImportedNames(namespaceCommand: ArendStatCmd, shortName: String?): List<P
         for (nsId in nsUsing.nsIdList) {
             if (nsId.refIdentifier.text == shortName) {
                 val defIdentifier = nsId.defIdentifier
-                resultList.add(Pair(defIdentifier?.textRepresentation() ?: shortName, nsId))
+                resultList.add(Pair(defIdentifier?.refName ?: shortName, nsId))
             }
         }
 
@@ -732,10 +732,10 @@ fun collectDefinedVariables(startElement: ArendCompositeElement): List<Variable>
         }
     } else emptySet()
 
-    val added: List<Referable?> = if ((startElement as? ArendDefFunction)?.body?.elim?.elimKw != null) {
+    val added: List<Referable?> = /* TODO[server2]: if ((startElement as? ArendDefFunction)?.body?.elim?.elimKw != null) {
         val eliminated = startElement.eliminatedExpressions.mapTo(HashSet()) { it.referenceName }
         startElement.parameters.flatMap { it.referableList }.filter { it != null && !eliminated.contains(it.refName) }
-    } else emptyList()
+    } else */ emptyList()
 
     val scope = when {
         excluded.isNotEmpty() -> ElimScope(elementScope, excluded)

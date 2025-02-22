@@ -5,7 +5,6 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.siblings
-import org.arend.naming.reference.Referable
 import org.arend.psi.ArendElementTypes.FAT_ARROW
 import org.arend.psi.ancestor
 import org.arend.psi.ext.*
@@ -78,7 +77,7 @@ class ParameterDescriptor private constructor(
             open fun createUnnamedParameter(tele: ArendTypeTele) =
                 ParameterDescriptor(null, tele.isExplicit, { tele.type?.text }, false)
 
-            open fun createFromReferable(referable: Referable,
+            open fun createFromReferable(referable: PsiReferable,
                                          isExplicit: Boolean = computeExplicitness(referable as PsiElement),
                                          externalScope: ArendGroup? = null,
                                          classParameterKind: ClassParameterKind? = null) =
@@ -106,15 +105,15 @@ class ParameterDescriptor private constructor(
              * @param referable -- parameter psi (may be external)
              * @param data -- constructor's parent datatype (needed only to decide whether passed referable is external)
              */
-            open fun createNamedDataParameter(referable: Referable, data: ArendDefData) = ParameterDescriptor(
+            open fun createNamedDataParameter(referable: PsiReferable, data: ArendDefData) = ParameterDescriptor(
                 referable.refName, false, { computeType(referable as PsiElement) }, true,
                 (referable as PsiElement).ancestor<ArendGroup>()
                     ?.let { if (it != data) createSmartLink(it) else null }, // not null only for external parameters
                 createSmartLink(referable)
             )
 
-            open fun createExternalParameter(referable: Referable,
-                                             typeGetter: () -> String? = typeGetter(referable as PsiReferable) { computeType(it) },
+            open fun createExternalParameter(referable: PsiReferable,
+                                             typeGetter: () -> String? = typeGetter(referable) { computeType(it) },
                                              parameterKind: ClassParameterKind? = null) =
                 ParameterDescriptor(
                     name = referable.refName,

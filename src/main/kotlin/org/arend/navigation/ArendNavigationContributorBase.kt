@@ -9,7 +9,7 @@ import com.intellij.psi.stubs.StubIndexKey
 import org.arend.naming.reference.Referable
 import org.arend.psi.ext.PsiLocatedReferable
 import org.arend.psi.ext.PsiReferable
-import org.arend.psi.ext.fullName
+import org.arend.psi.ext.fullNameText
 
 abstract class ArendNavigationContributorBase<T> protected constructor(
         private val indexKey: StubIndexKey<String, T>,
@@ -40,7 +40,7 @@ abstract class ArendNavigationContributorBase<T> protected constructor(
 
     override fun getQualifiedName(item: NavigationItem): String? =
             when (item) {
-                is PsiLocatedReferable -> item.fullName
+                is PsiLocatedReferable -> item.fullNameText
                 is Referable -> item.refLongName?.toString() ?: item.refName
                 else -> null
             }

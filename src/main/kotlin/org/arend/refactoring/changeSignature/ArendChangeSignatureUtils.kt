@@ -253,7 +253,7 @@ fun printAppExpr(expr: Concrete.Expression, psiElement: ArendArgumentAppExpr, re
 
 fun printPattern(pattern: Concrete.Pattern, psiElement: ArendPattern, refactoringContext: ChangeSignatureRefactoringContext): IntermediatePrintResult {
     val isInsideAppExprLeaf = !(pattern.data == psiElement ||
-            (pattern.data as? ArendPattern)?.let{ it.constructorReference != null && it.parent == psiElement } == true)
+            (pattern.data as? ArendPattern)?.let{ (it.singleReferable != null || it.constructorReference != null) && it.parent == psiElement } == true)
 
     if (pattern is Concrete.ConstructorPattern && !isInsideAppExprLeaf) {
         val constructor = (pattern.constructor as? DataContainer)?.data

@@ -659,7 +659,7 @@ private fun ArendGroup.hasSuffixGroupStructure(subList: List<String>): Boolean {
                 return false
             }
         } else {
-            val location = currentGroup.location?.modulePath?.toList()?.toList()?.reversed() ?: return false
+            val location = currentGroup.moduleLocation?.modulePath?.toList()?.toList()?.reversed() ?: return false
             for (endIndex in index until subList.size) {
                 val locationIndex = endIndex - index
                 if (locationIndex >= location.size || location[locationIndex] != reversedSublist[endIndex]) {

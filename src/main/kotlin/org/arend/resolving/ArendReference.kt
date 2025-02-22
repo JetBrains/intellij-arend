@@ -57,7 +57,7 @@ abstract class ArendReferenceBase<T : ArendReferenceElement>(element: T, range: 
                     val lookupString = lookup ?: (elementName + aliasString)
                     var builder = LookupElementBuilder.create(ref, lookupString).withIcon(ref.getIcon(0))
                     if (fullName) {
-                        builder = builder.withPresentableText(((ref as? PsiLocatedReferable)?.fullName ?: elementName) + aliasString)
+                        builder = builder.withPresentableText(((ref as? PsiLocatedReferable)?.fullNameText ?: elementName) + aliasString)
                     }
                     if (alias != null) {
                         builder = builder.withInsertHandler(ReplaceInsertHandler(alias))
@@ -109,7 +109,7 @@ open class ArendReferenceImpl<T : ArendReferenceElement>(element: T, scopeContex
 
     override fun getVariants(): Array<Any> {
         val file = element.containingFile as? ArendFile ?: return emptyArray()
-        return file.project.service<ArendServerService>().server.getCompletionVariants(ConcreteBuilder.convertGroup(file, DummyErrorReporter.INSTANCE), element).mapNotNull {
+        return file.project.service<ArendServerService>().server.getCompletionVariants(ConcreteBuilder.convertGroup(file, file.moduleLocation, DummyErrorReporter.INSTANCE), element).mapNotNull {
             origElement -> createArendLookUpElement(origElement, file, false, null, false)
         }.toTypedArray()
     }

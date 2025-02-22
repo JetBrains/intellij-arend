@@ -4,10 +4,7 @@ import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Comparing
 import com.intellij.psi.PsiElement
-import org.arend.psi.ext.ArendClassFieldBase
-import org.arend.psi.ext.ArendDefClass
-import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.util.FullName
+import org.arend.psi.ext.*
 
 open class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeDescriptor?,
                                         element: PsiElement, isBase: Boolean) : HierarchyNodeDescriptor(project, parent, element, isBase) {
@@ -17,13 +14,15 @@ open class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeD
 
         if (myHighlightedText.ending.appearance.text == "") when (val element = psiElement) {
             is ArendClassFieldBase<*> -> {
-                val fullName = FullName(element)
+                val fullName = element.fullName
                 val clazz = (parentDescriptor as? ArendHierarchyNodeDescriptor)?.psiElement as? ArendDefClass
                 if (parentDescriptor?.parentDescriptor != null || clazz?.internalReferables?.contains(element) == true) {
                     myHighlightedText.ending.addText(fullName.longName.lastName.toString())
                 } else {
                     myHighlightedText.ending.addText(fullName.longName.toString())
-                    myHighlightedText.ending.addText(" (" + fullName.module + ')', getPackageNameAttributes())
+                    if (fullName.module != null) {
+                        myHighlightedText.ending.addText(" (" + fullName.module + ')', getPackageNameAttributes())
+                    }
                 }
             }
             /*is ArendClassImplement -> {
@@ -39,9 +38,11 @@ open class ArendHierarchyNodeDescriptor(project: Project, parent: HierarchyNodeD
                 }
             }*/
             is PsiLocatedReferable -> {
-                val fullName = FullName(element)
+                val fullName = element.fullName
                 myHighlightedText.ending.addText(fullName.longName.toString())
-                myHighlightedText.ending.addText(" (" + fullName.module + ')', getPackageNameAttributes())
+                if (fullName.module != null) {
+                    myHighlightedText.ending.addText(" (" + fullName.module + ')', getPackageNameAttributes())
+                }
             }
         }
 

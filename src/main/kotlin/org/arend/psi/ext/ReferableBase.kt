@@ -30,17 +30,14 @@ where StubT : ArendNamedStub, StubT : StubElement<*> {
     open val alias: ArendAlias?
         get() = childOfType()
 
-    override fun hasAlias() = alias != null
-
     override fun getAliasName() = alias?.aliasIdentifier?.id?.text
 
     override fun getAliasPrecedence() = calcPrecedence(alias?.prec)
 
     override fun getPrecedence() = stub?.precedence ?: calcPrecedence(prec)
 
-    override fun getLocation() = if (isValid) (containingFile as? ArendFile)?.moduleLocation else null
-
-    override fun getLocatedReferableParent() = parent?.ancestor<PsiLocatedReferable>()
+    val locatedReferableParent: PsiLocatedReferable?
+        get() = parent?.ancestor<PsiLocatedReferable>()
 
     override fun getAccessModifier() =
         parent?.childOfType<ArendAccessMod>()?.accessModifier ?: ancestor<ArendStatAccessMod>()?.accessModifier ?: AccessModifier.PUBLIC

@@ -22,8 +22,7 @@ import org.arend.graph.GraphNode
 import org.arend.graph.GraphSimulator
 import org.arend.hierarchy.ArendHierarchyNodeDescriptor
 import org.arend.psi.ext.ArendDefClass
-import org.arend.psi.ext.fullName
-import org.arend.search.ClassDescendantsSearch
+import org.arend.psi.ext.fullNameText
 import org.arend.settings.ArendProjectSettings
 import java.util.*
 import javax.swing.*
@@ -175,7 +174,7 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
         private fun findEdges(currentNode: ArendDefClass, isSuperTypes: Boolean) {
             usedNodes.add(currentNode)
 
-            val from = currentNode.fullName
+            val from = currentNode.fullNameText
 
             /* TODO[server2]
             val children = if (isSuperTypes) {
@@ -210,12 +209,12 @@ class ArendClassHierarchyBrowser(project: Project, method: PsiElement) : TypeHie
             myProject.service<GraphSimulator>().displayOrthogonal(
                 this.toString(),
                 if (currentViewType == getSubtypesHierarchyType()) {
-                    "Subtypes_${root.fullName}"
+                    "Subtypes_${root.fullNameText}"
                 } else {
-                    "Supertypes_${root.fullName}"
+                    "Supertypes_${root.fullNameText}"
                 },
                 edges,
-                usedNodes.map { GraphNode(it.fullName) }.toSet()
+                usedNodes.map { GraphNode(it.fullNameText) }.toSet()
             )
         }
     }

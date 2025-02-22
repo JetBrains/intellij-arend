@@ -24,7 +24,6 @@ import org.arend.module.config.ArendModuleConfigService
 import org.arend.module.config.LibraryConfig
 import org.arend.module.orderRoot.ArendConfigOrderRootType
 import org.arend.naming.reference.GlobalReferable
-import org.arend.naming.reference.LocatedReferable
 import org.arend.naming.scope.*
 import org.arend.psi.ext.*
 import org.arend.psi.listener.ArendPsiChangeService
@@ -32,7 +31,7 @@ import org.arend.psi.stubs.ArendFileStub
 import org.arend.resolving.ArendReference
 import org.arend.util.*
 
-class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendSourceNode, PsiLocatedReferable, ArendGroup, IArendFile {
+class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ArendLanguage.INSTANCE), ArendGroup, IArendFile {
     var generatedModuleLocation: ModuleLocation? = null
 
     /**
@@ -109,19 +108,19 @@ class ArendFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, Aren
         return ArendModuleConfigService.getInstance(module)?.isInitialized != false
     }
 
-    override fun getLocation() = moduleLocation
-
-    override fun getLocatedReferableParent(): LocatedReferable? = null
-
     override fun getNameIdentifier(): PsiElement? = null
 
     override fun getReference(): ArendReference? = null
 
     override fun getFileType() = ArendFileTypeInstance
 
-    override fun textRepresentation(): String = name.removeSuffix(FileUtils.EXTENSION)
+    override fun getRefName() = name.removeSuffix(FileUtils.EXTENSION)
 
     override fun getPrecedence(): Precedence = Precedence.DEFAULT
+
+    override fun getAliasPrecedence(): Precedence = Precedence.DEFAULT
+
+    override fun getAliasName(): String? = null
 
     override val parentGroup
         get() = null

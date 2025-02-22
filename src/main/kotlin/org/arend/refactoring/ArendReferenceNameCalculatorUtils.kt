@@ -35,7 +35,7 @@ fun doCalculateReferenceName(
         is ArendClassField, is ArendConstructor -> LocationData.createLocationData(defaultLocation.target, true)?.let { locations.add(it) }
     }
 
-    if (defaultLocation.target.hasAlias()) {
+    if ((defaultLocation.target as? ReferableBase<*>)?.alias != null) {
         LocationData.createLocationData(defaultLocation.target, alias = true)?.let { locations.add(it) }
         when (defaultLocation.target) {
             is ArendClassField, is ArendConstructor -> LocationData.createLocationData(defaultLocation.target, true, alias = true)?.let { locations.add(it) }
@@ -69,7 +69,7 @@ fun doCalculateReferenceName(
         }
     }
 
-    val minimalImportMode = protectedAccessModifier || targetFile.fullName != Prelude.MODULE_PATH.toString() && targetFile.statements.any { stat -> stat.group?.let { importedScope.resolveName(it.referable.textRepresentation()) } != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
+    val minimalImportMode = protectedAccessModifier || targetFile.fullName != Prelude.MODULE_PATH.toString() && targetFile.statements.any { stat -> stat.group?.let { importedScope.resolveName(it.referable.refName) } != null } // True if imported scope of the current file has nonempty intersection with the scope of the target file
 
     if (deferredImports != null) for (deferredImport in deferredImports) if (deferredImport.currentFile == currentFile) {
         if (deferredImport is ImportFileAction) preludeImportedManually = preludeImportedManually || deferredImport.getLongName().toString() == Prelude.MODULE_PATH.toString()
@@ -211,7 +211,7 @@ fun calculateReferenceName(defaultLocation: LocationData,
 class LocationData private constructor (
     val target: PsiLocatedReferable,
     val alias: Boolean = false,
-    private val myLongNameWithRefs: List<Pair<String, Referable>>,
+    private val myLongNameWithRefs: List<Pair<String, PsiReferable>>,
     val myContainingFile: ArendFile) {
 
     private val myReferenceNames: MutableSet<List<String>> = HashSet()
@@ -219,15 +219,16 @@ class LocationData private constructor (
     fun getLongName(): List<String> = myLongNameWithRefs.map { it.first }.toList()
 
     fun getComplementScope(): Scope {
+        return EmptyScope.INSTANCE
+        /* TODO[server2]
         val targetContainers = myLongNameWithRefs.reversed().map { it.second }
         return object : ListScope(targetContainers + targetContainers.mapNotNull { if (it is GlobalReferable) AliasReferable(it) else null }) {
-            /* TODO[server2]
             override fun resolveNamespace(name: String): Scope? = targetContainers
                     .filterIsInstance<ArendGroup>()
                     .firstOrNull { name == it.textRepresentation() || name == it.aliasName }
                     ?.let { LexicalScope.opened(it) }
-            */
         }
+        */
     }
 
     fun processStatCmd(statCmd: ArendStatCmd) {
@@ -292,7 +293,7 @@ class LocationData private constructor (
             var skipFlag = skipFirstParent
             var containingFile: ArendFile? = null
 
-            val myLongNameWithRefs = ArrayList<Pair<String, Referable>>()
+            val myLongNameWithRefs = ArrayList<Pair<String, PsiReferable>>()
             while (psi != null && psi.isValid) {
                 if (psi is PsiReferable && psi !is ArendFile) {
                     val name = if (psi is GlobalReferable) {
@@ -382,5 +383,6 @@ class AddIdToUsingAction(currentFile: ArendFile,
     override fun getImportedParts(): List<String>? = singletonList(myId)
 
     override fun getAmendedScope(): Scope =
-        SingletonScope(if (locationData.alias) AliasReferable(locationData.target) else locationData.target)
+        EmptyScope.INSTANCE
+        // TODO[server2]: SingletonScope(if (locationData.alias) AliasReferable(locationData.target) else locationData.target)
 }

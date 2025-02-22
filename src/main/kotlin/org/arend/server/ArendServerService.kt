@@ -29,7 +29,7 @@ class ArendServerService(val project: Project) : Disposable {
             if (prelude != null) {
                 prelude.virtualFile?.isWritable = false
                 prelude.generatedModuleLocation = Prelude.MODULE_LOCATION
-                server.addReadOnlyModule(Prelude.MODULE_LOCATION, ConcreteBuilder.convertGroup(prelude, DummyErrorReporter.INSTANCE))
+                server.addReadOnlyModule(Prelude.MODULE_LOCATION, ConcreteBuilder.convertGroup(prelude, Prelude.MODULE_LOCATION, DummyErrorReporter.INSTANCE))
             }
             prelude
         }

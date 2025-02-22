@@ -5,7 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.IStubElementType
 import org.arend.ArendIcons
-import org.arend.naming.reference.*
+import org.arend.naming.reference.GlobalReferable
 import org.arend.psi.*
 import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendDefClassStub
@@ -45,17 +45,11 @@ class ArendDefClass : ArendDefinition<ArendDefClassStub>, StubBasedPsiElement<Ar
     val extendsKw: PsiElement?
         get() = findChildByType(EXTENDS_KW)
 
-    override fun getReferable() = this
-
     override fun isRecord(): Boolean = hasChildOfType(RECORD_KW)
 
     override fun withoutClassifying(): Boolean = noClassifyingKw != null
 
     override fun getDynamicSubgroups(): List<ArendGroup> = classStatList.mapNotNull { it.group ?: it.coClause?.functionReference }
-
-    override fun getUsedDefinitions(): List<LocatedReferable> = dynamicSubgroups.mapNotNull {
-        if (it is ArendDefinition<*> && it.withUse()) it.referable else null
-    } + super.getUsedDefinitions()
 
     private inline val parameterFields: List<ArendFieldDefIdentifier>
         get() = fieldTeleList.flatMap { it.referableList }

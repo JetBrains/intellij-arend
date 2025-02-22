@@ -20,6 +20,7 @@ import com.intellij.psi.util.parentsOfType
 import com.intellij.util.SmartList
 import org.arend.documentation.ArendKeyword.Companion.AREND_KEYWORDS
 import org.arend.ext.reference.DataContainer
+import org.arend.psi.ArendFile
 import org.arend.psi.ext.*
 import org.arend.psi.stubs.index.ArendDefinitionIndex
 import org.arend.refactoring.rangeOfConcrete
@@ -77,11 +78,12 @@ fun generateProofSearchResults(
             ) { def ->
                 if (!settings.checkAllowed(def)) return@processElements true
                 if (def !is ReferableBase<*>) return@processElements true
+                /* TODO[server2]
                 val (parameters, codomain, info) = getSignature(concreteProvider, def, query.shouldConsiderParameters())
                     ?: return@processElements true
                 val (parameterResults, codomainResults) = matcher.match(parameters, codomain, def.scope, def) ?: return@processElements true
                 val parameterRangesRegistry = mutableMapOf<Int, List<TextRange>>()
-                val rangeComputer = caching { e : Concrete.Expression -> if (e is Concrete.ReferenceExpression && e.referent is ArendDefData) (e.referent as ArendDefData).nameIdentifier!!.textRange else rangeOfConcrete(e) }
+                val rangeComputer = caching { e : Concrete.Expression -> (((e as? Concrete.ReferenceExpression)?.referent as? DataContainer)?.data as? ArendDefData)?.nameIdentifier?.textRange ?: rangeOfConcrete(e) }
                 for ((parameterConcrete, ranges) in parameterResults) {
                     val index = parameters.indexOf(parameterConcrete)
                     val existing = parameterRangesRegistry.getOrDefault(index, emptyList())
@@ -92,6 +94,7 @@ fun generateProofSearchResults(
                     info.value.copy(
                         parameters = info.value.parameters.mapIndexedNotNull { index, data -> data.takeIf { index in parameterRangesRegistry }?.copy(match = parameterRangesRegistry[index]!!) },
                         codomain = info.value.codomain.copy(match = codomainRange))))
+                */
                 true
             }
         }
@@ -124,6 +127,7 @@ private data class SignatureWithHighlighting(
 data class RenderingInfo(val parameters: List<ProofSearchHighlightingData>, val codomain: ProofSearchHighlightingData)
 data class ProofSearchHighlightingData(val typeRep: String, val keywords: List<TextRange>, val match: List<TextRange>)
 
+/* TODO[server2]
 private fun getSignature(
     provider: ConcreteProvider,
     referable: PsiReferable,
@@ -197,6 +201,7 @@ private fun getSignature(
         else -> null
     }
 }
+*/
 
 private fun gatherHighlightingData(expr: Concrete.Expression) : ProofSearchHighlightingData {
     return (expr.getPsi() as? ArendExpr)?.let(::getHighlightingData) ?: basicHighlightingData(expr)
@@ -264,7 +269,7 @@ fun getCompleteModuleLocation(def: ReferableBase<*>): String? {
     ApplicationManager.getApplication().run {
         executeOnPooledThread {
             runReadAction {
-                file = def.location?.toString()
+                file = (def.containingFile as? ArendFile)?.moduleLocation?.toString()
             }
         }.get()
     }

@@ -30,7 +30,7 @@ class ArendFieldDefIdentifier : ArendClassFieldBase<ArendClassFieldParamStub>, A
         get() = this
 
     override val referenceName: String
-        get() = textRepresentation()
+        get() = refName
 
     override val longName: List<String>
         get() = listOf(referenceName)

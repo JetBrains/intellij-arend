@@ -94,7 +94,7 @@ class ArendCodeInsightUtils {
                 if (eP.isExternal()) {
                     if (firstInternalIndex != -1) throw AssertionError() // external parameters should occur as a starting segment of dataOldParameters
                     val referable =
-                        eP.getReferable() as Referable // safe to write since external parameters should all have this field initialised
+                        eP.getReferable() as PsiReferable // safe to write since external parameters should all have this field initialised
                     val newPD = DefaultParameterDescriptorFactory.createNamedDataParameter(referable, data)
                     patternsMap[eP] = singletonList(newPD)
                     params.add(newPD)
@@ -187,7 +187,7 @@ class ArendCodeInsightUtils {
                             val oldArgument = dataOldParameters.getOrNull(i + firstInternalIndex)
                             if (oldArgument != null) {
                                 val referable = oldArgument.getReferable()
-                                val parameter = if (referable is Referable)
+                                val parameter = if (referable is PsiReferable)
                                     DefaultParameterDescriptorFactory.createNamedDataParameter(referable, data) else
                                     DefaultParameterDescriptorFactory.createUnnamedDataParameter(oldArgument.getType())
                                 patternsMap[oldArgument] = singletonList(parameter)
@@ -455,7 +455,7 @@ class ArendCodeInsightUtils {
 
                 val sampleDescriptor = externalParametersMap[it.name]
                 if (sampleDescriptor != null)
-                    parameterDescriptorFactory.createExternalParameter(sampleDescriptor.getReferable() as Referable, sampleDescriptor.typeGetter, classParameterKind)
+                    parameterDescriptorFactory.createExternalParameter(sampleDescriptor.getReferable() as PsiReferable, sampleDescriptor.typeGetter, classParameterKind)
                 else {
                     if (psiReferable != null)
                         parameterDescriptorFactory.createFromReferable(psiReferable, it.referable.isExplicitField, classParameterKind = classParameterKind)

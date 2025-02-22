@@ -146,7 +146,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
             append("</body>")
         } }
         if (docCommentInfo.hasLatexCode) {
-            val elementText = ref.textRepresentation()
+            val elementText = ref.refName
             popupCefBrowserHtml = htmlBuilder.toString()
             lastElement = element
             lastOriginalElement = originalElement
@@ -256,7 +256,7 @@ class ArendDocumentationProvider : AbstractDocumentationProvider() {
 
     private fun StringBuilder.generateDefinition(element: PsiReferable) {
         wrapTag("b") {
-            html(element.textRepresentation())
+            html(element.refName)
         }
         (element as? ReferableBase<*>)?.alias?.aliasIdentifier?.id?.text?.let {
             html(" $it")

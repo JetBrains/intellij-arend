@@ -66,7 +66,7 @@ class ArendMoveMembersDialog(project: Project,
 
         val fullName = if (container is ArendGroup) {
             initMemberInfo(container, elements, memberInfos)
-            FullName(container)
+            container.fullName
         } else {
             null
         }

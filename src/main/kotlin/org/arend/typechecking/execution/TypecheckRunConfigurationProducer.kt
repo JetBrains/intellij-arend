@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement
 import org.arend.module.config.ArendModuleConfigService
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.fullName
+import org.arend.psi.ext.fullNameText
 import org.arend.psi.parentOfType
 import org.arend.typechecking.execution.configurations.ArendRunConfigurationFactory
 import org.arend.typechecking.execution.configurations.TypeCheckConfiguration
@@ -50,7 +50,7 @@ class TypecheckRunConfigurationProducer: LazyRunConfigurationProducer<TypeCheckC
                 val file = definition.containingFile as? ArendFile ?: return null
                 val modulePath = file.moduleLocation ?: return null
                 sourceElement?.set(definition)
-                val fullName = definition.fullName
+                val fullName = definition.fullNameText
 
                 val test = ArendModuleConfigService.getInstance(context.module)?.testsDirFile
                 val isTest = test?.getRelativePath(file.virtualFile)?.joinToString(".")

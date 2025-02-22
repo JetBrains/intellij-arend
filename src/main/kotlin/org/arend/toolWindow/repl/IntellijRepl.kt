@@ -67,7 +67,7 @@ abstract class IntellijRepl private constructor(
     private val definitionModificationTracker = service<ArendPsiChangeService>().definitionModificationTracker
     private val psiFactory = ArendPsiFactory(project, replModulePath.libraryName)
     override fun parseStatements(line: String): ConcreteGroup? = psiFactory.createFromText(line)
-        ?.let { ConcreteBuilder.convertGroup(it, DummyErrorReporter.INSTANCE) }
+        ?.let { ConcreteBuilder.convertGroup(it, it.moduleLocation, DummyErrorReporter.INSTANCE) }
     override fun parseExpr(text: String) = psiFactory.createExpressionMaybe(text)
         ?.let { ConcreteBuilder.convertExpression(it) }
 

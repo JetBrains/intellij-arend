@@ -7,7 +7,6 @@ import com.intellij.psi.PsiElement
 import org.arend.ArendLanguage
 import org.arend.psi.ancestor
 import org.arend.psi.ext.ArendDefinition
-import org.arend.psi.parentOfType
 import javax.swing.Icon
 
 class ArendNavBarExtension : StructureAwareNavBarModelExtension() {
@@ -32,8 +31,8 @@ class ArendNavBarExtension : StructureAwareNavBarModelExtension() {
 
     override fun getParent(psiElement: PsiElement?): PsiElement? {
         val ancestor = psiElement?.ancestor<ArendDefinition<*>>()
-        if (ancestor != null && ancestor.getRefLongName().size() > 1) {
-            return ancestor.parentOfType<ArendDefinition<*>>()
+        if (ancestor != null) {
+            return ancestor.ancestor<ArendDefinition<*>>()
         }
         return DefaultNavBarExtension().getParent(psiElement)
     }

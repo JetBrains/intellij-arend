@@ -25,7 +25,7 @@ class ArendServerRequesterImpl(private val project: Project) : ArendServerReques
         runReadAction {
             val file = project.findInternalLibrary(module.libraryName)?.findArendFile(module.modulePath, module.locationKind == ModuleLocation.LocationKind.TEST)
             if (file != null) server.updateModule(file.modificationStamp, module) {
-                ConcreteBuilder.convertGroup(file, DummyErrorReporter.INSTANCE)
+                ConcreteBuilder.convertGroup(file, file.moduleLocation, DummyErrorReporter.INSTANCE)
             }
         }
     }
@@ -63,7 +63,7 @@ class ArendServerRequesterImpl(private val project: Project) : ArendServerReques
         for (module in modules) {
             val file = project.findInternalLibrary(library)?.findArendFile(module, inTests)
             if (file != null) server.updateModule(file.modificationStamp, ModuleLocation(library, if (inTests) ModuleLocation.LocationKind.TEST else ModuleLocation.LocationKind.SOURCE, module)) {
-                ConcreteBuilder.convertGroup(file, DummyErrorReporter.INSTANCE)
+                ConcreteBuilder.convertGroup(file, file.moduleLocation, DummyErrorReporter.INSTANCE)
             }
         }
     }

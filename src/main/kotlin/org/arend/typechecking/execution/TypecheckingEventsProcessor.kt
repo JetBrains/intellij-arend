@@ -15,7 +15,7 @@ import org.arend.naming.reference.GlobalReferable
 import org.arend.naming.reference.ModuleReferable
 import org.arend.psi.ArendFile
 import org.arend.psi.ext.PsiLocatedReferable
-import org.arend.psi.ext.fullName
+import org.arend.psi.ext.fullNameText
 import java.util.concurrent.ConcurrentHashMap
 
 interface ProxyAction {
@@ -139,6 +139,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
     }
 
     fun onTestStarted(ref: PsiLocatedReferable) {
+        /* TODO[server2]
         addToInvokeLater {
             ApplicationManager.getApplication().run {
                 executeOnPooledThread {
@@ -147,7 +148,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
                             val modulePath = (ref.containingFile as? ArendFile)?.moduleLocation?.modulePath
                             if (modulePath != null) onSuiteStarted(modulePath)
 
-                            val fullName = ref.fullName
+                            val fullName = ref.fullNameText
                             if (definitionToProxy.containsKey(ref)) {
                                 logProblem("Typechecking [$fullName] has been already started")
                                 if (SMTestRunnerConnectionUtil.isInDebugMode()) return@runReadAction
@@ -173,6 +174,7 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
                 }
             }
         }
+        */
     }
 
     fun onTestFailure(ref: PsiLocatedReferable) {
@@ -223,18 +225,6 @@ class TypecheckingEventsProcessor(project: Project, typeCheckingRootNode: SMTest
             }
             definitionToProxy.clear()
             fileToProxy.clear()
-        }
-    }
-
-    // Allows executing/scheduling actions for proxies which need not even exist at the time this routine is invoked
-    fun executeProxyAction(ref: PsiLocatedReferable, action: ProxyAction) {
-        synchronized(this) {
-            val p = definitionToProxy[ref]
-            if (p != null) {
-                action.runAction(p)
-            } else {
-                deferredActions.computeIfAbsent(ref) { mutableListOf() }.add(action)
-            }
         }
     }
 
