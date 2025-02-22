@@ -42,7 +42,6 @@ import org.arend.server.ArendServerService
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.MinimizedRepresentation
 import org.arend.term.prettyprint.ToAbstractVisitor
-import org.arend.typechecking.instance.provider.EmptyInstanceProvider
 import org.arend.util.*
 import org.arend.util.ParameterExplicitnessState.*
 import org.arend.util.list.PersistentList

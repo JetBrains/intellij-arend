@@ -57,7 +57,7 @@ import java.util.concurrent.ConcurrentHashMap
 // TODO[server2]: Delete this service completely
 class TypeCheckingService(val project: Project) : ArendDefinitionChangeListener, DefinitionRequester, DefinitionListener, Disposable {
     private val libraryErrorReporter = NotificationErrorReporter(project)
-    val libraryManager = object : LibraryManager(null, null, libraryErrorReporter, libraryErrorReporter, this, this) {
+    val libraryManager = object : LibraryManager(null, libraryErrorReporter, libraryErrorReporter, this, this) {
         override fun showLibraryNotFoundError(libraryName: String) {
             if (libraryName == AREND_LIB) {
                 showDownloadNotification(project, Reason.MISSING)
