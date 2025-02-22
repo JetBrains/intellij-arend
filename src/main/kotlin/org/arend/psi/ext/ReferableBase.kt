@@ -14,7 +14,6 @@ import org.arend.psi.ArendElementTypes.*
 import org.arend.psi.stubs.ArendNamedStub
 import org.arend.term.group.AccessModifier
 
-// TODO[server2]: Remove everything that mentions TCReferable, and maybe the class itself?
 abstract class ReferableBase<StubT> : PsiStubbedReferableImpl<StubT>, PsiLocatedReferable
 where StubT : ArendNamedStub, StubT : StubElement<*> {
     constructor(node: ASTNode) : super(node)

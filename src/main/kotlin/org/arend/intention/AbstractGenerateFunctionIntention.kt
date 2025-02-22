@@ -2,6 +2,7 @@ package org.arend.intention
 
 import com.intellij.codeInsight.intention.impl.BaseIntentionAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -26,6 +27,7 @@ import org.arend.extImpl.definitionRenamer.CachingDefinitionRenamer
 import org.arend.extImpl.definitionRenamer.ScopeDefinitionRenamer
 import org.arend.naming.reference.DataLocalReferable
 import org.arend.naming.reference.LocalReferable
+import org.arend.naming.reference.TCDefReferable
 import org.arend.naming.renamer.MapReferableRenamer
 import org.arend.naming.renamer.ReferableRenamer
 import org.arend.naming.scope.CachingScope
@@ -36,12 +38,14 @@ import org.arend.psi.ext.*
 import org.arend.refactoring.addToWhere
 import org.arend.refactoring.rename.ArendGlobalReferableRenameHandler
 import org.arend.refactoring.replaceExprSmart
+import org.arend.server.ArendServerService
 import org.arend.term.concrete.Concrete
 import org.arend.term.prettyprint.MinimizedRepresentation
 import org.arend.term.prettyprint.ToAbstractVisitor
 import org.arend.typechecking.instance.provider.EmptyInstanceProvider
 import org.arend.util.*
 import org.arend.util.ParameterExplicitnessState.*
+import org.arend.util.list.PersistentList
 import java.util.*
 import java.util.function.Supplier
 
@@ -67,7 +71,14 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val bodyRepresentation: String?,
         val bodyCore: Expression?,
         val additionalArguments: List<TypedSingleDependentLink> = emptyList()
-    )
+    ) {
+        val instances: PersistentList<TCDefReferable>?
+            get() {
+                val tcRef = (contextPsi.parentOfType<PsiLocatedReferable>() as? ReferableBase<*>)?.tcReferable ?: return null
+                val module = tcRef.location ?: return null
+                return contextPsi.project.service<ArendServerService>().server.getGroupData(module)?.getDefinitionData(tcRef.refLongName)?.instances
+            }
+    }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         editor ?: return
@@ -150,10 +161,6 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         selection: SelectionResult,
         allParameters: List<Pair<Binding, ParameterExplicitnessState>>
     ): (Expression) -> Concrete.Expression {
-        val enclosingDefinitionReferable = selection.contextPsi.parentOfType<PsiLocatedReferable>()!!
-
-        val ip = EmptyInstanceProvider.getInstance() // TODO[server2]: getInstanceProvider(enclosingDefinitionReferable)
-
         val definitionRenamer = getDefinitionRenamer(selection)
         val referableRenamer = getReferableRenamer(allParameters.mapToSet(Pair<Binding, ParameterExplicitnessState>::first))
 
@@ -168,7 +175,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
 
         return { expr ->
             val concrete = try {
-                MinimizedRepresentation.generateMinimizedRepresentation(expr, ip, definitionRenamer, referableRenamer)
+                MinimizedRepresentation.generateMinimizedRepresentation(expr, selection.instances, definitionRenamer, referableRenamer)
             } catch (e: Exception) {
                 if (ApplicationManager.getApplication().isInternal) {
                     log.error(e)
@@ -200,12 +207,6 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         }
         return Supplier { MapReferableRenamer(thisMapping) }
     }
-
-    /* TODO[server2]
-    private fun getInstanceProvider(enclosingDefinitionReferable: PsiLocatedReferable): InstanceProvider? =
-        ArendReferableConverter.toDataLocatedReferable(enclosingDefinitionReferable)
-            ?.let { PsiInstanceProviderSet().get(it) }
-    */
 
     private fun getAllParameters(
         freeVariables: List<Pair<Binding, ParameterExplicitnessState>>,
