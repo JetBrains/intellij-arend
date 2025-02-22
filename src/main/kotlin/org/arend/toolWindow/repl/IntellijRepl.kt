@@ -123,7 +123,7 @@ abstract class IntellijRepl private constructor(
     override fun checkExpr(expr: Concrete.Expression, expectedType: Expression?, continuation: Consumer<TypecheckingResult>) {
         definitionModificationTracker.incModificationCount()
         val collector = CollectingOrderingListener()
-        Ordering(typechecking.instanceScopeProvider, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator).orderExpression(expr)
+        Ordering(typechecking.instanceScopeProvider, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator, errorReporter).orderExpression(expr)
         ApplicationManager.getApplication().executeOnPooledThread {
             ComputationRunner<Unit>().run(ModificationCancellationIndicator(definitionModificationTracker)) {
                 typechecking.typecheckCollected(collector, ModificationCancellationIndicator(definitionModificationTracker))
@@ -139,7 +139,7 @@ abstract class IntellijRepl private constructor(
     override fun typecheckStatements(group: ConcreteGroup, scope: Scope) {
         definitionModificationTracker.incModificationCount()
         val collector = CollectingOrderingListener()
-        Ordering(typechecking.instanceScopeProvider, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator).orderModule(group)
+        Ordering(typechecking.instanceScopeProvider, typechecking.concreteProvider, collector, DummyDependencyListener.INSTANCE, PsiElementComparator, errorReporter).orderModule(group)
         ApplicationManager.getApplication().executeOnPooledThread {
             val ok = typechecking.typecheckCollected(collector, ModificationCancellationIndicator(definitionModificationTracker))
             runReadAction {
