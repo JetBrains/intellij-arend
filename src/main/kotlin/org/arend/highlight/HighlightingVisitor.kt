@@ -79,7 +79,7 @@ class HighlightingVisitor(private val collector: HighlightingCollector, private 
     }
 
     private fun highlightParameters(definition: Concrete.GeneralDefinition) {
-        for (parameter in Concrete.getParameters(definition, true) ?: emptyList()) {
+        for (parameter in Concrete.getParameters(definition, false) ?: emptyList()) {
             if (((parameter.type?.underlyingReferable as? GlobalReferable)?.abstractReferable as? ArendDefClass)?.isRecord == false) {
                 val list: List<ArendCompositeElement>? = when (val param = parameter.data) {
                     is ArendFieldTele -> param.referableList
