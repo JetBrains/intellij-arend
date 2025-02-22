@@ -9,6 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.arend.core.definition.Definition.TypeCheckingStatus
 import org.arend.core.definition.Definition.TypeCheckingStatus.*
+import org.arend.naming.reference.MetaReferable
 import org.arend.psi.ArendElementTypes
 import org.arend.psi.ext.*
 
@@ -28,6 +29,7 @@ class TypeCheckRunLineMarkerContributor : RunLineMarkerContributor() {
         } ?: return null
 
         val ref = parent.tcReferable
+        if (ref is MetaReferable) return null
         val status = if (ref == null) {
             parent.getUserData(statusKey)
         } else {
