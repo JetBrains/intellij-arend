@@ -34,7 +34,10 @@ class ArendStartupActivity : ProjectActivity {
             override fun beforeModuleRemoved(project: Project, module: Module) {
                 val config = ArendModuleConfigService.getInstance(module) ?: return
                 config.isInitialized = ApplicationManager.getApplication().isUnitTestMode
-                // TODO[server2]: invoke ArendServer.removeLibrary
+            }
+
+            override fun moduleRemoved(project: Project, module: Module) {
+                service.server.removeLibrary(module.name)
             }
         })
 
