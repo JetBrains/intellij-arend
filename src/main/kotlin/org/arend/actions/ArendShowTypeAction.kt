@@ -20,6 +20,7 @@ import org.arend.ext.error.ErrorReporter
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.refactoring.*
+import org.arend.server.ArendServerService
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
 import org.arend.tracer.ArendTraceAction
@@ -77,18 +78,16 @@ class ArendShowTypeAction : ArendPopupAction() {
             ?: return displayErrorHint(editor, ArendBundle.message("arend.trace.action.cannot.find.expression"))
         val result: Pair<TypecheckingResult?, TextRange?>? = null
         /* TODO[server2]
-          (PsiConcreteProvider(project, DummyErrorReporter.INSTANCE, null, true)
-            .getConcrete(definitionRef) as? Concrete.Definition)?.let {
-            val extension = LibraryArendExtensionProvider(project.service<TypeCheckingService>().libraryManager)
-                .getArendExtension(it.data)
+        val defData = project.service<ArendServerService>().server.getResolvedDefinition(definitionRef)
+        val result: Pair<TypecheckingResult?, TextRange?>? = if (defData != null) {
             DesugarVisitor.desugar(it, DummyErrorReporter.INSTANCE)
             WhereVarsFixVisitor.fixDefinition(listOf(it), DummyErrorReporter.INSTANCE)
             val typechecker = ArendExpressionTypechecker(expr, DummyErrorReporter.INSTANCE).apply {
                 instancePool = GlobalInstancePool(PsiInstanceProviderSet()[it.data], this)
             }
-            it.accept(DefinitionTypechecker(typechecker, it.recursiveDefinitions).apply { updateState(false) }, null)
+            it.accept(DefinitionTypechecker(typechecker, it.recursiveDefinitions), null)
             Pair(typechecker.checkedExprResult, typechecker.checkedExprRange)
-        }
+        } else null
         */
         if (result?.first != null && result.second != null) {
             select(result.second!!)

@@ -74,7 +74,7 @@ class ArendStartupActivity : ProjectActivity {
                 }
             })
 
-        // TODO[server2]: disableActions()
+        disableActions() // TODO[server2]
     }
 
     private fun disableActions() {

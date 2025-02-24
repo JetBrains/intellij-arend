@@ -27,9 +27,8 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
 
         val server = myProject.service<ArendServerService>().server
         server.getCheckerFor(listOf(module)).resolveModules(ProgressCancellationIndicator(progress), ProgressReporter.empty())
-        val definitions = server.getGroupData(module)?.resolvedDefinitions ?: return
         val visitor = HighlightingVisitor(this, server.typingInfo)
-        for (definitionData in definitions) {
+        for (definitionData in server.getResolvedDefinitions(module)) {
             definitionData.definition.accept(visitor, null)
         }
     }

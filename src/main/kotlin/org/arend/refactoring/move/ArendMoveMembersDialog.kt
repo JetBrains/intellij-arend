@@ -30,7 +30,6 @@ import org.arend.psi.*
 import org.arend.psi.ext.*
 import org.arend.refactoring.move.ArendMoveRefactoringProcessor.Companion.getUsagesToPreprocess
 import org.arend.util.ArendBundle
-import org.arend.util.FullName
 import org.arend.util.aligned
 import java.awt.BorderLayout
 import java.awt.Dimension

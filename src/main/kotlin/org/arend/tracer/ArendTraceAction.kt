@@ -175,7 +175,7 @@ class ArendTraceAction : ArendPopupAction() {
             ActionUtil.underModalProgress(project, ArendBundle.message("arend.tracer.collecting.tracing.data")) {
                 DesugarVisitor.desugar(definition, tracer.errorReporter)
                 WhereVarsFixVisitor.fixDefinition(listOf(definition), tracer.errorReporter)
-                definition.accept(DefinitionTypechecker(tracer, definition.recursiveDefinitions).apply { updateState(false) }, null)
+                definition.accept(DefinitionTypechecker(tracer, definition.recursiveDefinitions), null)
                 firstTraceEntryIndex = tracer.trace.indexOfEntry(expression)
             }
             return ArendTracingData(tracer.trace, errorsConsumer.hasErrors, firstTraceEntryIndex)

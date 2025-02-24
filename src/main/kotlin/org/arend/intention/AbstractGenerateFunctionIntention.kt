@@ -74,8 +74,7 @@ abstract class AbstractGenerateFunctionIntention : BaseIntentionAction() {
         val instances: PersistentList<TCDefReferable>?
             get() {
                 val tcRef = (contextPsi.parentOfType<PsiLocatedReferable>() as? ReferableBase<*>)?.tcReferable ?: return null
-                val module = tcRef.location ?: return null
-                return contextPsi.project.service<ArendServerService>().server.getGroupData(module)?.getDefinitionData(tcRef.refLongName)?.instances
+                return contextPsi.project.service<ArendServerService>().server.getResolvedDefinition(tcRef)?.instances
             }
     }
 

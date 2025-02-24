@@ -16,7 +16,7 @@ import org.arend.server.ArendServerService
 import org.arend.toolWindow.errors.ArendMessagesService
 import org.arend.typechecking.CoroutineCancellationIndicator
 import org.arend.typechecking.error.NotificationErrorReporter
-import org.arend.util.FullName
+import org.arend.module.FullName
 
 @Service(Service.Level.PROJECT)
 class RunnerService(private val project: Project, private val coroutineScope: CoroutineScope) {
@@ -40,7 +40,12 @@ class RunnerService(private val project: Project, private val coroutineScope: Co
 
                 val updated = reporter.nextStep(100, "Typechecking $message") {
                     reportRawProgress { reporter ->
-                        checker.typecheck(if (definition == null || module == null) null else listOf(FullName(module, LongName.fromString(definition))), NotificationErrorReporter(project), CoroutineCancellationIndicator(this), IntellijProgressReporter(reporter) {
+                        checker.typecheck(if (definition == null || module == null) null else listOf(
+                            FullName(
+                                module,
+                                LongName.fromString(definition)
+                            )
+                        ), NotificationErrorReporter(project), CoroutineCancellationIndicator(this), IntellijProgressReporter(reporter) {
                             val ref = it.firstOrNull()?.data ?: return@IntellijProgressReporter null
                             val location = if (module == null) ref.location else null
                             (if (location == null) "" else "$location ") + ref.refLongName.toString()

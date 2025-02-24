@@ -14,10 +14,11 @@ import org.arend.typechecking.instance.provider.InstanceScopeProvider
 import org.arend.typechecking.order.dependency.DependencyListener
 import org.arend.typechecking.order.listener.TypecheckingOrderingListener
 import org.arend.typechecking.provider.ConcreteProvider
+import org.arend.typechecking.visitor.ArendCheckerFactory
 
 
 open class ArendTypechecking(protected val typeCheckingService: TypeCheckingService, concreteProvider: ConcreteProvider, errorReporter: ErrorReporter, dependencyListener: DependencyListener, extensionProvider: ArendExtensionProvider)
-    : TypecheckingOrderingListener(InstanceScopeProvider.EMPTY, concreteProvider, errorReporter, dependencyListener, PsiElementComparator, extensionProvider) {
+    : TypecheckingOrderingListener(ArendCheckerFactory.DEFAULT, InstanceScopeProvider.EMPTY, concreteProvider, errorReporter, dependencyListener, PsiElementComparator, extensionProvider) {
 
     companion object {
         fun create(project: Project, concreteProvider: ConcreteProvider? = null, errorReporter: ErrorReporter = project.service<ErrorService>()): ArendTypechecking {
