@@ -520,7 +520,13 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
 
         fun getCauseElement(data: Any?): PsiElement? {
             val cause = data?.let { (it as? DataContainer)?.data ?: it }
-            return ((cause as? SmartPsiElementPointer<*>)?.let { runReadAction { it.element } } ?: cause) as? PsiElement
+            return runReadAction {
+                when {
+                    cause is SmartPsiElementPointer<*> -> cause.element
+                    cause is PsiElement && cause.isValid -> cause
+                    else -> null
+                }
+            }
         }
 
         private fun getImprovedErrorElement(error: GeneralError?, element: PsiElement): PsiElement? {
