@@ -11,10 +11,12 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.notificationGroup
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBPanel
+import guru.nidi.graphviz.attribute.Attributes.attr
 import guru.nidi.graphviz.engine.Format
 import guru.nidi.graphviz.engine.Graphviz
 import guru.nidi.graphviz.model.Factory.graph
 import guru.nidi.graphviz.model.Factory.node
+import guru.nidi.graphviz.model.Link
 import java.awt.Image
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
@@ -29,7 +31,7 @@ import javax.swing.*
 
 data class GraphNode(val id: String)
 
-data class GraphEdge(val from: String, val to: String)
+data class GraphEdge(val from: String, val to: String, val label: String? = null)
 
 @Service(Service.Level.PROJECT)
 class GraphSimulator(val project: Project) {
@@ -49,7 +51,13 @@ class GraphSimulator(val project: Project) {
             }
 
             for (edge in edges) {
-                graph = graph.with(node(edge.from).link(node(edge.to)))
+                graph = graph.with(node(edge.from).link(
+                    if (edge.label == null) {
+                        Link.to(node(edge.to))
+                    } else {
+                        Link.to(node(edge.to)).with(attr("label", edge.label))
+                    }
+                ))
             }
 
             val graphviz = Graphviz.fromGraph(graph)
@@ -107,35 +115,40 @@ class GraphSimulator(val project: Project) {
                     panel.add(imageLabel)
                     panel.background = JBColor.WHITE
                     panel.addComponentListener(object : ComponentAdapter() {
+                        var bounds: java.awt.Rectangle? = null
+
                         override fun componentResized(e: ComponentEvent) {
                             val component = panel.components.getOrNull(0) ?: return
-                            panel.withMinimumWidth(baseImageIcon.iconWidth + size.width - e.component.width)
-                            panel.withMinimumHeight(baseImageIcon.iconHeight + size.height - e.component.height)
-
-                            val newImageIcon = getImageIcon(baseImageIcon, graphviz, e.component.width - component.bounds.x * 2, e.component.height - component.bounds.y * 2)
+                            if (bounds == null && component.width == baseImageIcon.iconWidth && component.height == baseImageIcon.iconHeight) {
+                                bounds = component.bounds
+                                return
+                            }
+                            val newImageIcon = getImageIcon(graphviz, e.component.width - (bounds?.x ?: 0) * 2, e.component.height - (bounds?.y ?: 0) * 2)
                             imageLabel = JLabel(newImageIcon)
 
                             panel.removeAll()
                             panel.add(imageLabel)
                             panel.revalidate()
                         }
+
+
                     })
                     return panel
                 }
 
-                private fun getImageIcon(baseImageIcon: ImageIcon, graphviz: Graphviz, width: Int, height: Int): ImageIcon {
+                private fun getImageIcon(graphviz: Graphviz, width: Int, height: Int): ImageIcon {
                     return when {
                         width <= baseImageIcon.iconWidth && height <= baseImageIcon.iconHeight -> {
                             baseImageIcon
                         }
                         width <= baseImageIcon.iconWidth -> {
-                            ImageIcon(graphviz.width(baseImageIcon.iconWidth).height(height).render(format).toImage())
+                            ImageIcon(graphviz.width(baseImageIcon.iconWidth).height(minOf(height, screenHeight)).render(format).toImage())
                         }
                         height <= baseImageIcon.iconHeight -> {
-                            ImageIcon(graphviz.width(width).height(baseImageIcon.iconHeight).render(format).toImage())
+                            ImageIcon(graphviz.width(minOf(width, screenWidth)).height(baseImageIcon.iconHeight).render(format).toImage())
                         }
                         else -> {
-                            ImageIcon(graphviz.width(width).height(height).render(format).toImage())
+                            ImageIcon(graphviz.width(minOf(width, screenWidth)).height(minOf(height, screenHeight)).render(format).toImage())
                         }
                     }
                 }

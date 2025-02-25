@@ -42,6 +42,7 @@ object ArendIcons {
     val CHECKMARK = getIcon("/icons/checkmark.svg")
 
     val ORTHOGONAL_GRAPH = getIcon("/icons/orthogonal_graph.svg")
+    val MUTUAL_RECURSIVE = getIcon("/icons/mutual_recursive.svg")
 
     // Source code elements
 

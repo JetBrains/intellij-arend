@@ -34,6 +34,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("org.scilab.forge:jlatexmath:1.0.7")
     implementation("guru.nidi:graphviz-java:0.18.1")
+    implementation("ch.qos.logback:logback-classic:1.2.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.6.1")
     testCompileOnly("junit:junit:4.13.1")
 
