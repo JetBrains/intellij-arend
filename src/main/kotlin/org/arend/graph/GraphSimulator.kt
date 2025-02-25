@@ -11,10 +11,12 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.updateSettings.impl.pluginsAdvertisement.notificationGroup
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBPanel
+import guru.nidi.graphviz.attribute.Attributes.attr
 import guru.nidi.graphviz.engine.Format
 import guru.nidi.graphviz.engine.Graphviz
 import guru.nidi.graphviz.model.Factory.graph
 import guru.nidi.graphviz.model.Factory.node
+import guru.nidi.graphviz.model.Link
 import java.awt.Image
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
@@ -29,7 +31,7 @@ import javax.swing.*
 
 data class GraphNode(val id: String)
 
-data class GraphEdge(val from: String, val to: String)
+data class GraphEdge(val from: String, val to: String, val label: String? = null)
 
 @Service(Service.Level.PROJECT)
 class GraphSimulator(val project: Project) {
@@ -49,7 +51,13 @@ class GraphSimulator(val project: Project) {
             }
 
             for (edge in edges) {
-                graph = graph.with(node(edge.from).link(node(edge.to)))
+                graph = graph.with(node(edge.from).link(
+                    if (edge.label == null) {
+                        Link.to(node(edge.to))
+                    } else {
+                        Link.to(node(edge.to)).with(attr("label", edge.label))
+                    }
+                ))
             }
 
             val graphviz = Graphviz.fromGraph(graph)

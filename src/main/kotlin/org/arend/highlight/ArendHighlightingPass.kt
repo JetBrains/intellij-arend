@@ -218,7 +218,10 @@ class ArendHighlightingPass(file: IArendFile, editor: Editor, textRange: TextRan
                     check = true
                 } else {
                     val prev = file.concreteDefinitions.putIfAbsent(ref.refLongName, def)
-                    if (prev != null && !prev.accept(ConcreteCompareVisitor(), def)) {
+                    if (prev == null) {
+                        (ref as? PsiDefReferable?)?.dropTypechecked()
+                    }
+                    if (prev == null || !prev.accept(ConcreteCompareVisitor(), def)) {
                         check = true
                     }
                 }
