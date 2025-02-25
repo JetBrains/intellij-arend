@@ -27,12 +27,7 @@ abstract class ArendPopupHandler(private val requestFocus: Boolean) : CodeInsigh
         }
     }
 
-    fun displayEditorHint(
-            text: String,
-            project: Project,
-            editor: Editor,
-            adText: String
-    ) = ApplicationManager.getApplication().invokeLater {
+    fun displayEditorHint(text: String, project: Project, editor: Editor, adText: String) {
         popup?.cancel()
         val arendEditor = ArendEditor(text, project, readOnly = true)
         arendEditor.editor.settings.setGutterIconsShown(false)

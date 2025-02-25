@@ -18,6 +18,7 @@ import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerUIActionsHandl
 import com.intellij.execution.testframework.sm.runner.ui.SMTestRunnerResultsForm
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.openapi.components.service
+import org.arend.ext.module.LongName
 import org.arend.ext.module.ModulePath
 import org.arend.library.error.LibraryError
 import org.arend.module.ModuleLocation
@@ -48,7 +49,7 @@ class TypeCheckRunState(private val environment: ExecutionEnvironment, private v
                 }
             }
 
-            environment.project.service<RunnerService>().runChecker(library, command.isTest, if (modulePath != null && library != null) ModuleLocation(library, if (command.isTest) ModuleLocation.LocationKind.TEST else ModuleLocation.LocationKind.SOURCE, modulePath) else null, command.definitionFullName.ifEmpty { null })
+            environment.project.service<RunnerService>().runChecker(library, command.isTest, if (modulePath != null && library != null) ModuleLocation(library, if (command.isTest) ModuleLocation.LocationKind.TEST else ModuleLocation.LocationKind.SOURCE, modulePath) else null, if (command.definitionFullName.isEmpty()) null else LongName.fromString(command.definitionFullName))
             return null
         } else {
             val processHandler = TypeCheckProcessHandler(environment.project, command)

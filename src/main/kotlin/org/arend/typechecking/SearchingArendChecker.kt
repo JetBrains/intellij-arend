@@ -1,5 +1,6 @@
 package org.arend.typechecking
 
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.util.TextRange
 import org.arend.core.expr.Expression
 import org.arend.ext.ArendExtension
@@ -14,7 +15,7 @@ class SearchingArendChecker(private val factory: SearchingArendCheckerFactory, e
     override fun checkExpr(expr: Concrete.Expression?, expectedType: Expression?): TypecheckingResult? {
         val result = super.checkExpr(expr, expectedType) ?: return null
         expr ?: return result
-        val rangeOfConcrete = rangeOfConcrete(expr)
+        val rangeOfConcrete = runReadAction { rangeOfConcrete(expr) }
         if (factory.exprRange in rangeOfConcrete) {
             if (factory.checkedExprRange == null || factory.checkedExprRange?.contains(rangeOfConcrete) == true) {
                 setCheckedExprData(result, rangeOfConcrete)
