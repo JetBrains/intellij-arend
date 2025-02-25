@@ -16,23 +16,20 @@ import org.arend.core.expr.Expression
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.core.definition.CoreFunctionDefinition
 import org.arend.ext.core.ops.NormalizationMode
-import org.arend.ext.error.ErrorReporter
+import org.arend.extImpl.definitionRenamer.ConflictDefinitionRenamer
+import org.arend.psi.ArendFile
 import org.arend.psi.ext.ArendCompositeElement
 import org.arend.psi.ext.ArendDefFunction
 import org.arend.refactoring.*
 import org.arend.server.ArendServerService
+import org.arend.server.ProgressReporter
 import org.arend.settings.ArendProjectSettings
 import org.arend.term.concrete.Concrete
 import org.arend.tracer.ArendTraceAction
-import org.arend.typechecking.ArendExpressionTypechecker
-import org.arend.typechecking.LibraryArendExtensionProvider
-import org.arend.typechecking.TypeCheckingService
-import org.arend.typechecking.instance.pool.GlobalInstancePool
+import org.arend.typechecking.SearchingArendCheckerFactory
+import org.arend.typechecking.computation.UnstoppableCancellationIndicator
 import org.arend.typechecking.result.TypecheckingResult
 import org.arend.typechecking.subexpr.FindBinding
-import org.arend.typechecking.visitor.DefinitionTypechecker
-import org.arend.typechecking.visitor.DesugarVisitor
-import org.arend.typechecking.visitor.WhereVarsFixVisitor
 import org.arend.util.ArendBundle
 import org.jetbrains.annotations.Nls
 
@@ -59,7 +56,7 @@ class ArendShowTypeAction : ArendPopupAction() {
 
         fun hint(e: Expression?, element: ArendCompositeElement?) = if (e != null) {
             val normalizePopup = project.service<ArendProjectSettings>().data.popupNormalize
-            val definitionRenamer = element?.let { PsiLocatedRenamer(it) }
+            val definitionRenamer = ConflictDefinitionRenamer() // TODO[server2]: element?.let { PsiLocatedRenamer(it) }
             if (normalizePopup) normalizeExpr(project, e, NormalizationMode.RNF, definitionRenamer) { exprStr ->
                 displayEditorHint(exprStr.toString(), project, editor, AD_TEXT_N)
             } else {
@@ -74,21 +71,15 @@ class ArendShowTypeAction : ArendPopupAction() {
             }
         } else throw SubExprException("failed to synthesize type from given expr")
 
-        val (expr, definitionRef) = ArendTraceAction.getElementAtRange(file, editor)
+        val module = (file as? ArendFile)?.moduleLocation
+        val (expr, defName) = ArendTraceAction.getElementAtRange(file, editor)
             ?: return displayErrorHint(editor, ArendBundle.message("arend.trace.action.cannot.find.expression"))
-        val result: Pair<TypecheckingResult?, TextRange?>? = null
-        /* TODO[server2]
-        val defData = project.service<ArendServerService>().server.getResolvedDefinition(definitionRef)
-        val result: Pair<TypecheckingResult?, TextRange?>? = if (defData != null) {
-            DesugarVisitor.desugar(it, DummyErrorReporter.INSTANCE)
-            WhereVarsFixVisitor.fixDefinition(listOf(it), DummyErrorReporter.INSTANCE)
-            val typechecker = ArendExpressionTypechecker(expr, DummyErrorReporter.INSTANCE).apply {
-                instancePool = GlobalInstancePool(PsiInstanceProviderSet()[it.data], this)
-            }
-            it.accept(DefinitionTypechecker(typechecker, it.recursiveDefinitions), null)
-            Pair(typechecker.checkedExprResult, typechecker.checkedExprRange)
+        val result: Pair<TypecheckingResult?, TextRange?>? = if (module != null) {
+            val factory = SearchingArendCheckerFactory(expr)
+            project.service<ArendServerService>().server.getCheckerFor(listOf(module)).typecheck(defName, factory, DummyErrorReporter.INSTANCE,
+                UnstoppableCancellationIndicator.INSTANCE /* TODO[server2]: Maybe put a time limit or something */, ProgressReporter.empty())
+            Pair(factory.checkedExprResult, factory.checkedExprRange)
         } else null
-        */
         if (result?.first != null && result.second != null) {
             select(result.second!!)
             hint(result.first?.type, expr)

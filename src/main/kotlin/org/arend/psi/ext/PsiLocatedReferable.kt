@@ -38,7 +38,7 @@ val PsiLocatedReferable.fullName: FullName
         var ref = this
         while (ref !is ArendFile) {
             list.add(ref.refName)
-            ref = parent?.ancestor<PsiLocatedReferable>() ?: break
+            ref = ref.parent?.ancestor<PsiLocatedReferable>() ?: break
         }
         list.reverse()
         return FullName((ref as? ArendFile)?.moduleLocation, LongName(list))

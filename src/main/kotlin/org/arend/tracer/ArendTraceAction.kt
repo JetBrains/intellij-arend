@@ -18,6 +18,7 @@ import org.arend.codeInsight.ArendPopupHandler
 import org.arend.error.DummyErrorReporter
 import org.arend.ext.error.ErrorReporter
 import org.arend.ext.error.GeneralError
+import org.arend.module.FullName
 import org.arend.naming.reference.TCDefReferable
 import org.arend.psi.*
 import org.arend.psi.ext.*
@@ -90,11 +91,11 @@ class ArendTraceAction : ArendPopupAction() {
     companion object {
         private val TRACE_ICON = LayeredIcon.create(AllIcons.Actions.ListFiles, AllIcons.Nodes.RunnableMark)
 
-        fun getElementAtRange(file: PsiFile, editor: Editor): Pair<ArendExpr, TCDefReferable>? {
+        fun getElementAtRange(file: PsiFile, editor: Editor): Pair<ArendExpr, FullName>? {
             val range = EditorUtil.getSelectionInAnyMode(editor)
             val sExpr = selectedExpr(file, range)
             if (sExpr != null) {
-                val def = sExpr.ancestor<ReferableBase<*>>()?.tcReferable
+                val def = sExpr.ancestor<ReferableBase<*>>()?.fullName
                 if (def != null) {
                     return Pair(sExpr, def)
                 }

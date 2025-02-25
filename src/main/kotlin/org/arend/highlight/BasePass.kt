@@ -84,22 +84,24 @@ abstract class BasePass(protected open val file: IArendFile, editor: Editor, nam
     }
 
     open fun applyInformationLater() {
-        for (error in errorList) {
-            val list = error.cause?.let { it as? Collection<*> ?: listOf(it) }?.mapSmartNotNull { getCauseElement(it)?.validOrNull() }
-            if (list.isNullOrEmpty()) {
-                val psi = ((error as? LocalError)?.definition as? DataContainer)?.data as? PsiElement
-                if (psi != null) {
-                    reportToEditor(error, psi)
-                }
-            } else {
-                for (psi in list) {
-                    reportToEditor(error, psi)
+        runReadAction {
+            for (error in errorList) {
+                val list = error.cause?.let { it as? Collection<*> ?: listOf(it) }?.mapSmartNotNull { getCauseElement(it)?.validOrNull() }
+                if (list.isNullOrEmpty()) {
+                    val psi = ((error as? LocalError)?.definition as? DataContainer)?.data as? PsiElement
+                    if (psi != null) {
+                        reportToEditor(error, psi)
+                    }
+                } else {
+                    for (psi in list) {
+                        reportToEditor(error, psi)
+                    }
                 }
             }
-        }
 
-        if (isValid) {
-            UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
+            if (isValid) {
+                UpdateHighlightersUtil.setHighlightersToEditor(myProject, document, textRange.startOffset, textRange.endOffset, highlights, colorsScheme, id)
+            }
         }
     }
 

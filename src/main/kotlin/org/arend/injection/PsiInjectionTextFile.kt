@@ -49,7 +49,7 @@ class PsiInjectionTextFile(provider: FileViewProvider) : PsiFileImpl(InjectionTe
             }
         }
 
-        for (resolvedReference in listener.getCacheStructure(null).cache) {
+        for (resolvedReference in listener.getCacheStructure(null)?.cache ?: emptyList()) {
             (resolvedReference.reference as? ArendReferenceElement)?.putResolved(resolvedReference.referable)
         }
     }
